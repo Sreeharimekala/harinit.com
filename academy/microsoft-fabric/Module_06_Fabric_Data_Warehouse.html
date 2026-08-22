@@ -1,0 +1,3203 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fabric Data Warehouse — Module 6</title><style>
+:root{
+  --bg:#0f1115;--panel:#151822;--panel-2:#11141b;--ink:#e7e9ee;
+  --ink-dim:#a7adba;--ink-faint:#6b7280;--accent:#5fd3c4;--accent-2:#f2a65a;
+  --rule:#262b38;--code-bg:#0b0d12;--code-ink:#cde5ff;--diagram-ink:#7fe3c7;
+  --table-head:#1b2030;--radius:10px;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:8px}
+.nav-link:hover{background:rgba(95,211,196,.08);color:var(--ink)}
+.nav-link.active{background:rgba(95,211,196,.12);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent-2);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:#fff}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:#fff;line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:#fff;margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px;border-left:3px solid var(--accent);padding-left:14px}
+.content h3:first-child{margin-top:0}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:24px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent-2);font-family:var(--mono)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--code-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.diagram-label{color:#e7e9ee}.diagram-branch{color:#7fe3c7}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px}thead th{background:var(--table-head);color:#fff;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--ink)}
+.callout{background:linear-gradient(180deg,rgba(95,211,196,.09),rgba(95,211,196,.03));border:1px solid rgba(95,211,196,.28);border-radius:14px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:rgba(242,166,90,.07);border:1px solid rgba(242,166,90,.25);border-radius:12px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent-2);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:#04211d;border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}main{padding:36px 20px 90px}}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../fabric-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Fabric Data Engineering</div>
+<div class="brand-title">Fabric Data Warehouse</div>
+<div class="brand-sub">Module 6 · 14 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">6.1</span></a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">6.1</span>Warehouse</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">6.3</span></a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">6.2</span>T-SQL</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">6.5</span></a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">6.3</span>Views</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">6.7</span></a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">6.4</span>Stored Procedures</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">6.9</span></a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">6.10</span></a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">6.6</span>Security</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">6.7</span>Create Warehouse</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">6.8</span>Load Data</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">6.9</span>Create Star Schema</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Module 6</div><h1>Fabric Data Warehouse</h1>
+<p>Overview</p>
+<div class="doc-meta"><span class="pill">14 lessons</span><span class="pill">Microsoft Fabric</span><span class="pill">DP-700 Track</span></div></header>
+<section class="lesson" id="lesson-1"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.1</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-2"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.1</span><h2>Warehouse</h2></div><div class="content">
+<p>6.1 Warehouse</p>
+<h3>6.1.1 What is a Fabric Data Warehouse?</h3>
+<p>A Fabric Data Warehouse is a SQL-first analytical data store in Microsoft Fabric. It is designed for structured enterprise data, complex SQL queries, dimensional modeling, reporting, and BI workloads.</p>
+<h3>Think of it as:</h3>
+<p>A cloud-based analytical database where you primarily work with SQL/T-SQL.</p>
+<h3>A typical architecture is:</h3>
+<pre class="diagram">                    Source Systems
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+      SQL Server      REST API       ADLS/Blob
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+                Fabric Data Factory
+                         │
+                         ▼
+                ┌─────────────────┐
+                │ Fabric Warehouse│
+                │                 │
+                │ FactSales       │
+                │ DimCustomer     │
+                │ DimProduct      │
+                │ DimDate         │
+                └────────┬────────┘
+                         │
+                         ▼
+                  Semantic Model
+                         │
+                         ▼</pre>
+<p>Power BI</p>
+<p>6.1.2 Warehouse vs Lakehouse</p>
+<h3>Fabric provides both Lakehouse and Warehouse. They serve different primary purposes.</h3>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Lakehouse</th><th>Warehouse</th></tr></thead><tbody><tr><td>Primary experience</td><td>Spark + SQL</td><td>SQL/T-SQL</td></tr><tr><td>Data engineering</td><td>Excellent</td><td>Excellent for SQL-based workloads</td></tr><tr><td>File-based data</td><td>Excellent</td><td>Not primary</td></tr><tr><td>Delta/Parquet</td><td>Native</td><td>Not the primary user-facing storage model</td></tr><tr><td>PySpark</td><td>Excellent</td><td>Not primary</td></tr><tr><td>Relational SQL</td><td>Supported</td><td>Primary</td></tr><tr><td>Fact/Dimension modeling</td><td>Supported</td><td>Excellent</td></tr><tr><td>BI workloads</td><td>Excellent</td><td>Excellent</td></tr><tr><td>Unstructured data</td><td>Better fit</td><td>Poorer fit</td></tr><tr><td>SQL-first team</td><td>Good</td><td>Excellent</td></tr></tbody></table></div>
+<h3>Simple decision</h3>
+<p>Need Spark + Files + Data Engineering</p>
+<p>↓</p>
+<h3>Lakehouse</h3>
+<p>Need SQL + Relational Analytics + BI</p>
+<p>↓</p>
+<h3>Warehouse</h3>
+<p>They can also be used together.</p>
+<h3>6.1.3 When Should You Use a Warehouse?</h3>
+<h3>A Fabric Warehouse is a strong choice when:</h3>
+<p>Data is primarily structured.</p>
+<p>Your team is comfortable with SQL.</p>
+<p>You need complex analytical queries.</p>
+<p>You are building a star schema.</p>
+<p>You need fact and dimension tables.</p>
+<p>Business users need SQL access.</p>
+<p>The primary consumers are BI/analytics applications.</p>
+<h3>For example:</h3>
+<pre class="diagram">ERP
+ │
+ ▼
+Data Factory
+ │
+ ▼
+Fabric Warehouse
+ │
+ ├── FactSales
+ ├── DimCustomer
+ ├── DimProduct
+ └── DimDate
+ │
+ ▼</pre>
+<p>Power BI</p>
+<p>6.1.4 Creating a Warehouse</p>
+<h3>In your Fabric workspace:</h3>
+<pre class="diagram">Workspace
+   │
+   ▼</pre>
+<p>+ New</p>
+<pre class="diagram">   │
+   ▼</pre>
+<h3>Warehouse</h3>
+<h3>Give it a meaningful name:</h3>
+<p>WH_Sales</p>
+<p>After creation, you can work with the warehouse through the Fabric SQL experience.</p>
+<p>6.1.5 Warehouse Structure</p>
+<h3>A typical warehouse contains:</h3>
+<pre class="diagram">WH_Sales
+│
+├── Tables
+│     ├── FactSales
+│     ├── DimCustomer
+│     ├── DimProduct
+│     └── DimDate
+│
+├── Views
+│     ├── VW_CustomerSales
+│     └── VW_MonthlySales
+│
+└── SQL objects</pre>
+<p>The exact set of supported database objects and capabilities can evolve, so check the current Fabric experience when implementing production workloads.</p>
+<p>6.1.6 Star Schema</p>
+<p>A very common Warehouse design is the star schema.</p>
+<pre class="diagram">                    DimCustomer
+                         │
+                         │
+                         ▼
+DimDate ───────────► FactSales ◄────────── DimProduct
+                         ▲
+                         │
+                         │</pre>
+<p>DimStore</p>
+<p>The central table is the fact table.</p>
+<p>The surrounding tables are dimension tables.</p>
+<p>6.1.7 Fact Table</p>
+<p>A fact table contains measurable business events.</p>
+<h3>Example:</h3>
+<pre class="diagram">FactSales
+--------------------------------</pre>
+<p>SalesKey</p>
+<p>DateKey</p>
+<p>CustomerKey</p>
+<p>ProductKey</p>
+<p>StoreKey</p>
+<p>Quantity</p>
+<p>SalesAmount</p>
+<p>CostAmount</p>
+<p>DiscountAmount</p>
+<h3>Example data:</h3>
+<div class="table-wrap"><table><thead><tr><th>SalesKey</th><th>DateKey</th><th>CustomerKey</th><th>ProductKey</th><th>Quantity</th><th>SalesAmount</th></tr></thead><tbody><tr><td>1</td><td>20260822</td><td>1001</td><td>501</td><td>2</td><td>2500</td></tr><tr><td>2</td><td>20260822</td><td>1002</td><td>502</td><td>1</td><td>4500</td></tr><tr><td>3</td><td>20260823</td><td>1001</td><td>503</td><td>3</td><td>6000</td></tr></tbody></table></div>
+<p>6.1.8 Dimension Table</p>
+<p>Dimensions provide descriptive information.</p>
+<h3>Example:</h3>
+<pre class="diagram">DimCustomer
+------------------------</pre>
+<p>CustomerKey</p>
+<p>CustomerID</p>
+<p>CustomerName</p>
+<p>City</p>
+<p>State</p>
+<p>Country</p>
+<p>CustomerSegment</p>
+<h3>Data:</h3>
+<div class="table-wrap"><table><thead><tr><th>CustomerKey</th><th>CustomerID</th><th>CustomerName</th><th>City</th><th>Country</th></tr></thead><tbody><tr><td>1001</td><td>C001</td><td>Sreehari</td><td>Hyderabad</td><td>India</td></tr><tr><td>1002</td><td>C002</td><td>Ravi</td><td>Bengaluru</td><td>India</td></tr></tbody></table></div>
+<p>6.1.9 Surrogate Keys</p>
+<h3>Warehouse dimensions commonly use surrogate keys.</h3>
+<h3>Example:</h3>
+<p>CustomerID     = C001</p>
+<p>CustomerKey    = 1001</p>
+<p>CustomerID is the business/source key.</p>
+<p>CustomerKey is the warehouse surrogate key.</p>
+<p>This becomes particularly important for SCD Type 2.</p>
+<h3>Example:</h3>
+<p>CustomerKey | CustomerID | City</p>
+<p>------------|------------|----------</p>
+<p>1001        | C001       | Hyderabad</p>
+<p>1055        | C001       | Bengaluru</p>
+<p>The same business customer can therefore have multiple historical versions.</p>
+<p>6.1.10 Grain of a Fact Table</p>
+<p>Before creating a fact table, define its grain.</p>
+<h3>For example:</h3>
+<p>One row in FactSales represents one order line.</p>
+<h3>This means:</h3>
+<p>OrderID + ProductID</p>
+<p>may identify one fact record.</p>
+<h3>Example:</h3>
+<pre class="diagram">Order 1001
+ ├── Product A
+ ├── Product B
+ └── Product C</pre>
+<p>creates three fact rows.</p>
+<p>Understanding grain is critical to avoiding double counting.</p>
+<p>6.1.11 Creating a Dimension</p>
+<h3>Example:</h3>
+<p>CREATE TABLE dbo.DimCustomer</p>
+<p>(</p>
+<p>CustomerKey INT,</p>
+<p>CustomerID VARCHAR(50),</p>
+<p>CustomerName VARCHAR(200),</p>
+<p>City VARCHAR(100),</p>
+<p>State VARCHAR(100),</p>
+<p>Country VARCHAR(100),</p>
+<p>CustomerSegment VARCHAR(50)</p>
+<p>);</p>
+<p>6.1.12 Creating a Fact Table</p>
+<p>CREATE TABLE dbo.FactSales</p>
+<p>(</p>
+<p>SalesKey BIGINT,</p>
+<p>DateKey INT,</p>
+<p>CustomerKey INT,</p>
+<p>ProductKey INT,</p>
+<p>Quantity INT,</p>
+<p>SalesAmount DECIMAL(18,2),</p>
+<p>CostAmount DECIMAL(18,2),</p>
+<p>DiscountAmount DECIMAL(18,2)</p>
+<p>);</p>
+<p>For monetary values, use a suitable DECIMAL precision/scale rather than floating-point types.</p>
+<p>6.1.13 Loading Data into Warehouse</p>
+<h3>A common Fabric pattern is:</h3>
+<pre class="diagram">Source
+  │
+  ▼
+Data Factory
+  │
+  ▼
+Staging / Transformation
+  │
+  ▼</pre>
+<h3>Warehouse</h3>
+<h3>For example:</h3>
+<pre class="diagram">SQL Server
+    │
+    ▼
+Fabric Data Factory
+    │
+    ▼
+WH_Sales
+    │
+    ├── DimCustomer
+    ├── DimProduct
+    └── FactSales</pre>
+<h3>Fabric Data Factory can orchestrate the ingestion and transformation workflow.</h3>
+<p>6.1.14 Warehouse + Lakehouse Architecture</p>
+<p>You don&#x27;t necessarily have to choose only one.</p>
+<h3>A larger Fabric solution could look like:</h3>
+<pre class="diagram">                    Sources
+                       │
+                       ▼
+                 Data Factory
+                       │
+                       ▼
+                Bronze Lakehouse
+                       │
+                       ▼
+                Silver Lakehouse
+                       │
+                       ▼
+                 Curated Data
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+          Gold Lakehouse    Warehouse
+                                │
+                                ▼
+                         Semantic Model
+                                │
+                                ▼</pre>
+<p>Power BI</p>
+<p>This pattern is useful when Spark/data engineering workloads and SQL-serving workloads have different requirements.</p>
+<p>6.1.15 Warehouse Tables vs Lakehouse Tables</p>
+<h3>Suppose you have:</h3>
+<p>Customers</p>
+<p>Products</p>
+<p>Orders</p>
+<h3>Lakehouse</h3>
+<h3>You might process them using:</h3>
+<pre class="code">df = spark.read.table(
+    &quot;Silver_Customers&quot;</pre>
+<p>)</p>
+<p>and write Delta tables.</p>
+<h3>Warehouse</h3>
+<h3>You primarily interact with the data using SQL:</h3>
+<p>SELECT</p>
+<p>CustomerID,</p>
+<p>CustomerName</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>This difference in primary experience is important.</p>
+<p>6.1.16 Querying a Warehouse</p>
+<h3>Basic query:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.FactSales;</p>
+<h3>Better:</h3>
+<p>SELECT</p>
+<p>SalesKey,</p>
+<p>CustomerKey,</p>
+<p>ProductKey,</p>
+<p>Quantity,</p>
+<p>SalesAmount</p>
+<p>FROM dbo.FactSales;</p>
+<p>6.1.17 Joining Fact and Dimension</p>
+<pre class="code">SELECT
+    f.SalesKey,
+    c.CustomerName,
+    p.ProductName,
+    f.Quantity,
+    f.SalesAmount
+FROM dbo.FactSales f
+JOIN dbo.DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+JOIN dbo.DimProduct p
+    ON f.ProductKey = p.ProductKey;</pre>
+<p>This produces business-readable analytical data.</p>
+<p>6.1.18 Aggregating Warehouse Data</p>
+<h3>Revenue by country:</h3>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+GROUP BY
+    c.Country
+ORDER BY
+    Revenue DESC;</pre>
+<h3>Example result:</h3>
+<div class="table-wrap"><table><thead><tr><th>Country</th><th>Revenue</th></tr></thead><tbody><tr><td>India</td><td>25,000,000</td></tr><tr><td>USA</td><td>18,500,000</td></tr><tr><td>UK</td><td>12,200,000</td></tr></tbody></table></div>
+<p>6.1.19 Warehouse and SCD Type 2</p>
+<h3>Suppose DimCustomer uses SCD Type 2:</h3>
+<div class="table-wrap"><table><thead><tr><th>CustomerKey</th><th>CustomerID</th><th>City</th><th>StartDate</th><th>EndDate</th><th>IsCurrent</th></tr></thead><tbody><tr><td>1001</td><td>C001</td><td>Hyderabad</td><td>2025-01-01</td><td>2026-08-21</td><td>0</td></tr><tr><td>1055</td><td>C001</td><td>Bengaluru</td><td>2026-08-22</td><td>NULL</td><td>1</td></tr></tbody></table></div>
+<h3>A historical fact can reference:</h3>
+<p>CustomerKey = 1001</p>
+<h3>while a newer fact references:</h3>
+<p>CustomerKey = 1055</p>
+<p>This allows historical reporting.</p>
+<p>6.1.20 Warehouse for Reporting</p>
+<h3>A typical Power BI architecture:</h3>
+<pre class="diagram">                  Fabric Warehouse
+                         │
+            ┌────────────┼────────────┐
+            ▼            ▼            ▼
+        FactSales    Dimensions     Views
+            │            │            │
+            └────────────┼────────────┘
+                         ▼
+                  Semantic Model
+                         │
+                         ▼</pre>
+<p>Power BI</p>
+<p>The Warehouse becomes the structured serving layer for analytics.</p>
+<p>6.1.21 Example: Complete Sales Warehouse</p>
+<p>Let&#x27;s design a simple sales warehouse.</p>
+<p>Dimensions</p>
+<p>DimDate</p>
+<p>DimCustomer</p>
+<p>DimProduct</p>
+<p>DimStore</p>
+<p>Fact</p>
+<p>FactSales</p>
+<h3>Architecture:</h3>
+<pre class="diagram">                       DimDate
+                          │
+                          │
+                          ▼
+DimCustomer ───────► FactSales ◄────── DimProduct
+                          ▲
+                          │
+                          │</pre>
+<p>DimStore</p>
+<p>6.1.22 DimDate</p>
+<h3>Example:</h3>
+<p>CREATE TABLE dbo.DimDate</p>
+<p>(</p>
+<p>DateKey INT,</p>
+<p>FullDate DATE,</p>
+<p>DayNumber INT,</p>
+<p>MonthNumber INT,</p>
+<p>MonthName VARCHAR(20),</p>
+<p>QuarterNumber INT,</p>
+<p>YearNumber INT</p>
+<p>);</p>
+<h3>Example:</h3>
+<div class="table-wrap"><table><thead><tr><th>DateKey</th><th>FullDate</th><th>MonthName</th><th>QuarterNumber</th><th>YearNumber</th></tr></thead><tbody><tr><td>20260822</td><td>2026-08-22</td><td>August</td><td>3</td><td>2026</td></tr></tbody></table></div>
+<p>6.1.23 DimProduct</p>
+<p>CREATE TABLE dbo.DimProduct</p>
+<p>(</p>
+<p>ProductKey INT,</p>
+<p>ProductID VARCHAR(50),</p>
+<p>ProductName VARCHAR(200),</p>
+<p>Category VARCHAR(100),</p>
+<p>Brand VARCHAR(100)</p>
+<p>);</p>
+<p>6.1.24 FactSales</p>
+<p>CREATE TABLE dbo.FactSales</p>
+<p>(</p>
+<p>SalesKey BIGINT,</p>
+<p>DateKey INT,</p>
+<p>CustomerKey INT,</p>
+<p>ProductKey INT,</p>
+<p>Quantity INT,</p>
+<p>SalesAmount DECIMAL(18,2),</p>
+<p>CostAmount DECIMAL(18,2)</p>
+<p>);</p>
+<p>6.1.25 Business Query</p>
+<h3>Now calculate profit by category:</h3>
+<pre class="code">SELECT
+    p.Category,
+    SUM(f.SalesAmount) AS Revenue,
+    SUM(f.CostAmount) AS Cost,
+    SUM(f.SalesAmount - f.CostAmount) AS Profit
+FROM dbo.FactSales f
+JOIN dbo.DimProduct p
+    ON f.ProductKey = p.ProductKey
+GROUP BY
+    p.Category
+ORDER BY
+    Revenue DESC;</pre>
+<p>6.1.26 Warehouse Views</p>
+<h3>Instead of exposing complex SQL repeatedly, create a view:</h3>
+<p>CREATE VIEW dbo.VW_ProductPerformance</p>
+<p>AS</p>
+<pre class="code">SELECT
+    p.ProductID,
+    p.ProductName,
+    p.Category,
+    SUM(f.Quantity) AS UnitsSold,
+    SUM(f.SalesAmount) AS Revenue,
+    SUM(f.CostAmount) AS Cost,
+    SUM(f.SalesAmount - f.CostAmount) AS Profit
+FROM dbo.FactSales f
+JOIN dbo.DimProduct p
+    ON f.ProductKey = p.ProductKey
+GROUP BY
+    p.ProductID,
+    p.ProductName,
+    p.Category;</pre>
+<h3>Then:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.VW_ProductPerformance;</p>
+<p>6.1.27 Warehouse Security Concept</p>
+<p>A production warehouse should follow least-privilege principles.</p>
+<h3>For example:</h3>
+<pre class="diagram">Data Engineer
+     │
+     ├── Build/modify data
+     │
+     ▼</pre>
+<h3>Warehouse</h3>
+<pre class="diagram">Analyst
+     │
+     ├── Read curated data
+     │
+     ▼</pre>
+<p>Views / Tables</p>
+<pre class="diagram">Business User
+     │
+     ▼</pre>
+<p>Semantic Model / Power BI</p>
+<p>Don&#x27;t expose sensitive columns unnecessarily.</p>
+<h3>For example:</h3>
+<pre class="diagram">Customer
+├── CustomerID
+├── Name
+├── Country
+├── Email
+└── Phone</pre>
+<h3>A reporting layer may only need:</h3>
+<p>CustomerID</p>
+<p>Name</p>
+<p>Country</p>
+<p>6.1.28 Warehouse Best Practices</p>
+<h3>1. Define the grain</h3>
+<p>Always document what one fact row represents.</p>
+<h3>2. Use a star schema where appropriate</h3>
+<pre class="diagram">Fact
+ +</pre>
+<p>Dimensions</p>
+<h3>3. Use meaningful names</h3>
+<p>FactSales</p>
+<p>DimCustomer</p>
+<p>DimProduct</p>
+<h3>4. Use appropriate data types</h3>
+<h3>Especially for:</h3>
+<p>Dates</p>
+<p>Decimal values</p>
+<p>IDs</p>
+<p>Text</p>
+<h3>5. Avoid unnecessary columns</h3>
+<p>Don&#x27;t bring every source column into analytical tables.</p>
+<h3>6. Separate ingestion and presentation logic</h3>
+<p>Don&#x27;t mix raw ingestion logic with business reporting logic.</p>
+<h3>7. Validate row counts</h3>
+<h3>For example:</h3>
+<p>Source Orders</p>
+<p>↓</p>
+<h3>Warehouse FactSales</h3>
+<p>Compare expected counts and totals.</p>
+<h3>8. Monitor data quality</h3>
+<h3>Check:</h3>
+<p>NULLs</p>
+<p>Duplicates</p>
+<p>Missing dimension keys</p>
+<p>Invalid dates</p>
+<p>Unexpected amounts</p>
+<p>6.1.29 Common Mistakes</p>
+<p>Mistake 1 — Treating Warehouse like a raw data lake</p>
+<h3>Warehouse should generally contain curated structured analytical data.</h3>
+<p>Mistake 2 — No defined fact grain</p>
+<p>This can cause incorrect aggregations.</p>
+<p>Mistake 3 — Joining on the wrong key</p>
+<p>Always understand business keys and surrogate keys.</p>
+<p>Mistake 4 — Ignoring SCD</p>
+<p>If historical dimension changes matter, design for them.</p>
+<p>Mistake 5 — Building one giant table</p>
+<p>A well-designed dimensional model can be easier to maintain and query.</p>
+<p>Mistake 6 — Using floating-point types for money</p>
+<p>Prefer an appropriate decimal type.</p>
+<p>6.1.30 Interview Questions</p>
+<h3>What is a Fabric Warehouse?</h3>
+<p>A SQL-first analytical data store in Microsoft Fabric designed for structured analytical and BI workloads.</p>
+<h3>Warehouse vs Lakehouse?</h3>
+<h3>Lakehouse → Spark + Files + Delta + Data Engineering</h3>
+<h3>Warehouse → SQL + Relational Analytics + BI</h3>
+<h3>What is a fact table?</h3>
+<p>A table containing measurable business events.</p>
+<h3>What is a dimension table?</h3>
+<p>A table containing descriptive attributes used to analyze facts.</p>
+<h3>What is a star schema?</h3>
+<p>A central fact table connected to multiple dimension tables.</p>
+<h3>What is fact table grain?</h3>
+<p>The precise definition of what one row in the fact table represents.</p>
+<h3>Why use surrogate keys?</h3>
+<p>To uniquely identify dimension versions and support historical modeling such as SCD Type 2.</p>
+<h3>What is a view?</h3>
+<p>A reusable logical SQL definition over underlying data.</p>
+<p>6.1.31 Hands-On Exercise</p>
+<h3>Create a Fabric Warehouse named:</h3>
+<p>WH_Sales</p>
+<h3>Create these tables:</h3>
+<p>DimDate</p>
+<p>DimCustomer</p>
+<p>DimProduct</p>
+<p>FactSales</p>
+<h3>Build this model:</h3>
+<pre class="diagram">                 DimDate
+                    │
+                    ▼
+DimCustomer ───► FactSales ◄─── DimProduct</pre>
+<h3>Then write the following queries:</h3>
+<p>Exercise 1 — Total Revenue</p>
+<pre class="code">SELECT
+    SUM(SalesAmount) AS TotalRevenue
+FROM dbo.FactSales;</pre>
+<p>Exercise 2 — Revenue by Country</p>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+GROUP BY c.Country;</pre>
+<p>Exercise 3 — Revenue by Product Category</p>
+<pre class="code">SELECT
+    p.Category,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimProduct p
+    ON f.ProductKey = p.ProductKey
+GROUP BY p.Category;</pre>
+<p>Exercise 4 — Profit</p>
+<pre class="code">SELECT
+    SUM(SalesAmount - CostAmount) AS Profit
+FROM dbo.FactSales;</pre>
+<p>Exercise 5 — Top Products</p>
+<pre class="code">SELECT TOP 10
+    p.ProductName,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimProduct p
+    ON f.ProductKey = p.ProductKey
+GROUP BY
+    p.ProductName
+ORDER BY
+    Revenue DESC;</pre>
+<p>6.1.32 Key Takeaway</p>
+<h3>Think of Fabric Warehouse as the SQL-first analytical serving layer:</h3>
+<pre class="diagram">                 DATA SOURCES
+                      │
+                      ▼
+               DATA INGESTION
+                      │
+                      ▼</pre>
+<p>LAKEHOUSE</p>
+<pre class="diagram">              Bronze → Silver
+                      │
+                      ▼
+              Curated / Gold
+                      │
+                      ▼
+             FABRIC WAREHOUSE
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+       Facts     Dimensions     Views
+          │           │           │
+          └───────────┼───────────┘
+                      ▼
+               SEMANTIC MODEL
+                      │
+                      ▼</pre>
+<p>POWER BI</p>
+<h3>In one sentence:</h3>
+<p>Fabric Warehouse is where structured, business-ready data can be modeled and queried using SQL/T-SQL for enterprise analytics and BI.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-3"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.3</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-4"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.2</span><h2>T-SQL</h2></div><div class="content">
+<p>6.2 T-SQL</p>
+<h3>6.2.1 What is T-SQL?</h3>
+<p>T-SQL (Transact-SQL) is Microsoft&#x27;s extension of SQL used for querying and manipulating data in Microsoft data platforms.</p>
+<h3>In Microsoft Fabric Warehouse, T-SQL is the primary language used to:</h3>
+<p>Query tables</p>
+<p>Filter data</p>
+<p>Join tables</p>
+<p>Aggregate data</p>
+<p>Create tables</p>
+<p>Create views</p>
+<p>Transform data</p>
+<p>Perform analytical calculations</p>
+<p>Build reporting datasets</p>
+<h3>Think of it as:</h3>
+<p>SQL + Microsoft-specific capabilities for working with relational data.</p>
+<p>6.2.2 T-SQL in Fabric Warehouse</p>
+<h3>A typical workflow is:</h3>
+<pre class="diagram">Fabric Warehouse
+      │
+      ├── Tables
+      │     ├── FactSales
+      │     ├── DimCustomer
+      │     └── DimProduct
+      │
+      ├── Views
+      │
+      └── SQL Query
+             │
+             ▼</pre>
+<p>Results</p>
+<h3>For example:</h3>
+<p>SELECT</p>
+<p>CustomerID,</p>
+<p>CustomerName,</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>6.2.3 Basic SELECT</p>
+<p>The SELECT statement retrieves data.</p>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>However, in production code, avoid unnecessary SELECT *.</p>
+<h3>Prefer:</h3>
+<p>SELECT</p>
+<p>CustomerID,</p>
+<p>CustomerName,</p>
+<p>City,</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>6.2.4 Column Aliases</p>
+<p>You can rename output columns.</p>
+<p>SELECT</p>
+<p>CustomerID AS [Customer ID],</p>
+<p>CustomerName AS [Customer Name],</p>
+<p>Country AS [Customer Country]</p>
+<p>FROM dbo.DimCustomer;</p>
+<h3>Or simpler aliases:</h3>
+<p>SELECT</p>
+<p>CustomerID,</p>
+<p>CustomerName,</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>6.2.5 DISTINCT</p>
+<p>Returns unique values.</p>
+<p>SELECT DISTINCT</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer;</p>
+<h3>Example result:</h3>
+<p>India</p>
+<p>USA</p>
+<p>UK</p>
+<p>Australia</p>
+<p>6.2.6 WHERE</p>
+<pre class="code">WHERE filters rows.
+SELECT
+    CustomerID,
+    CustomerName,
+    Country
+FROM dbo.DimCustomer
+WHERE Country = &#x27;India&#x27;;</pre>
+<h3>Multiple conditions:</h3>
+<pre class="code">SELECT *
+FROM dbo.DimCustomer
+WHERE Country = &#x27;India&#x27;</pre>
+<p>AND City = &#x27;Hyderabad&#x27;;</p>
+<p>6.2.7 AND / OR</p>
+<pre class="code">SELECT *
+FROM dbo.DimCustomer
+WHERE Country = &#x27;India&#x27;</pre>
+<p>AND City = &#x27;Hyderabad&#x27;;</p>
+<h3>Using OR:</h3>
+<pre class="code">SELECT *
+FROM dbo.DimCustomer
+WHERE City = &#x27;Hyderabad&#x27;</pre>
+<p>OR City = &#x27;Bengaluru&#x27;;</p>
+<h3>Use parentheses when combining AND and OR:</h3>
+<pre class="code">SELECT *
+FROM dbo.DimCustomer
+WHERE Country = &#x27;India&#x27;</pre>
+<p>AND (</p>
+<pre class="code">        City = &#x27;Hyderabad&#x27;
+        OR City = &#x27;Bengaluru&#x27;
+      );</pre>
+<p>6.2.8 IN</p>
+<h3>Instead of:</h3>
+<pre class="code">WHERE City = &#x27;Hyderabad&#x27;</pre>
+<p>OR City = &#x27;Bengaluru&#x27;</p>
+<p>OR City = &#x27;Chennai&#x27;</p>
+<h3>use:</h3>
+<p>WHERE City IN</p>
+<p>(</p>
+<p>&#x27;Hyderabad&#x27;,</p>
+<p>&#x27;Bengaluru&#x27;,</p>
+<p>&#x27;Chennai&#x27;</p>
+<p>);</p>
+<p>6.2.9 BETWEEN</p>
+<p>SELECT *</p>
+<p>FROM dbo.FactSales</p>
+<p>WHERE SalesAmount BETWEEN 1000 AND 5000;</p>
+<h3>For dates:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.FactSales</p>
+<p>WHERE OrderDate BETWEEN</p>
+<p>&#x27;2026-01-01&#x27;</p>
+<p>AND</p>
+<p>&#x27;2026-01-31&#x27;;</p>
+<p>For timestamp columns, be careful with BETWEEN because the upper boundary can unintentionally exclude later times on the final day. A half-open interval is often safer:</p>
+<pre class="code">WHERE OrderDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND OrderDate &lt;  &#x27;2026-02-01&#x27;;</p>
+<p>6.2.10 LIKE</p>
+<p>Search for patterns.</p>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer</p>
+<p>WHERE CustomerName LIKE &#x27;Sri%&#x27;;</p>
+<h3>Meaning:</h3>
+<p>Sri</p>
+<p>Sreehari</p>
+<p>Srinivas</p>
+<p>Sridhar</p>
+<p>...</p>
+<h3>Other patterns:</h3>
+<p>LIKE &#x27;%hari&#x27;</p>
+<p>LIKE &#x27;%ree%&#x27;</p>
+<p>LIKE &#x27;S%&#x27;</p>
+<p>6.2.11 NULL Handling</p>
+<h3>Find NULL values:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer</p>
+<p>WHERE Country IS NULL;</p>
+<h3>Find non-NULL:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer</p>
+<p>WHERE Country IS NOT NULL;</p>
+<h3>Incorrect:</h3>
+<pre class="code">WHERE Country = NULL</pre>
+<h3>Correct:</h3>
+<p>WHERE Country IS NULL</p>
+<p>6.2.12 COALESCE</p>
+<p>Replace NULL with a value.</p>
+<pre class="code">SELECT
+    CustomerID,
+    COALESCE(Country, &#x27;Unknown&#x27;) AS Country
+FROM dbo.DimCustomer;</pre>
+<h3>Example:</h3>
+<p>NULL</p>
+<p>↓</p>
+<p>Unknown</p>
+<p>6.2.13 CASE</p>
+<p>CASE is one of the most useful T-SQL transformation features.</p>
+<pre class="code">SELECT
+    SalesAmount,
+    CASE
+        WHEN SalesAmount &gt;= 10000
+            THEN &#x27;High&#x27;
+        WHEN SalesAmount &gt;= 5000
+            THEN &#x27;Medium&#x27;
+        ELSE &#x27;Low&#x27;
+    END AS SalesCategory
+FROM dbo.FactSales;</pre>
+<h3>Result:</h3>
+<div class="table-wrap"><table><thead><tr><th>SalesAmount</th><th>SalesCategory</th></tr></thead><tbody><tr><td>15000</td><td>High</td></tr><tr><td>7000</td><td>Medium</td></tr><tr><td>2500</td><td>Low</td></tr></tbody></table></div>
+<p>6.2.14 Aggregate Functions</p>
+<h3>Common aggregate functions:</h3>
+<pre class="code">SUM()
+COUNT()
+AVG()
+MIN()
+MAX()</pre>
+<h3>Example:</h3>
+<pre class="code">SELECT
+    SUM(SalesAmount) AS Revenue,
+    AVG(SalesAmount) AS AverageSale,
+    MIN(SalesAmount) AS MinimumSale,
+    MAX(SalesAmount) AS MaximumSale,
+    COUNT(*) AS RecordCount
+FROM dbo.FactSales;</pre>
+<p>6.2.15 COUNT Variations</p>
+<p>Count rows</p>
+<pre class="code">SELECT COUNT(*) AS TotalRows
+FROM dbo.FactSales;</pre>
+<p>Count non-NULL values</p>
+<pre class="code">SELECT COUNT(CustomerKey)
+FROM dbo.FactSales;</pre>
+<p>Count unique customers</p>
+<pre class="code">SELECT COUNT(DISTINCT CustomerKey)
+FROM dbo.FactSales;</pre>
+<p>6.2.16 GROUP BY</p>
+<p>Group data before aggregation.</p>
+<h3>Revenue by country:</h3>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+GROUP BY
+    c.Country;</pre>
+<h3>Result:</h3>
+<div class="table-wrap"><table><thead><tr><th>Country</th><th>Revenue</th></tr></thead><tbody><tr><td>India</td><td>25,000,000</td></tr><tr><td>USA</td><td>18,000,000</td></tr><tr><td>UK</td><td>12,000,000</td></tr></tbody></table></div>
+<p>6.2.17 HAVING</p>
+<p>HAVING filters groups after aggregation.</p>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount) AS Revenue
+FROM dbo.FactSales f
+JOIN dbo.DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+GROUP BY
+    c.Country</pre>
+<p>HAVING</p>
+<p>SUM(f.SalesAmount) &gt; 10000000;</p>
+<h3>Important difference:</h3>
+<p>WHERE</p>
+<p>↓</p>
+<p>Filters individual rows</p>
+<p>GROUP BY</p>
+<p>↓</p>
+<p>Creates groups</p>
+<p>HAVING</p>
+<p>↓</p>
+<p>Filters groups</p>
+<p>6.2.18 ORDER BY</p>
+<p>SELECT</p>
+<p>CustomerName,</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer</p>
+<p>ORDER BY CustomerName;</p>
+<h3>Descending:</h3>
+<p>ORDER BY CustomerName DESC;</p>
+<h3>Multiple columns:</h3>
+<p>ORDER BY</p>
+<p>Country ASC,</p>
+<p>CustomerName ASC;</p>
+<p>6.2.19 TOP</p>
+<p>Retrieve a limited number of rows.</p>
+<p>SELECT TOP 10</p>
+<p>ProductID,</p>
+<p>ProductName</p>
+<p>FROM dbo.DimProduct;</p>
+<h3>Usually combine with ORDER BY when you want a meaningful top/bottom result:</h3>
+<p>SELECT TOP 10</p>
+<p>ProductID,</p>
+<p>ProductName,</p>
+<p>SalesAmount</p>
+<p>FROM dbo.FactSales</p>
+<p>ORDER BY SalesAmount DESC;</p>
+<p>6.2.20 INNER JOIN</p>
+<p>Returns matching records.</p>
+<p>SELECT</p>
+<p>f.SalesKey,</p>
+<p>c.CustomerName,</p>
+<p>f.SalesAmount</p>
+<p>FROM dbo.FactSales f</p>
+<p>INNER JOIN dbo.DimCustomer c</p>
+<p>ON f.CustomerKey = c.CustomerKey;</p>
+<p>6.2.21 LEFT JOIN</p>
+<p>Keeps all records from the left table.</p>
+<p>SELECT</p>
+<p>f.SalesKey,</p>
+<p>c.CustomerName,</p>
+<p>f.SalesAmount</p>
+<p>FROM dbo.FactSales f</p>
+<p>LEFT JOIN dbo.DimCustomer c</p>
+<p>ON f.CustomerKey = c.CustomerKey;</p>
+<p>This is particularly useful when you want to detect missing dimension records.</p>
+<p>6.2.22 Multiple Joins</p>
+<p>SELECT</p>
+<p>f.SalesKey,</p>
+<p>c.CustomerName,</p>
+<p>p.ProductName,</p>
+<p>p.Category,</p>
+<p>f.Quantity,</p>
+<p>f.SalesAmount</p>
+<p>FROM dbo.FactSales f</p>
+<p>LEFT JOIN dbo.DimCustomer c</p>
+<p>ON f.CustomerKey = c.CustomerKey</p>
+<p>LEFT JOIN dbo.DimProduct p</p>
+<p>ON f.ProductKey = p.ProductKey;</p>
+<p>6.2.23 FULL OUTER JOIN</p>
+<p>Useful for reconciliation.</p>
+<p>SELECT</p>
+<p>s.CustomerID AS SourceCustomer,</p>
+<p>t.CustomerID AS TargetCustomer</p>
+<p>FROM SourceCustomers s</p>
+<p>FULL OUTER JOIN TargetCustomers t</p>
+<p>ON s.CustomerID = t.CustomerID;</p>
+<h3>This helps identify:</h3>
+<p>Source only</p>
+<p>Target only</p>
+<p>Both</p>
+<p>6.2.24 CTE — Common Table Expression</p>
+<p>A CTE temporarily defines a query result that can be referenced by the following statement.</p>
+<p>WITH CustomerSales AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Revenue
+    FROM dbo.FactSales
+    GROUP BY CustomerKey</pre>
+<p>)</p>
+<pre class="code">SELECT
+    c.CustomerName,
+    cs.Revenue
+FROM CustomerSales cs
+JOIN dbo.DimCustomer c
+    ON cs.CustomerKey = c.CustomerKey;</pre>
+<p>CTEs are excellent for making complex transformations readable.</p>
+<p>6.2.25 Multiple CTEs</p>
+<p>WITH Sales AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Revenue
+    FROM dbo.FactSales
+    GROUP BY CustomerKey</pre>
+<p>),</p>
+<p>CustomerInfo AS</p>
+<p>(</p>
+<p>SELECT</p>
+<p>CustomerKey,</p>
+<p>CustomerName,</p>
+<p>Country</p>
+<p>FROM dbo.DimCustomer</p>
+<p>)</p>
+<pre class="code">SELECT
+    c.CustomerName,
+    c.Country,
+    s.Revenue
+FROM Sales s
+JOIN CustomerInfo c
+    ON s.CustomerKey = c.CustomerKey;</pre>
+<p>6.2.26 Subqueries</p>
+<p>A subquery is a query inside another query.</p>
+<p>SELECT</p>
+<p>CustomerKey,</p>
+<p>SalesAmount</p>
+<p>FROM dbo.FactSales</p>
+<p>WHERE SalesAmount &gt;</p>
+<p>(</p>
+<pre class="code">    SELECT AVG(SalesAmount)
+    FROM dbo.FactSales</pre>
+<p>);</p>
+<p>This returns sales above the average sale amount.</p>
+<p>6.2.27 EXISTS</p>
+<p>Check whether a matching record exists.</p>
+<p>SELECT</p>
+<p>c.CustomerID,</p>
+<p>c.CustomerName</p>
+<p>FROM dbo.DimCustomer c</p>
+<p>WHERE EXISTS</p>
+<p>(</p>
+<pre class="code">    SELECT 1
+    FROM dbo.FactSales f
+    WHERE f.CustomerKey = c.CustomerKey</pre>
+<p>);</p>
+<p>This returns customers who have at least one sales record.</p>
+<p>6.2.28 NOT EXISTS</p>
+<h3>Find customers with no sales:</h3>
+<p>SELECT</p>
+<p>c.CustomerID,</p>
+<p>c.CustomerName</p>
+<p>FROM dbo.DimCustomer c</p>
+<p>WHERE NOT EXISTS</p>
+<p>(</p>
+<pre class="code">    SELECT 1
+    FROM dbo.FactSales f
+    WHERE f.CustomerKey = c.CustomerKey</pre>
+<p>);</p>
+<p>This is a useful data-quality pattern.</p>
+<p>6.2.29 Window Functions</p>
+<p>T-SQL supports analytical window functions.</p>
+<p>Customer total</p>
+<pre class="code">SELECT
+    CustomerKey,
+    SalesAmount,
+    SUM(SalesAmount) OVER
+    (
+        PARTITION BY CustomerKey
+    ) AS CustomerRevenue
+FROM dbo.FactSales;</pre>
+<p>Unlike GROUP BY, this keeps individual rows.</p>
+<p>6.2.30 ROW_NUMBER</p>
+<h3>Find the latest record per customer:</h3>
+<p>WITH RankedCustomers AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        CustomerID,
+        CustomerName,
+        UpdatedDate,
+        ROW_NUMBER() OVER
+        (
+            PARTITION BY CustomerID
+            ORDER BY UpdatedDate DESC
+        ) AS rn
+    FROM dbo.CustomerStage</pre>
+<p>)</p>
+<pre class="code">SELECT *
+FROM RankedCustomers
+WHERE rn = 1;</pre>
+<p>This is a very common data-engineering pattern.</p>
+<p>6.2.31 RANK and DENSE_RANK</p>
+<p>SELECT</p>
+<p>ProductID,</p>
+<p>SalesAmount,</p>
+<p>RANK() OVER</p>
+<p>(</p>
+<pre class="code">        ORDER BY SalesAmount DESC
+    ) AS SalesRank,</pre>
+<p>DENSE_RANK() OVER</p>
+<p>(</p>
+<pre class="code">        ORDER BY SalesAmount DESC
+    ) AS DenseSalesRank
+
+FROM dbo.FactSales;</pre>
+<h3>Remember:</h3>
+<pre class="code">ROW_NUMBER()</pre>
+<p>→ 1, 2, 3, 4</p>
+<pre class="code">RANK()</pre>
+<p>→ 1, 1, 3, 4</p>
+<pre class="code">DENSE_RANK()</pre>
+<p>→ 1, 1, 2, 3</p>
+<p>6.2.32 LAG and LEAD</p>
+<h3>Previous sale:</h3>
+<pre class="code">SELECT
+    OrderDate,
+    SalesAmount,
+    LAG(SalesAmount) OVER
+    (
+        ORDER BY OrderDate
+    ) AS PreviousSales
+FROM dbo.DailySales;</pre>
+<h3>Next sale:</h3>
+<pre class="code">SELECT
+    OrderDate,
+    SalesAmount,
+    LEAD(SalesAmount) OVER
+    (
+        ORDER BY OrderDate
+    ) AS NextSales
+FROM dbo.DailySales;</pre>
+<h3>Useful for:</h3>
+<p>Month-over-month analysis</p>
+<p>Change detection</p>
+<p>Time-series analysis</p>
+<p>SCD processing</p>
+<p>6.2.33 Running Total</p>
+<pre class="code">SELECT
+    OrderDate,
+    SalesAmount,
+    SUM(SalesAmount) OVER
+    (
+        ORDER BY OrderDate
+        ROWS BETWEEN
+            UNBOUNDED PRECEDING
+            AND CURRENT ROW
+    ) AS RunningRevenue
+FROM dbo.FactSales;</pre>
+<h3>Example:</h3>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Sales</th><th>Running Revenue</th></tr></thead><tbody><tr><td>Aug 1</td><td>1000</td><td>1000</td></tr><tr><td>Aug 2</td><td>1500</td><td>2500</td></tr><tr><td>Aug 3</td><td>2000</td><td>4500</td></tr></tbody></table></div>
+<p>6.2.34 Creating Tables</p>
+<p>CREATE TABLE dbo.DimProduct</p>
+<p>(</p>
+<p>ProductKey INT,</p>
+<p>ProductID VARCHAR(50),</p>
+<p>ProductName VARCHAR(200),</p>
+<p>Category VARCHAR(100),</p>
+<p>Brand VARCHAR(100)</p>
+<p>);</p>
+<p>6.2.35 INSERT</p>
+<p>INSERT INTO dbo.DimProduct</p>
+<p>(</p>
+<p>ProductKey,</p>
+<p>ProductID,</p>
+<p>ProductName,</p>
+<p>Category,</p>
+<p>Brand</p>
+<p>)</p>
+<p>VALUES</p>
+<p>(</p>
+<p>101,</p>
+<p>&#x27;P001&#x27;,</p>
+<p>&#x27;Laptop&#x27;,</p>
+<p>&#x27;Electronics&#x27;,</p>
+<p>&#x27;ABC&#x27;</p>
+<p>);</p>
+<p>6.2.36 INSERT from SELECT</p>
+<p>Very useful in ETL/ELT workflows.</p>
+<p>INSERT INTO dbo.Gold_ProductSales</p>
+<p>(</p>
+<p>ProductKey,</p>
+<p>Revenue</p>
+<p>)</p>
+<pre class="code">SELECT
+    ProductKey,
+    SUM(SalesAmount)
+FROM dbo.FactSales
+GROUP BY ProductKey;</pre>
+<p>6.2.37 UPDATE</p>
+<h3>Example:</h3>
+<p>UPDATE dbo.DimProduct</p>
+<p>SET</p>
+<pre class="code">    Category = &#x27;Computers&#x27;
+WHERE ProductID = &#x27;P001&#x27;;</pre>
+<p>Be very careful with the WHERE clause.</p>
+<h3>Without it:</h3>
+<p>UPDATE dbo.DimProduct</p>
+<p>SET Category = &#x27;Computers&#x27;;</p>
+<p>you could modify every row.</p>
+<p>6.2.38 DELETE</p>
+<pre class="code">DELETE FROM dbo.DimProduct
+WHERE ProductID = &#x27;P001&#x27;;</pre>
+<p>Again, always validate the filter before executing destructive operations.</p>
+<p>6.2.39 MERGE and Upsert</p>
+<h3>A common ETL requirement is:</h3>
+<p>If record exists → UPDATE</p>
+<p>If record doesn&#x27;t exist → INSERT</p>
+<h3>Conceptually:</h3>
+<p>MERGE INTO dbo.DimProduct AS target</p>
+<p>USING dbo.StageProduct AS source</p>
+<p>ON target.ProductID = source.ProductID</p>
+<p>WHEN MATCHED THEN</p>
+<pre class="code">    UPDATE SET
+        target.ProductName = source.ProductName,
+        target.Category = source.Category</pre>
+<p>WHEN NOT MATCHED THEN</p>
+<p>INSERT</p>
+<p>(</p>
+<p>ProductID,</p>
+<p>ProductName,</p>
+<p>Category</p>
+<p>)</p>
+<p>VALUES</p>
+<p>(</p>
+<p>source.ProductID,</p>
+<p>source.ProductName,</p>
+<p>source.Category</p>
+<p>);</p>
+<p>For production Fabric Warehouse development, verify the current supported DML/MERGE behavior and limitations for your specific scenario before standardizing on it.</p>
+<p>6.2.40 T-SQL and SCD Type 2</p>
+<h3>Suppose:</h3>
+<p>DimCustomer</p>
+<h3>contains:</h3>
+<div class="table-wrap"><table><thead><tr><th>CustomerKey</th><th>CustomerID</th><th>City</th><th>StartDate</th><th>EndDate</th><th>IsCurrent</th></tr></thead><tbody><tr><td>1001</td><td>C001</td><td>Hyderabad</td><td>2025-01-01</td><td>NULL</td><td>1</td></tr></tbody></table></div>
+<h3>Source changes:</h3>
+<p>C001 → Bengaluru</p>
+<h3>Type 2 requires:</h3>
+<p>1. Expire Hyderabad</p>
+<h3>2. Insert Bengaluru</h3>
+<h3>Expire:</h3>
+<p>UPDATE dbo.DimCustomer</p>
+<p>SET</p>
+<pre class="code">    EndDate = &#x27;2026-08-21&#x27;,
+    IsCurrent = 0
+WHERE CustomerID = &#x27;C001&#x27;</pre>
+<p>AND IsCurrent = 1;</p>
+<h3>Then insert the new version:</h3>
+<p>INSERT INTO dbo.DimCustomer</p>
+<p>(</p>
+<p>CustomerKey,</p>
+<p>CustomerID,</p>
+<p>City,</p>
+<p>StartDate,</p>
+<p>EndDate,</p>
+<p>IsCurrent</p>
+<p>)</p>
+<p>VALUES</p>
+<p>(</p>
+<p>1055,</p>
+<p>&#x27;C001&#x27;,</p>
+<p>&#x27;Bengaluru&#x27;,</p>
+<p>&#x27;2026-08-22&#x27;,</p>
+<p>NULL,</p>
+<p>1</p>
+<p>);</p>
+<p>Production SCD implementations should also address surrogate-key generation, idempotency, late-arriving changes, and concurrent processing.</p>
+<p>6.2.41 Temporary/Staging Logic</p>
+<p>Data engineering workflows often use staging objects to prepare data before loading curated tables.</p>
+<h3>Conceptually:</h3>
+<p>Source</p>
+<p>↓</p>
+<p>Stage</p>
+<p>↓</p>
+<p>Transform</p>
+<p>↓</p>
+<h3>Warehouse</h3>
+<h3>For example:</h3>
+<p>StageCustomer</p>
+<p>↓</p>
+<p>Deduplicate</p>
+<p>↓</p>
+<p>Validate</p>
+<p>↓</p>
+<p>DimCustomer</p>
+<p>The exact staging mechanism should follow the capabilities and recommended patterns available in your current Fabric Warehouse environment.</p>
+<p>6.2.42 T-SQL for Data Quality</p>
+<p>Find duplicate Customer IDs</p>
+<pre class="code">SELECT
+    CustomerID,
+    COUNT(*) AS RecordCount
+FROM dbo.DimCustomer
+GROUP BY CustomerID</pre>
+<p>HAVING COUNT(*) &gt; 1;</p>
+<p>Find NULL customer names</p>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer</p>
+<p>WHERE CustomerName IS NULL;</p>
+<p>Find orphan fact records</p>
+<p>SELECT</p>
+<p>f.CustomerKey</p>
+<p>FROM dbo.FactSales f</p>
+<p>LEFT JOIN dbo.DimCustomer c</p>
+<p>ON f.CustomerKey = c.CustomerKey</p>
+<p>WHERE c.CustomerKey IS NULL;</p>
+<p>These checks can be incorporated into pipeline validation.</p>
+<p>6.2.43 T-SQL for Reconciliation</p>
+<h3>Suppose you need to compare source and target counts:</h3>
+<pre class="code">SELECT
+    COUNT(*) AS WarehouseCount
+FROM dbo.FactSales;</pre>
+<h3>You can compare:</h3>
+<p>Source count</p>
+<p>↓</p>
+<p>Target count</p>
+<p>↓</p>
+<p>Difference</p>
+<h3>For monetary reconciliation:</h3>
+<pre class="code">SELECT
+    SUM(SalesAmount) AS TotalSales
+FROM dbo.FactSales;</pre>
+<p>You can compare this against the source system&#x27;s total.</p>
+<p>6.2.44 Query Execution Order</p>
+<p>One of the most important SQL concepts is the logical processing order.</p>
+<h3>Although we write:</h3>
+<p>SELECT</p>
+<p>FROM</p>
+<p>WHERE</p>
+<p>GROUP BY</p>
+<p>HAVING</p>
+<p>ORDER BY</p>
+<h3>the logical order is approximately:</h3>
+<p>FROM</p>
+<p>↓</p>
+<p>JOIN</p>
+<p>↓</p>
+<p>WHERE</p>
+<p>↓</p>
+<p>GROUP BY</p>
+<p>↓</p>
+<p>HAVING</p>
+<p>↓</p>
+<p>SELECT</p>
+<p>↓</p>
+<p>ORDER BY</p>
+<p>Understanding this explains many SQL behaviors.</p>
+<h3>For example, this generally doesn&#x27;t work:</h3>
+<p>SELECT</p>
+<p>SalesAmount AS Revenue</p>
+<p>FROM dbo.FactSales</p>
+<p>WHERE Revenue &gt; 5000;</p>
+<p>because WHERE is logically evaluated before the SELECT alias is established.</p>
+<p>6.2.45 CTE vs Subquery</p>
+<p>Both can solve similar problems.</p>
+<p>Subquery</p>
+<p>SELECT *</p>
+<p>FROM</p>
+<p>(</p>
+<pre class="code">    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Revenue
+    FROM dbo.FactSales
+    GROUP BY CustomerKey</pre>
+<p>) s</p>
+<p>WHERE Revenue &gt; 100000;</p>
+<p>CTE</p>
+<p>WITH Sales AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Revenue
+    FROM dbo.FactSales
+    GROUP BY CustomerKey</pre>
+<p>)</p>
+<p>SELECT *</p>
+<p>FROM Sales</p>
+<p>WHERE Revenue &gt; 100000;</p>
+<p>For complex transformations, CTEs are often easier to read.</p>
+<p>6.2.46 T-SQL Complete Example</p>
+<h3>Suppose you need:</h3>
+<p>Find the top 5 customers by revenue in India.</p>
+<p>WITH CustomerRevenue AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        c.CustomerKey,
+        c.CustomerID,
+        c.CustomerName,
+        c.Country,
+        SUM(f.SalesAmount) AS Revenue
+    FROM dbo.FactSales f
+    INNER JOIN dbo.DimCustomer c
+        ON f.CustomerKey = c.CustomerKey
+    WHERE c.Country = &#x27;India&#x27;
+    GROUP BY
+        c.CustomerKey,
+        c.CustomerID,
+        c.CustomerName,
+        c.Country</pre>
+<p>),</p>
+<p>RankedCustomers AS</p>
+<p>(</p>
+<pre class="code">    SELECT
+        *,
+        ROW_NUMBER() OVER
+        (
+            ORDER BY Revenue DESC
+        ) AS rn
+    FROM CustomerRevenue</pre>
+<p>)</p>
+<pre class="code">SELECT
+    CustomerID,
+    CustomerName,
+    Country,
+    Revenue
+FROM RankedCustomers
+WHERE rn &lt;= 5
+ORDER BY Revenue DESC;</pre>
+<h3>This combines:</h3>
+<p>JOIN</p>
+<p>↓</p>
+<p>WHERE</p>
+<p>↓</p>
+<p>GROUP BY</p>
+<p>↓</p>
+<p>CTE</p>
+<p>↓</p>
+<p>Window Function</p>
+<p>↓</p>
+<p>Filtering</p>
+<p>↓</p>
+<p>ORDER BY</p>
+<p>6.2.47 T-SQL in a Fabric Data Engineering Pipeline</p>
+<h3>A practical Fabric architecture could be:</h3>
+<pre class="diagram">                  SQL Server
+                      │
+                      ▼
+                Data Factory
+                      │
+                      ▼
+               Bronze Lakehouse
+                      │
+                      ▼
+               Silver Lakehouse
+                      │
+              Clean / Transform
+                      │
+                      ▼
+               Fabric Warehouse
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+        Facts      Dimensions    Views
+          │           │           │
+          └───────────┼───────────┘
+                      │
+                    T-SQL
+                      │
+                      ▼
+                Semantic Model
+                      │
+                      ▼</pre>
+<p>Power BI</p>
+<p>6.2.48 T-SQL Best Practices</p>
+<p>Use explicit columns</p>
+<h3>Prefer:</h3>
+<p>SELECT</p>
+<p>CustomerID,</p>
+<p>CustomerName</p>
+<p>FROM dbo.DimCustomer;</p>
+<h3>instead of:</h3>
+<p>SELECT *</p>
+<p>FROM dbo.DimCustomer;</p>
+<p>Use aliases</p>
+<p>FROM dbo.FactSales f</p>
+<p>JOIN dbo.DimCustomer c</p>
+<p>Format SQL</p>
+<p>Readable SQL is easier to maintain.</p>
+<p>Validate joins</p>
+<h3>Check:</h3>
+<p>1:1</p>
+<p>1:Many</p>
+<p>Many:1</p>
+<p>Many:Many</p>
+<p>before joining.</p>
+<p>Filter appropriately</p>
+<p>Don&#x27;t process unnecessary data.</p>
+<p>Use CTEs for complex logic</p>
+<p>They make transformation steps easier to understand.</p>
+<p>Handle NULLs deliberately</p>
+<p>Don&#x27;t let NULL behavior produce incorrect business results.</p>
+<p>Validate output</p>
+<h3>Check:</h3>
+<p>Row count</p>
+<p>Revenue totals</p>
+<p>Duplicate records</p>
+<p>NULL values</p>
+<p>Referential integrity</p>
+<p>6.2.49 Common T-SQL Mistakes</p>
+<p>Mistake 1 — WHERE column = NULL</p>
+<h3>Wrong:</h3>
+<pre class="code">WHERE Country = NULL</pre>
+<h3>Correct:</h3>
+<p>WHERE Country IS NULL</p>
+<p>Mistake 2 — Forgetting GROUP BY columns</p>
+<p>If you select a non-aggregated column, it generally needs to be appropriately included in the grouping.</p>
+<p>Mistake 3 — Accidental Cartesian join</p>
+<p>Bad or missing join conditions can produce huge row counts.</p>
+<p>Mistake 4 — Using INNER JOIN when unmatched records are needed</p>
+<p>This silently removes unmatched rows.</p>
+<p>Mistake 5 — Double counting after joins</p>
+<p>Always understand table grain and cardinality.</p>
+<p>Mistake 6 — Updating without a WHERE clause</p>
+<p>Potentially modifies the entire table.</p>
+<p>Mistake 7 — Using SELECT * everywhere</p>
+<p>Makes pipelines fragile when schemas change and can increase unnecessary data processing.</p>
+<p>6.2.50 Interview Questions</p>
+<h3>1. What is T-SQL?</h3>
+<p>Microsoft&#x27;s SQL language extension used extensively for querying and manipulating relational data.</p>
+<h3>2. What is the difference between WHERE and HAVING?</h3>
+<p>WHERE  → filters rows</p>
+<p>HAVING → filters groups</p>
+<h3>3. What is a CTE?</h3>
+<p>A named temporary query expression available to the statement that follows it.</p>
+<h3>4. What is a window function?</h3>
+<p>A function that calculates across related rows without collapsing them.</p>
+<h3>5. Difference between RANK and DENSE_RANK?</h3>
+<p>RANK       → gaps after ties</p>
+<p>DENSE_RANK → no gaps after ties</p>
+<h3>6. How do you find duplicates?</h3>
+<pre class="code">SELECT
+    CustomerID,
+    COUNT(*)
+FROM dbo.DimCustomer
+GROUP BY CustomerID</pre>
+<p>HAVING COUNT(*) &gt; 1;</p>
+<h3>7. How do you find orphan records?</h3>
+<p>Use LEFT JOIN + IS NULL, or LEFT ANTI where supported in the relevant SQL environment.</p>
+<h3>8. What is a CTE useful for?</h3>
+<p>Breaking a complex query into readable logical stages.</p>
+<h3>9. What is the difference between GROUP BY and a window function?</h3>
+<p>GROUP BY</p>
+<p>→ reduces rows</p>
+<p>Window function</p>
+<p>→ keeps original rows</p>
+<h3>10. Why is table grain important?</h3>
+<p>Because incorrect grain can produce duplicate rows and incorrect aggregations.</p>
+<p>6.2.51 T-SQL Cheat Sheet</p>
+<p>SELECT</p>
+<p>↓</p>
+<p>Retrieve data</p>
+<p>WHERE</p>
+<p>↓</p>
+<p>Filter rows</p>
+<p>JOIN</p>
+<p>↓</p>
+<p>Combine tables</p>
+<p>GROUP BY</p>
+<p>↓</p>
+<p>Create groups</p>
+<p>HAVING</p>
+<p>↓</p>
+<p>Filter groups</p>
+<p>ORDER BY</p>
+<p>↓</p>
+<p>Sort results</p>
+<p>CASE</p>
+<p>↓</p>
+<p>Conditional logic</p>
+<p>CTE</p>
+<p>↓</p>
+<p>Organize complex queries</p>
+<p>WINDOW FUNCTIONS</p>
+<p>↓</p>
+<p>Ranking / running totals /</p>
+<p>previous-next analysis</p>
+<p>INSERT</p>
+<p>↓</p>
+<p>Add records</p>
+<p>UPDATE</p>
+<p>↓</p>
+<p>Modify records</p>
+<p>DELETE</p>
+<p>↓</p>
+<p>Remove records</p>
+<p>CREATE TABLE</p>
+<p>↓</p>
+<p>Create warehouse table</p>
+<p>CREATE VIEW</p>
+<p>↓</p>
+<p>Create reusable SQL layer</p>
+<p>Final Mental Model</p>
+<pre class="diagram">             T-SQL
+               │
+      ┌────────┼─────────┐
+      ▼        ▼         ▼
+   Query     Transform   Model
+      │        │         │
+      ▼        ▼         ▼</pre>
+<p>SELECT      CASE      CREATE TABLE</p>
+<p>JOIN        CTE       CREATE VIEW</p>
+<p>GROUP BY    Window    etc.</p>
+<pre class="diagram"> WHERE
+      │
+      ▼
+Fabric Warehouse
+      │
+      ▼
+Semantic Model
+      │
+      ▼</pre>
+<p>Power BI</p>
+<p>For Fabric Data Engineers, T-SQL is the core SQL skill for querying, transforming, validating, and serving structured data from a Fabric Warehouse.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-5"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.5</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-6"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.3</span><h2>Views</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-7"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.7</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-8"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.4</span><h2>Stored Procedures</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-9"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.9</span><h2></h2></div><div class="content">
+<p>6.5  Performance
+
+
+
+6.5 Performance in Microsoft Fabric Data Warehouse</p>
+<h3>When we talk about Performance in Fabric Data Warehouse, we mean:</h3>
+<p>How efficiently the Warehouse can load, process, and query data while using Fabric capacity effectively.</p>
+<h3>For example, suppose this query takes 2 minutes:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<p>After improving the query and data model, the required business query might take 10 seconds.</p>
+<p>That improvement is performance optimization.</p>
+<h3>For Fabric Warehouse, I recommend understanding performance in five areas:</h3>
+<pre class="diagram">PERFORMANCE
+    │
+    ├── 1. Data Model
+    ├── 2. SQL Queries
+    ├── 3. Statistics
+    ├── 4. Data Loading
+    └── 5. Capacity / Concurrency</pre>
+<h3>1. First understand Fabric Warehouse architecture</h3>
+<h3>A simplified architecture is:</h3>
+<pre class="diagram">                    Users / Power BI
+                           │
+                           ▼
+                        T-SQL
+                           │
+                           ▼
+                ┌────────────────────┐
+                │  Fabric Warehouse  │
+                │                    │
+                │ Distributed Query  │
+                │ Processing         │
+                └─────────┬──────────┘
+                          │
+                          ▼
+                       OneLake
+                          │
+                          ▼</pre>
+<h3>Warehouse Data</h3>
+<h3>Fabric Warehouse is a SaaS analytical warehouse.</h3>
+<p>Microsoft handles much of the underlying infrastructure that you would traditionally have to manage yourself.</p>
+<p>Therefore, Fabric performance tuning is somewhat different from traditional SQL Server tuning.</p>
+<h3>2. Traditional SQL Server vs Fabric Warehouse performance</h3>
+<p>If you&#x27;re coming from SQL Server or Azure Synapse, this distinction is important.</p>
+<h3>In traditional SQL Server, DBAs frequently think about:</h3>
+<p>Indexes</p>
+<p>Memory</p>
+<p>CPU</p>
+<p>TempDB</p>
+<p>Disk</p>
+<p>Filegroups</p>
+<p>Partitions</p>
+<p>Statistics</p>
+<p>Execution Plans</p>
+<p>Server Configuration</p>
+<p>In Fabric Warehouse, much of the infrastructure management is handled by the service.</p>
+<h3>Your focus shifts more toward:</h3>
+<pre class="diagram">Good Data Model
+       +
+Good SQL
+       +
+Statistics
+       +
+Efficient Data Loading
+       +
+Capacity Management
+       +</pre>
+<p>Concurrency Management</p>
+<h3>3. Performance starts with the data model</h3>
+<h3>One of the biggest mistakes is thinking:</h3>
+<p>&quot;My query is slow, so I need to tune the query.&quot;</p>
+<p>Sometimes the real problem is the data model.</p>
+<h3>Suppose you have one huge table:</h3>
+<p>Sales_All_Data</p>
+<p>OrderID</p>
+<p>OrderDate</p>
+<p>CustomerID</p>
+<p>CustomerName</p>
+<p>CustomerAddress</p>
+<p>CustomerCountry</p>
+<p>ProductID</p>
+<p>ProductName</p>
+<p>ProductCategory</p>
+<p>SupplierName</p>
+<p>Quantity</p>
+<p>SalesAmount</p>
+<p>StoreName</p>
+<p>Region</p>
+<p>...</p>
+<p>Millions or billions of rows repeatedly containing descriptive text isn&#x27;t an ideal warehouse model.</p>
+<p>Instead, use a Star Schema.</p>
+<pre class="diagram">                         DIM_DATE
+                            │
+                            │
+                            ▼
+DIM_CUSTOMER ─────────► FACT_SALES ◄──────── DIM_PRODUCT
+                            ▲
+                            │
+                            │</pre>
+<p>DIM_STORE</p>
+<p>This is important for both warehouse organization and downstream BI performance.</p>
+<h3>4. Fact and Dimension tables</h3>
+<h3>A typical fact table:</h3>
+<pre class="diagram">FACT_SALES
+─────────────────</pre>
+<p>SalesKey</p>
+<p>DateKey</p>
+<p>CustomerKey</p>
+<p>ProductKey</p>
+<p>StoreKey</p>
+<p>Quantity</p>
+<p>SalesAmount</p>
+<p>DiscountAmount</p>
+<p>ProfitAmount</p>
+<h3>Dimension:</h3>
+<pre class="diagram">DIM_CUSTOMER
+─────────────────</pre>
+<p>CustomerKey</p>
+<p>CustomerID</p>
+<p>CustomerName</p>
+<p>Country</p>
+<p>Region</p>
+<p>Segment</p>
+<h3>Another dimension:</h3>
+<pre class="diagram">DIM_PRODUCT
+─────────────────</pre>
+<p>ProductKey</p>
+<p>ProductID</p>
+<p>ProductName</p>
+<p>Category</p>
+<p>Brand</p>
+<h3>The fact table contains primarily:</h3>
+<p>Keys + Measures</p>
+<h3>Dimensions contain:</h3>
+<p>Descriptive attributes</p>
+<p>This structure helps analytical queries.</p>
+<h3>5. Avoid SELECT *</h3>
+<h3>One of the simplest performance practices is:</h3>
+<p>Retrieve only the columns you actually need.</p>
+<h3>Bad:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<h3>Suppose FactSales has:</h3>
+<p>50 columns</p>
+<p>500 million rows</p>
+<h3>but your report needs only:</h3>
+<p>OrderDate</p>
+<p>ProductKey</p>
+<p>SalesAmount</p>
+<h3>Then write:</h3>
+<p>SELECT</p>
+<p>OrderDate,</p>
+<p>ProductKey,</p>
+<p>SalesAmount</p>
+<p>FROM FactSales;</p>
+<h3>Conceptually:</h3>
+<p>SELECT *</p>
+<pre class="diagram">50 columns
+    │
+    ▼
+More data processed
+    │
+    ▼</pre>
+<p>More work</p>
+<p>SELECT required columns</p>
+<pre class="diagram">3 columns
+    │
+    ▼</pre>
+<p>Less unnecessary processing</p>
+<p>This is especially relevant to analytical columnar systems.</p>
+<h3>6. Filter data early</h3>
+<h3>Suppose FactSales contains 10 years of data:</h3>
+<p>2017</p>
+<p>2018</p>
+<p>...</p>
+<p>2025</p>
+<p>2026</p>
+<p>Your report needs only 2026.</p>
+<p>Avoid processing all historical rows unnecessarily.</p>
+<h3>Use an appropriate filter:</h3>
+<pre class="code">SELECT
+    ProductKey,
+    SalesAmount
+FROM FactSales
+WHERE OrderDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND OrderDate &lt;  &#x27;2027-01-01&#x27;;</p>
+<h3>The principle is:</h3>
+<pre class="diagram">Huge Dataset
+     │
+     ▼
+Filter Early
+     │
+     ▼
+Smaller Dataset
+     │
+     ▼</pre>
+<p>Join / Aggregate</p>
+<h3>7. Write SARGable predicates</h3>
+<p>This is a useful SQL-performance concept.</p>
+<p>Suppose you want 2026 orders.</p>
+<h3>You may see:</h3>
+<pre class="code">WHERE YEAR(OrderDate) = 2026</pre>
+<h3>A generally better predicate is:</h3>
+<pre class="code">WHERE OrderDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND OrderDate &lt; &#x27;2027-01-01&#x27;</p>
+<h3>Why?</h3>
+<p>Applying functions directly to filtered columns can sometimes make optimization harder.</p>
+<h3>Remember:</h3>
+<p>Filter the column directly where possible instead of wrapping it in unnecessary functions.</p>
+<h3>8. Reduce data before JOIN operations</h3>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>500 million rows</p>
+<p>DimCustomer</p>
+<p>10 million rows</p>
+<p>Don&#x27;t carry unnecessary data through complicated joins.</p>
+<h3>Conceptually, prefer:</h3>
+<pre class="diagram">FactSales
+    │
+    ▼
+Filter
+    │
+    ▼
+Required Sales
+    │
+    ▼
+JOIN
+    │
+    ▼</pre>
+<p>DimCustomer</p>
+<p>rather than performing unnecessary processing over the entire dataset first.</p>
+<h3>9. Understand JOIN performance</h3>
+<h3>Warehouse queries frequently involve joins.</h3>
+<h3>Example:</h3>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount) AS TotalSales
+FROM FactSales AS f
+JOIN DimCustomer AS c
+    ON f.CustomerKey = c.CustomerKey
+GROUP BY
+    c.Country;</pre>
+<p>This is a natural Star Schema query.</p>
+<pre class="diagram">FactSales
+   │
+   │ CustomerKey
+   ▼
+DimCustomer
+   │
+   ▼</pre>
+<p>Country</p>
+<p>Good warehouse design makes these relationships straightforward.</p>
+<h3>10. Avoid unnecessary joins</h3>
+<h3>Suppose you write:</h3>
+<pre class="code">SELECT
+    c.CustomerName,
+    SUM(f.SalesAmount)
+FROM FactSales f
+
+JOIN DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+
+JOIN DimProduct p
+    ON f.ProductKey = p.ProductKey
+
+JOIN DimStore s
+    ON f.StoreKey = s.StoreKey
+
+JOIN DimDate d
+    ON f.DateKey = d.DateKey
+
+GROUP BY
+    c.CustomerName;</pre>
+<p>But the query only requires customer information.</p>
+<h3>Then:</h3>
+<p>DimProduct</p>
+<p>DimStore</p>
+<p>DimDate</p>
+<p>may not be needed for that particular query.</p>
+<p>Don&#x27;t join tables simply because they&#x27;re available.</p>
+<h3>11. Data types affect performance</h3>
+<p>Data types matter.</p>
+<h3>Bad design:</h3>
+<p>CustomerKey VARCHAR(100)</p>
+<p>ProductKey VARCHAR(100)</p>
+<p>DateKey VARCHAR(100)</p>
+<p>when the keys are numeric.</p>
+<h3>Better:</h3>
+<p>CustomerKey BIGINT / INT</p>
+<p>ProductKey BIGINT / INT</p>
+<p>DateKey INT</p>
+<p>Choose the appropriate data type for the data.</p>
+<h3>Don&#x27;t automatically make every string:</h3>
+<pre class="code">VARCHAR(8000)</pre>
+<h3>if:</h3>
+<pre class="code">VARCHAR(50)</pre>
+<p>is sufficient.</p>
+<p>Correct data types improve storage efficiency and simplify processing.</p>
+<h3>12. Avoid implicit conversions</h3>
+<h3>Suppose:</h3>
+<p>CustomerKey</p>
+<p>=</p>
+<p>INT</p>
+<p>but your query compares it against incompatible text values.</p>
+<p>Type mismatches can cause conversions.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">INT
+ │
+ ▼
+Conversion
+ │
+ ▼</pre>
+<p>Comparison</p>
+<h3>Better:</h3>
+<pre class="diagram">Same Data Type
+      │
+      ▼</pre>
+<p>Comparison</p>
+<p>Make join keys and filtering columns use compatible data types.</p>
+<h3>13. Statistics</h3>
+<p>Statistics are extremely important for SQL query optimization.</p>
+<p>Think of statistics as information that helps the optimizer understand the shape and distribution of the data.</p>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>500,000,000 rows</p>
+<h3>The optimizer needs to estimate questions such as:</h3>
+<h3>How many rows exist?</h3>
+<h3>How selective is this filter?</h3>
+<h3>How many rows will this join produce?</h3>
+<h3>Which processing strategy should be used?</h3>
+<p>Statistics help answer those questions.</p>
+<h3>14. Why statistics matter</h3>
+<h3>Suppose:</h3>
+<pre class="code">SELECT *
+FROM FactSales
+WHERE CountryCode = &#x27;IN&#x27;;</pre>
+<h3>Imagine:</h3>
+<p>Total rows</p>
+<p>100,000,000</p>
+<p>India</p>
+<p>40,000,000</p>
+<p>USA</p>
+<p>30,000,000</p>
+<p>UK</p>
+<p>10,000,000</p>
+<p>Others</p>
+<p>20,000,000</p>
+<h3>Statistics help the optimizer estimate that:</h3>
+<pre class="code">CountryCode = &#x27;IN&#x27;</pre>
+<p>≈ 40 million rows</p>
+<p>That estimate can influence the execution strategy.</p>
+<h3>15. Bad statistics can lead to bad plans</h3>
+<h3>Conceptually:</h3>
+<pre class="diagram">Query
+  │
+  ▼
+Statistics
+  │
+  ▼
+Cardinality Estimate
+  │
+  ▼
+Query Plan
+  │
+  ▼</pre>
+<p>Execution</p>
+<h3>If the estimates are poor:</h3>
+<p>Poor Statistics</p>
+<p>↓</p>
+<p>Poor Estimates</p>
+<p>↓</p>
+<p>Less Efficient Plan</p>
+<p>↓</p>
+<p>Slow Query</p>
+<p>So statistics are a key part of Warehouse performance.</p>
+<h3>16. Don&#x27;t think only about query performance</h3>
+<p>Performance also includes data-loading performance.</p>
+<h3>Suppose you need to load:</h3>
+<p>100 million rows</p>
+<h3>A poor pattern might repeatedly perform tiny operations:</h3>
+<p>Insert Row</p>
+<p>Insert Row</p>
+<p>Insert Row</p>
+<p>Insert Row</p>
+<p>...</p>
+<p>For analytical warehouses, set-based and bulk-oriented processing is usually preferable.</p>
+<h3>Think:</h3>
+<p>Many tiny operations</p>
+<p>✕</p>
+<p>Batch / Set-Based Processing</p>
+<p>✓</p>
+<h3>17. Full Load vs Incremental Load</h3>
+<h3>Suppose FactSales contains:</h3>
+<p>1 billion rows</p>
+<h3>Every day, only:</h3>
+<p>2 million</p>
+<p>records are new or changed.</p>
+<h3>A full reload would process:</h3>
+<p>1,000,000,000 rows</p>
+<h3>An incremental process might process:</h3>
+<p>2,000,000 rows</p>
+<h3>Architecture:</h3>
+<pre class="diagram">Source
+  │
+  ▼
+Changed Data
+  │
+  ▼
+Stage
+  │
+  ▼
+MERGE / Load
+  │
+  ▼</pre>
+<h3>Warehouse</h3>
+<p>For large systems, incremental processing can make a huge difference.</p>
+<h3>18. Staging tables</h3>
+<p>For complex loads, consider a staging pattern.</p>
+<pre class="diagram">Source
+   │
+   ▼
+STG_SALES
+   │
+   ▼
+Validate
+   │
+   ▼
+Transform
+   │
+   ▼</pre>
+<p>FACT_SALES</p>
+<h3>For example:</h3>
+<p>STG_CUSTOMER</p>
+<p>STG_PRODUCT</p>
+<p>STG_ORDER</p>
+<p>STG_SALES</p>
+<h3>Then load:</h3>
+<p>STG_CUSTOMER</p>
+<p>↓</p>
+<p>DIM_CUSTOMER</p>
+<p>STG_PRODUCT</p>
+<p>↓</p>
+<p>DIM_PRODUCT</p>
+<p>STG_SALES</p>
+<p>↓</p>
+<p>FACT_SALES</p>
+<p>This can make ETL logic easier to control and troubleshoot.</p>
+<h3>19. Avoid excessive row-by-row processing</h3>
+<p>SQL performs best when you think in sets.</p>
+<h3>Avoid patterns conceptually like:</h3>
+<p>Read Row 1</p>
+<p>Update Row 1</p>
+<p>Read Row 2</p>
+<p>Update Row 2</p>
+<p>Read Row 3</p>
+<p>Update Row 3</p>
+<p>...</p>
+<h3>Prefer:</h3>
+<p>UPDATE Sales</p>
+<p>SET Status = &#x27;Closed&#x27;</p>
+<p>WHERE OrderDate &lt; &#x27;2026-01-01&#x27;;</p>
+<p>One statement handles the set.</p>
+<h3>Remember:</h3>
+<p>SQL is a set-based language.</p>
+<h3>20. Views and performance</h3>
+<p>Views can simplify complex SQL.</p>
+<h3>For example:</h3>
+<p>CREATE VIEW vw_SalesSummary</p>
+<p>AS</p>
+<pre class="code">SELECT
+    d.Year,
+    p.Category,
+    SUM(f.SalesAmount) AS TotalSales
+FROM FactSales f
+JOIN DimDate d
+    ON f.DateKey = d.DateKey
+JOIN DimProduct p
+    ON f.ProductKey = p.ProductKey
+GROUP BY
+    d.Year,
+    p.Category;</pre>
+<h3>Then users query:</h3>
+<p>SELECT *</p>
+<p>FROM vw_SalesSummary;</p>
+<h3>But remember:</h3>
+<p>A view does not automatically make a slow query fast.</p>
+<p>The SQL behind the view still needs good design.</p>
+<h3>21. Stored procedures and performance</h3>
+<p>Stored procedures are useful for reusable SQL processing.</p>
+<h3>For example:</h3>
+<p>CREATE PROCEDURE LoadSales</p>
+<p>AS</p>
+<p>BEGIN</p>
+<p>INSERT INTO FactSales</p>
+<p>SELECT</p>
+<p>DateKey,</p>
+<p>CustomerKey,</p>
+<p>ProductKey,</p>
+<p>SalesAmount</p>
+<p>FROM StagingSales;</p>
+<p>END;</p>
+<h3>Stored procedures can help centralize logic, but:</h3>
+<p>Putting inefficient SQL inside a stored procedure doesn&#x27;t magically make it efficient.</p>
+<p>You still need good SQL design.</p>
+<h3>22. Avoid returning unnecessary rows to Power BI</h3>
+<h3>Suppose your warehouse contains:</h3>
+<p>500 million detailed records</p>
+<h3>but the report needs:</h3>
+<p>Monthly Sales</p>
+<p>by</p>
+<p>Region and Product Category</p>
+<p>Don&#x27;t automatically send every detailed row to downstream reporting.</p>
+<h3>Where appropriate, design:</h3>
+<pre class="diagram">Detailed Fact
+      │
+      ▼
+Business Model
+      │
+      ▼
+Required Analytical Data
+      │
+      ▼</pre>
+<p>Power BI</p>
+<p>The whole architecture matters—not only one SQL statement.</p>
+<h3>23. Concurrency</h3>
+<p>Performance isn&#x27;t only about one query.</p>
+<h3>Imagine:</h3>
+<p>09:00 AM</p>
+<p>User 1 → Query</p>
+<p>User 2 → Query</p>
+<p>User 3 → Query</p>
+<p>Power BI → Query</p>
+<p>ETL → Loading</p>
+<p>Pipeline → Running</p>
+<p>Dataflow → Running</p>
+<p>All of these workloads can consume resources.</p>
+<pre class="diagram">                  Fabric Capacity
+                         │
+       ┌─────────────────┼─────────────────┐
+       │                 │                 │
+       ▼                 ▼                 ▼
+   Warehouse         Power BI          Lakehouse
+       │
+   ┌───┼────┐
+   ▼   ▼    ▼</pre>
+<p>Query Query ETL</p>
+<p>This leads to the next critical topic: capacity.</p>
+<h3>24. Fabric Capacity and performance</h3>
+<h3>Fabric workloads run against Fabric capacity.</h3>
+<h3>For example:</h3>
+<pre class="diagram">                 Fabric Capacity
+                       │
+          ┌────────────┼────────────┐
+          │            │            │
+          ▼            ▼            ▼
+      Warehouse     Lakehouse     Power BI
+          │
+          ▼</pre>
+<p>Queries</p>
+<p>If many resource-intensive workloads execute simultaneously, they can compete for available capacity.</p>
+<h3>Therefore, performance tuning isn&#x27;t always:</h3>
+<p>Slow Query</p>
+<p>=</p>
+<p>Bad SQL</p>
+<h3>It could also involve:</h3>
+<pre class="diagram">Slow Performance
+       │
+       ├── Poor SQL
+       ├── Poor Data Model
+       ├── Huge Data Volume
+       ├── Poor Statistics
+       ├── Too Much Concurrency
+       └── Capacity Pressure</pre>
+<h3>25. Example</h3>
+<h3>Suppose a query normally takes:</h3>
+<p>10 seconds</p>
+<h3>But every morning at 9 AM it takes:</h3>
+<p>60 seconds</p>
+<h3>Why?</h3>
+<h3>At 9 AM:</h3>
+<pre class="diagram">                   Fabric Capacity
+                          │
+        ┌─────────────────┼────────────────┐
+        │                 │                │
+        ▼                 ▼                ▼
+     ETL Load        Power BI Refresh   User Queries
+        │                 │                │
+        └─────────────────┼────────────────┘
+                          ▼</pre>
+<p>Resource Pressure</p>
+<p>The SQL may not have changed at all.</p>
+<p>This is why monitoring capacity and workload concurrency matters.</p>
+<h3>26. Performance troubleshooting methodology</h3>
+<h3>When someone says:</h3>
+<p>&quot;Fabric Warehouse is slow.&quot;</p>
+<p>Don&#x27;t immediately start changing SQL.</p>
+<h3>Use a systematic approach:</h3>
+<h3>1. Identify the slow query</h3>
+<p>↓</p>
+<h3>2. Compare normal vs slow duration</h3>
+<p>↓</p>
+<h3>3. Check rows/data volume</h3>
+<p>↓</p>
+<h3>4. Review query logic</h3>
+<p>↓</p>
+<h3>5. Review filters and joins</h3>
+<p>↓</p>
+<h3>6. Review data types</h3>
+<p>↓</p>
+<h3>7. Review statistics/plan information</h3>
+<p>↓</p>
+<h3>8. Check concurrent workloads</h3>
+<p>↓</p>
+<h3>9. Check Fabric capacity</h3>
+<p>↓</p>
+<h3>10. Optimize and retest</h3>
+<p>This is closer to real production troubleshooting.</p>
+<h3>27. Example optimization</h3>
+<h3>Suppose someone writes:</h3>
+<pre class="code">SELECT *
+FROM FactSales f
+JOIN DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+JOIN DimProduct p
+    ON f.ProductKey = p.ProductKey
+WHERE YEAR(f.OrderDate) = 2026;</pre>
+<h3>Potential problems:</h3>
+<p>SELECT *</p>
+<p>Unnecessary columns</p>
+<p>Possibly unnecessary joins</p>
+<p>Function on filtering column</p>
+<p>Large amount of data</p>
+<h3>A more focused query could be:</h3>
+<pre class="code">SELECT
+    c.Country,
+    p.Category,
+    SUM(f.SalesAmount) AS TotalSales
+FROM FactSales f
+JOIN DimCustomer c
+    ON f.CustomerKey = c.CustomerKey
+JOIN DimProduct p
+    ON f.ProductKey = p.ProductKey
+WHERE f.OrderDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND f.OrderDate &lt;  &#x27;2027-01-01&#x27;</p>
+<p>GROUP BY</p>
+<p>c.Country,</p>
+<p>p.Category;</p>
+<p>Now the query requests only the data needed for the business question.</p>
+<h3>28. Before vs After</h3>
+<p>Before</p>
+<pre class="code">SELECT *
+FROM FactSales
+WHERE YEAR(OrderDate) = 2026;</pre>
+<h3>Conceptually:</h3>
+<p>Huge Table</p>
+<p>↓</p>
+<p>Process</p>
+<p>↓</p>
+<p>Apply Function</p>
+<p>↓</p>
+<p>Return Many Columns</p>
+<p>Better</p>
+<pre class="code">SELECT
+    CustomerKey,
+    ProductKey,
+    SalesAmount
+FROM FactSales
+WHERE OrderDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND OrderDate &lt; &#x27;2027-01-01&#x27;;</p>
+<h3>Conceptually:</h3>
+<p>Huge Table</p>
+<p>↓</p>
+<p>Efficient Filter</p>
+<p>↓</p>
+<p>Required Columns</p>
+<p>↓</p>
+<p>Smaller Result</p>
+<h3>29. Performance checklist</h3>
+<h3>When reviewing a slow Fabric Warehouse query, ask:</h3>
+<pre class="diagram">DATA MODEL
+──────────</pre>
+<h3>Is it modeled appropriately?</h3>
+<h3>Do we have a clear fact/dimension design?</h3>
+<pre class="diagram">QUERY
+─────</pre>
+<h3>Am I using SELECT *?</h3>
+<h3>Am I reading unnecessary rows?</h3>
+<h3>Are filters applied appropriately?</h3>
+<h3>Are all joins necessary?</h3>
+<pre class="diagram">DATA TYPES
+──────────</pre>
+<h3>Are join columns compatible?</h3>
+<h3>Are strings unnecessarily large?</h3>
+<pre class="diagram">STATISTICS
+──────────</pre>
+<h3>Does the optimizer have useful statistics?</h3>
+<pre class="diagram">LOAD
+────</pre>
+<h3>Are we doing full loads unnecessarily?</h3>
+<h3>Can we use incremental processing?</h3>
+<h3>Are operations set-based?</h3>
+<pre class="diagram">WORKLOAD
+────────</pre>
+<h3>Are many queries running simultaneously?</h3>
+<h3>Is Power BI refreshing?</h3>
+<h3>Is ETL running?</h3>
+<pre class="diagram">CAPACITY
+────────</pre>
+<h3>Is the Fabric capacity under pressure?</h3>
+<h3>30. What should you NOT focus on first?</h3>
+<p>If you&#x27;re learning Fabric Warehouse after working with traditional SQL systems, don&#x27;t start by assuming every performance problem requires:</p>
+<p>Create Index</p>
+<p>↓</p>
+<p>Create More Indexes</p>
+<p>↓</p>
+<p>Change Server Memory</p>
+<p>↓</p>
+<p>Change Disk</p>
+<p>↓</p>
+<p>Change SQL Server Configuration</p>
+<h3>Fabric is a SaaS analytical platform.</h3>
+<p>Microsoft manages much of the underlying infrastructure.</p>
+<h3>Your main responsibility becomes:</h3>
+<p>YOUR RESPONSIBILITY</p>
+<pre class="diagram">                      Data Model
+                          │
+                          ▼
+                       SQL
+                          │
+                          ▼
+                    Data Loading
+                          │
+                          ▼
+                    Statistics
+                          │
+                          ▼
+                Workload Management
+                          │
+                          ▼</pre>
+<p>Capacity Monitoring</p>
+<h3>31. The 7 rules I would memorize</h3>
+<h3>For your Fabric syllabus, remember these seven points:</h3>
+<p>Design a good Star Schema — Fact tables for measures and keys; dimensions for descriptive attributes.</p>
+<p>Read only required data — Avoid unnecessary SELECT *, columns, rows, and joins.</p>
+<p>Filter efficiently — Reduce data as early as practical and avoid unnecessary functions on filter columns.</p>
+<p>Use correct data types — Especially for join keys and frequently filtered columns.</p>
+<p>Maintain useful statistics — The optimizer needs good information to create efficient plans.</p>
+<p>Load efficiently — Prefer batch/set-based and incremental processing over unnecessary full reloads or row-by-row operations.</p>
+<p>Monitor capacity and concurrency — A good query can still slow down when many Fabric workloads compete for capacity.</p>
+<h3>32. Interview answer</h3>
+<h3>What is performance optimization in Fabric Warehouse?</h3>
+<p>Performance optimization in Microsoft Fabric Warehouse is the process of improving query and data-processing efficiency through good dimensional modeling, efficient T-SQL, appropriate filtering and joins, correct data types, useful statistics, efficient data-loading patterns, and monitoring workload concurrency and Fabric capacity consumption. Because Fabric Warehouse is a SaaS platform, Microsoft manages much of the underlying infrastructure, allowing developers to focus primarily on data modeling, SQL optimization, workload design, and capacity utilization.</p>
+<h3>33. Easy way to remember</h3>
+<pre class="diagram">               FABRIC WAREHOUSE
+                      │
+                      ▼
+                 PERFORMANCE
+                      │
+      ┌───────────────┼───────────────┐
+      │               │               │
+      ▼               ▼               ▼
+ DATA MODEL          SQL            LOAD
+      │               │               │
+ Star Schema      Filters/Joins    Incremental
+      │               │               │
+      └───────────────┼───────────────┘
+                      ▼
+                 STATISTICS
+                      │
+                      ▼
+               QUERY OPTIMIZER
+                      │
+                      ▼
+                  CAPACITY
+                      │
+                      ▼</pre>
+<p>FAST ANALYTICS</p>
+<p>Most important takeaway</p>
+<p>Don&#x27;t think of Fabric Warehouse performance as only &quot;SQL query tuning.&quot;</p>
+<h3>Think of it as:</h3>
+<p>Performance = Data Model + Efficient SQL + Statistics + Efficient Loading + Capacity + Concurrency</p>
+<p>For your 6.5 Performance syllabus, those are the concepts I would understand first before moving into deeper topics such as query plans, statistics management, capacity monitoring, caching, and detailed Warehouse performance troubleshooting.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-10"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.10</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-11"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.6</span><h2>Security</h2></div><div class="content">
+<p>6.6 Security in Microsoft Fabric Data Warehouse</p>
+<h3>Security in Microsoft Fabric Data Warehouse controls:</h3>
+<p>Who can access the Warehouse, what objects they can access, and what data they are allowed to see or modify.</p>
+<h3>The easiest way to understand Fabric Warehouse security is in layers:</h3>
+<pre class="diagram">                    USER
+                      │
+                      ▼
+              Microsoft Entra ID
+                      │
+                      ▼
+               FABRIC SECURITY
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+    Workspace      Item         SQL Security
+      Roles      Permissions         │
+                                   ┌─┼───────────┐
+                                   ▼ ▼           ▼</pre>
+<p>GRANT/DENY    RLS / CLS</p>
+<h3>For your syllabus, focus on these concepts:</h3>
+<p>1. Authentication</p>
+<p>2. Workspace Roles</p>
+<p>3. Item Permissions</p>
+<p>4. SQL Permissions</p>
+<p>5. Object-Level Access</p>
+<p>6. Row-Level Security</p>
+<p>7. Column-Level Security</p>
+<p>8. Dynamic Data Masking</p>
+<p>9. Least Privilege</p>
+<h3>1. Authentication vs Authorization</h3>
+<p>Before learning Fabric security, understand these two terms.</p>
+<p>Authentication</p>
+<h3>Who are you?</h3>
+<h3>For example:</h3>
+<pre class="diagram">User
+ │
+ ▼
+Sign in
+ │
+ ▼
+Microsoft Entra ID
+ │
+ ▼</pre>
+<p>Identity Verified</p>
+<p>Microsoft Fabric uses Microsoft Entra ID identities for authentication.</p>
+<p>Authorization</p>
+<h3>What are you allowed to do?</h3>
+<h3>After authentication:</h3>
+<pre class="diagram">Sreehari
+    │
+    ▼
+Authenticated
+    │
+    ▼</pre>
+<h3>What permissions?</h3>
+<pre class="diagram">    │
+    ├── Read Warehouse?
+    ├── Create Table?
+    ├── Execute Procedure?
+    ├── Update Data?
+    └── Administer Workspace?</pre>
+<h3>Easy memory:</h3>
+<h3>Authentication = Who are you?
+Authorization = What can you do?</h3>
+<h3>2. Fabric security layers</h3>
+<p>Security doesn&#x27;t exist at only one level.</p>
+<h3>Think of:</h3>
+<pre class="diagram">Microsoft Fabric
+      │
+      ▼
+Workspace
+      │
+      ▼
+Warehouse
+      │
+      ▼
+Schema
+      │
+      ▼
+Table / View / Procedure
+      │
+      ▼</pre>
+<p>Rows / Columns</p>
+<p>Different controls can be applied at different layers.</p>
+<h3>3. Workspace Security</h3>
+<h3>Fabric content is organized into Workspaces.</h3>
+<h3>For example:</h3>
+<pre class="diagram">Sales Workspace
+│
+├── Sales_Lakehouse
+├── Sales_Warehouse
+├── Sales_Pipeline
+└── Sales_Report</pre>
+<p>Users can be assigned workspace roles.</p>
+<h3>The main workspace roles are:</h3>
+<p>Admin</p>
+<p>Member</p>
+<p>Contributor</p>
+<p>Viewer</p>
+<h3>4. Workspace roles</h3>
+<h3>At a high level:</h3>
+<div class="table-wrap"><table><thead><tr><th>Role</th><th>General purpose</th></tr></thead><tbody><tr><td>Admin</td><td>Manage workspace and its access/content</td></tr><tr><td>Member</td><td>Broad collaboration and content management</td></tr><tr><td>Contributor</td><td>Create/edit workspace content</td></tr><tr><td>Viewer</td><td>Primarily consume/read content</td></tr></tbody></table></div>
+<p>The exact permissions associated with each role should always be checked against current Fabric documentation, especially when designing production security.</p>
+<h3>The important architectural point is:</h3>
+<p>Workspace roles provide broad Fabric-level access.</p>
+<h3>5. Example workspace security</h3>
+<h3>Suppose we have:</h3>
+<pre class="diagram">Finance Workspace
+       │
+       ├── Finance_Warehouse
+       ├── Finance_Pipeline
+       └── Finance_Report</pre>
+<h3>We might have:</h3>
+<pre class="diagram">Fabric Admin
+     │
+     ▼</pre>
+<p>ADMIN</p>
+<pre class="diagram">Data Engineer
+     │
+     ▼</pre>
+<p>MEMBER / CONTRIBUTOR</p>
+<pre class="diagram">Business User
+     │
+     ▼</pre>
+<p>VIEWER</p>
+<p>But workspace roles alone may be too broad for every requirement.</p>
+<p>That&#x27;s where more granular security becomes important.</p>
+<h3>6. Item-Level Permissions</h3>
+<p>You may want to give someone access to a particular Warehouse without giving them broad workspace permissions.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Workspace
+│
+├── Warehouse A  ← User has access
+│
+├── Warehouse B  ← No access
+│
+├── Lakehouse
+└── Pipeline</pre>
+<p>This is where item-level permissions/sharing become useful.</p>
+<h3>Think:</h3>
+<p>Workspace Role</p>
+<p>=</p>
+<p>Broad Workspace Access</p>
+<p>Item Permission</p>
+<p>=</p>
+<p>Specific Fabric Item Access</p>
+<h3>7. SQL security</h3>
+<p>Inside Fabric Warehouse, SQL permissions provide more granular control.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">Sales_Warehouse
+│
+├── Tables
+│   ├── FactSales
+│   ├── DimCustomer
+│   └── EmployeeSalary
+│
+├── Views
+│   └── vw_SalesSummary
+│
+└── Stored Procedures
+    └── usp_LoadSales</pre>
+<p>Different users can require different permissions.</p>
+<h3>For example:</h3>
+<pre class="diagram">Data Engineer
+    │
+    ├── SELECT
+    ├── INSERT
+    ├── UPDATE
+    └── DELETE</pre>
+<pre class="diagram">Analyst
+    │
+    └── SELECT</pre>
+<pre class="diagram">ETL Service
+    │
+    ├── SELECT
+    ├── INSERT
+    └── EXECUTE</pre>
+<h3>8. GRANT</h3>
+<p>GRANT gives a user or principal permission.</p>
+<h3>For example:</h3>
+<p>GRANT SELECT ON dbo.FactSales TO [user@company.com];</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">User
+ │
+ │ GRANT SELECT
+ ▼
+FactSales
+ │
+ ▼</pre>
+<p>Can Read</p>
+<h3>9. DENY</h3>
+<p>DENY explicitly prevents an operation where supported/applicable.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">User
+ │
+ │ DENY
+ ▼
+Sensitive Object
+ │</pre>
+<p>✕</p>
+<p>No Access</p>
+<p>When designing SQL permissions, be careful with combinations of grants, denies, roles, and inherited permissions.</p>
+<h3>10. REVOKE</h3>
+<p>REVOKE removes a previously granted or denied permission entry.</p>
+<h3>For example:</h3>
+<p>REVOKE SELECT ON dbo.FactSales</p>
+<p>FROM [user@company.com];</p>
+<h3>Don&#x27;t confuse:</h3>
+<p>GRANT</p>
+<p>=</p>
+<p>Give Permission</p>
+<p>DENY</p>
+<p>=</p>
+<p>Explicitly Refuse Permission</p>
+<p>REVOKE</p>
+<p>=</p>
+<p>Remove GRANT/DENY</p>
+<h3>11. Table-Level Security</h3>
+<h3>Suppose your Warehouse contains:</h3>
+<p>dbo.FactSales</p>
+<p>dbo.DimCustomer</p>
+<p>hr.EmployeeSalary</p>
+<p>finance.FinancialTransactions</p>
+<h3>A Sales Analyst may need:</h3>
+<p>FactSales          ✓</p>
+<p>DimCustomer        ✓</p>
+<p>EmployeeSalary     ✕</p>
+<p>FinancialData      ✕</p>
+<p>You can use SQL permissions to control access to specific objects.</p>
+<h3>Example:</h3>
+<p>GRANT SELECT ON dbo.FactSales</p>
+<p>TO [SalesAnalyst];</p>
+<h3>12. Schema-Level Security</h3>
+<p>For larger warehouses, granting permissions table by table can become difficult.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">Warehouse
+│
+├── sales
+│   ├── FactSales
+│   ├── DimCustomer
+│   └── DimProduct
+│
+├── finance
+│   ├── FactGL
+│   └── DimAccount
+│
+└── hr
+    ├── Employee
+    └── Salary</pre>
+<h3>You can organize objects into schemas:</h3>
+<p>sales</p>
+<p>finance</p>
+<p>hr</p>
+<p>Then security can be designed around schemas.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Sales Team
+    │
+    ▼
+sales schema
+    │
+    ├── FactSales
+    ├── DimCustomer
+    └── DimProduct</pre>
+<p>This is usually much easier to manage than hundreds of individual table permissions.</p>
+<h3>13. Row-Level Security — RLS</h3>
+<p>Row-Level Security controls which rows a user can see.</p>
+<p>This is extremely important.</p>
+<h3>Suppose FactSales contains:</h3>
+<div class="table-wrap"><table><thead><tr><th>Region</th><th>SalesAmount</th></tr></thead><tbody><tr><td>India</td><td>100000</td></tr><tr><td>USA</td><td>200000</td></tr><tr><td>UK</td><td>150000</td></tr><tr><td>Germany</td><td>180000</td></tr></tbody></table></div>
+<h3>We have:</h3>
+<p>India Manager</p>
+<p>USA Manager</p>
+<h3>Without RLS:</h3>
+<p>India Manager</p>
+<p>India       ✓</p>
+<p>USA         ✓</p>
+<p>UK          ✓</p>
+<p>Germany     ✓</p>
+<h3>But we want:</h3>
+<p>India Manager</p>
+<p>India       ✓</p>
+<p>USA         ✕</p>
+<p>UK          ✕</p>
+<p>Germany     ✕</p>
+<p>That&#x27;s Row-Level Security.</p>
+<h3>14. How RLS works conceptually</h3>
+<pre class="diagram">                FactSales
+                    │
+       ┌────────────┼────────────┐
+       │            │            │
+     India         USA          UK
+       │            │            │
+       ▼            ▼            ▼</pre>
+<p>India Manager   USA Manager   UK Manager</p>
+<p>Same table.</p>
+<p>Different users.</p>
+<p>Different rows.</p>
+<p>That&#x27;s the key concept.</p>
+<h3>15. RLS example</h3>
+<h3>Imagine:</h3>
+<pre class="diagram">Employee          Region
+-------------------------</pre>
+<p>Ravi              India</p>
+<p>John              USA</p>
+<p>David             UK</p>
+<h3>When Ravi queries:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<h3>RLS can make the effective result:</h3>
+<p>Region | Sales</p>
+<p>-------|-------</p>
+<p>India  | 100000</p>
+<h3>John might execute the same SQL:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<h3>but receive:</h3>
+<p>Region | Sales</p>
+<p>-------|-------</p>
+<p>USA    | 200000</p>
+<h3>Therefore:</h3>
+<p>RLS filters rows according to the user&#x27;s security context.</p>
+<h3>16. Column-Level Security — CLS</h3>
+<p>Column-Level Security controls access to specific columns.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">Employee
+│
+├── EmployeeID
+├── EmployeeName
+├── Department
+├── Email
+├── Salary
+└── BankAccount</pre>
+<h3>An analyst might be allowed to see:</h3>
+<p>EmployeeID      ✓</p>
+<p>EmployeeName    ✓</p>
+<p>Department      ✓</p>
+<p>Salary          ✕</p>
+<p>BankAccount     ✕</p>
+<p>This is a column-level security requirement.</p>
+<h3>17. RLS vs CLS</h3>
+<p>This distinction is important for interviews.</p>
+<p>Row-Level Security</p>
+<h3>Controls:</h3>
+<h3>Which records can I see?</h3>
+<p>India Records       ✓</p>
+<p>USA Records         ✕</p>
+<p>UK Records          ✕</p>
+<p>Column-Level Security</p>
+<h3>Controls:</h3>
+<h3>Which fields can I see?</h3>
+<p>EmployeeName        ✓</p>
+<p>Department          ✓</p>
+<p>Salary              ✕</p>
+<p>BankAccount         ✕</p>
+<h3>Easy memory:</h3>
+<p>RLS</p>
+<p>=</p>
+<p>ROWS</p>
+<p>CLS</p>
+<p>=</p>
+<p>COLUMNS</p>
+<h3>18. RLS + CLS together</h3>
+<p>They can be combined.</p>
+<h3>Suppose:</h3>
+<p>Employee Table</p>
+<p>Name | Region | Department | Salary</p>
+<h3>An India manager might have:</h3>
+<pre class="diagram">Rows
+────</pre>
+<p>India only</p>
+<pre class="diagram">Columns
+───────</pre>
+<p>Name          ✓</p>
+<p>Region        ✓</p>
+<p>Department    ✓</p>
+<p>Salary        ✕</p>
+<h3>So:</h3>
+<pre class="diagram">                Security
+                   │
+          ┌────────┴────────┐
+          ▼                 ▼
+         RLS               CLS
+          │                 │</pre>
+<h3>Which Rows?       Which Columns?</h3>
+<h3>19. Dynamic Data Masking</h3>
+<p>Another security concept is Dynamic Data Masking (DDM).</p>
+<p>Instead of completely denying access to a column, you can mask sensitive values for users who should not see the original data.</p>
+<h3>Suppose:</h3>
+<p>Customer</p>
+<p>Name</p>
+<p>Email</p>
+<p>Phone</p>
+<p>CreditCard</p>
+<h3>Actual:</h3>
+<p>Ravi</p>
+<p>ravi@example.com</p>
+<p>9876543210</p>
+<p>1234-5678-9012-3456</p>
+<h3>A masked view might appear conceptually as:</h3>
+<p>Ravi</p>
+<p>rXXX@example.com</p>
+<p>XXXXXX3210</p>
+<p>XXXX-XXXX-XXXX-3456</p>
+<p>The underlying data isn&#x27;t necessarily changed—the displayed value is masked according to permissions and masking rules.</p>
+<h3>20. Masking vs Encryption</h3>
+<p>Don&#x27;t confuse these concepts.</p>
+<p>Masking</p>
+<p>Actual Data</p>
+<p>9876543210</p>
+<p>Displayed</p>
+<p>XXXXXX3210</p>
+<p>Used to reduce exposure of sensitive values.</p>
+<p>Encryption</p>
+<pre class="diagram">Plain Data
+     │
+     ▼
+Encryption
+     │
+     ▼</pre>
+<p>Protected Representation</p>
+<p>Used to protect data cryptographically.</p>
+<p>They solve different security problems.</p>
+<h3>21. Encryption</h3>
+<p>Fabric provides platform-level protection for data, including encryption mechanisms managed as part of the Microsoft cloud/Fabric platform.</p>
+<h3>Think about two major states:</h3>
+<pre class="diagram">DATA AT REST
+     │
+     ▼
+Stored Data
+     │
+     ▼</pre>
+<p>Encryption</p>
+<pre class="diagram">DATA IN TRANSIT
+     │
+     ▼
+Network Communication
+     │
+     ▼</pre>
+<p>Encrypted Transport</p>
+<h3>For your beginner syllabus, understand:</h3>
+<p>At-rest encryption protects stored data.</p>
+<p>In-transit encryption protects data moving across network connections.</p>
+<h3>22. Views as a security layer</h3>
+<p>Views can also help expose only required data.</p>
+<h3>Suppose:</h3>
+<p>Employee</p>
+<p>EmployeeID</p>
+<p>Name</p>
+<p>Department</p>
+<p>Salary</p>
+<p>BankAccount</p>
+<h3>Instead of allowing analysts direct table access, create:</h3>
+<p>CREATE VIEW reporting.vw_Employee</p>
+<p>AS</p>
+<p>SELECT</p>
+<p>EmployeeID,</p>
+<p>Name,</p>
+<p>Department</p>
+<p>FROM hr.Employee;</p>
+<h3>Then users see:</h3>
+<p>EmployeeID</p>
+<p>Name</p>
+<p>Department</p>
+<h3>but not:</h3>
+<p>Salary</p>
+<p>BankAccount</p>
+<h3>Architecture:</h3>
+<pre class="diagram">Sensitive Table
+      │
+      ▼
+    View
+      │
+      ▼
+Safe Columns
+      │
+      ▼</pre>
+<p>Analyst</p>
+<p>This is a common and understandable security pattern.</p>
+<h3>23. Stored procedures and security</h3>
+<p>Stored procedures can expose controlled operations.</p>
+<p>Suppose users shouldn&#x27;t directly update FactSales.</p>
+<h3>Instead of:</h3>
+<pre class="diagram">User
+ │
+ ▼</pre>
+<p>UPDATE FactSales</p>
+<h3>you might design:</h3>
+<pre class="diagram">User
+ │
+ ▼
+Stored Procedure
+ │
+ ▼
+Validated Logic
+ │
+ ▼</pre>
+<p>FactSales</p>
+<p>For example, authorized users/services can receive EXECUTE permission on an approved procedure rather than broad modification permissions.</p>
+<p>The exact security behavior depends on procedure design, permissions, and supported Fabric Warehouse T-SQL features.</p>
+<h3>24. Least Privilege Principle</h3>
+<p>This is one of the most important security principles.</p>
+<p>Give users only the permissions they need to perform their job—nothing more.</p>
+<h3>Bad:</h3>
+<p>Business Analyst</p>
+<p>ADMIN</p>
+<p>if they only need reports.</p>
+<h3>Better:</h3>
+<p>Business Analyst</p>
+<p>Read / SELECT</p>
+<p>only required data</p>
+<h3>Another example:</h3>
+<p>ETL Account</p>
+<h3>Needs:</h3>
+<p>SELECT</p>
+<p>INSERT</p>
+<h3>Doesn&#x27;t need:</h3>
+<p>Workspace Admin</p>
+<p>Don&#x27;t grant Admin simply because it&#x27;s easier.</p>
+<h3>25. Security using groups</h3>
+<p>In an enterprise environment, avoid managing hundreds of users individually where possible.</p>
+<h3>Instead of:</h3>
+<p>Ravi   → SELECT</p>
+<p>John   → SELECT</p>
+<p>Priya  → SELECT</p>
+<p>David  → SELECT</p>
+<p>...</p>
+<h3>prefer group-oriented administration:</h3>
+<pre class="diagram">          Entra Group
+               │
+               ▼
+        Sales_Analysts
+               │
+       ┌───────┼───────┐
+       ▼       ▼       ▼
+     Ravi    John    Priya
+               │
+               ▼</pre>
+<p>Permissions</p>
+<p>This makes onboarding and offboarding much easier.</p>
+<h3>26. Example enterprise security design</h3>
+<h3>Imagine:</h3>
+<pre class="diagram">Sales Warehouse
+│
+├── sales.FactSales
+├── sales.DimCustomer
+├── sales.DimProduct
+│
+├── finance.FactRevenue
+│
+└── hr.EmployeeSalary</pre>
+<h3>Groups:</h3>
+<p>Sales_Analysts</p>
+<p>Finance_Analysts</p>
+<p>HR_Analysts</p>
+<p>Data_Engineers</p>
+<h3>Permissions:</h3>
+<div class="table-wrap"><table><thead><tr><th>Group</th><th>Sales</th><th>Finance</th><th>HR</th></tr></thead><tbody><tr><td>Sales Analysts</td><td>Read</td><td>No</td><td>No</td></tr><tr><td>Finance Analysts</td><td>Limited/Required</td><td>Read</td><td>No</td></tr><tr><td>HR Analysts</td><td>No</td><td>No</td><td>Read</td></tr><tr><td>Data Engineers</td><td>Required engineering access</td><td>Required</td><td>Required</td></tr></tbody></table></div>
+<h3>This is much better than:</h3>
+<pre class="diagram">Everyone
+    │
+    ▼</pre>
+<p>Workspace Admin</p>
+<h3>27. Power BI and Warehouse security</h3>
+<p>Security must also be considered end-to-end.</p>
+<pre class="diagram">Fabric Warehouse
+       │
+       ▼
+Semantic Model
+       │
+       ▼
+Power BI Report
+       │
+       ▼</pre>
+<p>Business User</p>
+<h3>You may have security at:</h3>
+<pre class="diagram">Warehouse
+    +
+Semantic Model
+    +</pre>
+<p>Power BI</p>
+<p>A common mistake is securing only the report while leaving direct data access overly broad.</p>
+<h3>Always think:</h3>
+<h3>Can the user bypass the report and query the underlying Warehouse directly?</h3>
+<p>Security should be designed across the complete data path.</p>
+<h3>28. Example: Sales security architecture</h3>
+<pre class="diagram">                       USERS
+                         │
+                         ▼
+                 Microsoft Entra ID
+                         │
+                         ▼
+                 Entra Security Groups
+                         │
+                         ▼
+                 Fabric Workspace
+                         │
+                         ▼
+                     Warehouse
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       Schema          Tables          Views
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+                   SQL Permissions
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+         RLS            CLS           Masking
+          │              │              │
+       Rows          Columns       Sensitive Data
+                         │
+                         ▼</pre>
+<p>Power BI</p>
+<h3>29. Real-world scenario</h3>
+<h3>Suppose your company operates in:</h3>
+<p>India</p>
+<p>USA</p>
+<p>UK</p>
+<p>Germany</p>
+<h3>The Warehouse contains:</h3>
+<p>FactSales</p>
+<h3>with:</h3>
+<p>Region</p>
+<p>SalesAmount</p>
+<p>Profit</p>
+<p>CustomerID</p>
+<h3>Security requirement:</h3>
+<pre class="diagram">India Manager
+      │
+      ▼</pre>
+<p>India data only</p>
+<pre class="diagram">USA Manager
+      │
+      ▼</pre>
+<p>USA data only</p>
+<pre class="diagram">Global Director
+      │
+      ▼</pre>
+<p>All regions</p>
+<p>This is a classic RLS use case.</p>
+<h3>Then suppose DimCustomer contains:</h3>
+<p>CustomerName</p>
+<p>Email</p>
+<p>Phone</p>
+<p>CreditCard</p>
+<p>Regular analysts should not see CreditCard.</p>
+<p>That&#x27;s a column/sensitive-data protection requirement.</p>
+<h3>Together:</h3>
+<pre class="diagram">                 FactSales
+                     │
+                     ▼
+                    RLS
+                     │</pre>
+<p>Region Filtering</p>
+<pre class="diagram">                DimCustomer
+                     │
+                     ▼
+               Column Security
+                     │</pre>
+<p>Sensitive Fields</p>
+<h3>30. DEV, TEST and PROD security</h3>
+<p>Another important enterprise practice is separating environments.</p>
+<pre class="diagram">DEV
+ │
+ ▼</pre>
+<p>Developers</p>
+<p>Broad development access</p>
+<pre class="diagram">TEST
+ │
+ ▼</pre>
+<p>Developers / Testers</p>
+<p>Controlled access</p>
+<pre class="diagram">PROD
+ │
+ ▼</pre>
+<p>Restricted access</p>
+<h3>Avoid:</h3>
+<pre class="diagram">Everyone
+   │
+   ▼</pre>
+<p>PROD Admin</p>
+<p>Production should generally have stricter access controls than development.</p>
+<h3>31. Security best practices</h3>
+<h3>For your Fabric Warehouse, remember these:</h3>
+<p>Use Microsoft Entra ID identities and groups for centralized identity management.</p>
+<p>Follow least privilege — don&#x27;t give Admin/Member permissions when read access is enough.</p>
+<p>Use workspace roles for broad workspace access and more granular controls for specific requirements.</p>
+<p>Use SQL permissions such as GRANT, DENY, and REVOKE appropriately.</p>
+<p>Use schemas to organize objects and simplify permission management.</p>
+<p>Use RLS when users should see different rows from the same table.</p>
+<p>Protect sensitive columns using appropriate column permissions, views, masking, or downstream security controls.</p>
+<p>Separate DEV, TEST, and PROD access and regularly review permissions.</p>
+<h3>32. Interview question — How is Fabric Warehouse secured?</h3>
+<h3>A strong answer:</h3>
+<p>Microsoft Fabric Warehouse security is implemented in multiple layers. Microsoft Entra ID provides authentication, Fabric workspace roles and item permissions control access at the Fabric level, and SQL permissions provide granular access to warehouse objects. Additional controls such as row-level security, column-level security, views, and dynamic data masking can protect sensitive data. A good design follows least privilege and uses Entra groups rather than assigning broad permissions individually.</p>
+<h3>33. Interview question — RLS vs CLS</h3>
+<p>Row-Level Security controls which rows a user can access, while Column-Level Security controls which columns the user can access. For example, RLS can restrict a regional manager to India sales records, while CLS can prevent that manager from seeing sensitive columns such as salary or bank-account information.</p>
+<h3>34. Interview question — Workspace role vs SQL permission</h3>
+<p>A workspace role controls broad access and capabilities within a Fabric workspace, while SQL permissions provide more granular authorization within a Warehouse, such as allowing a user to SELECT from a particular schema or table or EXECUTE a stored procedure.</p>
+<h3>Think:</h3>
+<pre class="diagram">Workspace Role
+      │
+      ▼</pre>
+<p>&quot;What can you do in Fabric workspace?&quot;</p>
+<pre class="diagram">SQL Permission
+      │
+      ▼</pre>
+<p>&quot;What can you do inside the Warehouse?&quot;</p>
+<h3>35. Quick revision</h3>
+<pre class="diagram">FABRIC WAREHOUSE SECURITY
+================================
+Authentication
+     │
+     ▼
+Microsoft Entra ID
+     │
+     ▼
+Workspace Security
+     │
+     ├── Admin
+     ├── Member
+     ├── Contributor
+     └── Viewer
+     │
+     ▼
+Item Security
+     │
+     ▼
+Warehouse
+     │
+     ▼
+SQL Security
+     │
+     ├── GRANT
+     ├── DENY
+     └── REVOKE
+     │
+     ▼
+Object Security
+     │
+     ├── Schema
+     ├── Table
+     ├── View
+     └── Procedure
+     │
+     ▼
+Data Security
+     │
+     ├── RLS → Rows
+     ├── CLS → Columns
+     └── DDM → Mask values</pre>
+<p>One diagram to remember</p>
+<pre class="diagram">                         USER
+                           │
+                           ▼
+                  MICROSOFT ENTRA ID
+                           │
+                    Authentication
+                           │
+                           ▼
+                  FABRIC WORKSPACE
+                           │
+                 Workspace Roles
+                           │
+                           ▼
+                      WAREHOUSE
+                           │
+                  SQL Permissions
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+        SCHEMA           TABLE            VIEW
+          │                │                │
+          └────────────────┼────────────────┘
+                           ▼
+                      DATA SECURITY
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+            RLS           CLS          MASKING
+             │             │             │</pre>
+<p>ROWS         COLUMNS       VALUES</p>
+<h3>Key takeaway</h3>
+<h3>For 6.6 Security, remember this sequence:</h3>
+<p>Entra ID → Workspace Roles → Item Permissions → SQL Permissions → RLS/CLS/Masking</p>
+<h3>And remember these three questions:</h3>
+<h3>Authentication: Who are you?
+Authorization: What can you do?
+Data Security: What data are you allowed to see?</h3>
+<p>That is the foundation for understanding Microsoft Fabric Data Warehouse security.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-12"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.7</span><h2>Create Warehouse</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-13"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.8</span><h2>Load Data</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-14"><div class="lesson-head"><span class="lesson-eyebrow">Module 6 · Lesson 6.9</span><h2>Create Star Schema</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+</main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script></body></html>

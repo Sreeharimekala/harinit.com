@@ -1,0 +1,5039 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Performance Optimization — Module 10</title><style>
+:root{
+  --bg:#0f1115;--panel:#151822;--panel-2:#11141b;--ink:#e7e9ee;
+  --ink-dim:#a7adba;--ink-faint:#6b7280;--accent:#5fd3c4;--accent-2:#f2a65a;
+  --rule:#262b38;--code-bg:#0b0d12;--code-ink:#cde5ff;--diagram-ink:#7fe3c7;
+  --table-head:#1b2030;--radius:10px;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:8px}
+.nav-link:hover{background:rgba(95,211,196,.08);color:var(--ink)}
+.nav-link.active{background:rgba(95,211,196,.12);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent-2);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:#fff}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:#fff;line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:#fff;margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px;border-left:3px solid var(--accent);padding-left:14px}
+.content h3:first-child{margin-top:0}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:24px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent-2);font-family:var(--mono)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--code-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.diagram-label{color:#e7e9ee}.diagram-branch{color:#7fe3c7}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px}thead th{background:var(--table-head);color:#fff;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--ink)}
+.callout{background:linear-gradient(180deg,rgba(95,211,196,.09),rgba(95,211,196,.03));border:1px solid rgba(95,211,196,.28);border-radius:14px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:rgba(242,166,90,.07);border:1px solid rgba(242,166,90,.25);border-radius:12px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent-2);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:#04211d;border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}main{padding:36px 20px 90px}}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../fabric-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Fabric Data Engineering</div>
+<div class="brand-title">Performance Optimization</div>
+<div class="brand-sub">Module 10 · 12 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">10.1</span>Partitioning</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">10.2</span></a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">10.2</span>File Sizes</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">10.4</span></a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">10.3</span>Spark Optimization</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">10.6</span></a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">10.5</span>Query Performance</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">10.8</span></a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">10.9</span></a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">10.6</span>Monitoring</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">10.11</span></a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">10.7</span>Optimize Large Dataset</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Module 10</div><h1>Performance Optimization</h1>
+<p>10.1 Partitioning in Microsoft Fabric</p>
+<div class="doc-meta"><span class="pill">12 lessons</span><span class="pill">Microsoft Fabric</span><span class="pill">DP-700 Track</span></div></header>
+<section class="lesson" id="lesson-1"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.1</span><h2>Partitioning</h2></div><div class="content">
+<p>10.1 Partitioning in Microsoft Fabric</p>
+<p>Partitioning means physically organizing a large dataset into smaller groups based on the values of one or more columns.</p>
+<h3>The main reason we use partitioning is:</h3>
+<p>Instead of scanning the entire dataset, the query can read only the partitions it needs.</p>
+<p>This can significantly improve performance for large datasets.</p>
+<h3>1. Simple example</h3>
+<p>Imagine a Sales table containing 1 billion rows from 2022–2026.</p>
+<h3>Without partitioning:</h3>
+<pre class="diagram">Sales Table
+────────────────────</pre>
+<p>2022 data</p>
+<p>2023 data</p>
+<p>2024 data</p>
+<p>2025 data</p>
+<p>2026 data</p>
+<p>Total = 1 Billion Rows</p>
+<h3>You run:</h3>
+<pre class="code">SELECT *
+FROM Sales
+WHERE SalesYear = 2026;</pre>
+<p>Without effective data skipping/partitioning, the engine may need to examine much more data than the 2026 portion.</p>
+<h3>But if the data is partitioned by year:</h3>
+<pre class="diagram">Sales
+│
+├── SalesYear=2022
+│
+├── SalesYear=2023
+│
+├── SalesYear=2024
+│
+├── SalesYear=2025
+│
+└── SalesYear=2026</pre>
+<h3>The engine can target:</h3>
+<p>SalesYear=2026</p>
+<p>↓</p>
+<p>Read required files</p>
+<p>↓</p>
+<p>Return results</p>
+<p>This is called partition pruning.</p>
+<h3>2. Think of partitioning like a filing cabinet</h3>
+<p>Imagine you have 1 million documents.</p>
+<p>Without organization</p>
+<pre class="diagram">Big Box
+│
+├── January documents
+├── March documents
+├── December documents
+├── February documents
+├── July documents
+└── ...</pre>
+<p>Finding December documents requires searching a huge collection.</p>
+<p>Partitioned</p>
+<pre class="diagram">Documents
+│
+├── January
+├── February
+├── March
+│</pre>
+<p>...</p>
+<p>└── December</p>
+<h3>Now:</h3>
+<p>&quot;Give me December documents.&quot;</p>
+<h3>You go directly to:</h3>
+<p>December</p>
+<p>That&#x27;s the basic idea behind partitioning.</p>
+<h3>3. Partitioning in a Fabric Lakehouse</h3>
+<p>In Microsoft Fabric, partitioning is particularly important when working with Lakehouse / Delta tables and Spark.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">Lakehouse
+   │
+   ▼
+Tables
+   │
+   ▼</pre>
+<p>FactSales</p>
+<h3>The table contains:</h3>
+<p>SalesID</p>
+<p>CustomerID</p>
+<p>ProductID</p>
+<p>SalesDate</p>
+<p>Country</p>
+<p>Amount</p>
+<h3>You could partition the underlying Delta data by something like:</h3>
+<p>Year</p>
+<h3>or:</h3>
+<p>Year + Month</p>
+<p>depending on data volume and query patterns.</p>
+<h3>4. Physical organization</h3>
+<h3>Suppose you partition by:</h3>
+<p>Year</p>
+<h3>Conceptually, the underlying storage might look like:</h3>
+<pre class="diagram">FactSales/
+│
+├── Year=2024/
+│   ├── part-00001.parquet
+│   ├── part-00002.parquet
+│   └── part-00003.parquet
+│
+├── Year=2025/
+│   ├── part-00001.parquet
+│   ├── part-00002.parquet
+│   └── part-00003.parquet
+│
+└── Year=2026/
+    ├── part-00001.parquet
+    ├── part-00002.parquet
+    └── part-00003.parquet</pre>
+<h3>Notice something important:</h3>
+<p>Partition ≠ File</p>
+<p>A partition can contain multiple Parquet files.</p>
+<h3>5. Query without partition pruning</h3>
+<h3>Imagine:</h3>
+<p>2024 → 200 GB</p>
+<p>2025 → 250 GB</p>
+<p>2026 → 300 GB</p>
+<h3>Total:</h3>
+<p>750 GB</p>
+<h3>Query:</h3>
+<pre class="code">SELECT SUM(Amount)
+FROM FactSales
+WHERE Year = 2026;</pre>
+<h3>If the engine had to scan everything:</h3>
+<pre class="diagram">2024  ─┐
+2025   ├── Scan 750 GB
+2026  ─┘</pre>
+<p>That&#x27;s expensive.</p>
+<h3>6. Query with partition pruning</h3>
+<pre class="code">With useful partitioning:
+WHERE Year = 2026
+       │
+       ▼</pre>
+<pre class="diagram">Partition Pruning
+       │
+       ├── Year=2024 ✕
+       ├── Year=2025 ✕
+       │
+       └── Year=2026 ✓</pre>
+<p>Only the relevant partition needs to be read.</p>
+<h3>Conceptually:</h3>
+<p>750 GB total</p>
+<p>↓</p>
+<p>Query Year=2026</p>
+<p>↓</p>
+<p>Read ~300 GB</p>
+<h3>That can reduce:</h3>
+<p>I/O</p>
+<p>↓</p>
+<p>Data scanned</p>
+<p>↓</p>
+<p>Processing</p>
+<p>↓</p>
+<p>Query time</p>
+<h3>7. Partitioning by Date</h3>
+<p>Date/time columns are common partitioning candidates because analytical queries often filter by time.</p>
+<p>Suppose your data spans 10 years.</p>
+<h3>You could partition by:</h3>
+<p>Year</p>
+<h3>Result:</h3>
+<pre class="diagram">FactSales
+│
+├── Year=2017
+├── Year=2018
+├── Year=2019
+│</pre>
+<p>...</p>
+<pre class="diagram">├── Year=2025
+└── Year=2026</pre>
+<h3>Queries like:</h3>
+<pre class="code">WHERE Year = 2026</pre>
+<p>can benefit.</p>
+<h3>8. Year + Month partitioning</h3>
+<h3>What if each year contains enormous amounts of data?</h3>
+<h3>For example:</h3>
+<p>2026 = 10 TB</p>
+<p>A single yearly partition may still be too large.</p>
+<h3>You might use:</h3>
+<pre class="diagram">Year
+ +</pre>
+<p>Month</p>
+<h3>Result:</h3>
+<pre class="diagram">FactSales
+│
+└── Year=2026
+    │
+    ├── Month=01
+    ├── Month=02
+    ├── Month=03
+    ├── Month=04
+    │</pre>
+<p>...</p>
+<p>└── Month=12</p>
+<h3>Now a query for July 2026 can target:</h3>
+<p>Year=2026</p>
+<p>Month=07</p>
+<p>instead of reading the whole year.</p>
+<h3>9. Example</h3>
+<h3>Query:</h3>
+<pre class="code">SELECT
+    ProductID,
+    SUM(Amount)
+FROM FactSales
+WHERE Year = 2026</pre>
+<p>AND Month = 7</p>
+<p>GROUP BY ProductID;</p>
+<h3>The engine can potentially skip:</h3>
+<p>2024                 ✕</p>
+<p>2025                 ✕</p>
+<pre class="diagram">2026
+ ├── January         ✕
+ ├── February        ✕
+ ├── March           ✕
+ ├── April           ✕
+ ├── May             ✕
+ ├── June            ✕
+ ├── July            ✓
+ ├── August          ✕</pre>
+<p>...</p>
+<p>This is partition pruning.</p>
+<h3>10. Choosing a partition column</h3>
+<p>This is where partition design becomes important.</p>
+<h3>A good partition column is often:</h3>
+<p>Frequently used in query filters.</p>
+<p>Reasonably distributed.</p>
+<p>Low-to-moderate cardinality.</p>
+<p>Able to create partitions large enough to avoid excessive small files.</p>
+<h3>Typical candidates:</h3>
+<p>Year</p>
+<p>Month</p>
+<p>Date</p>
+<p>Region</p>
+<p>Country</p>
+<p>But the correct choice depends on the data and workload.</p>
+<h3>11. Bad partition column: CustomerID</h3>
+<h3>Imagine:</h3>
+<p>100 million customers</p>
+<h3>and you partition by:</h3>
+<p>CustomerID</p>
+<h3>You could potentially create an enormous number of partitions:</h3>
+<p>CustomerID=1</p>
+<p>CustomerID=2</p>
+<p>CustomerID=3</p>
+<p>...</p>
+<p>CustomerID=100000000</p>
+<p>That&#x27;s usually a terrible partitioning strategy.</p>
+<h3>This is called:</h3>
+<p>High-cardinality partitioning</p>
+<h3>12. What is cardinality?</h3>
+<p>Cardinality means the number of distinct values in a column.</p>
+<h3>Examples:</h3>
+<pre class="diagram">Gender
+------</pre>
+<p>Distinct values ≈ 2–few</p>
+<p>LOW CARDINALITY</p>
+<pre class="diagram">Country
+-------</pre>
+<p>Distinct values ≈ hundreds</p>
+<p>MODERATE CARDINALITY</p>
+<pre class="diagram">CustomerID
+----------</pre>
+<p>Distinct values = millions</p>
+<p>HIGH CARDINALITY</p>
+<p>Partitioning on extremely high-cardinality columns can create too many tiny partitions/files.</p>
+<h3>13. Over-partitioning</h3>
+<h3>Suppose you partition by:</h3>
+<p>Year</p>
+<p>Month</p>
+<p>Day</p>
+<p>Hour</p>
+<p>Minute</p>
+<h3>You might end up with:</h3>
+<p>Year=2026</p>
+<pre class="diagram"> └── Month=08
+      └── Day=03
+           └── Hour=10
+                └── Minute=01</pre>
+<h3>Then:</h3>
+<p>Minute=01 → 1 tiny file</p>
+<p>Minute=02 → 1 tiny file</p>
+<p>Minute=03 → 1 tiny file</p>
+<p>...</p>
+<p>Now you have potentially thousands or millions of tiny files.</p>
+<p>This can hurt performance.</p>
+<h3>14. The Small Files Problem</h3>
+<p>This is one of the most important topics in Fabric/Spark performance.</p>
+<h3>Bad:</h3>
+<p>Dataset = 100 GB</p>
+<p>100,000 files</p>
+<p>×</p>
+<p>~1 MB each</p>
+<h3>Spark has to manage huge numbers of files/tasks.</h3>
+<h3>There is overhead for:</h3>
+<p>File discovery</p>
+<p>Task scheduling</p>
+<p>Metadata</p>
+<p>Opening files</p>
+<p>Closing files</p>
+<p>Processing</p>
+<h3>So:</h3>
+<p>More partitions does NOT automatically mean better performance.</p>
+<h3>15. Partitioning and File Size are connected</h3>
+<h3>Notice your syllabus:</h3>
+<p>10.1 Partitioning</p>
+<p>10.2 File Sizes</p>
+<p>These topics are intentionally related.</p>
+<h3>Good design:</h3>
+<p>Large Dataset</p>
+<p>↓</p>
+<p>Useful Partitioning</p>
+<p>↓</p>
+<p>Reasonably sized files</p>
+<p>↓</p>
+<p>Efficient Spark processing</p>
+<h3>Bad design:</h3>
+<p>Large Dataset</p>
+<p>↓</p>
+<p>Too many partitions</p>
+<p>↓</p>
+<p>Tiny files</p>
+<p>↓</p>
+<p>Too many Spark tasks</p>
+<p>↓</p>
+<p>Poor performance</p>
+<h3>16. Spark partitioning</h3>
+<h3>There is another concept you need to distinguish:</h3>
+<h3>Spark execution/dataframe partitions</h3>
+<h3>versus:</h3>
+<p>Storage/table partitions</p>
+<p>They are related but not exactly the same thing.</p>
+<p>Table/storage partitioning</p>
+<pre class="diagram">FactSales/
+├── Year=2025/
+└── Year=2026/</pre>
+<p>This affects physical data organization.</p>
+<h3>Spark partitions</h3>
+<h3>When Spark processes data:</h3>
+<p>Dataset</p>
+<p>↓</p>
+<p>Partition 1 → Executor</p>
+<p>Partition 2 → Executor</p>
+<p>Partition 3 → Executor</p>
+<p>Partition 4 → Executor</p>
+<p>These affect parallel processing.</p>
+<p>This distinction becomes important in your 10.3 Spark Optimization topic.</p>
+<h3>17. Creating a partitioned Delta table with Spark</h3>
+<h3>For example, suppose your DataFrame is:</h3>
+<p>df</p>
+<h3>You can write:</h3>
+<pre class="code">df.write \
+    .format(&quot;delta&quot;) \
+    .mode(&quot;overwrite&quot;) \
+    .partitionBy(&quot;Year&quot;) \
+    .saveAsTable(&quot;FactSales&quot;)</pre>
+<h3>Conceptually:</h3>
+<p>DataFrame</p>
+<p>↓</p>
+<pre class="code">partitionBy(&quot;Year&quot;)</pre>
+<p>↓</p>
+<pre class="diagram">Delta Table
+   │
+   ├── Year=2024
+   ├── Year=2025
+   └── Year=2026</pre>
+<h3>18. Partitioning by Year and Month</h3>
+<h3>You could also use:</h3>
+<pre class="code">df.write \
+    .format(&quot;delta&quot;) \
+    .mode(&quot;overwrite&quot;) \
+    .partitionBy(&quot;Year&quot;, &quot;Month&quot;) \
+    .saveAsTable(&quot;FactSales&quot;)</pre>
+<h3>Result:</h3>
+<pre class="diagram">FactSales
+│
+├── Year=2025
+│   ├── Month=01
+│   ├── Month=02
+│   └── ...
+│
+└── Year=2026
+    ├── Month=01
+    ├── Month=02
+    └── ...</pre>
+<p>But don&#x27;t automatically choose multiple columns. The decision should be driven by data volume and query patterns.</p>
+<h3>19. repartition() in Spark</h3>
+<p>Now we move to Spark partitions, not table partitioning.</p>
+<h3>Suppose:</h3>
+<pre class="code">df.rdd.getNumPartitions()</pre>
+<h3>returns:</h3>
+<p>4</p>
+<h3>You can redistribute the DataFrame:</h3>
+<pre class="code">df2 = df.repartition(20)</pre>
+<h3>Now Spark can process the data using approximately:</h3>
+<p>20 partitions</p>
+<h3>Conceptually:</h3>
+<p>Original</p>
+<p>[P1] [P2] [P3] [P4]</p>
+<pre class="code">repartition(20)</pre>
+<p>[P1] [P2] [P3] ... [P20]</p>
+<p>This can increase parallelism, but it involves a shuffle.</p>
+<h3>20. repartition() by column</h3>
+<h3>You can also write:</h3>
+<pre class="code">df2 = df.repartition(&quot;Region&quot;)
+Spark redistributes rows according to the specified expression/column.</pre>
+<h3>Conceptually:</h3>
+<pre class="diagram">Data
+ │
+ ▼
+Shuffle
+ │
+ ├── Partition
+ ├── Partition
+ ├── Partition
+ └── ...</pre>
+<p>This may be useful before certain joins, aggregations, or writes, but it should be used deliberately because shuffling is expensive.</p>
+<h3>21. coalesce()</h3>
+<p>If you have too many Spark partitions, you may want fewer.</p>
+<h3>For example:</h3>
+<pre class="code">df2 = df.coalesce(10)</pre>
+<h3>Conceptually:</h3>
+<p>100 partitions</p>
+<p>↓</p>
+<pre class="code">coalesce(10)
+      ↓</pre>
+<p>10 partitions</p>
+<h3>A useful beginner distinction:</h3>
+<pre class="code">repartition()
+     ↓</pre>
+<p>Redistributes data</p>
+<p>Can increase/decrease partitions</p>
+<p>Usually causes shuffle</p>
+<pre class="code">coalesce()
+     ↓</pre>
+<p>Usually reduces partitions</p>
+<p>Often avoids a full shuffle</p>
+<h3>22. Partitioning and parallelism</h3>
+<h3>Spark is a distributed processing engine.</h3>
+<h3>Suppose:</h3>
+<p>1 TB Dataset</p>
+<h3>If effectively processed as one giant partition:</h3>
+<p>1 TB</p>
+<p>↓</p>
+<p>One Task</p>
+<p>↓</p>
+<p>Slow</p>
+<h3>If appropriately divided:</h3>
+<pre class="diagram">1 TB
+ │
+ ├── P1
+ ├── P2
+ ├── P3
+ ├── P4
+ ├── ...
+ └── Pn</pre>
+<h3>Spark can process multiple partitions in parallel across available executors/cores.</h3>
+<p>P1 → Executor 1</p>
+<p>P2 → Executor 2</p>
+<p>P3 → Executor 3</p>
+<p>P4 → Executor 4</p>
+<p>That&#x27;s one of the fundamental ideas behind Spark performance.</p>
+<h3>23. But more partitions aren&#x27;t always better</h3>
+<h3>Suppose you create:</h3>
+<p>1,000,000 partitions</p>
+<p>for a 10 GB dataset.</p>
+<p>Now Spark has huge scheduling/metadata overhead.</p>
+<h3>Think:</h3>
+<p>Too Few Partitions</p>
+<p>↓</p>
+<p>Poor Parallelism</p>
+<p>Too Many Partitions</p>
+<p>↓</p>
+<p>Scheduling + File Overhead</p>
+<p>Balanced Partitions</p>
+<p>↓</p>
+<p>Better Performance</p>
+<p>Optimization is about finding an appropriate balance.</p>
+<h3>24. Data Skew</h3>
+<p>Another partition-related problem is data skew.</p>
+<h3>Suppose sales distribution is:</h3>
+<p>India       → 800 GB</p>
+<p>USA         → 100 GB</p>
+<p>UK          → 50 GB</p>
+<p>Germany     → 50 GB</p>
+<h3>If work is distributed poorly by Country, one worker may receive:</h3>
+<p>India → 800 GB</p>
+<p>while others receive much less.</p>
+<p>Executor 1 → 800 GB   ← overloaded</p>
+<p>Executor 2 → 100 GB</p>
+<p>Executor 3 → 50 GB</p>
+<p>Executor 4 → 50 GB</p>
+<p>Most executors finish quickly, but one keeps working.</p>
+<p>This is data skew.</p>
+<h3>25. Balanced partitioning</h3>
+<h3>Ideal distribution looks more like:</h3>
+<p>Executor 1 → 250 GB</p>
+<p>Executor 2 → 250 GB</p>
+<p>Executor 3 → 250 GB</p>
+<p>Executor 4 → 250 GB</p>
+<p>Balanced work generally improves parallel processing.</p>
+<h3>You&#x27;ll encounter this again when learning:</h3>
+<h3>Spark Optimization</h3>
+<h3>26. Partition Pruning</h3>
+<p>This term is very important for interviews.</p>
+<h3>Partition pruning means:</h3>
+<p>The query engine skips partitions that cannot contain the requested data.</p>
+<h3>Example:</h3>
+<pre class="code">WHERE Year = 2026</pre>
+<h3>Storage:</h3>
+<p>Year=2023   ✕</p>
+<p>Year=2024   ✕</p>
+<p>Year=2025   ✕</p>
+<p>Year=2026   ✓</p>
+<p>Only the required partition is targeted.</p>
+<h3>This reduces:</h3>
+<p>Data scanned</p>
+<p>↓</p>
+<p>I/O</p>
+<p>↓</p>
+<p>CPU work</p>
+<p>↓</p>
+<p>Query duration</p>
+<h3>27. Partition elimination vs full scan</h3>
+<p>Full scan</p>
+<p>Query</p>
+<p>↓</p>
+<p>Scan</p>
+<p>↓</p>
+<p>2023</p>
+<p>2024</p>
+<p>2025</p>
+<p>2026</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Result</p>
+<p>Partition pruning</p>
+<p>Query</p>
+<pre class="code">WHERE Year=2026
+       ↓</pre>
+<p>Partition metadata</p>
+<p>↓</p>
+<p>Skip 2023</p>
+<p>Skip 2024</p>
+<p>Skip 2025</p>
+<p>↓</p>
+<p>Read 2026</p>
+<p>↓</p>
+<p>Result</p>
+<p>That&#x27;s the performance benefit you&#x27;re trying to achieve.</p>
+<h3>28. Real-world example</h3>
+<h3>Imagine an IoT table:</h3>
+<p>SensorEvents</p>
+<p>100 TB</p>
+<h3>Data:</h3>
+<p>Timestamp</p>
+<p>SensorID</p>
+<p>Temperature</p>
+<p>Location</p>
+<p>Status</p>
+<h3>Most queries are:</h3>
+<p>Last 7 days</p>
+<p>Last 30 days</p>
+<p>Yesterday</p>
+<p>Current month</p>
+<p>A time-based partition strategy may make sense because queries frequently filter on time.</p>
+<pre class="diagram">SensorEvents
+│
+├── Date=2026-08-01
+├── Date=2026-08-02
+├── Date=2026-08-03
+└── ...</pre>
+<h3>Then:</h3>
+<pre class="code">WHERE Date = &#x27;2026-08-03&#x27;</pre>
+<p>can target the relevant date partition.</p>
+<p>However, whether daily, monthly, or another strategy is best depends on how much data arrives each day.</p>
+<h3>29. When should you partition?</h3>
+<h3>Partitioning becomes most useful when:</h3>
+<div class="callout"><p>✓ Dataset is large</p></div>
+<div class="callout"><p>✓ Queries frequently filter on the partition column</p></div>
+<div class="callout"><p>✓ Partitions remain reasonably large</p></div>
+<div class="callout"><p>✓ Data distribution is appropriate</p></div>
+<h3>It may be unnecessary or harmful when:</h3>
+<p>✕ Dataset is small</p>
+<p>✕ Partition column has extremely high cardinality</p>
+<p>✕ Each partition contains tiny amounts of data</p>
+<p>✕ Queries rarely filter on the partition column</p>
+<h3>30. Partitioning in Medallion Architecture</h3>
+<h3>Suppose your Fabric architecture is:</h3>
+<p>Source</p>
+<p>↓</p>
+<p>Bronze</p>
+<p>↓</p>
+<p>Silver</p>
+<p>↓</p>
+<p>Gold</p>
+<p>You may use different strategies depending on each layer.</p>
+<h3>For example:</h3>
+<p>BRONZE</p>
+<p>Raw Events</p>
+<p>↓</p>
+<p>Date-based organization</p>
+<p>SILVER</p>
+<p>Cleaned Events</p>
+<p>↓</p>
+<p>Date/Business-oriented strategy</p>
+<p>GOLD</p>
+<p>Aggregated Data</p>
+<p>↓</p>
+<p>Often much smaller</p>
+<p>↓</p>
+<p>May require less partitioning</p>
+<p>Don&#x27;t assume every table at every layer needs identical partitioning.</p>
+<h3>31. Common mistakes</h3>
+<h3>Avoid blindly doing these:</h3>
+<p>Partition every table</p>
+<h3>or:</h3>
+<p>Partition by every filter column</p>
+<h3>or:</h3>
+<p>Partition by CustomerID</p>
+<p>with millions of customers</p>
+<h3>or:</h3>
+<p>Create millions of tiny files</p>
+<h3>or:</h3>
+<p>Use Year/Month/Day/Hour/Minute</p>
+<p>without checking data volume</p>
+<h3>The best strategy depends on:</h3>
+<p>Data size + data distribution + query pattern + file sizes</p>
+<h3>32. Interview question — What is Partitioning?</h3>
+<h3>A strong answer:</h3>
+<p>Partitioning is a technique for organizing a large dataset into smaller logical/physical groups based on one or more columns. In Fabric Lakehouse and Delta scenarios, good partitioning can improve query performance through partition pruning, where the engine reads only relevant partitions instead of scanning unnecessary data.</p>
+<h3>33. Interview question — What is Partition Pruning?</h3>
+<p>Partition pruning is an optimization where the query engine skips partitions that don&#x27;t match the query filter. For example, if a Delta table is partitioned by year and the query filters Year = 2026, the engine can skip partitions for previous years.</p>
+<h3>34. Interview question — What makes a good partition column?</h3>
+<h3>A strong answer:</h3>
+<p>A good partition column is frequently used in query filters, has suitable cardinality and distribution, and produces partitions large enough to avoid the small-files problem. Date-related columns such as year or month are common candidates for large time-based datasets, but the design should depend on the workload.</p>
+<h3>35. Interview question — Why not partition by CustomerID?</h3>
+<p>CustomerID usually has very high cardinality. Partitioning by millions of customer IDs could create millions of small partitions and files, increasing metadata and task-management overhead and potentially reducing performance instead of improving it.</p>
+<h3>36. Interview question — repartition() vs coalesce()</h3>
+<h3>For Spark:</h3>
+<p>repartition() redistributes data across partitions and typically causes a shuffle; it can increase or decrease the partition count. coalesce() is commonly used to reduce the number of partitions and can often do so without a full shuffle.</p>
+<h3>37. Quick revision</h3>
+<pre class="diagram">PARTITIONING
+================================</pre>
+<h3>Purpose:</h3>
+<p>Split large datasets</p>
+<p>into manageable groups</p>
+<h3>Example:</h3>
+<pre class="diagram">FactSales
+│
+├── Year=2024
+├── Year=2025
+└── Year=2026</pre>
+<h3>Query:</h3>
+<pre class="code">WHERE Year = 2026</pre>
+<h3>Partition Pruning:</h3>
+<p>2024  ✕</p>
+<p>2025  ✕</p>
+<p>2026  ✓</p>
+<pre class="diagram">Benefits:
+--------</pre>
+<p>Less data scanned</p>
+<p>Less I/O</p>
+<p>Faster queries</p>
+<p>Better manageability</p>
+<pre class="diagram">Risks:
+------</pre>
+<p>Too many partitions</p>
+<p>Small files</p>
+<p>High-cardinality columns</p>
+<p>Data skew</p>
+<p>One diagram to remember</p>
+<pre class="diagram">              10 TB FACT_SALES
+                     │
+                     ▼
+                 PARTITION
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼</pre>
+<p>Year=2024    Year=2025    Year=2026</p>
+<pre class="diagram">      3 TB          3 TB          4 TB
+        │            │            │</pre>
+<p>✕            ✕            ✓</p>
+<p>│</p>
+<pre class="code">                         WHERE Year=2026
+                                  │
+                                  ▼
+                         Read required data
+                                  │
+                                  ▼
+                           Faster Query</pre>
+<p>The key takeaway</p>
+<h3>Remember this chain:</h3>
+<p>Large Table → Partition → Query Filter → Partition Pruning → Less Data Scanned → Better Performance</p>
+<h3>And one important warning:</h3>
+<p>Partitioning is not &quot;the more partitions, the better.&quot;</p>
+<p>Good partitioning means choosing a partition strategy that matches your data volume and query patterns.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-2"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.2</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-3"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.2</span><h2>File Sizes</h2></div><div class="content">
+<p>10.2 File Sizes in Microsoft Fabric</p>
+<p>File size optimization in Microsoft Fabric means organizing your Lakehouse/Delta data into appropriately sized Parquet files so that Spark and other Fabric engines can read and process the data efficiently.</p>
+<p>This topic is directly connected to the Partitioning topic you just studied.</p>
+<h3>The easiest concept to remember is:</h3>
+<p>Too many tiny files = overhead.
+Too few huge files = poor parallelism.
+Well-sized files = better performance.</p>
+<h3>1. First understand how a Delta table stores data</h3>
+<h3>Suppose you create:</h3>
+<p>FactSales</p>
+<h3>with:</h3>
+<p>1 Billion Rows</p>
+<h3>Logically, you see one table:</h3>
+<p>FactSales</p>
+<h3>But physically in OneLake, the Delta table is backed by files and a transaction log:</h3>
+<pre class="diagram">FactSales/
+│
+├── _delta_log/
+│
+├── part-00001.parquet
+├── part-00002.parquet
+├── part-00003.parquet
+├── part-00004.parquet
+└── ...</pre>
+<h3>So remember:</h3>
+<p>Delta Table = Parquet data files + Delta transaction log</p>
+<h3>2. What is Parquet?</h3>
+<p>Apache Parquet is a columnar file format widely used by Fabric Lakehouse, Delta Lake, and Spark workloads.</p>
+<h3>Suppose your table contains:</h3>
+<p>CustomerID</p>
+<p>CustomerName</p>
+<p>Country</p>
+<p>ProductID</p>
+<p>Quantity</p>
+<p>Amount</p>
+<p>SalesDate</p>
+<h3>A row-oriented format conceptually focuses on records:</h3>
+<p>Row 1 → 101,Ravi,India,501,2,50000</p>
+<p>Row 2 → 102,John,USA,502,1,30000</p>
+<p>Row 3 → 103,Priya,India,503,3,60000</p>
+<h3>Parquet is columnar:</h3>
+<p>CustomerID</p>
+<p>101</p>
+<p>102</p>
+<p>103</p>
+<p>Country</p>
+<p>India</p>
+<p>USA</p>
+<p>India</p>
+<p>Amount</p>
+<p>50000</p>
+<p>30000</p>
+<p>60000</p>
+<h3>This is useful for analytics because a query such as:</h3>
+<pre class="code">SELECT SUM(Amount)
+FROM FactSales;</pre>
+<p>primarily needs the Amount column rather than every column.</p>
+<h3>3. Why does file size matter?</h3>
+<h3>Imagine you have:</h3>
+<p>1 TB dataset</p>
+<p>There are many ways that 1 TB could be stored.</p>
+<p>Scenario A — Tiny files</p>
+<p>1,000,000 files</p>
+<p>×</p>
+<p>~1 MB</p>
+<p>Scenario B — Larger files</p>
+<p>~2,000 files</p>
+<p>×</p>
+<p>~500 MB</p>
+<p>Both represent roughly the same amount of data.</p>
+<p>But they can behave very differently during processing.</p>
+<h3>4. The Small Files Problem</h3>
+<p>This is the most important concept in this lesson.</p>
+<h3>Suppose your Delta table contains:</h3>
+<p>500,000 Parquet files</p>
+<p>Each file contains only a tiny amount of data.</p>
+<h3>Spark has overhead for operations such as:</h3>
+<p>Discover files</p>
+<p>↓</p>
+<p>Read metadata</p>
+<p>↓</p>
+<p>Plan tasks</p>
+<p>↓</p>
+<p>Open files</p>
+<p>↓</p>
+<p>Process files</p>
+<p>↓</p>
+<p>Close files</p>
+<p>Doing this a few thousand times may be manageable.</p>
+<p>Doing it hundreds of thousands or millions of times can become expensive.</p>
+<h3>This is called:</h3>
+<p>The Small Files Problem</p>
+<h3>5. Example</h3>
+<h3>Imagine processing:</h3>
+<p>100 GB</p>
+<p>Bad layout</p>
+<p>100,000 files</p>
+<p>×</p>
+<p>~1 MB</p>
+<h3>Spark may need to coordinate work across a huge number of files.</h3>
+<h3>Conceptually:</h3>
+<p>File 1</p>
+<p>File 2</p>
+<p>File 3</p>
+<p>File 4</p>
+<p>...</p>
+<p>File 100000</p>
+<p>↓</p>
+<p>Metadata + scheduling overhead</p>
+<p>↓</p>
+<p>Slower processing</p>
+<p>Better layout</p>
+<p>Suppose the same dataset is stored in a much smaller number of appropriately sized files.</p>
+<p>100 GB</p>
+<p>↓</p>
+<p>Hundreds of files</p>
+<p>↓</p>
+<p>Less file-management overhead</p>
+<p>This can be much more efficient.</p>
+<h3>6. Why not create one giant file?</h3>
+<h3>You might now think:</h3>
+<p>&quot;If small files are bad, I&#x27;ll put everything into one huge file.&quot;</p>
+<p>That&#x27;s also not a good general strategy.</p>
+<h3>Suppose:</h3>
+<p>1 TB dataset</p>
+<p>↓</p>
+<p>1 file</p>
+<p>Distributed engines such as Spark work best when they can divide work across multiple tasks.</p>
+<h3>Conceptually:</h3>
+<p>1 Huge File</p>
+<p>↓</p>
+<p>Limited parallelism</p>
+<p>↓</p>
+<p>Some resources underutilized</p>
+<h3>Compare that with:</h3>
+<pre class="diagram">Dataset
+ │
+ ├── File 1 → Task
+ ├── File 2 → Task
+ ├── File 3 → Task
+ ├── File 4 → Task
+ └── ...</pre>
+<p>Multiple appropriately sized files can provide better parallelism.</p>
+<h3>7. The balance</h3>
+<h3>Think:</h3>
+<p>VERY SMALL FILES</p>
+<p>↓</p>
+<p>Too much overhead</p>
+<p>VERY LARGE / TOO FEW FILES</p>
+<p>↓</p>
+<p>Can limit parallelism</p>
+<p>APPROPRIATELY SIZED FILES</p>
+<p>↓</p>
+<p>Better balance</p>
+<p>↓</p>
+<p>Better performance</p>
+<p>There is no single perfect file size for every Fabric workload.</p>
+<h3>It depends on:</h3>
+<p>Dataset size</p>
+<p>Compute resources</p>
+<p>Query patterns</p>
+<p>Write patterns</p>
+<p>Partitioning</p>
+<p>Compression</p>
+<p>Concurrency</p>
+<h3>8. What file size should I target?</h3>
+<p>For learning purposes, you&#x27;ll often see guidance around hundreds of MB per file, and Delta optimization commonly aims to create larger, more efficient files rather than tiny files.</p>
+<h3>But don&#x27;t memorize:</h3>
+<p>&quot;Every file must be exactly 256 MB.&quot;</p>
+<h3>or:</h3>
+<p>&quot;Every file must be exactly 1 GB.&quot;</p>
+<p>That&#x27;s not how real-world optimization works.</p>
+<h3>A better interview answer is:</h3>
+<p>Avoid very small files and aim for reasonably large, balanced files appropriate to the workload. Validate the result using actual Fabric/Spark performance measurements.</p>
+<h3>9. How are small files created?</h3>
+<p>A common reason is frequent incremental loading.</p>
+<p>Imagine a pipeline runs every 5 minutes.</p>
+<p>12 loads/hour</p>
+<p>×</p>
+<p>24 hours</p>
+<p>=</p>
+<p>288 loads/day</p>
+<h3>Each load writes:</h3>
+<p>5 files</p>
+<h3>Now:</h3>
+<p>288 × 5</p>
+<p>=</p>
+<p>1,440 files/day</p>
+<h3>After 365 days:</h3>
+<p>~525,600 files</p>
+<p>Your table can gradually develop a small-files problem.</p>
+<h3>10. Streaming can create small files</h3>
+<p>This is particularly important with streaming.</p>
+<h3>Suppose:</h3>
+<p>Eventstream</p>
+<p>↓</p>
+<h3>Lakehouse</h3>
+<p>Data continuously arrives in small batches.</p>
+<p>Batch 1 → Small file</p>
+<p>Batch 2 → Small file</p>
+<p>Batch 3 → Small file</p>
+<p>Batch 4 → Small file</p>
+<p>...</p>
+<h3>Over time:</h3>
+<p>Thousands / millions</p>
+<p>of small files</p>
+<p>can accumulate if the write/maintenance strategy isn&#x27;t appropriate.</p>
+<h3>11. Partitioning can also cause small files</h3>
+<p>This connects directly to your previous lesson.</p>
+<h3>Suppose you partition by:</h3>
+<p>Year</p>
+<p>Month</p>
+<p>Day</p>
+<p>Hour</p>
+<p>Minute</p>
+<h3>Storage becomes:</h3>
+<p>Year=2026/</p>
+<pre class="diagram">└── Month=08/
+    └── Day=03/
+        └── Hour=10/
+            ├── Minute=01/
+            ├── Minute=02/
+            ├── Minute=03/
+            └── ...</pre>
+<p>If each minute contains very little data, each partition may contain tiny files.</p>
+<h3>Now you have:</h3>
+<p>Over-partitioning</p>
+<p>↓</p>
+<p>Tiny partitions</p>
+<p>↓</p>
+<p>Tiny files</p>
+<p>↓</p>
+<p>Too many files</p>
+<p>↓</p>
+<p>Poor performance</p>
+<p>That&#x27;s why partitioning and file size must be designed together.</p>
+<h3>12. Partition ≠ File</h3>
+<p>This distinction is very important.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">FactSales/
+└── Year=2026/</pre>
+<p>Year=2026 is a partition.</p>
+<h3>Inside it:</h3>
+<p>Year=2026/</p>
+<pre class="diagram">│
+├── part-00001.parquet
+├── part-00002.parquet
+├── part-00003.parquet
+└── part-00004.parquet</pre>
+<p>These are files.</p>
+<h3>Therefore:</h3>
+<p>One partition can contain many files.</p>
+<h3>Don&#x27;t confuse:</h3>
+<p>Partition</p>
+<h3>with:</h3>
+<p>Parquet file</p>
+<h3>13. Spark partitions vs files</h3>
+<h3>Another important distinction:</h3>
+<p>Storage Partition</p>
+<h3>Spark Partition</h3>
+<p>Parquet File</p>
+<p>are related concepts, but they&#x27;re not identical.</p>
+<p>Storage/table partition</p>
+<p>Year=2026/</p>
+<p>Used to physically organize table data.</p>
+<p>File</p>
+<p>part-00001.parquet</p>
+<p>Physical data stored in OneLake.</p>
+<h3>Spark partition</h3>
+<p>P1</p>
+<p>P2</p>
+<p>P3</p>
+<p>P4</p>
+<p>A logical chunk of data Spark uses for distributed processing.</p>
+<h3>Think:</h3>
+<p>Delta Table</p>
+<p>↓</p>
+<p>Storage Partitions</p>
+<p>↓</p>
+<p>Parquet Files</p>
+<p>↓</p>
+<h3>Spark reads data</h3>
+<p>↓</p>
+<h3>Spark Tasks / Partitions</h3>
+<h3>14. Spark write example</h3>
+<h3>Suppose:</h3>
+<pre class="code">df.write \
+    .format(&quot;delta&quot;) \
+    .mode(&quot;append&quot;) \
+    .saveAsTable(&quot;FactSales&quot;)
+Spark determines how work is distributed and writes output files accordingly.</pre>
+<p>If the DataFrame has an unnecessarily large number of small Spark partitions, the write may produce many small output files.</p>
+<h3>Conceptually:</h3>
+<h3>Spark Partition 1 → File 1</h3>
+<h3>Spark Partition 2 → File 2</h3>
+<h3>Spark Partition 3 → File 3</h3>
+<p>...</p>
+<p>It&#x27;s not always strictly one-to-one in every operation, but this is a useful beginner mental model.</p>
+<h3>15. repartition() before writing</h3>
+<h3>Suppose your DataFrame has:</h3>
+<p>2,000 partitions</p>
+<p>but the dataset isn&#x27;t large enough to justify that.</p>
+<p>Writing it could produce excessive small files.</p>
+<h3>You might redistribute the data before writing:</h3>
+<pre class="code">df2 = df.repartition(100)</pre>
+<h3>Then write:</h3>
+<p>df2.write \</p>
+<pre class="code">   .format(&quot;delta&quot;) \</pre>
+<p>.mode(&quot;overwrite&quot;) \</p>
+<p>.saveAsTable(&quot;FactSales&quot;)</p>
+<h3>Conceptually:</h3>
+<p>2,000 tiny partitions</p>
+<p>↓</p>
+<pre class="code">repartition(100)
+       ↓</pre>
+<p>100 larger partitions</p>
+<p>↓</p>
+<p>Fewer output files</p>
+<p>However, repartition() causes a shuffle, so it shouldn&#x27;t be used blindly.</p>
+<h3>16. coalesce() before writing</h3>
+<h3>If you&#x27;re simply reducing the number of Spark partitions, you may sometimes use:</h3>
+<pre class="code">df2 = df.coalesce(100)</pre>
+<h3>Conceptually:</h3>
+<p>500 Spark partitions</p>
+<p>↓</p>
+<pre class="code">coalesce(100)
+       ↓</pre>
+<p>100 partitions</p>
+<p>↓</p>
+<p>Potentially fewer files</p>
+<h3>Remember from the previous lesson:</h3>
+<pre class="code">repartition()
+    ↓</pre>
+<p>Full redistribution</p>
+<p>Usually shuffle</p>
+<pre class="code">coalesce()
+    ↓</pre>
+<p>Typically reduces partitions</p>
+<p>Often less expensive</p>
+<p>Which one is appropriate depends on the workload and data distribution.</p>
+<h3>17. Delta OPTIMIZE</h3>
+<h3>One of the most important Delta Lake concepts for file management is:</h3>
+<p>OPTIMIZE</p>
+<p>Conceptually, OPTIMIZE compacts smaller files into larger files.</p>
+<h3>Before:</h3>
+<p>FactSales</p>
+<p>1 MB</p>
+<p>2 MB</p>
+<p>4 MB</p>
+<p>3 MB</p>
+<p>5 MB</p>
+<p>2 MB</p>
+<p>1 MB</p>
+<p>...</p>
+<h3>After compaction:</h3>
+<p>FactSales</p>
+<p>Large File 1</p>
+<p>Large File 2</p>
+<p>Large File 3</p>
+<p>...</p>
+<h3>Conceptually:</h3>
+<p>Many Small Files</p>
+<p>↓</p>
+<p>OPTIMIZE</p>
+<p>↓</p>
+<p>Fewer Larger Files</p>
+<p>This can improve read efficiency.</p>
+<h3>18. Simple OPTIMIZE example</h3>
+<h3>For supported Delta scenarios, the idea is:</h3>
+<p>OPTIMIZE FactSales;</p>
+<h3>Conceptually:</h3>
+<p>Before</p>
+<p>[f][f][f][f][f][f][f][f][f][f]</p>
+<p>OPTIMIZE</p>
+<p>↓</p>
+<p>After</p>
+<p>[       FILE       ]</p>
+<p>[       FILE       ]</p>
+<p>[       FILE       ]</p>
+<p>Always check the current Fabric runtime/engine support for the exact command and behavior in the environment you&#x27;re using.</p>
+<h3>19. What does OPTIMIZE actually help?</h3>
+<h3>It can reduce:</h3>
+<p>Number of files</p>
+<p>↓</p>
+<p>Metadata overhead</p>
+<p>↓</p>
+<p>File-open operations</p>
+<p>↓</p>
+<p>Task-planning overhead</p>
+<h3>Potentially improving:</h3>
+<h3>Spark reads</h3>
+<p>Delta queries</p>
+<h3>Lakehouse query performance</h3>
+<p>Downstream analytics</p>
+<h3>20. OPTIMIZE does not mean compressing everything into one file</h3>
+<p>This is important.</p>
+<h3>Bad understanding:</h3>
+<p>OPTIMIZE</p>
+<p>=</p>
+<p>Turn 10,000 files</p>
+<p>into 1 file</p>
+<p>No.</p>
+<h3>The goal is more like:</h3>
+<p>10,000 tiny files</p>
+<p>↓</p>
+<p>OPTIMIZE</p>
+<p>↓</p>
+<p>Fewer appropriately sized files</p>
+<p>while retaining useful parallelism and Delta semantics.</p>
+<h3>21. Compaction</h3>
+<h3>The general operation of combining many small files into fewer larger files is called:</h3>
+<p>File Compaction</p>
+<p>Small File</p>
+<p>Small File</p>
+<p>Small File</p>
+<p>Small File</p>
+<p>Small File</p>
+<p>↓</p>
+<p>COMPACTION</p>
+<p>↓</p>
+<p>Larger File</p>
+<p>Delta OPTIMIZE is a mechanism associated with this idea.</p>
+<h3>22. File sizes and query performance</h3>
+<h3>Suppose a query needs:</h3>
+<p>50 GB</p>
+<p>Layout A</p>
+<p>50,000 tiny files</p>
+<h3>The engine spends significant effort on:</h3>
+<p>File metadata</p>
+<p>Opening files</p>
+<p>Task planning</p>
+<p>Scheduling</p>
+<p>Layout B</p>
+<p>A manageable number</p>
+<p>of larger files</p>
+<h3>Now a greater proportion of work can go toward:</h3>
+<p>Actual data processing</p>
+<p>That&#x27;s why file layout can matter even though the total data volume is identical.</p>
+<h3>23. File size and parallelism</h3>
+<h3>Suppose you have:</h3>
+<p>8 Spark cores</p>
+<p>and your dataset has several suitable files/chunks.</p>
+<h3>Spark can distribute work:</h3>
+<h3>Core 1 → Data chunk</h3>
+<h3>Core 2 → Data chunk</h3>
+<h3>Core 3 → Data chunk</h3>
+<p>...</p>
+<h3>Core 8 → Data chunk</h3>
+<p>That&#x27;s good parallelism.</p>
+<h3>But if your physical/logical layout results in insufficient parallel work:</h3>
+<h3>Core 1 → Huge work unit</h3>
+<h3>Core 2 → Waiting</h3>
+<h3>Core 3 → Waiting</h3>
+<p>...</p>
+<p>resources may not be utilized efficiently.</p>
+<h3>Again:</h3>
+<p>Balance matters.</p>
+<h3>24. File sizes and partition pruning</h3>
+<p>Now combine the previous two lessons.</p>
+<h3>Suppose:</h3>
+<pre class="diagram">FactSales/
+│
+├── Year=2025/
+│   ├── file1.parquet
+│   ├── file2.parquet
+│   └── file3.parquet
+│
+└── Year=2026/
+    ├── file1.parquet
+    ├── file2.parquet
+    └── file3.parquet</pre>
+<h3>Query:</h3>
+<pre class="code">SELECT SUM(Amount)
+FROM FactSales
+WHERE Year = 2026;</pre>
+<h3>First:</h3>
+<p>Partition Pruning</p>
+<p>↓</p>
+<p>Skip Year=2025</p>
+<h3>Then the engine reads only the relevant files under:</h3>
+<p>Year=2026</p>
+<h3>So good performance comes from combining:</h3>
+<pre class="diagram">Good Partitioning
+       +</pre>
+<p>Good File Layout</p>
+<p>=</p>
+<p>Efficient Reads</p>
+<h3>25. Example: 10 TB Sales table</h3>
+<h3>Imagine:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>10 TB</p>
+<h3>Partitioned:</h3>
+<p>Year</p>
+<p>↓</p>
+<p>Month</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">FactSales/
+│
+├── Year=2025/
+│
+└── Year=2026/
+    │
+    ├── Month=01/
+    ├── Month=02/
+    ├── Month=03/
+    └── ...</pre>
+<p>Within each month, maintain a reasonable number of reasonably sized files.</p>
+<h3>Then a query:</h3>
+<pre class="code">WHERE Year = 2026</pre>
+<p>AND Month = 7</p>
+<h3>can benefit from:</h3>
+<p>Partition pruning</p>
+<p>↓</p>
+<p>Read July partition</p>
+<p>↓</p>
+<p>Efficient file reads</p>
+<p>↓</p>
+<p>Better performance</p>
+<h3>26. Example: Daily pipeline</h3>
+<h3>Suppose your Fabric pipeline runs:</h3>
+<p>Every day</p>
+<h3>and loads:</h3>
+<p>10 GB/day</p>
+<h3>You could end up with a healthy pattern such as:</h3>
+<p>Daily Data</p>
+<p>↓</p>
+<h3>Spark processing</h3>
+<p>↓</p>
+<p>Reasonable number of output files</p>
+<p>↓</p>
+<p>Delta Table</p>
+<h3>But if the pipeline creates:</h3>
+<p>10,000 tiny files/day</p>
+<h3>after one year:</h3>
+<p>3,650,000 files</p>
+<p>That&#x27;s a serious file-management problem.</p>
+<h3>27. Bronze, Silver and Gold</h3>
+<p>File-size considerations apply throughout a Medallion architecture.</p>
+<p>SOURCE</p>
+<p>↓</p>
+<p>BRONZE</p>
+<p>↓</p>
+<p>SILVER</p>
+<p>↓</p>
+<p>GOLD</p>
+<p>Bronze</p>
+<p>Raw ingestion can naturally produce many files.</p>
+<p>Source</p>
+<p>↓</p>
+<p>Frequent ingestion</p>
+<p>↓</p>
+<p>Bronze</p>
+<p>Silver</p>
+<p>Cleaning/transformation is an opportunity to improve organization.</p>
+<p>Bronze</p>
+<p>↓</p>
+<p>Transform</p>
+<p>↓</p>
+<p>Compact / organize</p>
+<p>↓</p>
+<p>Silver</p>
+<p>Gold</p>
+<p>Gold datasets are optimized for consumption and analytical queries.</p>
+<p>Silver</p>
+<p>↓</p>
+<p>Business transformation</p>
+<p>↓</p>
+<p>Gold</p>
+<p>↓</p>
+<p>BI / Analytics</p>
+<p>You should design file and partition strategy according to each layer&#x27;s workload rather than applying the same rule everywhere.</p>
+<h3>28. File sizes and compression</h3>
+<p>Parquet supports efficient compression.</p>
+<h3>Suppose raw data is:</h3>
+<p>100 GB</p>
+<h3>The stored Parquet representation may be significantly smaller depending on:</h3>
+<p>Data types</p>
+<p>Repeated values</p>
+<p>Cardinality</p>
+<p>Compression algorithm</p>
+<p>Column structure</p>
+<h3>Therefore when discussing file sizes, remember:</h3>
+<p>Logical/uncompressed data size and physical Parquet file size are not necessarily the same.</p>
+<h3>29. Small file symptoms</h3>
+<h3>How do you recognize a potential small-files problem?</h3>
+<h3>You might observe:</h3>
+<p>Huge number of files</p>
+<p>Very small average file size</p>
+<p>Slow Spark job startup/planning</p>
+<p>Large numbers of tiny Spark tasks</p>
+<p>Slow metadata operations</p>
+<p>Poor read performance</p>
+<p>This doesn&#x27;t automatically prove small files are the only issue, but it&#x27;s a strong signal to investigate.</p>
+<h3>30. How to fix small files</h3>
+<h3>Common approaches include:</h3>
+<p>1. Avoid unnecessary over-partitioning</p>
+<p>2. Control Spark partitions before writes</p>
+<p>3. Use appropriate batch sizes</p>
+<p>4. Compact Delta files</p>
+<p>5. Use supported Delta optimization features</p>
+<p>6. Monitor file counts and sizes</p>
+<p>7. Avoid unnecessarily frequent tiny writes</p>
+<h3>31. Bad design example</h3>
+<h3>Suppose:</h3>
+<p>FactTransactions</p>
+<p>=</p>
+<p>5 TB</p>
+<h3>Partitioned by:</h3>
+<p>CustomerID</p>
+<h3>with:</h3>
+<p>10 million customers</p>
+<h3>Now you could create:</h3>
+<p>Millions of partitions</p>
+<p>↓</p>
+<p>Tiny files</p>
+<p>↓</p>
+<p>Metadata overhead</p>
+<p>↓</p>
+<p>Poor performance</p>
+<p>Changing only file size won&#x27;t fully solve this.</p>
+<p>The underlying partition strategy is wrong.</p>
+<h3>32. Better design thinking</h3>
+<p>Instead, examine query patterns.</p>
+<h3>Suppose 90% of queries are:</h3>
+<pre class="code">WHERE TransactionDate &gt;= ...</pre>
+<p>A date-oriented strategy may make more sense.</p>
+<p>Transaction Date</p>
+<p>↓</p>
+<p>Appropriate time partition</p>
+<p>↓</p>
+<p>Reasonable files</p>
+<p>↓</p>
+<p>Partition pruning</p>
+<p>↓</p>
+<p>Efficient query</p>
+<h3>The lesson is:</h3>
+<p>Partitioning and file-size optimization should be designed together based on actual query patterns.</p>
+<h3>33. Interview question — Why do file sizes matter?</h3>
+<h3>A strong answer:</h3>
+<p>File sizes affect distributed query and Spark performance because very small files create metadata, file-open, and task-scheduling overhead, while too few very large work units can limit parallelism. For Fabric Lakehouse and Delta workloads, we generally want a manageable number of appropriately sized Parquet files based on the workload.</p>
+<h3>34. Interview question — What is the Small Files Problem?</h3>
+<p>The small-files problem occurs when a large dataset is stored as a very large number of tiny files. Even if the total data size is reasonable, Spark and other engines must discover, open, schedule, and process many files, which increases metadata and task-management overhead and can reduce performance.</p>
+<h3>35. Interview question — How do you solve the Small Files Problem?</h3>
+<h3>A strong answer:</h3>
+<p>I would first identify why small files are being created, such as over-partitioning or frequent small writes. Then I would optimize the partition strategy, control Spark partition counts where appropriate, increase batch efficiency, and use supported Delta compaction/optimization capabilities such as OPTIMIZE.</p>
+<h3>36. Interview question — Partition vs File</h3>
+<p>A partition is a logical/physical grouping of table data based on partition-column values, while a Parquet file is an actual physical data file stored inside that table or partition. One partition can contain many Parquet files.</p>
+<h3>For example:</h3>
+<p>Year=2026/               ← Partition</p>
+<pre class="diagram">│
+├── part01.parquet       ← File
+├── part02.parquet       ← File
+└── part03.parquet       ← File</pre>
+<h3>37. Interview question — Is a bigger file always better?</h3>
+<p>No.</p>
+<p>Very small files can cause excessive metadata and scheduling overhead, but simply creating one enormous file is not optimal either because distributed processing benefits from parallel work. The goal is a balanced file layout appropriate to the dataset, compute, and query patterns.</p>
+<h3>38. Partitioning vs File Sizes</h3>
+<h3>Keep these two syllabus topics separate:</h3>
+<div class="table-wrap"><table><thead><tr><th>Partitioning</th><th>File Sizes</th></tr></thead><tbody><tr><td>Organizes data into groups</td><td>Controls physical file layout</td></tr><tr><td>Example: Year=2026</td><td>Example: Parquet files</td></tr><tr><td>Helps partition pruning</td><td>Helps efficient reads</td></tr><tr><td>Too many → over-partitioning</td><td>Too many tiny files → overhead</td></tr><tr><td>Based on columns</td><td>Based on write/compaction behavior</td></tr></tbody></table></div>
+<h3>39. Quick revision</h3>
+<pre class="diagram">FILE SIZE OPTIMIZATION
+===================================
+Delta Table
+    │
+    ├── _delta_log
+    │
+    └── Parquet Files</pre>
+<pre class="diagram">BAD:
+-----------------------------------</pre>
+<p>1 TB</p>
+<p>1,000,000 tiny files</p>
+<p>↓</p>
+<p>Metadata overhead</p>
+<p>File-open overhead</p>
+<p>Task overhead</p>
+<p>Slow processing</p>
+<pre class="diagram">ALSO BAD:
+-----------------------------------</pre>
+<p>1 TB</p>
+<p>One giant work unit</p>
+<p>↓</p>
+<p>Limited parallelism</p>
+<pre class="diagram">BETTER:
+-----------------------------------</pre>
+<p>1 TB</p>
+<p>Manageable number</p>
+<p>of appropriately sized files</p>
+<p>↓</p>
+<p>Parallel processing</p>
+<p>Lower overhead</p>
+<p>Better performance</p>
+<h3>40. One diagram to remember</h3>
+<pre class="diagram">                  LARGE DATASET
+                       │
+                       ▼
+                  DELTA TABLE
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
+     SMALL FILES               HUGE/TOO FEW
+          │                         │
+          ▼                         ▼</pre>
+<p>Too much metadata          Poor parallelism</p>
+<pre class="diagram">  Too many tasks             Resource imbalance
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                  OPTIMIZATION
+                       │
+                       ▼</pre>
+<p>Appropriately sized</p>
+<pre class="diagram">                Parquet files
+                       │
+                       ▼
+                Better Parallelism
+                       +
+                 Lower Overhead
+                       │
+                       ▼</pre>
+<p>BETTER PERFORMANCE</p>
+<p>The one line to memorize</p>
+<p>Partitioning decides where data is organized; file-size optimization decides how efficiently that data is physically stored and processed.</p>
+<h3>And remember this performance chain:</h3>
+<pre class="diagram">Good Partitioning
+        +
+Good File Sizes
+        +
+Partition Pruning
+        +</pre>
+<p>Delta Optimization</p>
+<p>↓</p>
+<p>Less unnecessary I/O</p>
+<p>↓</p>
+<p>Better Spark / Lakehouse Performance</p>
+<p>The next topic, 10.3 Spark Optimization, brings these concepts together: partitions, files, shuffles, joins, caching, skew, executors, repartition(), coalesce(), and Adaptive Query Execution.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-4"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.4</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-5"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.3</span><h2>Spark Optimization</h2></div><div class="content">
+<p>10.3 Spark Optimization in Microsoft Fabric</p>
+<p>Spark Optimization means improving the way Apache Spark reads, distributes, transforms, and writes data so that jobs run faster, use fewer resources, and cost less capacity.</p>
+<p>In Microsoft Fabric, Spark is commonly used through Notebooks and Lakehouse workloads.</p>
+<h3>The easiest formula to remember is:</h3>
+<pre class="code">Spark Optimization = Read less + Shuffle less + Balance partitions + Use memory wisely + Write efficiently</pre>
+<h3>1. First understand how Spark works</h3>
+<h3>Suppose your Fabric Lakehouse contains:</h3>
+<p>FactSales = 1 TB</p>
+<h3>You run a PySpark notebook:</h3>
+<pre class="code">df = spark.read.table(&quot;FactSales&quot;)</pre>
+<p>result = (</p>
+<pre class="code">    df.groupBy(&quot;Country&quot;)
+      .sum(&quot;SalesAmount&quot;)</pre>
+<p>)</p>
+<p>result.show()</p>
+<h3>Behind the scenes:</h3>
+<pre class="diagram">                    SPARK APPLICATION
+                           │
+                           ▼
+                        DRIVER
+                           │
+                   Creates execution plan
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+          EXECUTOR 1   EXECUTOR 2   EXECUTOR 3
+              │            │            │
+             Task         Task         Task
+              │            │            │
+              ▼            ▼            ▼</pre>
+<p>Partition    Partition    Partition</p>
+<p>Understanding these components is the foundation of Spark optimization.</p>
+<h3>2. Driver</h3>
+<p>The Driver coordinates the Spark application.</p>
+<h3>It handles things such as:</h3>
+<p>Your PySpark Code</p>
+<p>↓</p>
+<p>Driver</p>
+<p>↓</p>
+<p>Create execution plan</p>
+<p>↓</p>
+<p>Schedule jobs/stages/tasks</p>
+<p>↓</p>
+<p>Coordinate executors</p>
+<p>↓</p>
+<p>Return results</p>
+<h3>Think:</h3>
+<p>Driver = Manager</p>
+<p>The Driver generally coordinates work rather than doing all distributed processing itself.</p>
+<h3>3. Executors</h3>
+<p>Executors perform distributed processing.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">                DRIVER
+                   │
+        ┌──────────┼──────────┐
+        ▼          ▼          ▼
+    Executor 1 Executor 2 Executor 3
+        │          │          │</pre>
+<p>Tasks       Tasks       Tasks</p>
+<h3>Executors use:</h3>
+<p>CPU</p>
+<p>Memory</p>
+<p>to process Spark tasks.</p>
+<h3>Think:</h3>
+<p>Executors = Workers</p>
+<h3>4. Tasks</h3>
+<p>A Task is a unit of Spark execution applied to a partition.</p>
+<h3>For example:</h3>
+<pre class="diagram">Dataset
+   │
+   ├── Partition 1 → Task 1
+   ├── Partition 2 → Task 2
+   ├── Partition 3 → Task 3
+   └── Partition 4 → Task 4</pre>
+<p>This is how Spark achieves parallel processing.</p>
+<h3>5. Spark Partitions</h3>
+<p>You learned about partitioning earlier.</p>
+<p>Here we&#x27;re specifically talking about Spark execution/DataFrame partitions.</p>
+<h3>Suppose:</h3>
+<p>1 TB Dataset</p>
+<h3>Spark divides processing into partitions:</h3>
+<pre class="diagram">1 TB
+ │
+ ├── P1
+ ├── P2
+ ├── P3
+ ├── P4
+ ├── P5
+ ├── ...
+ └── Pn</pre>
+<p>Executors can process multiple partitions concurrently.</p>
+<h3>6. Why partition count matters</h3>
+<h3>Suppose you have:</h3>
+<p>800 GB</p>
+<h3>but only:</h3>
+<p>4 Spark partitions</p>
+<h3>Then:</h3>
+<p>P1 → 200 GB</p>
+<p>P2 → 200 GB</p>
+<p>P3 → 200 GB</p>
+<p>P4 → 200 GB</p>
+<p>If your Spark environment can run much more parallel work, you&#x27;re not using it efficiently.</p>
+<p>Too few partitions</p>
+<p>Large Dataset</p>
+<p>↓</p>
+<p>Few Partitions</p>
+<p>↓</p>
+<p>Few Tasks</p>
+<p>↓</p>
+<p>Low Parallelism</p>
+<p>↓</p>
+<p>Slow Processing</p>
+<h3>7. Too many partitions are also bad</h3>
+<h3>Now suppose:</h3>
+<p>10 GB Dataset</p>
+<h3>is divided into:</h3>
+<p>100,000 partitions</p>
+<h3>Spark must manage:</h3>
+<p>100,000 tasks</p>
+<h3>That creates overhead:</h3>
+<p>Task scheduling</p>
+<p>Metadata</p>
+<p>Task startup</p>
+<p>Network communication</p>
+<p>File operations</p>
+<h3>Therefore:</h3>
+<p>Too Few Partitions</p>
+<p>↓</p>
+<p>Poor parallelism</p>
+<p>Too Many Partitions</p>
+<p>↓</p>
+<p>Too much overhead</p>
+<p>Balanced Partitions</p>
+<p>↓</p>
+<p>Better performance</p>
+<h3>8. repartition()</h3>
+<p>You learned this during File Sizes.</p>
+<p>repartition() redistributes data into a specified number of Spark partitions.</p>
+<h3>Example:</h3>
+<pre class="code">df2 = df.repartition(100)</pre>
+<h3>Conceptually:</h3>
+<p>Original</p>
+<p>[P1] [P2] [P3] [P4]</p>
+<p>↓</p>
+<pre class="code">repartition(100)</pre>
+<p>↓</p>
+<p>[P1][P2][P3]...[P100]</p>
+<h3>However, there is an important cost:</h3>
+<p>repartition() normally causes a shuffle.</p>
+<h3>9. coalesce()</h3>
+<p>coalesce() is commonly used to reduce partitions.</p>
+<h3>Example:</h3>
+<pre class="code">df2 = df.coalesce(20)</pre>
+<h3>Conceptually:</h3>
+<p>100 Partitions</p>
+<p>↓</p>
+<pre class="code">coalesce(20)
+      ↓</pre>
+<p>20 Partitions</p>
+<h3>Easy comparison:</h3>
+<div class="table-wrap"><table><thead><tr><th>repartition()</th><th>coalesce()</th></tr></thead><tbody><tr><td>Increase or decrease partitions</td><td>Mainly decrease</td></tr><tr><td>Redistributes data</td><td>Combines partitions</td></tr><tr><td>Usually full shuffle</td><td>Often avoids full shuffle</td></tr><tr><td>Better redistribution</td><td>Often cheaper when reducing</td></tr></tbody></table></div>
+<h3>Remember:</h3>
+<p>Repartition = Redistribute</p>
+<p>Coalesce = Reduce</p>
+<h3>10. What is a Shuffle?</h3>
+<p>This is one of the most important Spark performance concepts.</p>
+<p>A shuffle occurs when Spark needs to redistribute data between executors/partitions.</p>
+<h3>For example:</h3>
+<pre class="diagram">Executor 1
+   │
+   ├───────┐
+   │       │
+   ▼       ▼</pre>
+<p>Executor 2 Executor 3</p>
+<p>Data moves across the cluster.</p>
+<h3>Shuffles involve:</h3>
+<p>Network I/O</p>
+<p>Disk I/O</p>
+<p>Serialization</p>
+<p>CPU</p>
+<p>Memory</p>
+<h3>Therefore:</h3>
+<p>Shuffles are expensive.</p>
+<h3>A major Spark optimization goal is:</h3>
+<p>Avoid unnecessary shuffles.</p>
+<h3>11. What operations cause shuffles?</h3>
+<h3>Common examples include:</h3>
+<pre class="code">groupBy()
+
+join()
+
+distinct()
+
+orderBy()
+
+repartition()</pre>
+<p>some aggregations</p>
+<h3>For example:</h3>
+<pre class="code">df.groupBy(&quot;Country&quot;).sum(&quot;SalesAmount&quot;)
+Spark needs all India rows together, all USA rows together, etc.</pre>
+<h3>Before:</h3>
+<p>P1 → India, USA, UK</p>
+<p>P2 → USA, India</p>
+<p>P3 → UK, India, USA</p>
+<h3>After shuffle:</h3>
+<p>India → Partition A</p>
+<p>USA → Partition B</p>
+<p>UK → Partition C</p>
+<p>Data had to move.</p>
+<h3>12. Reduce data before a shuffle</h3>
+<h3>Suppose:</h3>
+<p>FactSales = 1 TB</p>
+<h3>You only need:</h3>
+<p>Year = 2026</p>
+<h3>Bad approach conceptually:</h3>
+<p>Read 1 TB</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Group</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<h3>Better:</h3>
+<p>Read</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Select required columns</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Aggregate</p>
+<h3>The principle is:</h3>
+<p>Reduce the amount of data as early as possible.</p>
+<h3>13. Filter early</h3>
+<h3>Instead of processing everything:</h3>
+<pre class="code">df = spark.read.table(&quot;FactSales&quot;)</pre>
+<p>then performing many operations before filtering, apply selective filters early when possible:</p>
+<pre class="code">df = (
+    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;SalesYear = 2026&quot;)</pre>
+<p>)</p>
+<h3>Conceptually:</h3>
+<p>1 TB</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>200 GB</p>
+<p>↓</p>
+<p>Process 200 GB</p>
+<h3>instead of:</h3>
+<p>1 TB</p>
+<p>↓</p>
+<p>Process</p>
+<p>↓</p>
+<p>Process</p>
+<p>↓</p>
+<p>Filter</p>
+<h3>14. Select only required columns</h3>
+<p>Suppose FactSales contains 100 columns.</p>
+<h3>You only need:</h3>
+<p>ProductID</p>
+<p>Country</p>
+<p>SalesAmount</p>
+<p>Avoid carrying unnecessary columns through the pipeline.</p>
+<h3>Instead of:</h3>
+<pre class="code">df = spark.read.table(&quot;FactSales&quot;)</pre>
+<h3>use:</h3>
+<pre class="code">df = (
+    spark.read.table(&quot;FactSales&quot;)
+         .select(
+             &quot;ProductID&quot;,
+             &quot;Country&quot;,
+             &quot;SalesAmount&quot;
+         )</pre>
+<p>)</p>
+<h3>Conceptually:</h3>
+<p>100 columns</p>
+<p>↓</p>
+<p>Select 3</p>
+<p>↓</p>
+<p>Less data processed</p>
+<p>↓</p>
+<p>Less memory / I/O</p>
+<h3>Remember:</h3>
+<p>Filter rows early + select columns early.</p>
+<h3>15. Predicate Pushdown</h3>
+<h3>Suppose you write:</h3>
+<pre class="code">df = (
+    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;SalesYear = 2026&quot;)</pre>
+<p>)</p>
+<p>With supported data sources/formats, Spark can push filtering closer to the data read.</p>
+<h3>Conceptually:</h3>
+<h3>Spark Query</h3>
+<p>↓</p>
+<p>Filter Year=2026</p>
+<p>↓</p>
+<p>Storage/Data Source</p>
+<p>↓</p>
+<p>Read relevant data</p>
+<h3>instead of:</h3>
+<p>Read everything</p>
+<p>↓</p>
+<p>Send to Spark</p>
+<p>↓</p>
+<p>Filter</p>
+<h3>This is called:</h3>
+<p>Predicate Pushdown</p>
+<h3>16. Column Pruning</h3>
+<h3>Similarly:</h3>
+<pre class="code">df.select(&quot;ProductID&quot;, &quot;SalesAmount&quot;)
+Spark can often avoid reading unnecessary columns from columnar formats such as Parquet.</pre>
+<h3>This is:</h3>
+<p>Column Pruning</p>
+<h3>Conceptually:</h3>
+<p>Parquet</p>
+<p>CustomerID       ✕</p>
+<p>CustomerName     ✕</p>
+<p>Address          ✕</p>
+<p>ProductID        ✓</p>
+<p>SalesAmount      ✓</p>
+<p>Description      ✕</p>
+<p>Only required columns are processed.</p>
+<h3>17. Partition Pruning</h3>
+<pre class="code">From your Partitioning lesson:
+df.filter(&quot;Year = 2026&quot;)</pre>
+<h3>If the Delta table is appropriately partitioned by Year, Spark may skip:</h3>
+<p>Year=2023   ✕</p>
+<p>Year=2024   ✕</p>
+<p>Year=2025   ✕</p>
+<p>Year=2026   ✓</p>
+<h3>So three important pruning concepts are:</h3>
+<p>Partition Pruning</p>
+<p>↓</p>
+<p>Skip partitions</p>
+<p>Column Pruning</p>
+<p>↓</p>
+<p>Skip columns</p>
+<p>Predicate Pushdown</p>
+<p>↓</p>
+<p>Push filters toward source</p>
+<h3>All aim to:</h3>
+<p>Read less data.</p>
+<h3>18. Join Optimization</h3>
+<p>Joins are often one of the biggest performance problems in Spark.</p>
+<h3>Imagine:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>1 TB</p>
+<h3>and:</h3>
+<p>DimCountry</p>
+<p>=</p>
+<p>5 MB</p>
+<h3>Query:</h3>
+<p>fact.join(dim, &quot;CountryID&quot;)</p>
+<p>A normal join may require significant data movement.</p>
+<h3>But because DimCountry is tiny, Spark can potentially use a:</h3>
+<p>Broadcast Join</p>
+<h3>19. Broadcast Join</h3>
+<p>Instead of shuffling the huge FactSales table around, Spark sends a copy of the small table to executors.</p>
+<p>DimCountry</p>
+<pre class="diagram">                    5 MB
+                      │
+                 BROADCAST
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+    Executor 1    Executor 2    Executor 3
+        │             │             │
+     Fact P1        Fact P2        Fact P3
+        │             │             │
+        ▼             ▼             ▼</pre>
+<p>JOIN          JOIN          JOIN</p>
+<p>This can avoid a large shuffle.</p>
+<h3>20. Broadcast Join example</h3>
+<h3>PySpark:</h3>
+<p>from pyspark.sql.functions import broadcast</p>
+<p>result = fact.join(</p>
+<p>broadcast(dim),</p>
+<p>&quot;CountryID&quot;</p>
+<p>)</p>
+<h3>Think:</h3>
+<pre class="diagram">Huge Fact
+   +</pre>
+<p>Tiny Dimension</p>
+<p>↓</p>
+<p>Broadcast small dimension</p>
+<p>↓</p>
+<p>Reduce large-table shuffle</p>
+<p>↓</p>
+<p>Potentially faster join</p>
+<p>Do not broadcast a genuinely large table—the table must fit appropriately in executor memory.</p>
+<h3>21. Join strategy in a Star Schema</h3>
+<p>This is particularly relevant to your earlier Star Schema topic.</p>
+<pre class="diagram">                     DimDate
+                        │
+                        ▼
+DimCustomer ──────► FactSales ◄────── DimProduct
+                        ▲
+                        │</pre>
+<p>DimRegion</p>
+<h3>Typically:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>Huge</p>
+<p>while dimensions may be much smaller.</p>
+<p>Spark may be able to use efficient join strategies, including broadcast joins for sufficiently small dimensions.</p>
+<p>This is one reason star schemas work well for analytics.</p>
+<h3>22. Data Skew</h3>
+<h3>Suppose you&#x27;re grouping by Country:</h3>
+<p>India       → 800 GB</p>
+<p>USA         → 100 GB</p>
+<p>UK          → 50 GB</p>
+<p>Germany     → 50 GB</p>
+<h3>After shuffle:</h3>
+<p>Partition 1 → India       800 GB</p>
+<p>Partition 2 → USA         100 GB</p>
+<p>Partition 3 → UK           50 GB</p>
+<p>Partition 4 → Germany      50 GB</p>
+<h3>Now:</h3>
+<p>Executor 1 → Working...</p>
+<p>Executor 2 → Finished</p>
+<p>Executor 3 → Finished</p>
+<p>Executor 4 → Finished</p>
+<p>Everyone waits for Executor 1.</p>
+<h3>This is:</h3>
+<p>Data Skew</p>
+<h3>23. How do you identify skew?</h3>
+<h3>Common symptoms:</h3>
+<p>Most tasks finish quickly</p>
+<p>↓</p>
+<p>One/few tasks run much longer</p>
+<p>↓</p>
+<p>Job waits</p>
+<p>↓</p>
+<p>Poor performance</p>
+<h3>For example:</h3>
+<p>Task 1 → 30 sec</p>
+<p>Task 2 → 28 sec</p>
+<p>Task 3 → 31 sec</p>
+<p>Task 4 → 18 minutes   ← suspicious</p>
+<p>That often indicates skew or another partition-specific issue.</p>
+<h3>24. Handling skew</h3>
+<h3>Possible strategies include:</h3>
+<p>Better partitioning</p>
+<p>Filtering unnecessary data</p>
+<p>Adaptive Query Execution</p>
+<p>Broadcasting suitable small tables</p>
+<p>Salting highly skewed keys</p>
+<p>Reworking joins/aggregations</p>
+<p>The right solution depends on the cause.</p>
+<h3>25. Salting</h3>
+<h3>Suppose:</h3>
+<p>Country = India</p>
+<p>contains most of your dataset.</p>
+<h3>Instead of one hot key:</h3>
+<p>India</p>
+<h3>you can sometimes create multiple logical keys:</h3>
+<p>India_1</p>
+<p>India_2</p>
+<p>India_3</p>
+<p>India_4</p>
+<h3>Conceptually:</h3>
+<p>India = 800 GB</p>
+<p>↓ SALTING</p>
+<p>India_1 → ~200 GB</p>
+<p>India_2 → ~200 GB</p>
+<p>India_3 → ~200 GB</p>
+<p>India_4 → ~200 GB</p>
+<p>This can distribute processing more evenly.</p>
+<p>Salting is an advanced technique and adds complexity, so use it when skew actually warrants it.</p>
+<h3>26. Caching</h3>
+<h3>Suppose your notebook uses the same transformed DataFrame repeatedly:</h3>
+<pre class="code">sales2026 = df.filter(&quot;Year = 2026&quot;)</pre>
+<h3>Then you run:</h3>
+<p>Query 1 → sales2026</p>
+<p>Query 2 → sales2026</p>
+<p>Query 3 → sales2026</p>
+<p>Without caching, Spark may recompute parts of the transformation repeatedly.</p>
+<h3>You can cache:</h3>
+<p>sales2026.cache()</p>
+<h3>Conceptually:</h3>
+<p>Compute DataFrame</p>
+<p>↓</p>
+<p>Cache</p>
+<p>↓</p>
+<p>Memory / storage</p>
+<p>↓</p>
+<p>Reuse</p>
+<p>This can improve performance for reused data.</p>
+<h3>27. Don&#x27;t cache everything</h3>
+<p>Caching consumes resources.</p>
+<h3>Bad:</h3>
+<p>Cache Table A</p>
+<p>Cache Table B</p>
+<p>Cache Table C</p>
+<p>Cache Table D</p>
+<p>Cache Everything</p>
+<h3>Eventually:</h3>
+<p>Memory pressure</p>
+<p>↓</p>
+<p>Eviction / spill</p>
+<p>↓</p>
+<p>Potentially worse performance</p>
+<h3>Cache when:</h3>
+<p>The same expensive intermediate data is reused multiple times.</p>
+<h3>28. Unpersist</h3>
+<h3>When cached data is no longer needed:</h3>
+<p>sales2026.unpersist()</p>
+<p>This releases cached resources.</p>
+<h3>Conceptually:</h3>
+<p>Cache</p>
+<p>↓</p>
+<p>Use</p>
+<p>↓</p>
+<p>Use</p>
+<p>↓</p>
+<p>Finished</p>
+<p>↓</p>
+<p>Unpersist</p>
+<p>Good resource management matters.</p>
+<h3>29. Lazy Evaluation</h3>
+<h3>Spark uses lazy evaluation.</h3>
+<h3>Suppose:</h3>
+<pre class="code">df2 = df.filter(&quot;Year = 2026&quot;)
+
+df3 = df2.select(&quot;ProductID&quot;, &quot;Amount&quot;)
+Spark doesn&#x27;t necessarily execute everything immediately.</pre>
+<p>It builds an execution plan.</p>
+<h3>Execution starts when you call an action, such as:</h3>
+<p>df3.show()</p>
+<h3>or:</h3>
+<p>df3.count()</p>
+<p>or write the result.</p>
+<h3>Conceptually:</h3>
+<p>Transformation</p>
+<p>↓</p>
+<p>Transformation</p>
+<p>↓</p>
+<p>Transformation</p>
+<p>↓</p>
+<p>Execution Plan</p>
+<p>↓</p>
+<p>ACTION</p>
+<p>↓</p>
+<p>Execute</p>
+<h3>30. Transformations vs Actions</h3>
+<p>Transformations</p>
+<h3>Examples:</h3>
+<pre class="code">select()
+
+filter()
+
+join()
+
+groupBy()
+
+withColumn()</pre>
+<p>They build the computation plan.</p>
+<p>Actions</p>
+<h3>Examples include:</h3>
+<pre class="code">show()
+
+count()
+
+collect()</pre>
+<p>write</p>
+<p>Actions trigger execution.</p>
+<h3>Easy memory:</h3>
+<p>Transformation = Define work</p>
+<p>Action = Execute work</p>
+<h3>31. Avoid unnecessary actions</h3>
+<h3>Bad notebook pattern:</h3>
+<pre class="code">df.count()
+df.show()
+df.count()
+df.collect()</pre>
+<p>Each action can trigger Spark jobs.</p>
+<p>If results aren&#x27;t cached/reused appropriately, Spark may repeat expensive work.</p>
+<h3>Therefore:</h3>
+<p>Avoid actions you don&#x27;t actually need.</p>
+<h3>32. Be careful with collect()</h3>
+<p>This is one of the most important Spark rules.</p>
+<pre class="code">df.collect()</pre>
+<p>brings the result to the Driver.</p>
+<h3>Imagine:</h3>
+<p>500 GB Dataset</p>
+<p>↓</p>
+<pre class="code">collect()
+      ↓</pre>
+<p>DRIVER</p>
+<p>That can overwhelm driver memory.</p>
+<h3>Bad:</h3>
+<p>huge_df.collect()</p>
+<p>Use collect() only when the resulting data is small enough for the driver.</p>
+<h3>33. Avoid converting huge Spark DataFrames to Pandas</h3>
+<h3>Similarly:</h3>
+<pre class="code">df.toPandas()</pre>
+<p>collects data into driver-side Python/Pandas memory.</p>
+<h3>For huge data:</h3>
+<h3>Spark Cluster</h3>
+<p>↓</p>
+<p>500 GB</p>
+<p>↓</p>
+<p>Driver Memory</p>
+<p>↓</p>
+<p>💥</p>
+<p>Use Pandas for appropriately sized data, not enormous distributed datasets.</p>
+<h3>34. Built-in functions vs Python UDFs</h3>
+<p>Suppose you need to transform a column.</p>
+<p>Whenever possible, prefer Spark&#x27;s built-in functions.</p>
+<h3>For example:</h3>
+<pre class="code">from pyspark.sql.functions import upper
+
+df2 = df.withColumn(
+    &quot;CountryUpper&quot;,
+    upper(&quot;Country&quot;)</pre>
+<p>)</p>
+<p>rather than writing a Python UDF for something Spark already supports.</p>
+<h3>Why?</h3>
+<h3>Spark built-in functions are generally easier for Spark&#x27;s optimizer to understand and optimize.</h3>
+<h3>Think:</h3>
+<h3>Spark Built-in Functions</h3>
+<p>↓</p>
+<p>Optimizer understands</p>
+<p>↓</p>
+<p>Efficient execution</p>
+<p>Custom Python UDFs can introduce serialization and optimization limitations.</p>
+<h3>35. Catalyst Optimizer</h3>
+<h3>Spark SQL uses the Catalyst Optimizer.</h3>
+<h3>Conceptually:</h3>
+<p>Your Query</p>
+<p>↓</p>
+<p>Logical Plan</p>
+<p>↓</p>
+<p>Catalyst Optimizer</p>
+<p>↓</p>
+<p>Optimized Plan</p>
+<p>↓</p>
+<p>Physical Plan</p>
+<p>↓</p>
+<p>Execution</p>
+<h3>For example, Spark can optimize:</h3>
+<p>Filters</p>
+<p>Column selection</p>
+<p>Join strategies</p>
+<p>Expression evaluation</p>
+<p>This is why writing transformations using Spark SQL/DataFrame APIs is often preferable to opaque custom logic.</p>
+<h3>36. Adaptive Query Execution (AQE)</h3>
+<p>Adaptive Query Execution allows Spark to adjust parts of the execution strategy using runtime information.</p>
+<h3>Think:</h3>
+<p>Initial Plan</p>
+<p>↓</p>
+<p>Start Processing</p>
+<p>↓</p>
+<p>Observe Runtime Data</p>
+<p>↓</p>
+<p>Adjust Strategy</p>
+<p>↓</p>
+<p>Continue Execution</p>
+<h3>AQE can help with areas such as:</h3>
+<p>Shuffle partitions</p>
+<p>Join strategies</p>
+<p>Skew handling</p>
+<p>depending on the Spark/runtime configuration.</p>
+<h3>37. Explain the execution plan</h3>
+<h3>One of the most useful optimization tools is:</h3>
+<pre class="code">df.explain()</pre>
+<h3>or:</h3>
+<pre class="code">df.explain(&quot;formatted&quot;)</pre>
+<p>This helps you understand the query plan.</p>
+<h3>You can inspect for things such as:</h3>
+<p>Scan</p>
+<p>Filter</p>
+<p>Exchange</p>
+<p>Join</p>
+<p>Sort</p>
+<p>Aggregate</p>
+<p>An Exchange commonly indicates a data redistribution/shuffle boundary.</p>
+<h3>38. Example optimization</h3>
+<h3>Suppose your original code is:</h3>
+<pre class="code">sales = spark.read.table(&quot;FactSales&quot;)
+customers = spark.read.table(&quot;DimCustomer&quot;)</pre>
+<p>result = (</p>
+<p>sales</p>
+<pre class="code">    .join(customers, &quot;CustomerID&quot;)
+    .groupBy(&quot;Country&quot;)
+    .sum(&quot;Amount&quot;)</pre>
+<p>)</p>
+<p>Suppose FactSales contains 10 years of data, but you only need 2026.</p>
+<h3>A better approach:</h3>
+<p>sales = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)
+         .select(
+             &quot;CustomerID&quot;,
+             &quot;Amount&quot;
+         )</pre>
+<p>)</p>
+<p>customers = (</p>
+<pre class="code">    spark.read.table(&quot;DimCustomer&quot;)
+         .select(
+             &quot;CustomerID&quot;,
+             &quot;Country&quot;
+         )</pre>
+<p>)</p>
+<p>result = (</p>
+<p>sales</p>
+<pre class="code">    .join(customers, &quot;CustomerID&quot;)
+    .groupBy(&quot;Country&quot;)
+    .sum(&quot;Amount&quot;)</pre>
+<p>)</p>
+<p>Now you&#x27;ve reduced unnecessary rows and columns before the expensive operations.</p>
+<h3>39. Potential broadcast optimization</h3>
+<h3>If DimCustomer is sufficiently small:</h3>
+<p>from pyspark.sql.functions import broadcast</p>
+<p>result = (</p>
+<p>sales</p>
+<pre class="code">    .join(
+        broadcast(customers),
+        &quot;CustomerID&quot;
+    )
+    .groupBy(&quot;Country&quot;)
+    .sum(&quot;Amount&quot;)</pre>
+<p>)</p>
+<h3>Conceptually:</h3>
+<p>Before</p>
+<p>Large Sales</p>
+<p>↓</p>
+<p>Shuffle</p>
+<p>↕</p>
+<p>Customer</p>
+<p>↓</p>
+<p>Join</p>
+<p>Potentially optimized</p>
+<p>Small Customer</p>
+<p>↓</p>
+<p>Broadcast</p>
+<p>↓</p>
+<p>Executors</p>
+<p>↓</p>
+<p>Join locally with</p>
+<p>FactSales partitions</p>
+<h3>40. Optimize writes</h3>
+<h3>Spark performance isn&#x27;t only about reading.</h3>
+<p>Writes matter too.</p>
+<h3>Bad:</h3>
+<p>DataFrame</p>
+<p>↓</p>
+<p>Thousands of tiny partitions</p>
+<p>↓</p>
+<p>Write</p>
+<p>↓</p>
+<p>Thousands of tiny Parquet files</p>
+<h3>Better:</h3>
+<p>DataFrame</p>
+<p>↓</p>
+<p>Appropriate partition strategy</p>
+<p>↓</p>
+<p>Write Delta</p>
+<p>↓</p>
+<p>Reasonably sized files</p>
+<p>This connects directly to your previous File Sizes lesson.</p>
+<h3>41. Delta optimization</h3>
+<h3>For Lakehouse workloads:</h3>
+<p>Spark</p>
+<p>↓</p>
+<p>Delta Table</p>
+<p>↓</p>
+<p>Many small files</p>
+<p>↓</p>
+<p>Compaction / OPTIMIZE</p>
+<p>↓</p>
+<p>Better file layout</p>
+<p>Therefore Spark optimization and Delta optimization go together.</p>
+<h3>42. Partitioning + File Size + Spark Optimization</h3>
+<h3>Your Module 10 sequence now makes sense:</h3>
+<p>10.1 Partitioning</p>
+<p>↓</p>
+<h3>How data is organized</h3>
+<p>10.2 File Sizes</p>
+<p>↓</p>
+<h3>How data is physically stored</h3>
+<p>10.3 Spark Optimization</p>
+<p>↓</p>
+<h3>How data is processed</h3>
+<h3>Together:</h3>
+<pre class="diagram">Good Partitioning
+       +
+Good File Layout
+       +</pre>
+<p>Good Spark Execution</p>
+<p>↓</p>
+<p>Better Performance</p>
+<h3>43. Common Spark performance problems</h3>
+<h3>When a Spark job is slow, investigate:</h3>
+<p>1. Reading too much data</p>
+<p>2. Too many small files</p>
+<p>3. Too many partitions</p>
+<p>4. Too few partitions</p>
+<p>5. Large shuffles</p>
+<p>6. Data skew</p>
+<p>7. Poor join strategy</p>
+<p>8. Unnecessary transformations</p>
+<p>9. Excessive caching</p>
+<p>10. Driver-heavy operations</p>
+<p>11. Python UDFs</p>
+<h3>12. Repeated actions</h3>
+<h3>Don&#x27;t immediately assume:</h3>
+<p>&quot;Spark needs more CPU.&quot;</p>
+<p>Often the real problem is the data layout or execution plan.</p>
+<h3>44. Performance troubleshooting flow</h3>
+<h3>Use this approach:</h3>
+<pre class="diagram">Spark Job Slow
+      │
+      ▼
+Check Spark UI / Metrics
+      │
+      ▼</pre>
+<h3>Which stage is slow?</h3>
+<pre class="diagram">      │
+      ├── Scan?
+      │      ↓
+      │   Check files,
+      │   pruning, columns
+      │
+      ├── Join?
+      │      ↓
+      │   Check shuffle,
+      │   broadcast, skew
+      │
+      ├── Aggregate?
+      │      ↓
+      │   Check shuffle
+      │   and skew
+      │
+      └── Write?</pre>
+<p>↓</p>
+<p>Check partitions</p>
+<p>and file sizes</p>
+<p>This is much better than randomly changing configurations.</p>
+<h3>45. Spark UI</h3>
+<h3>Spark provides monitoring information for jobs, stages, and tasks.</h3>
+<h3>You can investigate:</h3>
+<p>Jobs</p>
+<p>Stages</p>
+<p>Tasks</p>
+<p>Executors</p>
+<p>Duration</p>
+<p>Input</p>
+<p>Output</p>
+<p>Shuffle Read</p>
+<p>Shuffle Write</p>
+<p>Memory</p>
+<p>Disk Spill</p>
+<h3>For example:</h3>
+<p>Stage 1 → 20 seconds</p>
+<p>Stage 2 → 25 seconds</p>
+<p>Stage 3 → 15 minutes   ← investigate</p>
+<p>Then check Stage 3.</p>
+<h3>Maybe:</h3>
+<p>Shuffle Read = Huge</p>
+<h3>or:</h3>
+<p>One Task = 14 minutes</p>
+<p>Other Tasks = 20 seconds</p>
+<p>That could indicate a skew problem.</p>
+<h3>46. What does &quot;Spill&quot; mean?</h3>
+<p>Suppose Spark needs more memory than is available for an operation.</p>
+<p>It may write intermediate data to disk.</p>
+<p>Data Processing</p>
+<p>↓</p>
+<p>Memory insufficient</p>
+<p>↓</p>
+<p>Disk Spill</p>
+<p>↓</p>
+<p>Disk I/O</p>
+<p>↓</p>
+<p>Slower</p>
+<h3>Large spill values can indicate:</h3>
+<p>Large partitions</p>
+<p>Heavy aggregation</p>
+<p>Large joins</p>
+<p>Memory pressure</p>
+<p>Data skew</p>
+<h3>47. Optimize before increasing compute</h3>
+<p>Suppose your notebook is slow.</p>
+<h3>Bad first reaction:</h3>
+<p>Slow Job</p>
+<p>↓</p>
+<p>Increase Spark Capacity</p>
+<h3>Better:</h3>
+<p>Slow Job</p>
+<p>↓</p>
+<p>Inspect execution</p>
+<p>↓</p>
+<p>Check scans</p>
+<p>↓</p>
+<p>Check partitions</p>
+<p>↓</p>
+<p>Check shuffle</p>
+<p>↓</p>
+<p>Check joins</p>
+<p>↓</p>
+<p>Check skew</p>
+<p>↓</p>
+<p>Check file sizes</p>
+<p>↓</p>
+<p>Optimize</p>
+<p>↓</p>
+<p>Then evaluate compute needs</p>
+<p>More compute cannot fully compensate for badly designed processing.</p>
+<h3>48. Real-world optimization example</h3>
+<h3>Imagine:</h3>
+<p>FactTransactions = 5 TB</p>
+<p>DimCountry       = 5 MB</p>
+<h3>Requirement:</h3>
+<p>Calculate Indian transactions for 2026.</p>
+<h3>Bad approach:</h3>
+<p>Read 5 TB</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Aggregate</p>
+<p>↓</p>
+<p>Filter India</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<h3>Better:</h3>
+<p>FactTransactions</p>
+<p>↓</p>
+<p>Filter Year=2026</p>
+<p>↓</p>
+<p>Select required columns</p>
+<p>↓</p>
+<p>Broadcast DimCountry</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Filter India</p>
+<p>↓</p>
+<p>Aggregate</p>
+<h3>If the table is partitioned appropriately:</h3>
+<pre class="diagram">Partition Pruning
+      +
+Column Pruning
+      +
+Predicate Pushdown
+      +</pre>
+<p>Broadcast Join</p>
+<p>↓</p>
+<p>Much less work</p>
+<h3>49. Interview question — What is Spark Optimization?</h3>
+<h3>A strong answer:</h3>
+<p>Spark optimization is the process of improving distributed data processing by reducing unnecessary reads and shuffles, using appropriate partitioning and join strategies, handling data skew, managing caching correctly, and optimizing file layout. In Microsoft Fabric, I would also use Spark execution metrics and query plans to identify bottlenecks before changing compute resources.</p>
+<h3>50. Interview question — What is a Shuffle?</h3>
+<p>A shuffle is the redistribution of data between Spark partitions or executors, commonly caused by operations such as joins, groupBy, distinct, orderBy, and repartition. Shuffles are expensive because they involve network, disk, serialization, and memory overhead, so reducing unnecessary shuffles is an important Spark optimization technique.</p>
+<h3>51. Interview question — What is a Broadcast Join?</h3>
+<p>A broadcast join is a join optimization where Spark sends a sufficiently small table to the executors so each executor can join it locally with partitions of a large table. This can avoid shuffling the large table and significantly improve performance when the broadcast side is small enough.</p>
+<h3>52. Interview question — What is Data Skew?</h3>
+<p>Data skew occurs when data is distributed unevenly across partitions, causing some Spark tasks to process much more data than others. This results in a few slow tasks holding up the entire stage. It can be addressed through techniques such as better partitioning, broadcast joins, AQE, or salting depending on the scenario.</p>
+<h3>53. Interview question — repartition() vs coalesce()</h3>
+<p>repartition() redistributes data and can increase or decrease the partition count, but normally causes a shuffle. coalesce() is primarily used to reduce partitions and can often avoid a full shuffle, making it less expensive when redistribution isn&#x27;t required.</p>
+<h3>54. Interview question — Why avoid collect()?</h3>
+<p>collect() brings all result rows from the distributed Spark executors to the driver. If the dataset is large, this can exhaust driver memory and cause the application to fail. It should only be used when the result is known to be small.</p>
+<h3>55. Quick revision</h3>
+<pre class="diagram">SPARK OPTIMIZATION
+====================================
+1. READ LESS
+   │
+   ├── Filter early
+   ├── Select required columns
+   ├── Partition pruning
+   ├── Predicate pushdown
+   └── Column pruning</pre>
+<pre class="diagram">2. SHUFFLE LESS
+   │
+   ├── Avoid unnecessary repartition
+   ├── Optimize joins
+   └── Broadcast small tables</pre>
+<pre class="diagram">3. BALANCE DATA
+   │
+   ├── Correct partition count
+   ├── Handle skew
+   └── AQE</pre>
+<pre class="diagram">4. USE MEMORY WISELY
+   │
+   ├── Cache reused data
+   ├── Unpersist
+   ├── Avoid huge collect()
+   └── Watch disk spill</pre>
+<pre class="diagram">5. WRITE EFFICIENTLY
+   │
+   ├── Avoid tiny files
+   ├── Appropriate partitions
+   └── Delta optimization</pre>
+<pre class="diagram">6. MONITOR
+   │
+   ├── Spark UI
+   ├── Jobs
+   ├── Stages
+   ├── Tasks
+   ├── Shuffle
+   └── Spill</pre>
+<p>One diagram to memorize</p>
+<pre class="diagram">                     LARGE DATASET
+                          │
+                          ▼
+                  PARTITION PRUNING
+                          │
+                          ▼
+                     FILTER EARLY
+                          │
+                          ▼
+                  SELECT COLUMNS
+                          │
+                          ▼
+                    OPTIMIZE JOIN
+                          │
+                   ┌──────┴──────┐
+                   ▼             ▼</pre>
+<p>Broadcast       Normal Join</p>
+<p>if suitable</p>
+<pre class="diagram">                   │
+                   ▼
+              REDUCE SHUFFLE
+                   │
+                   ▼
+              BALANCE PARTITIONS
+                   │
+                   ▼
+                HANDLE SKEW
+                   │
+                   ▼
+              CACHE IF REUSED
+                   │
+                   ▼
+              EFFICIENT WRITE
+                   │
+                   ▼
+           GOOD DELTA FILE SIZES
+                   │
+                   ▼</pre>
+<p>FASTER SPARK JOB</p>
+<p>The five rules to memorize</p>
+<h3>If an interviewer asks &quot;How do you optimize a Spark job?&quot;, start with these:</h3>
+<p>1. Read only required data.
+2. Reduce expensive shuffles.
+3. Use appropriate partitioning.
+4. Optimize joins and handle skew.
+5. Monitor the execution plan/Spark metrics before adding more compute.</p>
+<h3>And connect the first three lessons of your module:</h3>
+<p>Partitioning = How the data is organized
+File Sizes = How the data is physically stored
+Spark Optimization = How the data is processed</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-6"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.6</span><h2></h2></div><div class="content">
+<p>10.4  Caching
+
+
+
+
+10.4 Caching in Microsoft Fabric</p>
+<p>Caching means temporarily storing frequently reused data in memory and/or disk so Spark doesn&#x27;t have to repeatedly read or recompute the same data.</p>
+<h3>The easiest definition:</h3>
+<p>Caching = Compute once → Store temporarily → Reuse many times</p>
+<p>Caching is especially useful in Microsoft Fabric Spark notebooks when the same DataFrame is used repeatedly.</p>
+<h3>1. Simple example</h3>
+<h3>Suppose your Fabric Lakehouse contains:</h3>
+<p>FactSales = 2 TB</p>
+<h3>You create:</h3>
+<p>sales2026 = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)</pre>
+<p>)</p>
+<h3>Then you perform several analyses:</h3>
+<p>sales2026.groupBy(&quot;Country&quot;).sum(&quot;Amount&quot;).show()</p>
+<p>sales2026.groupBy(&quot;ProductID&quot;).sum(&quot;Amount&quot;).show()</p>
+<p>sales2026.groupBy(&quot;CustomerID&quot;).sum(&quot;Amount&quot;).show()</p>
+<p>Without caching, Spark may need to repeatedly evaluate the transformations required to produce sales2026.</p>
+<h3>Conceptually:</h3>
+<p>Query 1</p>
+<p>↓</p>
+<p>Read FactSales</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Calculate</p>
+<p>Query 2</p>
+<p>↓</p>
+<p>Read FactSales</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Calculate</p>
+<p>Query 3</p>
+<p>↓</p>
+<p>Read FactSales</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Calculate</p>
+<p>That&#x27;s repeated work.</p>
+<h3>2. With caching</h3>
+<h3>We can cache the reusable DataFrame:</h3>
+<p>sales2026 = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)</pre>
+<p>)</p>
+<p>sales2026.cache()</p>
+<h3>Conceptually:</h3>
+<p>FactSales</p>
+<p>↓</p>
+<p>Filter Year=2026</p>
+<p>↓</p>
+<p>sales2026</p>
+<p>↓</p>
+<p>CACHE</p>
+<p>↓</p>
+<pre class="diagram">Memory / storage
+    │
+    ├── Query 1
+    ├── Query 2
+    └── Query 3</pre>
+<p>Now Spark can reuse cached data instead of recomputing the same upstream work every time.</p>
+<h3>3. Real-world analogy</h3>
+<p>Imagine you&#x27;re cooking.</p>
+<p>You need chopped onions for three dishes.</p>
+<p>Without caching</p>
+<p>Dish 1</p>
+<p>↓</p>
+<p>Take onion</p>
+<p>↓</p>
+<p>Chop onion</p>
+<p>Dish 2</p>
+<p>↓</p>
+<p>Take onion</p>
+<p>↓</p>
+<p>Chop onion</p>
+<p>Dish 3</p>
+<p>↓</p>
+<p>Take onion</p>
+<p>↓</p>
+<p>Chop onion</p>
+<p>You&#x27;re repeating the same preparation.</p>
+<p>With caching</p>
+<p>Chop onions once</p>
+<p>↓</p>
+<p>Store prepared onions</p>
+<p>↓</p>
+<pre class="diagram"> ┌────┼────┐
+ ▼    ▼    ▼</pre>
+<p>Dish1 Dish2 Dish3</p>
+<p>That&#x27;s essentially caching.</p>
+<h3>4. Why caching improves Spark performance</h3>
+<h3>Suppose an expensive transformation takes:</h3>
+<p>5 minutes</p>
+<p>and you use it five times.</p>
+<h3>Without caching, conceptually:</h3>
+<pre class="diagram">5 min
++
+5 min
++
+5 min
++
+5 min
++</pre>
+<p>5 min</p>
+<p>≈ 25 minutes</p>
+<h3>With caching:</h3>
+<p>Compute once</p>
+<p>↓</p>
+<p>Cache</p>
+<p>↓</p>
+<p>Reuse</p>
+<p>The first operation still has to perform the computation, but subsequent operations may be much faster.</p>
+<h3>5. Spark uses Lazy Evaluation</h3>
+<p>This is extremely important.</p>
+<h3>When you write:</h3>
+<p>sales2026.cache()</p>
+<p>you should understand Spark&#x27;s lazy evaluation behavior.</p>
+<h3>Spark transformations aren&#x27;t necessarily executed immediately.</h3>
+<h3>For example:</h3>
+<pre class="code">sales2026 = df.filter(&quot;Year = 2026&quot;)
+Spark builds an execution plan.</pre>
+<h3>Then:</h3>
+<p>sales2026.cache()</p>
+<p>marks the DataFrame for caching.</p>
+<h3>An action such as:</h3>
+<p>sales2026.count()</p>
+<p>causes Spark to actually execute the plan and populate the cache.</p>
+<h3>Conceptually:</h3>
+<pre class="code">filter()
+    ↓</pre>
+<p>Define transformation</p>
+<pre class="code">cache()
+    ↓</pre>
+<p>Mark for caching</p>
+<pre class="code">count()
+    ↓</pre>
+<p>ACTION</p>
+<p>↓</p>
+<p>Execute</p>
+<p>↓</p>
+<p>Populate Cache</p>
+<h3>6. Practical caching pattern</h3>
+<h3>A common pattern is:</h3>
+<p>sales2026 = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)
+         .select(
+             &quot;CustomerID&quot;,
+             &quot;ProductID&quot;,
+             &quot;Country&quot;,
+             &quot;Amount&quot;
+         )</pre>
+<p>)</p>
+<p>sales2026.cache()</p>
+<p>sales2026.count()</p>
+<h3>Then reuse it:</h3>
+<p>sales2026.groupBy(&quot;Country&quot;).sum(&quot;Amount&quot;).show()</p>
+<h3>and:</h3>
+<p>sales2026.groupBy(&quot;ProductID&quot;).sum(&quot;Amount&quot;).show()</p>
+<h3>and:</h3>
+<p>sales2026.groupBy(&quot;CustomerID&quot;).sum(&quot;Amount&quot;).show()</p>
+<h3>7. Why filter before caching?</h3>
+<h3>Suppose:</h3>
+<p>FactSales = 5 TB</p>
+<h3>but you only need:</h3>
+<p>Year = 2026</p>
+<h3>Don&#x27;t unnecessarily think:</h3>
+<p>5 TB</p>
+<p>↓</p>
+<p>CACHE EVERYTHING</p>
+<h3>A better pattern is:</h3>
+<p>5 TB</p>
+<p>↓</p>
+<p>Partition Pruning</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Select required columns</p>
+<p>↓</p>
+<p>Smaller reusable dataset</p>
+<p>↓</p>
+<p>CACHE</p>
+<h3>For example:</h3>
+<p>sales2026 = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)
+         .select(
+             &quot;CustomerID&quot;,
+             &quot;ProductID&quot;,
+             &quot;Amount&quot;
+         )</pre>
+<p>)</p>
+<p>sales2026.cache()</p>
+<h3>This follows the Spark optimization rule you learned:</h3>
+<p>Read less → process less → cache only what is useful.</p>
+<h3>8. cache() vs persist()</h3>
+<h3>Spark provides two closely related concepts:</h3>
+<pre class="code">cache()
+
+persist()
+cache()</pre>
+<h3>Simple:</h3>
+<pre class="code">df.cache()</pre>
+<p>You let Spark use its default caching/storage behavior for that DataFrame.</p>
+<pre class="code">persist()</pre>
+<p>Provides more explicit control over the storage level.</p>
+<h3>Conceptually:</h3>
+<pre class="code">df.persist(...)</pre>
+<p>allows you to choose how cached data should be stored.</p>
+<h3>9. Storage levels</h3>
+<h3>Depending on Spark/runtime APIs, persistence can involve storage strategies such as:</h3>
+<p>Memory</p>
+<p>Memory + Disk</p>
+<p>Disk</p>
+<h3>The important beginner concept is:</h3>
+<p>Memory</p>
+<p>Cached Data</p>
+<p>↓</p>
+<p>RAM</p>
+<p>Very fast, but RAM is limited.</p>
+<p>Memory + Disk</p>
+<pre class="diagram">Cached Data
+     │
+     ├── RAM
+     │
+     └── Disk if needed</pre>
+<p>More resilient when the full cached dataset doesn&#x27;t fit in memory.</p>
+<p>Disk</p>
+<p>Cached Data</p>
+<p>↓</p>
+<p>Disk</p>
+<p>Slower than memory but can avoid expensive recomputation.</p>
+<h3>10. Memory vs Disk</h3>
+<h3>Think:</h3>
+<pre class="diagram">                 CACHE STORAGE
+                       │
+          ┌────────────┴────────────┐
+          ▼                         ▼
+        MEMORY                     DISK
+          │                         │
+        Fast                      Slower
+          │                         │</pre>
+<p>Limited RAM             More capacity</p>
+<p>Choosing a storage strategy is a trade-off.</p>
+<h3>11. Example using persist()</h3>
+<h3>PySpark conceptually:</h3>
+<pre class="code">from pyspark import StorageLevel
+
+df.persist(StorageLevel.MEMORY_AND_DISK)</pre>
+<h3>Then trigger computation:</h3>
+<pre class="code">df.count()</pre>
+<p>Now Spark can reuse persisted partitions.</p>
+<h3>When you&#x27;re finished:</h3>
+<pre class="code">df.unpersist()</pre>
+<h3>12. What is unpersist()?</h3>
+<p>Caching uses resources.</p>
+<h3>When you no longer need the cached DataFrame:</h3>
+<p>sales2026.unpersist()</p>
+<h3>This tells Spark:</h3>
+<p>&quot;I don&#x27;t need this cached dataset anymore.&quot;</p>
+<h3>Conceptually:</h3>
+<p>DataFrame</p>
+<p>↓</p>
+<p>CACHE</p>
+<p>↓</p>
+<p>Memory occupied</p>
+<p>↓</p>
+<p>Queries finished</p>
+<p>↓</p>
+<pre class="code">unpersist()</pre>
+<p>↓</p>
+<p>Resources released</p>
+<p>This is an important habit.</p>
+<h3>13. Why not cache everything?</h3>
+<h3>Suppose your Spark environment has:</h3>
+<p>Available executor memory</p>
+<h3>and you cache:</h3>
+<p>Table A</p>
+<p>Table B</p>
+<p>Table C</p>
+<p>Table D</p>
+<p>Table E</p>
+<p>Table F</p>
+<p>...</p>
+<h3>Eventually:</h3>
+<p>Memory</p>
+<p>████████████████████</p>
+<p>100%</p>
+<h3>Spark may need to:</h3>
+<p>Evict cached blocks</p>
+<p>Spill data</p>
+<p>Use disk</p>
+<p>Recompute data</p>
+<p>Performance can actually become worse.</p>
+<h3>Therefore:</h3>
+<p>Caching is an optimization—not a default requirement.</p>
+<h3>14. When should I cache?</h3>
+<h3>Caching is useful when a dataset is:</h3>
+<p>Expensive to compute + reused multiple times + reasonable enough to cache.</p>
+<h3>For example:</h3>
+<p>Huge Raw Table</p>
+<p>↓</p>
+<p>Complex Filter</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Transformation</p>
+<p>↓</p>
+<p>Reusable DataFrame</p>
+<p>↓</p>
+<pre class="diagram">CACHE
+      │
+      ├── Analysis 1
+      ├── Analysis 2
+      ├── Analysis 3
+      └── Analysis 4</pre>
+<p>This is a good caching candidate.</p>
+<h3>15. When should I NOT cache?</h3>
+<h3>Suppose:</h3>
+<pre class="code">df = spark.read.table(&quot;FactSales&quot;)
+
+result = df.groupBy(&quot;Country&quot;).sum(&quot;Amount&quot;)</pre>
+<p>result.write.saveAsTable(&quot;SalesSummary&quot;)</p>
+<p>and result is used only once.</p>
+<h3>Caching:</h3>
+<p>result.cache()</p>
+<p>may provide little or no benefit.</p>
+<h3>You are:</h3>
+<p>Compute</p>
+<p>↓</p>
+<p>Cache</p>
+<p>↓</p>
+<p>Use once</p>
+<p>↓</p>
+<p>Discard</p>
+<p>Caching itself has a cost.</p>
+<h3>So:</h3>
+<p>If a DataFrame is used only once, caching usually isn&#x27;t useful.</p>
+<h3>16. Good caching example</h3>
+<h3>Suppose:</h3>
+<p>FactTransactions</p>
+<p>=</p>
+<p>5 TB</p>
+<h3>You need:</h3>
+<pre class="diagram">2026 transactions
++
+Active customers
++</pre>
+<p>Valid products</p>
+<h3>You create:</h3>
+<p>result = (</p>
+<p>transactions</p>
+<pre class="code">    .filter(&quot;Year = 2026&quot;)
+    .join(customers, &quot;CustomerID&quot;)
+    .join(products, &quot;ProductID&quot;)</pre>
+<p>)</p>
+<p>This is expensive.</p>
+<h3>Now you need:</h3>
+<p>Revenue by Country</p>
+<p>Revenue by Product</p>
+<p>Revenue by Customer</p>
+<p>Revenue by Month</p>
+<p>Revenue by Channel</p>
+<h3>This is a good scenario to consider:</h3>
+<p>result.cache()</p>
+<p>result.count()</p>
+<h3>Then reuse:</h3>
+<pre class="diagram">Cached Result
+    │
+    ├── Country analysis
+    ├── Product analysis
+    ├── Customer analysis
+    ├── Monthly analysis
+    └── Channel analysis</pre>
+<h3>17. Bad caching example</h3>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>5 TB</p>
+<h3>You write:</h3>
+<pre class="code">df = spark.read.table(&quot;FactSales&quot;)
+
+df.cache()
+
+df.count()</pre>
+<h3>but later only need:</h3>
+<pre class="diagram">India
++
+2026
++</pre>
+<p>Amount</p>
+<p>You cached far more data than necessary.</p>
+<h3>Better:</h3>
+<pre class="code">df = (
+    spark.read.table(&quot;FactSales&quot;)
+         .filter(
+             &quot;Year = 2026 AND Country = &#x27;India&#x27;&quot;
+         )
+         .select(&quot;ProductID&quot;, &quot;Amount&quot;)</pre>
+<p>)</p>
+<pre class="code">df.cache()</pre>
+<p>Now the cached dataset is smaller and more relevant.</p>
+<h3>18. Cache after expensive transformations</h3>
+<h3>Imagine:</h3>
+<p>Raw Data</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Clean</p>
+<p>↓</p>
+<p>Calculate columns</p>
+<p>↓</p>
+<p>Aggregate</p>
+<p>↓</p>
+<p>Result</p>
+<p>If Result is reused repeatedly, caching it can prevent Spark from repeatedly executing the entire lineage.</p>
+<h3>Without cache:</h3>
+<p>Query 1</p>
+<p>↓</p>
+<p>Raw → Filter → Join → Clean → Calculate</p>
+<p>Query 2</p>
+<p>↓</p>
+<p>Raw → Filter → Join → Clean → Calculate</p>
+<p>Query 3</p>
+<p>↓</p>
+<p>Raw → Filter → Join → Clean → Calculate</p>
+<h3>With cache:</h3>
+<p>Raw</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Clean</p>
+<p>↓</p>
+<p>Calculate</p>
+<p>↓</p>
+<pre class="diagram">CACHE
+ ├── Query 1
+ ├── Query 2
+ └── Query 3</pre>
+<h3>19. Cache and Spark lineage</h3>
+<h3>Spark remembers how a DataFrame was created.</h3>
+<h3>For example:</h3>
+<p>FactSales</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Join Customer</p>
+<p>↓</p>
+<p>Join Product</p>
+<p>↓</p>
+<p>Calculate Profit</p>
+<p>↓</p>
+<p>sales_enriched</p>
+<p>This chain is called the DataFrame&#x27;s lineage.</p>
+<p>Without caching, Spark can recompute the lineage when necessary.</p>
+<p>Caching allows reusable intermediate results to be retained.</p>
+<p>Long Lineage</p>
+<p>↓</p>
+<p>CACHE useful result</p>
+<p>↓</p>
+<p>Reuse</p>
+<h3>20. Caching and joins</h3>
+<p>Caching can be useful when the same prepared dataset participates in multiple operations.</p>
+<h3>For example:</h3>
+<p>active_customers = (</p>
+<p>customers</p>
+<pre class="code">    .filter(&quot;Status = &#x27;Active&#x27;&quot;)
+    .select(&quot;CustomerID&quot;, &quot;Country&quot;, &quot;Segment&quot;)</pre>
+<p>)</p>
+<p>active_customers.cache()</p>
+<p>active_customers.count()</p>
+<h3>Then:</h3>
+<p>Sales</p>
+<p>↓</p>
+<p>Join Active Customers</p>
+<p>Orders</p>
+<p>↓</p>
+<p>Join Active Customers</p>
+<p>Returns</p>
+<p>↓</p>
+<p>Join Active Customers</p>
+<h3>Spark can reuse the cached customer dataset.</h3>
+<p>However, for a very small lookup table, a broadcast join may sometimes be a more important optimization than caching alone.</p>
+<h3>21. Caching vs Broadcast</h3>
+<p>These solve different problems.</p>
+<p>Caching</p>
+<p>Repeated computation</p>
+<p>↓</p>
+<p>Store reusable data</p>
+<p>↓</p>
+<p>Avoid recomputation</p>
+<p>Broadcast</p>
+<pre class="diagram">Large Table
+     +</pre>
+<p>Small Table</p>
+<p>↓</p>
+<p>Send small table to executors</p>
+<p>↓</p>
+<p>Avoid expensive large-table shuffle</p>
+<h3>Therefore:</h3>
+<p>Cache = Avoid recomputation</p>
+<p>Broadcast = Optimize joins/data movement</p>
+<h3>22. Caching vs Partitioning</h3>
+<p>Don&#x27;t confuse them.</p>
+<p>Partitioning</p>
+<p>Controls how data is organized/distributed.</p>
+<pre class="diagram">FactSales
+│
+├── Year=2025
+└── Year=2026</pre>
+<p>Caching</p>
+<p>Temporarily keeps reusable data closer to computation.</p>
+<p>Year=2026 result</p>
+<p>↓</p>
+<p>CACHE</p>
+<p>↓</p>
+<p>Reuse</p>
+<h3>Think:</h3>
+<p>Partitioning = Organize data</p>
+<p>Caching = Reuse data</p>
+<h3>23. Caching vs Delta files</h3>
+<h3>Another important distinction:</h3>
+<p>Delta / Parquet Files</p>
+<p>↓</p>
+<p>Persistent Storage</p>
+<p>↓</p>
+<h3>OneLake</h3>
+<h3>Caching:</h3>
+<h3>Spark Cache</h3>
+<p>↓</p>
+<p>Temporary</p>
+<p>↓</p>
+<p>Memory / Disk</p>
+<p>A Delta table remains available after your Spark session.</p>
+<p>A Spark cache is temporary computational state.</p>
+<h3>So:</h3>
+<p>Cache is not permanent storage.</p>
+<h3>24. Caching vs writing a table</h3>
+<h3>Suppose you&#x27;ve calculated:</h3>
+<p>Customer360</p>
+<p>and need it repeatedly over many future pipelines/notebooks.</p>
+<p>Caching may not be the correct solution because the cache is temporary.</p>
+<h3>Instead:</h3>
+<p>Expensive Transformation</p>
+<p>↓</p>
+<p>Write Delta Table</p>
+<p>↓</p>
+<p>Customer360</p>
+<p>↓</p>
+<p>Persistent in OneLake</p>
+<h3>Think:</h3>
+<h3>Need within current Spark workload/session?</h3>
+<p>↓</p>
+<p>CACHE</p>
+<h3>Need across future jobs/sessions?</h3>
+<p>↓</p>
+<p>MATERIALIZE / WRITE TABLE</p>
+<p>That&#x27;s an important architecture decision.</p>
+<h3>25. SQL caching</h3>
+<h3>Spark SQL can also work with cached tables/views.</h3>
+<h3>Conceptually:</h3>
+<p>CACHE TABLE Sales2026;</p>
+<p>Then repeated queries against the cached object can benefit from caching where supported/configured.</p>
+<h3>Later:</h3>
+<p>UNCACHE TABLE Sales2026;</p>
+<p>The exact behavior and supported syntax should be checked against your Fabric Spark runtime.</p>
+<h3>26. Cache lifecycle</h3>
+<h3>Think of cache lifecycle as:</h3>
+<p>CREATE DATAFRAME</p>
+<p>↓</p>
+<p>TRANSFORM</p>
+<p>↓</p>
+<p>CACHE / PERSIST</p>
+<p>↓</p>
+<p>ACTION</p>
+<p>↓</p>
+<p>CACHE POPULATED</p>
+<p>↓</p>
+<p>REUSE</p>
+<p>↓</p>
+<p>REUSE</p>
+<p>↓</p>
+<p>REUSE</p>
+<p>↓</p>
+<p>UNPERSIST</p>
+<p>This is the complete caching flow.</p>
+<h3>27. How caching fits into Spark optimization</h3>
+<h3>From your previous lesson:</h3>
+<pre class="diagram">Spark Optimization
+│
+├── Read less
+├── Shuffle less
+├── Balance partitions
+├── Optimize joins
+├── Handle skew
+├── Cache reused data
+└── Write efficiently</pre>
+<h3>Caching solves specifically:</h3>
+<p>Repeated computation/read problems</p>
+<h3>It doesn&#x27;t automatically solve:</h3>
+<p>Bad partitioning</p>
+<p>Data skew</p>
+<p>Too many small files</p>
+<p>Large shuffles</p>
+<p>Poor joins</p>
+<p>Bad query logic</p>
+<h3>28. Example without caching</h3>
+<h3>Imagine this transformation:</h3>
+<p>FactSales 2 TB</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Join Customer</p>
+<p>↓</p>
+<p>Join Product</p>
+<p>↓</p>
+<p>Calculate Margin</p>
+<p>↓</p>
+<p>sales_enriched</p>
+<h3>Now:</h3>
+<p>Query 1</p>
+<p>↓</p>
+<p>Revenue by Country</p>
+<p>Query 2</p>
+<p>↓</p>
+<p>Revenue by Product</p>
+<p>Query 3</p>
+<p>↓</p>
+<p>Margin by Customer</p>
+<h3>Without cache:</h3>
+<p>Query 1</p>
+<p>↓</p>
+<p>Read → Filter → Join → Join → Calculate</p>
+<p>Query 2</p>
+<p>↓</p>
+<p>Read → Filter → Join → Join → Calculate</p>
+<p>Query 3</p>
+<p>↓</p>
+<p>Read → Filter → Join → Join → Calculate</p>
+<p>Potentially expensive.</p>
+<h3>29. Same example with caching</h3>
+<p>FactSales</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Calculate</p>
+<p>↓</p>
+<p>sales_enriched</p>
+<p>↓</p>
+<pre class="diagram">  CACHE
+    │
+ ┌──┼────────┐
+ ▼  ▼        ▼</pre>
+<p>Q1  Q2       Q3</p>
+<p>The expensive shared work is performed once and reused where possible.</p>
+<h3>30. Memory pressure</h3>
+<p>Caching isn&#x27;t free.</p>
+<h3>Suppose:</h3>
+<p>Executor Memory</p>
+<p>=</p>
+<p>100 GB</p>
+<h3>and you attempt to cache:</h3>
+<p>Dataset</p>
+<p>=</p>
+<p>500 GB</p>
+<h3>Spark cannot simply keep everything in memory.</h3>
+<h3>Depending on the storage level and runtime behavior, data may be:</h3>
+<p>Memory</p>
+<p>↓</p>
+<p>Disk</p>
+<p>or</p>
+<p>Evicted</p>
+<p>↓</p>
+<p>Recomputed</p>
+<p>That&#x27;s why selecting an appropriate caching strategy matters.</p>
+<h3>31. Monitor caching</h3>
+<h3>When optimizing a Spark workload, don&#x27;t just write:</h3>
+<pre class="code">df.cache()</pre>
+<p>and assume performance improved.</p>
+<h3>Monitor things like:</h3>
+<h3>Spark UI</h3>
+<p>Storage</p>
+<p>Memory usage</p>
+<p>Executor memory</p>
+<p>Job duration</p>
+<p>Stages</p>
+<p>Tasks</p>
+<p>Disk spill</p>
+<p>Cache hit/reuse behavior</p>
+<h3>Then compare:</h3>
+<p>Before caching</p>
+<p>vs</p>
+<p>After caching</p>
+<p>Optimization should be measured.</p>
+<h3>32. Common caching mistakes</h3>
+<h3>Avoid these:</h3>
+<div class="note"><p>❌ Cache every DataFrame</p></div>
+<div class="note"><p>❌ Cache huge raw tables unnecessarily</p></div>
+<div class="note"><p>❌ Cache data used only once</p></div>
+<div class="note"><p>❌ Forget to unpersist</p></div>
+<div class="note"><p>❌ Assume cache is permanent</p></div>
+<div class="note"><p>❌ Cache before filtering unnecessary rows</p></div>
+<div class="note"><p>❌ Cache unnecessary columns</p></div>
+<div class="note"><p>❌ Ignore memory pressure</p></div>
+<div class="note"><p>❌ Assume caching fixes bad joins</p></div>
+<div class="note"><p>❌ Assume caching fixes bad partitioning</p></div>
+<h3>33. Better approach</h3>
+<h3>Instead:</h3>
+<p>Raw Table</p>
+<p>↓</p>
+<p>Partition Pruning</p>
+<p>↓</p>
+<p>Filter required rows</p>
+<p>↓</p>
+<p>Select required columns</p>
+<p>↓</p>
+<p>Perform expensive transformation</p>
+<p>↓</p>
+<h3>Is result reused?</h3>
+<pre class="diagram">      │
+   ┌──┴───┐
+   │      │
+  YES     NO
+   │      │
+   ▼      ▼</pre>
+<p>CACHE   Don&#x27;t Cache</p>
+<pre class="diagram">   │
+   ▼
+Reuse
+   │
+   ▼</pre>
+<p>Unpersist</p>
+<h3>34. Interview question — What is caching in Spark?</h3>
+<h3>A strong answer:</h3>
+<p>Caching in Spark stores reusable DataFrame or table data in memory and/or disk so Spark can avoid repeatedly reading or recomputing the same transformations. It is most useful when an expensive intermediate dataset is reused multiple times.</p>
+<h3>35. Interview question — cache() vs persist()</h3>
+<p>cache() is a convenient way to persist a DataFrame using Spark&#x27;s default storage behavior, while persist() allows you to explicitly choose a storage level such as memory-and-disk depending on the runtime and requirements.</p>
+<h3>36. Interview question — When would you use caching?</h3>
+<p>I would consider caching when the same expensive intermediate DataFrame is reused multiple times within a Spark workload—for example, after filtering and joining a large sales dataset that is then used for several aggregations.</p>
+<h3>37. Interview question — When would you avoid caching?</h3>
+<p>I would avoid caching data that is used only once, extremely large raw datasets that provide little reuse benefit, or datasets that create excessive memory pressure. Caching has a storage and management cost, so it should be used selectively.</p>
+<h3>38. Interview question — Why use unpersist()?</h3>
+<p>unpersist() removes cached data when it is no longer required, freeing executor memory and storage resources for other Spark operations.</p>
+<h3>39. Interview question — Cache vs Delta table</h3>
+<p>A Spark cache is temporary and primarily used to avoid repeated computation within a Spark workload, while a Delta table is persistent data stored in OneLake and can be reused across sessions and workloads.</p>
+<h3>40. Interview question — Does cache() immediately load the data?</h3>
+<h3>A strong answer:</h3>
+<p>Not necessarily. Spark uses lazy evaluation. Calling cache() marks the DataFrame to be cached, and the cache is populated when an action such as count(), show(), or another operation triggers computation.</p>
+<p>This is a very useful interview point.</p>
+<h3>41. Complete example</h3>
+<p># Read only required data</p>
+<p>sales2026 = (</p>
+<pre class="code">    spark.read.table(&quot;FactSales&quot;)
+         .filter(&quot;Year = 2026&quot;)
+         .select(
+             &quot;CustomerID&quot;,
+             &quot;ProductID&quot;,
+             &quot;Country&quot;,
+             &quot;Amount&quot;
+         )</pre>
+<p>)</p>
+<p># Mark for caching</p>
+<p>sales2026.cache()</p>
+<p># Trigger execution / populate cache</p>
+<p>sales2026.count()</p>
+<p># Reuse cached data</p>
+<p>sales2026.groupBy(&quot;Country&quot;) \</p>
+<p>.sum(&quot;Amount&quot;) \</p>
+<p>.show()</p>
+<p>sales2026.groupBy(&quot;ProductID&quot;) \</p>
+<p>.sum(&quot;Amount&quot;) \</p>
+<p>.show()</p>
+<p>sales2026.groupBy(&quot;CustomerID&quot;) \</p>
+<p>.sum(&quot;Amount&quot;) \</p>
+<p>.show()</p>
+<p># Release resources</p>
+<p>sales2026.unpersist()</p>
+<h3>Conceptually:</h3>
+<h3>Lakehouse</h3>
+<p>↓</p>
+<p>FactSales</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Select Columns</p>
+<p>↓</p>
+<pre class="diagram">CACHE
+   │
+   ├── Country Analysis
+   ├── Product Analysis
+   └── Customer Analysis</pre>
+<p>↓</p>
+<p>UNPERSIST</p>
+<h3>42. Your Module 10 so far</h3>
+<h3>The four topics you&#x27;ve covered connect nicely:</h3>
+<pre class="diagram">10.1 PARTITIONING
+       │
+       ▼
+Organize large data
+       │
+       ▼</pre>
+<p>Partition Pruning</p>
+<pre class="diagram">10.2 FILE SIZES
+       │
+       ▼
+Avoid tiny files
+       │
+       ▼</pre>
+<p>Efficient reads</p>
+<pre class="diagram">10.3 SPARK OPTIMIZATION
+       │
+       ▼</pre>
+<p>Reduce shuffle</p>
+<p>Optimize joins</p>
+<p>Balance processing</p>
+<pre class="diagram">10.4 CACHING
+       │
+       ▼
+Avoid repeated computation
+       │
+       ▼</pre>
+<p>Reuse intermediate results</p>
+<h3>Together:</h3>
+<pre class="diagram">           LARGE DATASET
+                 │
+                 ▼
+         GOOD PARTITIONING
+                 │
+                 ▼
+          GOOD FILE SIZES
+                 │
+                 ▼
+         READ REQUIRED DATA
+                 │
+                 ▼
+          OPTIMIZE SPARK
+                 │
+                 ▼
+        CACHE REUSED RESULTS
+                 │
+                 ▼</pre>
+<p>FASTER PROCESSING</p>
+<h3>Quick revision</h3>
+<div class="table-wrap"><table><thead><tr><th>Concept</th><th>Purpose</th></tr></thead><tbody><tr><td>Partitioning</td><td>Organize large data</td></tr><tr><td>File optimization</td><td>Avoid inefficient small files</td></tr><tr><td>Spark partitions</td><td>Enable parallel processing</td></tr><tr><td>Broadcast</td><td>Reduce join shuffle</td></tr><tr><td>Caching</td><td>Avoid recomputation</td></tr><tr><td>Persist</td><td>Cache with storage-level control</td></tr><tr><td>Unpersist</td><td>Release cached resources</td></tr><tr><td>Delta table</td><td>Persistent storage</td></tr></tbody></table></div>
+<p>One line to memorize</p>
+<p>Caching = Compute once, temporarily store the result, reuse it multiple times, and unpersist when finished.</p>
+<h3>And the key rule:</h3>
+<p>Don&#x27;t ask &quot;Can I cache this?&quot; Ask &quot;Will I reuse this expensive result enough times for caching to be worthwhile?&quot;</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-7"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.5</span><h2>Query Performance</h2></div><div class="content">
+<p>10.5 Query Performance in Microsoft Fabric</p>
+<p>Query Performance means making queries execute faster and more efficiently while using fewer compute and I/O resources.</p>
+<h3>In Microsoft Fabric, query performance can apply across:</h3>
+<pre class="diagram">Fabric
+│
+├── Warehouse → T-SQL
+├── Lakehouse → Spark / SQL analytics endpoint
+├── Delta Tables
+├── Semantic Models
+└── Power BI</pre>
+<h3>The easiest formula to remember is:</h3>
+<p>Query Performance = Read less data + Process less data + Move less data + Use the right data model</p>
+<h3>1. Simple example</h3>
+<h3>Suppose you have:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>5 Billion Rows</p>
+<p>=</p>
+<p>5 TB</p>
+<p>You need sales for India in 2026.</p>
+<h3>Poor query:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<h3>This asks for:</h3>
+<pre class="diagram">All rows
++</pre>
+<p>All columns</p>
+<h3>A better query is:</h3>
+<pre class="code">SELECT
+    ProductID,
+    SalesDate,
+    SalesAmount
+FROM FactSales
+WHERE Country = &#x27;India&#x27;</pre>
+<p>AND SalesYear = 2026;</p>
+<h3>Now you&#x27;re requesting only:</h3>
+<pre class="diagram">Required rows
++</pre>
+<p>Required columns</p>
+<p>That&#x27;s the foundation of query optimization.</p>
+<h3>2. Rule #1 — Avoid SELECT *</h3>
+<p>This is one of the easiest performance rules.</p>
+<h3>Bad:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales;</p>
+<h3>Suppose FactSales contains:</h3>
+<p>100 columns</p>
+<h3>but your report needs only:</h3>
+<p>ProductID</p>
+<p>SalesAmount</p>
+<h3>Use:</h3>
+<p>SELECT</p>
+<p>ProductID,</p>
+<p>SalesAmount</p>
+<p>FROM FactSales;</p>
+<h3>Conceptually:</h3>
+<p>SELECT *</p>
+<p>100 columns</p>
+<p>↓</p>
+<p>More data processed/transferred</p>
+<p>SELECT required columns</p>
+<p>2 columns</p>
+<p>↓</p>
+<p>Less data</p>
+<p>Especially with columnar storage, selecting only required columns can significantly reduce unnecessary work.</p>
+<h3>3. Rule #2 — Filter early</h3>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>5 TB</p>
+<h3>but:</h3>
+<p>Year = 2026</p>
+<p>=</p>
+<p>500 GB</p>
+<h3>Filter as early as possible:</h3>
+<pre class="code">SELECT
+    ProductID,
+    SalesAmount
+FROM FactSales
+WHERE SalesYear = 2026;</pre>
+<h3>Think:</h3>
+<p>5 TB</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>500 GB</p>
+<p>↓</p>
+<p>Process</p>
+<p>rather than carrying unnecessary data through expensive joins and aggregations.</p>
+<h3>4. Partition pruning</h3>
+<p>This connects directly to 10.1 Partitioning.</p>
+<h3>Suppose your Delta table is organized by:</h3>
+<p>Year</p>
+<h3>Storage:</h3>
+<pre class="diagram">FactSales/
+│
+├── Year=2023
+├── Year=2024
+├── Year=2025
+└── Year=2026</pre>
+<h3>Query:</h3>
+<pre class="code">SELECT SUM(SalesAmount)
+FROM FactSales
+WHERE Year = 2026;</pre>
+<h3>The engine can potentially skip:</h3>
+<p>2023 ✕</p>
+<p>2024 ✕</p>
+<p>2025 ✕</p>
+<p>2026 ✓</p>
+<h3>This is:</h3>
+<p>Partition Pruning</p>
+<p>Less data scanned generally means better performance.</p>
+<h3>5. Column pruning</h3>
+<h3>Suppose the table contains:</h3>
+<p>CustomerID</p>
+<p>CustomerName</p>
+<p>Address</p>
+<p>Phone</p>
+<p>Email</p>
+<p>ProductID</p>
+<p>Description</p>
+<p>Quantity</p>
+<p>SalesAmount</p>
+<p>SalesDate</p>
+<p>...</p>
+<h3>Query:</h3>
+<p>SELECT</p>
+<p>ProductID,</p>
+<p>SalesAmount</p>
+<p>FROM FactSales;</p>
+<p>With columnar formats such as Parquet, the engine can focus on the required columns.</p>
+<h3>Conceptually:</h3>
+<p>CustomerID       ✕</p>
+<p>CustomerName     ✕</p>
+<p>Address          ✕</p>
+<p>Phone            ✕</p>
+<p>Email            ✕</p>
+<p>ProductID        ✓</p>
+<p>Description      ✕</p>
+<p>Quantity         ✕</p>
+<p>SalesAmount      ✓</p>
+<p>SalesDate        ✕</p>
+<p>This is column pruning.</p>
+<h3>6. Predicate pushdown</h3>
+<h3>Suppose you request:</h3>
+<pre class="code">WHERE SalesYear = 2026
+Where supported, the query engine can push that filter toward the data source/storage scan so unnecessary data isn&#x27;t brought into later processing.</pre>
+<p>Query</p>
+<p>↓</p>
+<pre class="code">WHERE Year=2026</pre>
+<p>↓</p>
+<p>Storage Scan</p>
+<p>↓</p>
+<p>Read relevant data</p>
+<h3>This is called:</h3>
+<p>Predicate Pushdown</p>
+<h3>7. Partition pruning vs predicate pushdown</h3>
+<p>These sound similar but are different.</p>
+<p>Partition pruning</p>
+<p>Skips entire partitions.</p>
+<p>Year=2024 ✕</p>
+<p>Year=2025 ✕</p>
+<p>Year=2026 ✓</p>
+<p>Predicate pushdown</p>
+<p>Pushes filters closer to the underlying data read so irrelevant records/data groups can be avoided where supported.</p>
+<h3>Both follow the same principle:</h3>
+<p>Don&#x27;t read data you don&#x27;t need.</p>
+<h3>8. Filter before joining</h3>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>5 TB</p>
+<h3>and:</h3>
+<p>DimCustomer</p>
+<p>=</p>
+<p>2 GB</p>
+<p>You only need 2026.</p>
+<h3>Poor logical pattern:</h3>
+<p>FactSales 5 TB</p>
+<p>↓</p>
+<p>Join Customer</p>
+<p>↓</p>
+<p>Large intermediate result</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<h3>Better:</h3>
+<p>FactSales</p>
+<p>↓</p>
+<p>Filter 2026</p>
+<p>↓</p>
+<p>Smaller dataset</p>
+<p>↓</p>
+<p>Join Customer</p>
+<h3>Example:</h3>
+<pre class="code">SELECT
+    c.Country,
+    SUM(f.SalesAmount)
+FROM FactSales f
+JOIN DimCustomer c
+    ON f.CustomerID = c.CustomerID
+WHERE f.SalesYear = 2026
+GROUP BY c.Country;</pre>
+<p>Modern optimizers can often rearrange predicates, but writing clear, selective logic helps you reason about performance.</p>
+<h3>9. Optimize joins</h3>
+<p>Joins are often one of the biggest sources of query cost.</p>
+<h3>Suppose:</h3>
+<p>FactSales       = 5 TB</p>
+<p>DimProduct      = 100 MB</p>
+<p>DimCustomer     = 2 GB</p>
+<p>DimDate         = 10 MB</p>
+<h3>Architecture:</h3>
+<pre class="diagram">                 DimDate
+                    │
+                    ▼
+DimCustomer ───► FactSales ◄─── DimProduct</pre>
+<p>A good star schema makes analytical joins predictable and efficient.</p>
+<h3>10. Avoid unnecessary joins</h3>
+<h3>Suppose your query needs only:</h3>
+<p>ProductID</p>
+<p>SalesAmount</p>
+<h3>but you write:</h3>
+<pre class="code">SELECT
+    f.ProductID,
+    f.SalesAmount
+FROM FactSales f
+JOIN DimCustomer c
+    ON f.CustomerID = c.CustomerID
+JOIN DimProduct p
+    ON f.ProductID = p.ProductID
+JOIN DimDate d
+    ON f.DateKey = d.DateKey;</pre>
+<p>If none of those dimension columns or filters are required, those joins may be unnecessary.</p>
+<h3>Simpler:</h3>
+<p>SELECT</p>
+<p>ProductID,</p>
+<p>SalesAmount</p>
+<p>FROM FactSales;</p>
+<h3>Rule:</h3>
+<p>Don&#x27;t join a table unless the query actually needs it.</p>
+<h3>11. Aggregate early when appropriate</h3>
+<h3>Suppose you have:</h3>
+<p>1 Billion Sales Rows</p>
+<h3>but ultimately need:</h3>
+<p>Sales by Month</p>
+<h3>Conceptually, reducing data through aggregation can make later processing cheaper:</h3>
+<p>1 Billion rows</p>
+<p>↓</p>
+<p>GROUP BY Month</p>
+<p>↓</p>
+<p>12 / limited result groups</p>
+<h3>Example:</h3>
+<pre class="code">SELECT
+    SalesYear,
+    SalesMonth,
+    SUM(SalesAmount) AS TotalSales
+FROM FactSales
+GROUP BY
+    SalesYear,
+    SalesMonth;</pre>
+<p>For repeatedly requested aggregates, you might also consider maintaining curated Gold-layer summary tables.</p>
+<h3>12. Gold-layer aggregate tables</h3>
+<h3>Suppose Power BI runs this repeatedly:</h3>
+<pre class="code">SELECT
+    Country,
+    ProductCategory,
+    SUM(SalesAmount)
+FROM FactSales
+GROUP BY
+    Country,
+    ProductCategory;</pre>
+<p>against billions of rows.</p>
+<h3>Instead, your Gold layer might contain:</h3>
+<p>Gold_SalesSummary</p>
+<h3>with already summarized data:</h3>
+<p>Country</p>
+<p>ProductCategory</p>
+<p>Year</p>
+<p>Month</p>
+<p>TotalSales</p>
+<p>TotalQuantity</p>
+<h3>Then:</h3>
+<p>Power BI</p>
+<p>↓</p>
+<p>Gold Summary</p>
+<p>↓</p>
+<p>Millions / thousands of rows</p>
+<h3>instead of:</h3>
+<p>Power BI</p>
+<p>↓</p>
+<p>Raw Fact</p>
+<p>↓</p>
+<p>Billions of rows</p>
+<p>This can be a major architectural optimization.</p>
+<h3>13. Data type matters</h3>
+<p>Use appropriate data types.</p>
+<h3>For example, don&#x27;t store:</h3>
+<pre class="code">SalesAmount = &quot;12500.50&quot;</pre>
+<p>as text if it is genuinely numeric.</p>
+<p>Prefer an appropriate numeric type.</p>
+<h3>Similarly:</h3>
+<p>SalesDate</p>
+<p>should generally be represented using an appropriate date/time type rather than arbitrary text when the business requirement allows it.</p>
+<h3>Correct data types improve:</h3>
+<p>Storage</p>
+<p>Comparisons</p>
+<p>Aggregations</p>
+<p>Query semantics</p>
+<h3>14. Avoid unnecessary transformations in filters</h3>
+<p>Suppose you repeatedly need 2026 data.</p>
+<h3>You might write:</h3>
+<pre class="code">WHERE YEAR(SalesDate) = 2026</pre>
+<p>In many database/storage systems, applying functions to a filtering column can make some optimizations harder than a range predicate.</p>
+<h3>A clearer alternative is often:</h3>
+<pre class="code">WHERE SalesDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND SalesDate &lt;  &#x27;2027-01-01&#x27;;</p>
+<p>The exact performance difference depends on the Fabric engine and storage path, but the general rule is:</p>
+<p>Prefer predicates that allow the engine to eliminate data efficiently.</p>
+<h3>15. Avoid unnecessary DISTINCT</h3>
+<h3>Developers sometimes use:</h3>
+<p>SELECT DISTINCT</p>
+<p>CustomerID,</p>
+<p>ProductID</p>
+<p>FROM FactSales;</p>
+<p>without checking why duplicates exist.</p>
+<p>DISTINCT requires deduplication work and may involve expensive data movement/sorting/hashing.</p>
+<h3>Don&#x27;t use it as:</h3>
+<p>&quot;My joins created duplicates, so I&#x27;ll add DISTINCT.&quot;</p>
+<h3>Instead investigate:</h3>
+<h3>Why are duplicates appearing?</h3>
+<h3>Is the join correct?</h3>
+<h3>Is the relationship one-to-many?</h3>
+<h3>Is the grain correct?</h3>
+<p>Use DISTINCT when the business requirement genuinely requires distinct values.</p>
+<h3>16. GROUP BY can be expensive</h3>
+<h3>Example:</h3>
+<pre class="code">SELECT
+    CustomerID,
+    SUM(SalesAmount)
+FROM FactSales
+GROUP BY CustomerID;</pre>
+<h3>If:</h3>
+<p>CustomerID</p>
+<p>=</p>
+<p>100 million distinct customers</p>
+<p>that&#x27;s a large aggregation.</p>
+<h3>The engine may need significant:</h3>
+<p>Memory</p>
+<p>CPU</p>
+<p>Data movement</p>
+<p>Intermediate storage</p>
+<p>So reduce unnecessary data before large aggregations.</p>
+<h3>17. Sorting can be expensive</h3>
+<h3>Example:</h3>
+<p>SELECT *</p>
+<p>FROM FactSales</p>
+<p>ORDER BY SalesAmount DESC;</p>
+<p>Sorting billions of rows is expensive.</p>
+<h3>Conceptually:</h3>
+<p>5 Billion Rows</p>
+<p>↓</p>
+<p>Global Sort</p>
+<p>↓</p>
+<p>Large processing requirement</p>
+<p>If you only need the highest values, structure the query accordingly using supported top/limit patterns rather than returning and sorting unnecessary results.</p>
+<h3>Example in T-SQL:</h3>
+<pre class="code">SELECT TOP (100)
+    ProductID,
+    SalesAmount
+FROM FactSales
+ORDER BY SalesAmount DESC;</pre>
+<p>Now the business requirement is clearer.</p>
+<h3>18. COUNT(*) on huge datasets</h3>
+<h3>This looks simple:</h3>
+<pre class="code">SELECT COUNT(*)
+FROM FactSales;</pre>
+<h3>but if:</h3>
+<p>FactSales = billions of rows</p>
+<p>the query can still require substantial work depending on engine metadata and execution strategy.</p>
+<h3>Don&#x27;t repeatedly run large counts just to:</h3>
+<p>&quot;Check whether the table exists.&quot;</p>
+<p>Use appropriate metadata/monitoring techniques when that&#x27;s the actual requirement.</p>
+<h3>19. File sizes affect query performance</h3>
+<p>This connects to 10.2 File Sizes.</p>
+<h3>Suppose:</h3>
+<p>FactSales = 1 TB</p>
+<h3>stored as:</h3>
+<p>1,000,000 tiny files</p>
+<h3>Even a well-written query may suffer because the engine has to handle excessive:</h3>
+<p>File metadata</p>
+<p>File opens</p>
+<p>Task planning</p>
+<h3>Better file layout:</h3>
+<p>1 TB</p>
+<p>↓</p>
+<p>Reasonably sized files</p>
+<p>↓</p>
+<p>Lower overhead</p>
+<p>↓</p>
+<p>Better reads</p>
+<h3>Therefore:</h3>
+<p>SQL optimization cannot completely fix bad physical data layout.</p>
+<h3>20. Delta optimization</h3>
+<p>For Lakehouse/Delta workloads, maintaining healthy file layout is important.</p>
+<h3>Conceptually:</h3>
+<p>Many Small Files</p>
+<p>↓</p>
+<p>Compaction / Optimization</p>
+<p>↓</p>
+<p>Fewer Efficient Files</p>
+<p>↓</p>
+<p>Faster Reads</p>
+<h3>So query optimization includes not just the query itself but also:</h3>
+<p>Table design</p>
+<p>Partitioning</p>
+<p>File layout</p>
+<p>Maintenance</p>
+<h3>21. Caching</h3>
+<h3>From 10.4 Caching:</h3>
+<p>Suppose the same expensive intermediate dataset is queried repeatedly.</p>
+<p>Expensive Result</p>
+<p>↓</p>
+<pre class="diagram">Cache
+      │
+      ├── Query 1
+      ├── Query 2
+      └── Query 3</pre>
+<p>Caching may reduce repeated computation.</p>
+<h3>But:</h3>
+<p>Caching is not a replacement for good query design.</p>
+<p>Don&#x27;t cache a badly designed 5-TB query and assume the problem is solved.</p>
+<h3>22. Query performance in Fabric Warehouse</h3>
+<p>For Fabric Warehouse, query optimization is largely handled by the SQL engine.</p>
+<h3>Your responsibility includes designing:</h3>
+<pre class="diagram">Good SQL
+    +
+Good Data Model
+    +
+Appropriate Tables
+    +
+Appropriate Data Types
+    +
+Efficient Joins
+    +</pre>
+<p>Reasonable Aggregations</p>
+<h3>Fabric handles much of the underlying distributed execution for you.</h3>
+<h3>23. Query execution plan</h3>
+<p>When a query is slow, you need to understand what the engine is doing.</p>
+<h3>Conceptually:</h3>
+<p>SQL Query</p>
+<p>↓</p>
+<p>Parser</p>
+<p>↓</p>
+<p>Optimizer</p>
+<p>↓</p>
+<p>Execution Plan</p>
+<p>↓</p>
+<p>Execution</p>
+<p>↓</p>
+<p>Result</p>
+<h3>The optimizer decides strategies for operations such as:</h3>
+<p>Scans</p>
+<p>Filters</p>
+<p>Joins</p>
+<p>Aggregations</p>
+<p>Sorting</p>
+<p>Data movement</p>
+<h3>24. Spark execution plan</h3>
+<h3>For Spark:</h3>
+<pre class="code">df.explain(&quot;formatted&quot;)</pre>
+<p>can help you inspect the plan.</p>
+<h3>Look for operations such as:</h3>
+<p>Scan</p>
+<p>Filter</p>
+<p>Exchange</p>
+<p>Join</p>
+<p>Aggregate</p>
+<p>Sort</p>
+<h3>In Spark, an:</h3>
+<p>Exchange</p>
+<p>often indicates data redistribution/shuffling.</p>
+<h3>If you see multiple large exchanges:</h3>
+<p>Scan</p>
+<p>↓</p>
+<p>Exchange</p>
+<p>↓</p>
+<p>Join</p>
+<p>↓</p>
+<p>Exchange</p>
+<p>↓</p>
+<p>Aggregate</p>
+<p>↓</p>
+<p>Exchange</p>
+<p>you may have significant shuffle costs.</p>
+<h3>25. Query performance troubleshooting</h3>
+<h3>When someone tells you:</h3>
+<p>&quot;This Fabric query is slow.&quot;</p>
+<p>Don&#x27;t immediately increase capacity.</p>
+<h3>Use a systematic approach:</h3>
+<p>Slow Query</p>
+<p>↓</p>
+<p>Check data volume</p>
+<p>↓</p>
+<p>Check rows/columns scanned</p>
+<p>↓</p>
+<p>Check filters</p>
+<p>↓</p>
+<p>Check partition pruning</p>
+<p>↓</p>
+<p>Check joins</p>
+<p>↓</p>
+<p>Check aggregation/sorting</p>
+<p>↓</p>
+<p>Check file layout</p>
+<p>↓</p>
+<p>Check execution plan</p>
+<p>↓</p>
+<p>Check resource utilization</p>
+<p>↓</p>
+<p>Then consider capacity</p>
+<h3>26. Example: Bad query</h3>
+<h3>Suppose:</h3>
+<p>FactSales = 10 TB</p>
+<h3>Bad:</h3>
+<pre class="code">SELECT DISTINCT *
+FROM FactSales f
+JOIN DimCustomer c
+    ON f.CustomerID = c.CustomerID
+JOIN DimProduct p
+    ON f.ProductID = p.ProductID
+WHERE YEAR(f.SalesDate) = 2026
+ORDER BY f.SalesAmount;</pre>
+<h3>Potential issues:</h3>
+<p>SELECT *            → unnecessary columns</p>
+<p>DISTINCT            → expensive deduplication</p>
+<p>Large joins         → potentially expensive</p>
+<p>Function in filter  → may limit elimination opportunities</p>
+<p>ORDER BY            → expensive sorting</p>
+<h3>27. Better query thinking</h3>
+<h3>If the actual requirement is:</h3>
+<p>Total 2026 sales by product category for India customers.</p>
+<h3>Write the query specifically for that requirement:</h3>
+<pre class="code">SELECT
+    p.ProductCategory,
+    SUM(f.SalesAmount) AS TotalSales
+FROM FactSales AS f
+JOIN DimCustomer AS c
+    ON f.CustomerID = c.CustomerID
+JOIN DimProduct AS p
+    ON f.ProductID = p.ProductID
+WHERE f.SalesDate &gt;= &#x27;2026-01-01&#x27;</pre>
+<p>AND f.SalesDate &lt;  &#x27;2027-01-01&#x27;</p>
+<p>AND c.Country = &#x27;India&#x27;</p>
+<p>GROUP BY</p>
+<p>p.ProductCategory;</p>
+<h3>Now:</h3>
+<pre class="diagram">Required columns only
+        +
+Selective filters
+        +
+Required joins only
+        +</pre>
+<p>Required aggregation</p>
+<p>The query expresses the business requirement cleanly.</p>
+<h3>28. Star schema and query performance</h3>
+<h3>From your earlier Fabric Warehouse module:</h3>
+<pre class="diagram">                  DimDate
+                     │
+                     ▼
+DimCustomer ───► FactSales ◄─── DimProduct
+                     ▲
+                     │</pre>
+<p>DimRegion</p>
+<h3>A star schema helps analytical workloads because:</h3>
+<p>Fact</p>
+<p>↓</p>
+<p>Measures + Keys</p>
+<p>Dimensions</p>
+<p>↓</p>
+<p>Descriptive attributes</p>
+<p>This provides a simple and predictable structure for analytics and Power BI.</p>
+<h3>29. Query performance and Power BI</h3>
+<h3>Suppose:</h3>
+<p>Power BI Report</p>
+<p>↓</p>
+<p>Semantic Model</p>
+<p>↓</p>
+<h3>Fabric Warehouse</h3>
+<h3>A poorly designed report might generate:</h3>
+<p>Many expensive queries</p>
+<p>↓</p>
+<p>Large scans</p>
+<p>↓</p>
+<p>Complex calculations</p>
+<p>↓</p>
+<p>Poor user experience</p>
+<h3>So end-to-end performance involves:</h3>
+<pre class="diagram">Report Design
+     +
+Semantic Model
+     +
+SQL Query
+     +
+Warehouse/Lakehouse
+     +</pre>
+<p>Physical Data Layout</p>
+<p>Performance isn&#x27;t only a database problem.</p>
+<h3>30. Direct Lake</h3>
+<p>In Fabric, Power BI can use Direct Lake in supported scenarios.</p>
+<h3>Conceptually:</h3>
+<p>Power BI</p>
+<p>↓</p>
+<p>Semantic Model</p>
+<p>↓</p>
+<p>Direct Lake</p>
+<p>↓</p>
+<h3>OneLake / Delta data</h3>
+<p>This architecture is designed to provide high-performance analytical access without requiring the traditional import-copy workflow for every scenario.</p>
+<h3>But good:</h3>
+<p>Data modeling</p>
+<p>Table design</p>
+<p>File organization</p>
+<p>Data volume management</p>
+<p>still matter.</p>
+<h3>31. Medallion architecture and performance</h3>
+<h3>Suppose:</h3>
+<p>Bronze</p>
+<p>↓</p>
+<p>Raw Data</p>
+<p>↓</p>
+<p>Billions of rows</p>
+<p>You generally don&#x27;t want every business dashboard performing complex cleanup directly over raw Bronze data.</p>
+<h3>Instead:</h3>
+<p>BRONZE</p>
+<p>Raw</p>
+<p>↓</p>
+<p>SILVER</p>
+<p>Clean / standardized</p>
+<p>↓</p>
+<p>GOLD</p>
+<p>Business-ready</p>
+<p>↓</p>
+<p>Semantic Model</p>
+<p>↓</p>
+<p>Power BI</p>
+<h3>Gold can contain:</h3>
+<p>Star schemas</p>
+<p>Business aggregates</p>
+<p>Curated dimensions</p>
+<p>Optimized fact tables</p>
+<p>which improves usability and can improve performance.</p>
+<h3>32. Query performance layers</h3>
+<h3>Think of optimization as layers:</h3>
+<pre class="diagram">                QUERY PERFORMANCE
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼</pre>
+<p>QUERY           DATA          STORAGE</p>
+<pre class="diagram">      DESIGN          MODEL          DESIGN
+        │              │              │</pre>
+<p>Filters        Star Schema    Partitioning</p>
+<p>Columns        Aggregates     File Sizes</p>
+<p>Joins          Correct Grain  Delta Layout</p>
+<pre class="diagram">     Grouping
+        │              │              │
+        └──────────────┼──────────────┘
+                       ▼
+                    COMPUTE
+                       │
+                  Spark / SQL
+                       │
+                       ▼</pre>
+<p>MONITORING</p>
+<h3>33. Common causes of slow queries</h3>
+<h3>A useful checklist:</h3>
+<pre class="diagram">Slow Query
+│
+├── Reading too many rows
+├── Reading unnecessary columns
+├── Missing useful filters
+├── Poor partition strategy
+├── Small files
+├── Unnecessary joins
+├── Large joins
+├── Data skew
+├── Expensive GROUP BY
+├── Unnecessary DISTINCT
+├── Large ORDER BY
+├── Poor data types
+├── Poor data model
+├── Repeated computation
+└── Insufficient compute/resources</pre>
+<h3>34. Performance optimization order</h3>
+<h3>A useful order is:</h3>
+<h3>1. Understand requirement</h3>
+<p>↓</p>
+<h3>2. Reduce rows</h3>
+<p>↓</p>
+<h3>3. Reduce columns</h3>
+<p>↓</p>
+<h3>4. Check joins</h3>
+<p>↓</p>
+<h3>5. Check aggregation/sorting</h3>
+<p>↓</p>
+<h3>6. Check partitioning</h3>
+<p>↓</p>
+<h3>7. Check file sizes</h3>
+<p>↓</p>
+<h3>8. Check execution plan</h3>
+<p>↓</p>
+<h3>9. Check skew/shuffle</h3>
+<p>↓</p>
+<h3>10. Check caching</h3>
+<p>↓</p>
+<h3>11. Check capacity/resources</h3>
+<h3>This prevents the common mistake:</h3>
+<p>Slow Query</p>
+<p>↓</p>
+<p>Buy more compute</p>
+<p>without investigating the underlying problem.</p>
+<h3>35. Interview question — How do you optimize query performance?</h3>
+<h3>A strong answer:</h3>
+<p>I start by reducing the amount of data processed: select only required columns, apply selective filters early, and make sure partition pruning and predicate pushdown can occur where applicable. Then I review joins, aggregations, sorting, table design, partitioning and file sizes. For Spark workloads I also inspect shuffles, skew and execution plans, and I increase compute only after identifying the actual bottleneck.</p>
+<h3>36. Interview question — What is predicate pushdown?</h3>
+<p>Predicate pushdown is an optimization where filter conditions are pushed closer to the underlying data source or storage scan so unnecessary data can be eliminated before later processing.</p>
+<h3>37. Interview question — What is column pruning?</h3>
+<p>Column pruning means reading or processing only the columns required by the query rather than all columns. It is especially valuable with columnar formats such as Parquet.</p>
+<h3>38. Interview question — How does partitioning improve queries?</h3>
+<p>Partitioning can improve performance through partition pruning. If a table is partitioned by a column such as year and the query filters for 2026, the engine can skip unrelated partitions and reduce the amount of data scanned.</p>
+<h3>39. Interview question — Why is SELECT * discouraged?</h3>
+<p>SELECT * requests every column even when many are unnecessary. This can increase data scanning, processing, memory use and transfer. Selecting only required columns allows the engine to take better advantage of columnar storage and column pruning.</p>
+<h3>40. Interview question — How would you troubleshoot a slow Fabric query?</h3>
+<h3>A strong answer:</h3>
+<p>First I would identify where the time is being spent using the available query or Spark monitoring information. Then I&#x27;d check data scanned, filters, partition pruning, joins, aggregations, sorting, file sizes, shuffles and skew. I would optimize the query and physical design before considering additional capacity.</p>
+<h3>41. Your Module 10 connection</h3>
+<h3>You have now covered:</h3>
+<p>10.1 PARTITIONING</p>
+<p>↓</p>
+<p>Skip unnecessary partitions</p>
+<p>10.2 FILE SIZES</p>
+<p>↓</p>
+<p>Efficient physical reads</p>
+<p>10.3 SPARK OPTIMIZATION</p>
+<p>↓</p>
+<p>Reduce shuffle</p>
+<p>Optimize joins</p>
+<p>Balance partitions</p>
+<p>10.4 CACHING</p>
+<p>↓</p>
+<p>Avoid repeated computation</p>
+<p>10.5 QUERY PERFORMANCE</p>
+<p>↓</p>
+<p>Bring everything together</p>
+<p>So query performance isn&#x27;t an isolated topic.</p>
+<p>It is the result of all the previous optimizations working together.</p>
+<h3>42. One complete example</h3>
+<h3>Suppose:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>10 TB</p>
+<h3>Requirement:</h3>
+<p>Find total 2026 sales by product category for India.</p>
+<h3>Optimized flow:</h3>
+<pre class="diagram">                 10 TB FactSales
+                       │
+                       ▼
+              Partition Pruning
+                       │</pre>
+<p>Year = 2026</p>
+<pre class="diagram">                       │
+                       ▼
+                  Filter India
+                       │
+                       ▼
+             Select required columns
+                       │
+                       ▼
+               Join DimProduct
+                       │
+                       ▼
+             GROUP BY Category
+                       │
+                       ▼
+                SUM(SalesAmount)
+                       │
+                       ▼</pre>
+<p>RESULT</p>
+<h3>Instead of:</h3>
+<p>10 TB</p>
+<p>↓</p>
+<p>Read Everything</p>
+<p>↓</p>
+<p>Join Everything</p>
+<p>↓</p>
+<p>Sort Everything</p>
+<p>↓</p>
+<p>Distinct Everything</p>
+<p>↓</p>
+<p>Finally Filter</p>
+<h3>Quick Revision</h3>
+<div class="table-wrap"><table><thead><tr><th>Technique</th><th>Purpose</th></tr></thead><tbody><tr><td>Filter early</td><td>Reduce rows</td></tr><tr><td>Select columns</td><td>Reduce data processed</td></tr><tr><td>Partition pruning</td><td>Skip partitions</td></tr><tr><td>Predicate pushdown</td><td>Filter closer to storage</td></tr><tr><td>Column pruning</td><td>Skip unnecessary columns</td></tr><tr><td>Good joins</td><td>Reduce processing/data movement</td></tr><tr><td>Avoid unnecessary DISTINCT</td><td>Reduce expensive deduplication</td></tr><tr><td>Avoid unnecessary sorting</td><td>Reduce compute</td></tr><tr><td>Star schema</td><td>Efficient analytical model</td></tr><tr><td>Good file sizes</td><td>Efficient physical reads</td></tr><tr><td>Caching</td><td>Avoid repeated computation</td></tr><tr><td>Execution plan</td><td>Identify bottlenecks</td></tr><tr><td>Monitoring</td><td>Measure actual performance</td></tr></tbody></table></div>
+<p>The five rules to memorize</p>
+<p>1. Read fewer rows.
+2. Read fewer columns.
+3. Avoid unnecessary joins, sorting and shuffling.
+4. Use good partitioning, file layout and data modeling.
+5. Measure the execution plan before adding more compute.</p>
+<h3>And the simplest formula for 10.5 Query Performance:</h3>
+<p>Less Data Scanned + Less Data Moved + Less Work Performed = Faster Queries.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-8"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.8</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-9"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.9</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-10"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.6</span><h2>Monitoring</h2></div><div class="content">
+<p>10.6 Monitoring in Microsoft Fabric</p>
+<p>Monitoring in Microsoft Fabric means continuously observing the status, performance, resource consumption, failures, and behavior of Fabric workloads.</p>
+<h3>Monitoring helps answer questions like:</h3>
+<h3>Did my pipeline succeed or fail?</h3>
+<h3>Why is my Spark notebook slow?</h3>
+<h3>Which query is consuming resources?</h3>
+<h3>Is my Fabric capacity overloaded?</h3>
+<h3>How long did a Dataflow Gen2 refresh take?</h3>
+<h3>Which activity failed?</h3>
+<h3>Is performance getting worse over time?</h3>
+<h3>The easiest definition to remember is:</h3>
+<p>Monitoring = Observe → Detect → Diagnose → Optimize</p>
+<h3>1. Why do we need monitoring?</h3>
+<h3>Imagine this Fabric architecture:</h3>
+<pre class="diagram">Sources
+   │
+   ▼
+Data Factory
+   │
+   ▼
+Lakehouse
+   │
+   ▼
+Spark Notebook
+   │
+   ▼
+Warehouse
+   │
+   ▼
+Semantic Model
+   │
+   ▼</pre>
+<p>Power BI</p>
+<h3>Many things can go wrong:</h3>
+<p>Pipeline failed</p>
+<p>Notebook slow</p>
+<p>Data missing</p>
+<p>SQL query slow</p>
+<p>Capacity overloaded</p>
+<p>Refresh failed</p>
+<p>Streaming stopped</p>
+<h3>Without monitoring:</h3>
+<p>Problem</p>
+<p>↓</p>
+<p>User reports it</p>
+<p>↓</p>
+<p>Team investigates</p>
+<h3>With monitoring:</h3>
+<p>Problem</p>
+<p>↓</p>
+<p>Monitoring detects it</p>
+<p>↓</p>
+<p>Investigate</p>
+<p>↓</p>
+<p>Identify root cause</p>
+<p>↓</p>
+<p>Fix</p>
+<h3>2. What can we monitor in Fabric?</h3>
+<h3>Fabric contains multiple workloads.</h3>
+<pre class="diagram">Microsoft Fabric
+│
+├── Data Factory
+│   ├── Pipelines
+│   └── Dataflows Gen2
+│
+├── Data Engineering
+│   ├── Spark Notebooks
+│   ├── Spark Jobs
+│   └── Lakehouse
+│
+├── Data Warehouse
+│   └── SQL queries
+│
+├── Real-Time Intelligence
+│   ├── Eventstream
+│   └── Eventhouse
+│
+├── Power BI
+│   ├── Semantic Models
+│   └── Refreshes
+│
+└── Fabric Capacity
+    └── Resource utilization</pre>
+<p>Different Fabric monitoring experiences cover different parts of this architecture.</p>
+<h3>3. Monitoring Hub</h3>
+<p>One of the important Fabric monitoring experiences is the Monitoring hub.</p>
+<h3>Think of it as:</h3>
+<p>A centralized place for viewing Fabric activity and job execution.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">               Monitoring Hub
+                     │
+       ┌─────────────┼─────────────┐
+       ▼             ▼             ▼
+    Pipelines     Notebooks     Dataflows
+       │             │             │</pre>
+<p>Success        Success       Success</p>
+<p>Failed         Failed        Failed</p>
+<p>Running        Running       Running</p>
+<p>Instead of opening every individual Fabric item, Monitoring hub helps you inspect activities centrally.</p>
+<h3>4. What information do we monitor?</h3>
+<h3>Typically you care about information such as:</h3>
+<p>Item / Activity</p>
+<p>Status</p>
+<p>Start Time</p>
+<p>End Time</p>
+<p>Duration</p>
+<p>Item Type</p>
+<p>Workspace</p>
+<p>Failure Information</p>
+<h3>For example:</h3>
+<div class="table-wrap"><table><thead><tr><th>Pipeline</th><th>Status</th><th>Duration</th></tr></thead><tbody><tr><td>LoadCustomers</td><td>Succeeded</td><td>3 min</td></tr><tr><td>LoadOrders</td><td>Succeeded</td><td>7 min</td></tr><tr><td>LoadProducts</td><td>Failed</td><td>2 min</td></tr><tr><td>LoadSales</td><td>Running</td><td>15 min</td></tr></tbody></table></div>
+<h3>Immediately you can identify:</h3>
+<p>LoadProducts</p>
+<p>↓</p>
+<p>FAILED</p>
+<p>and investigate further.</p>
+<h3>5. Pipeline monitoring</h3>
+<h3>Suppose your Fabric pipeline is:</h3>
+<p>Sales_Ingestion</p>
+<h3>Architecture:</h3>
+<p>SQL Server</p>
+<p>↓</p>
+<h3>Fabric Pipeline</h3>
+<p>↓</p>
+<h3>Lakehouse</h3>
+<h3>You want to monitor:</h3>
+<p>Pipeline status</p>
+<p>Activity status</p>
+<p>Start time</p>
+<p>End time</p>
+<p>Duration</p>
+<p>Failure</p>
+<p>Error details</p>
+<h3>For example:</h3>
+<pre class="diagram">Sales_Ingestion
+      │
+      ├── Copy Customers ✓
+      ├── Copy Products  ✓
+      ├── Copy Orders    ✕
+      └── Notebook       Not Run</pre>
+<p>Now you know exactly where execution stopped.</p>
+<h3>6. Pipeline activity monitoring</h3>
+<h3>Suppose:</h3>
+<pre class="diagram">Pipeline
+   │
+   ├── Copy Data
+   │
+   ├── Notebook
+   │
+   └── Stored Procedure</pre>
+<p>The pipeline fails.</p>
+<h3>Don&#x27;t just ask:</h3>
+<p>&quot;Why did the pipeline fail?&quot;</p>
+<h3>Find the failed activity:</h3>
+<pre class="diagram">Pipeline
+   │
+   ├── Copy Data          ✓
+   │
+   ├── Notebook           ✕
+   │
+   └── Stored Procedure   -</pre>
+<p>Then investigate the notebook error.</p>
+<h3>This gives you:</h3>
+<p>Pipeline Failure</p>
+<p>↓</p>
+<p>Activity Failure</p>
+<p>↓</p>
+<p>Error Details</p>
+<p>↓</p>
+<p>Root Cause</p>
+<h3>7. Monitoring duration</h3>
+<p>Failure isn&#x27;t the only problem.</p>
+<h3>Imagine:</h3>
+<p>Pipeline usually</p>
+<p>=</p>
+<p>10 minutes</p>
+<h3>Today:</h3>
+<p>Pipeline</p>
+<p>=</p>
+<p>55 minutes</p>
+<h3>Technically:</h3>
+<p>Status = Success</p>
+<p>but operationally something may be wrong.</p>
+<h3>This is why monitoring should include:</h3>
+<p>Performance degradation, not just failures.</p>
+<h3>8. Establish a baseline</h3>
+<h3>Suppose a pipeline normally runs:</h3>
+<p>Average duration</p>
+<p>=</p>
+<p>10 minutes</p>
+<h3>You can establish:</h3>
+<p>Normal Range</p>
+<p>8–12 minutes</p>
+<h3>Now:</h3>
+<p>Monday     9 min</p>
+<p>Tuesday   10 min</p>
+<p>Wednesday 11 min</p>
+<p>Thursday  42 min   ← investigate</p>
+<p>This is trend monitoring.</p>
+<h3>9. Spark monitoring</h3>
+<h3>From your 10.3 Spark Optimization lesson, Spark has:</h3>
+<p>Driver</p>
+<p>Executors</p>
+<p>Jobs</p>
+<p>Stages</p>
+<p>Tasks</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Spark Application
+      │
+      ▼
+     Job
+      │
+      ▼
+    Stages
+      │
+      ▼</pre>
+<p>Tasks</p>
+<h3>When a notebook is slow, you want to determine:</h3>
+<h3>Which job?</h3>
+<h3>Which stage?</h3>
+<h3>Which task?</h3>
+<h3>What operation?</h3>
+<h3>10. Spark performance example</h3>
+<h3>Suppose:</h3>
+<p>Stage 1 → 25 seconds</p>
+<p>Stage 2 → 32 seconds</p>
+<p>Stage 3 → 18 minutes</p>
+<p>Stage 4 → 40 seconds</p>
+<h3>Immediately:</h3>
+<p>Stage 3</p>
+<p>↓</p>
+<p>Investigate</p>
+<h3>Then perhaps you discover:</h3>
+<p>Huge Shuffle Read</p>
+<h3>or:</h3>
+<p>Task 1 → 30 sec</p>
+<p>Task 2 → 32 sec</p>
+<p>Task 3 → 31 sec</p>
+<p>Task 4 → 17 min</p>
+<p>That could indicate data skew.</p>
+<h3>11. What should you monitor in Spark?</h3>
+<h3>Important Spark metrics include:</h3>
+<p>Job duration</p>
+<p>Stage duration</p>
+<p>Task duration</p>
+<p>Input size</p>
+<p>Output size</p>
+<p>Shuffle Read</p>
+<p>Shuffle Write</p>
+<p>Memory</p>
+<p>Disk spill</p>
+<p>Executor utilization</p>
+<p>Failed tasks</p>
+<p>These metrics help diagnose performance problems.</p>
+<h3>12. Shuffle monitoring</h3>
+<h3>Remember:</h3>
+<p>Shuffle = Data moving between Spark partitions/executors.</p>
+<h3>Suppose monitoring shows:</h3>
+<p>Shuffle Read</p>
+<p>=</p>
+<p>800 GB</p>
+<p>Shuffle Write</p>
+<p>=</p>
+<p>750 GB</p>
+<p>That is significant.</p>
+<h3>You should investigate:</h3>
+<p>Joins</p>
+<p>groupBy</p>
+<p>distinct</p>
+<p>orderBy</p>
+<p>repartition</p>
+<p>because those commonly trigger data redistribution.</p>
+<h3>13. Disk spill monitoring</h3>
+<h3>Suppose Spark needs:</h3>
+<p>100 GB memory</p>
+<p>but sufficient memory isn&#x27;t available for an operation.</p>
+<h3>Spark may spill intermediate data:</h3>
+<p>Memory</p>
+<p>↓</p>
+<p>Insufficient</p>
+<p>↓</p>
+<p>Disk Spill</p>
+<p>↓</p>
+<p>Disk I/O</p>
+<p>↓</p>
+<p>Slower Job</p>
+<h3>Large spill values may indicate:</h3>
+<p>Large partitions</p>
+<p>Large joins</p>
+<p>Heavy aggregation</p>
+<p>Memory pressure</p>
+<p>Data skew</p>
+<h3>14. Monitor data skew</h3>
+<h3>Suppose:</h3>
+<p>100 tasks</p>
+<h3>and:</h3>
+<p>99 tasks → 30 seconds</p>
+<p>1 task   → 20 minutes</p>
+<p>That&#x27;s suspicious.</p>
+<h3>Conceptually:</h3>
+<p>Executor 1 ✓</p>
+<p>Executor 2 ✓</p>
+<p>Executor 3 ✓</p>
+<p>Executor 4 ███████████████</p>
+<p>Still working</p>
+<h3>Possible cause:</h3>
+<p>Data skew</p>
+<p>Monitoring lets you identify these patterns rather than guessing.</p>
+<h3>15. Warehouse monitoring</h3>
+<h3>For Fabric Warehouse, you may need to investigate:</h3>
+<p>Running queries</p>
+<p>Query duration</p>
+<p>Resource consumption</p>
+<p>Query patterns</p>
+<p>Failures</p>
+<p>Concurrency</p>
+<p>Performance trends</p>
+<h3>Suppose:</h3>
+<p>Query A → 3 sec</p>
+<p>Query B → 7 sec</p>
+<p>Query C → 14 min   ← investigate</p>
+<p>Query D → 5 sec</p>
+<p>Then inspect Query C.</p>
+<h3>16. Slow query investigation</h3>
+<h3>Suppose:</h3>
+<p>SELECT DISTINCT *</p>
+<p>FROM FactSales</p>
+<p>ORDER BY SalesAmount;</p>
+<h3>Monitoring shows:</h3>
+<p>Duration = 18 minutes</p>
+<p>You then investigate the query.</p>
+<h3>Potential problems:</h3>
+<p>SELECT *</p>
+<p>DISTINCT</p>
+<p>Large table</p>
+<p>Large sort</p>
+<p>Monitoring identifies where the problem is.</p>
+<p>Query optimization determines how to fix it.</p>
+<h3>That&#x27;s why:</h3>
+<pre class="diagram">Monitoring
+    +</pre>
+<p>Query Optimization</p>
+<p>=</p>
+<p>Performance Management</p>
+<h3>17. Capacity monitoring</h3>
+<p>This is one of the most important Fabric concepts.</p>
+<h3>Fabric workloads consume capacity resources.</h3>
+<h3>Think:</h3>
+<pre class="diagram">Fabric Capacity
+      │
+      ├── Warehouse
+      ├── Spark
+      ├── Pipelines
+      ├── Power BI
+      └── Other workloads</pre>
+<h3>If multiple workloads consume heavy resources simultaneously:</h3>
+<h3>Spark Job ████████</h3>
+<h3>Warehouse ███████</h3>
+<p>Power BI  ████████</p>
+<p>Pipeline  ████</p>
+<p>the capacity may experience pressure.</p>
+<h3>18. Fabric Capacity Metrics app</h3>
+<p>The Microsoft Fabric Capacity Metrics app helps administrators understand Fabric capacity consumption and performance.</p>
+<h3>Conceptually:</h3>
+<h3>Fabric Capacity</h3>
+<p>↓</p>
+<p>Capacity Metrics</p>
+<p>↓</p>
+<p>Utilization</p>
+<p>↓</p>
+<p>Workloads / Items</p>
+<p>↓</p>
+<p>Identify heavy consumers</p>
+<h3>This helps answer:</h3>
+<p>&quot;Why is everything slow?&quot;</p>
+<p>Maybe the problem isn&#x27;t your individual SQL query.</p>
+<h3>It could be:</h3>
+<p>Capacity contention</p>
+<p>from multiple workloads.</p>
+<h3>19. Example capacity problem</h3>
+<h3>Imagine at 9:00 AM:</h3>
+<pre class="diagram">Spark ETL
+     +
+Warehouse Load
+     +
+Power BI Refresh
+     +
+Dataflow
+     +</pre>
+<p>User Queries</p>
+<p>all run together.</p>
+<h3>Conceptually:</h3>
+<p>9:00 AM</p>
+<h3>Spark       ███████</h3>
+<h3>Warehouse   ██████</h3>
+<p>Power BI    ███████</p>
+<p>Dataflow    █████</p>
+<p>↓</p>
+<p>CAPACITY</p>
+<p>PRESSURE</p>
+<p>Users may experience degraded performance.</p>
+<h3>20. Possible solution</h3>
+<p>Monitoring may show that heavy jobs overlap.</p>
+<p>Instead of immediately increasing capacity, you might change scheduling.</p>
+<h3>Before:</h3>
+<p>09:00 → Spark</p>
+<p>09:00 → Warehouse</p>
+<p>09:00 → Semantic Model Refresh</p>
+<p>09:00 → Dataflow</p>
+<h3>Potential improvement:</h3>
+<p>08:00 → Dataflow</p>
+<p>08:30 → Spark</p>
+<p>09:15 → Warehouse</p>
+<p>10:00 → Semantic Model Refresh</p>
+<p>Now resource-intensive workloads don&#x27;t all compete at exactly the same time.</p>
+<h3>This is an example of:</h3>
+<p>Workload management through monitoring.</p>
+<h3>21. Monitoring Dataflows Gen2</h3>
+<h3>For Dataflows Gen2, you care about:</h3>
+<p>Refresh status</p>
+<p>Start time</p>
+<p>End time</p>
+<p>Duration</p>
+<p>Failure information</p>
+<h3>Example:</h3>
+<p>Customer_Dataflow</p>
+<p>Yesterday → Success → 6 min</p>
+<p>Today     → Failed  → 3 min</p>
+<p>You investigate the refresh failure.</p>
+<h3>22. Monitoring Power BI refreshes</h3>
+<h3>For semantic models, important operational information includes:</h3>
+<p>Refresh success/failure</p>
+<p>Refresh duration</p>
+<p>Refresh history</p>
+<p>Data freshness</p>
+<h3>Example:</h3>
+<p>Sales Semantic Model</p>
+<p>↓</p>
+<p>Scheduled Refresh</p>
+<p>↓</p>
+<p>Failed</p>
+<p>↓</p>
+<p>Report still shows old data</p>
+<p>Monitoring helps detect the problem before users rely on stale information.</p>
+<h3>23. Data freshness monitoring</h3>
+<p>This is extremely important in real projects.</p>
+<h3>Suppose:</h3>
+<p>Pipeline = Success</p>
+<p>but no new records arrived.</p>
+<h3>Technically:</h3>
+<p>Execution Status = SUCCESS</p>
+<h3>but:</h3>
+<p>Business Status = FAILURE</p>
+<p>because the data is stale.</p>
+<h3>So advanced monitoring should consider:</h3>
+<pre class="diagram">Pipeline Health
+       +</pre>
+<p>Data Health</p>
+<h3>24. Example data-quality monitoring</h3>
+<h3>Suppose yesterday:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>100 million rows</p>
+<h3>Today:</h3>
+<p>FactSales</p>
+<p>=</p>
+<p>100 million rows</p>
+<p>Maybe that&#x27;s normal.</p>
+<p>Or maybe today&#x27;s load never arrived.</p>
+<h3>You could monitor:</h3>
+<p>Record count</p>
+<pre class="code">MAX(LoadDate)
+
+MAX(BusinessDate)</pre>
+<p>NULL counts</p>
+<p>Duplicate counts</p>
+<p>Business totals</p>
+<h3>For example:</h3>
+<pre class="code">SELECT
+    COUNT(*) AS RecordCount,
+    MAX(LoadDate) AS LatestLoad
+FROM FactSales;</pre>
+<p>This checks the data itself rather than only the pipeline status.</p>
+<h3>25. Technical vs business monitoring</h3>
+<p>This distinction is very useful.</p>
+<p>Technical monitoring</p>
+<h3>Pipeline succeeded?</h3>
+<h3>Notebook failed?</h3>
+<h3>Query slow?</h3>
+<h3>Capacity overloaded?</h3>
+<p>Business/data monitoring</p>
+<h3>Did today&#x27;s sales arrive?</h3>
+<h3>Are record counts reasonable?</h3>
+<h3>Is revenue unexpectedly zero?</h3>
+<h3>Is latest business date today?</h3>
+<h3>Are duplicate records present?</h3>
+<p>A mature monitoring solution uses both.</p>
+<h3>26. Monitoring architecture</h3>
+<h3>A production Fabric monitoring approach could conceptually look like:</h3>
+<pre class="diagram">             MICROSOFT FABRIC
+                    │
+       ┌────────────┼─────────────┐
+       ▼            ▼             ▼
+   Pipelines      Spark        Warehouse
+       │            │             │
+       └────────────┼─────────────┘
+                    ▼
+              Monitoring
+                    │
+       ┌────────────┼────────────┐
+       ▼            ▼            ▼
+    Status       Performance    Capacity
+       │            │            │
+       └────────────┼────────────┘
+                    ▼
+                Analysis
+                    │
+                    ▼</pre>
+<p>Alert / Action</p>
+<h3>27. Monitoring KPIs</h3>
+<h3>For a production project, useful KPIs include:</h3>
+<div class="table-wrap"><table><thead><tr><th>KPI</th><th>Example</th></tr></thead><tbody><tr><td>Pipeline Success Rate</td><td>98.7%</td></tr><tr><td>Failed Pipelines</td><td>3</td></tr><tr><td>Average Pipeline Duration</td><td>14 min</td></tr><tr><td>Longest Pipeline</td><td>48 min</td></tr><tr><td>Notebook Failures</td><td>1</td></tr><tr><td>Dataflow Failures</td><td>2</td></tr><tr><td>Slow Queries</td><td>5</td></tr><tr><td>Latest Data Load</td><td>05:30 AM</td></tr></tbody></table></div>
+<p>These can form a monitoring dashboard.</p>
+<h3>28. Pipeline success rate</h3>
+<h3>Suppose:</h3>
+<p>Total Runs</p>
+<p>=</p>
+<p>100</p>
+<p>Successful</p>
+<p>=</p>
+<p>97</p>
+<p>Failed</p>
+<p>=</p>
+<p>3</p>
+<h3>Success rate:</h3>
+<p>97 / 100 × 100</p>
+<p>=</p>
+<p>97%</p>
+<p>This gives management a quick view of platform health.</p>
+<h3>29. SLA monitoring</h3>
+<h3>Suppose business says:</h3>
+<p>Sales data must be available by 7:00 AM every day.</p>
+<h3>Pipeline completes:</h3>
+<p>Monday     06:15 ✓</p>
+<p>Tuesday    06:30 ✓</p>
+<p>Wednesday  07:45 ✕</p>
+<p>Wednesday technically succeeded.</p>
+<p>But it violated the business SLA.</p>
+<h3>Therefore:</h3>
+<p>Technical Status</p>
+<p>=</p>
+<p>Success</p>
+<p>SLA Status</p>
+<p>=</p>
+<p>Failure</p>
+<p>This distinction is very important in enterprise monitoring.</p>
+<h3>30. Alerts</h3>
+<p>Monitoring becomes more valuable when important conditions trigger alerts.</p>
+<h3>For example:</h3>
+<p>Pipeline Failed</p>
+<p>↓</p>
+<p>Alert</p>
+<p>↓</p>
+<p>Support Team</p>
+<h3>or:</h3>
+<p>Pipeline Duration &gt; 60 minutes</p>
+<p>↓</p>
+<p>Alert</p>
+<h3>or:</h3>
+<p>LatestLoadDate != Today</p>
+<p>↓</p>
+<p>Alert</p>
+<h3>or:</h3>
+<p>Record Count Variance &gt; Threshold</p>
+<p>↓</p>
+<p>Alert</p>
+<p>The exact alerting mechanism depends on your Fabric environment and monitoring architecture.</p>
+<h3>31. Good alert vs bad alert</h3>
+<h3>Bad:</h3>
+<p>Alert on everything</p>
+<p>↓</p>
+<p>100 alerts/day</p>
+<p>↓</p>
+<p>Team ignores alerts</p>
+<p>This is alert fatigue.</p>
+<h3>Better:</h3>
+<p>Critical</p>
+<p>↓</p>
+<p>Immediate alert</p>
+<p>Warning</p>
+<p>↓</p>
+<p>Investigate</p>
+<p>Information</p>
+<p>↓</p>
+<p>Dashboard/log only</p>
+<p>Alerts should be actionable.</p>
+<h3>32. Monitoring vs logging</h3>
+<p>These are related but different.</p>
+<p>Logging</p>
+<p>Records events.</p>
+<p>10:01 Pipeline Started</p>
+<p>10:04 Copy Completed</p>
+<p>10:07 Notebook Started</p>
+<p>10:12 Notebook Failed</p>
+<p>Monitoring</p>
+<p>Uses information to understand system health.</p>
+<p>Failure Rate</p>
+<p>Duration Trend</p>
+<p>Capacity Usage</p>
+<p>Data Freshness</p>
+<p>SLA Compliance</p>
+<h3>Think:</h3>
+<p>Logging records what happened. Monitoring tells you what it means operationally.</p>
+<h3>33. Monitoring vs alerting</h3>
+<h3>Another important distinction:</h3>
+<p>MONITORING</p>
+<p>↓</p>
+<p>Observe system</p>
+<p>ALERTING</p>
+<p>↓</p>
+<p>Notify when condition occurs</p>
+<h3>Example:</h3>
+<h3>Monitoring:</h3>
+<p>Pipeline duration = 72 minutes</p>
+<h3>Alert:</h3>
+<p>Duration &gt; 60 minutes</p>
+<p>↓</p>
+<p>Notify support</p>
+<h3>34. Monitor trends, not just individual failures</h3>
+<h3>Suppose:</h3>
+<p>Week 1 → Average 10 min</p>
+<p>Week 2 → Average 12 min</p>
+<p>Week 3 → Average 18 min</p>
+<p>Week 4 → Average 27 min</p>
+<p>Nothing has failed.</p>
+<p>But performance is degrading.</p>
+<h3>Trend:</h3>
+<p>10</p>
+<p>\</p>
+<p>12</p>
+<p>\</p>
+<p>18</p>
+<p>\</p>
+<p>27</p>
+<h3>Monitoring should detect this before it becomes:</h3>
+<p>Pipeline timeout</p>
+<h3>35. Baseline → Threshold → Alert</h3>
+<h3>A strong monitoring design uses:</h3>
+<p>BASELINE</p>
+<p>↓</p>
+<h3>What is normal?</h3>
+<p>THRESHOLD</p>
+<p>↓</p>
+<h3>What is abnormal?</h3>
+<p>ALERT</p>
+<p>↓</p>
+<h3>Who needs to know?</h3>
+<p>ACTION</p>
+<p>↓</p>
+<h3>What should they do?</h3>
+<h3>Example:</h3>
+<h3>Baseline:</h3>
+<p>Pipeline = 15 min</p>
+<h3>Threshold:</h3>
+<p>&gt; 30 min</p>
+<h3>Alert:</h3>
+<p>Support Team</p>
+<h3>Action:</h3>
+<p>Check source,</p>
+<h3>Spark stages,</h3>
+<p>capacity</p>
+<h3>36. Monitoring workflow</h3>
+<h3>Use this model:</h3>
+<p>OBSERVE</p>
+<p>↓</p>
+<p>DETECT</p>
+<p>↓</p>
+<p>DIAGNOSE</p>
+<p>↓</p>
+<p>RESOLVE</p>
+<p>↓</p>
+<p>VERIFY</p>
+<p>↓</p>
+<p>OPTIMIZE</p>
+<h3>Example:</h3>
+<p>Observe</p>
+<p>↓</p>
+<p>Notebook taking 45 min</p>
+<p>Detect</p>
+<p>↓</p>
+<p>Normal = 10 min</p>
+<p>Diagnose</p>
+<p>↓</p>
+<p>Huge shuffle in Stage 3</p>
+<p>Resolve</p>
+<p>↓</p>
+<p>Optimize join</p>
+<p>Verify</p>
+<p>↓</p>
+<p>Runtime = 9 min</p>
+<p>Optimize</p>
+<p>↓</p>
+<p>Add performance monitoring</p>
+<h3>37. Interview question — What is Monitoring in Microsoft Fabric?</h3>
+<h3>A strong answer:</h3>
+<p>Monitoring in Microsoft Fabric is the process of observing workload execution, performance, failures and capacity consumption across Fabric workloads such as pipelines, notebooks, Dataflows, Warehouse and Power BI. It helps identify failures and performance bottlenecks and supports troubleshooting, SLA management and optimization.</p>
+<h3>38. Interview question — What is Monitoring Hub?</h3>
+<p>Monitoring hub provides a centralized experience for viewing and investigating Fabric activities and job runs across supported workloads, helping users identify running, successful and failed activities without opening each item individually.</p>
+<h3>39. Interview question — How would you monitor a Fabric pipeline?</h3>
+<p>I would monitor pipeline and activity status, start and end times, duration and failure details. In production I would also monitor trends, SLA completion and data freshness, because a pipeline can technically succeed while still loading stale or incomplete data.</p>
+<p>That&#x27;s a strong real-world answer.</p>
+<h3>40. Interview question — How do you monitor Spark performance?</h3>
+<p>I inspect Spark jobs, stages and tasks and review metrics such as task duration, shuffle read/write, memory usage and disk spill. I look for patterns such as one task taking much longer than others, which may indicate data skew, or unusually large shuffles caused by joins or aggregations.</p>
+<h3>41. Interview question — How do you monitor Fabric capacity?</h3>
+<p>I use the Fabric Capacity Metrics app and related Fabric monitoring experiences to analyze capacity consumption and identify which workloads or items are driving resource usage. I also look for overlapping resource-intensive jobs before deciding whether additional capacity is required.</p>
+<h3>42. Interview question — Pipeline succeeded, but data didn&#x27;t arrive. What do you do?</h3>
+<p>This is an excellent scenario question.</p>
+<h3>Answer:</h3>
+<p>I wouldn&#x27;t rely only on pipeline execution status. I would validate data freshness using checks such as maximum load date, expected business date, record counts and key business metrics. A technically successful pipeline can still represent a business failure if the expected data wasn&#x27;t loaded.</p>
+<h3>43. Interview question — What would you monitor in production?</h3>
+<h3>A strong answer:</h3>
+<p>I would monitor workload success/failure, execution duration, SLA compliance, data freshness, record counts, query and Spark performance, capacity utilization and performance trends. Alerts should focus on actionable conditions such as failures, SLA breaches, stale data or significant performance degradation.</p>
+<h3>44. Your Module 10 so far</h3>
+<h3>Everything now connects:</h3>
+<p>10.1 PARTITIONING</p>
+<p>↓</p>
+<p>Organize data</p>
+<p>↓</p>
+<p>Partition pruning</p>
+<p>10.2 FILE SIZES</p>
+<p>↓</p>
+<p>Efficient storage</p>
+<p>10.3 SPARK OPTIMIZATION</p>
+<p>↓</p>
+<p>Efficient processing</p>
+<p>10.4 CACHING</p>
+<p>↓</p>
+<p>Avoid recomputation</p>
+<p>10.5 QUERY PERFORMANCE</p>
+<p>↓</p>
+<p>Efficient queries</p>
+<p>10.6 MONITORING</p>
+<p>↓</p>
+<p>Measure everything above</p>
+<h3>Monitoring answers:</h3>
+<p>&quot;Did our optimizations actually work?&quot;</p>
+<h3>45. Complete performance lifecycle</h3>
+<h3>This is the most important diagram for this topic:</h3>
+<pre class="diagram">                 FABRIC WORKLOAD
+                       │
+                       ▼
+                    MONITOR
+                       │
+                       ▼
+               Identify Bottleneck
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+     Partitioning   File Sizes    Query
+          │            │            │
+          ▼            ▼            ▼
+        Spark       Caching      Capacity
+          │            │            │
+          └────────────┼────────────┘
+                       ▼
+                    OPTIMIZE
+                       │
+                       ▼
+                    EXECUTE
+                       │
+                       ▼
+                  MONITOR AGAIN
+                       │
+                       ▼</pre>
+<p>Compare Performance</p>
+<h3>This is a continuous cycle:</h3>
+<p>Monitor → Identify → Optimize → Measure → Repeat</p>
+<h3>Quick Revision</h3>
+<div class="table-wrap"><table><thead><tr><th>Monitoring Area</th><th>What to Check</th></tr></thead><tbody><tr><td>Pipeline</td><td>Success, failure, duration</td></tr><tr><td>Pipeline Activity</td><td>Failed activity, errors</td></tr><tr><td>Dataflow Gen2</td><td>Refresh status and duration</td></tr><tr><td>Spark</td><td>Jobs, stages, tasks, shuffle, spill</td></tr><tr><td>Warehouse</td><td>Query performance</td></tr><tr><td>Power BI</td><td>Refresh and data freshness</td></tr><tr><td>Capacity</td><td>Resource consumption</td></tr><tr><td>Data</td><td>Count, latest date, quality</td></tr><tr><td>SLA</td><td>Completion before deadline</td></tr><tr><td>Trend</td><td>Performance degradation</td></tr></tbody></table></div>
+<p>Five points to memorize</p>
+<p>1. Monitoring Hub → Monitor Fabric jobs and activities centrally.
+2. Spark monitoring → Jobs, stages, tasks, shuffle and spill.
+3. Capacity Metrics → Understand Fabric capacity consumption.
+4. Data monitoring → Check freshness, counts and quality—not just pipeline success.
+5. Monitor → Detect → Diagnose → Optimize → Verify.</p>
+<p>One-line interview answer</p>
+<p>Microsoft Fabric monitoring helps us understand whether workloads are running successfully, whether data is arriving correctly, where performance bottlenecks exist, and how efficiently Fabric capacity is being consumed.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-11"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.11</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-12"><div class="lesson-head"><span class="lesson-eyebrow">Module 10 · Lesson 10.7</span><h2>Optimize Large Dataset</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+</main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script></body></html>

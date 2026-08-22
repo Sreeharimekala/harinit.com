@@ -1,0 +1,969 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>End-to-End Project — Module 12</title><style>
+:root{
+  --bg:#0f1115;--panel:#151822;--panel-2:#11141b;--ink:#e7e9ee;
+  --ink-dim:#a7adba;--ink-faint:#6b7280;--accent:#5fd3c4;--accent-2:#f2a65a;
+  --rule:#262b38;--code-bg:#0b0d12;--code-ink:#cde5ff;--diagram-ink:#7fe3c7;
+  --table-head:#1b2030;--radius:10px;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:8px}
+.nav-link:hover{background:rgba(95,211,196,.08);color:var(--ink)}
+.nav-link.active{background:rgba(95,211,196,.12);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent-2);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:#fff}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:#fff;line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:#fff;margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px;border-left:3px solid var(--accent);padding-left:14px}
+.content h3:first-child{margin-top:0}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:24px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent-2);font-family:var(--mono)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--code-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.diagram-label{color:#e7e9ee}.diagram-branch{color:#7fe3c7}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px}thead th{background:var(--table-head);color:#fff;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--ink)}
+.callout{background:linear-gradient(180deg,rgba(95,211,196,.09),rgba(95,211,196,.03));border:1px solid rgba(95,211,196,.28);border-radius:14px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:rgba(242,166,90,.07);border:1px solid rgba(242,166,90,.25);border-radius:12px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent-2);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:#04211d;border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}main{padding:36px 20px 90px}}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../fabric-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Fabric Data Engineering</div>
+<div class="brand-title">End-to-End Project</div>
+<div class="brand-sub">Module 12 · 14 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">12.1</span>Source Systems</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">12.2</span>SQL Server</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">12.3</span>Azure Blob</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">12.4</span>REST API</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">12.5</span></a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">12.6</span>Hands on Implement</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">12.6</span>Incremental Loading</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">12.7</span>SCD Type 1 &amp; Type 2</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">12.8</span>Logging</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">12.9</span>Error Handling</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">12.10</span>Monitoring</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">12.11</span>Git Integration</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">12.12</span>Deployment Pipeline</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">12.13</span>Power BI Reporting</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Module 12</div><h1>End-to-End Project</h1>
+<p>Microsoft Fabric REST API</p>
+<div class="doc-meta"><span class="pill">14 lessons</span><span class="pill">Microsoft Fabric</span><span class="pill">DP-700 Track</span></div></header>
+<section class="lesson" id="lesson-1"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.1</span><h2>Source Systems</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-2"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.2</span><h2>SQL Server</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-3"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.3</span><h2>Azure Blob</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-4"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.4</span><h2>REST API</h2></div><div class="content">
+<p>Microsoft Fabric REST API</p>
+<p>In Microsoft Fabric, a REST API allows you to manage and automate Fabric resources programmatically instead of manually clicking through the Fabric portal.</p>
+<p>For your current topic—Azure DevOps + DEV → TEST → PROD deployment—REST APIs become especially useful for CI/CD automation.</p>
+<p>REST API = Send an HTTP request to Fabric → Fabric performs an operation → returns a response</p>
+<h3>1. Why do we need REST APIs in Fabric?</h3>
+<h3>Imagine you have:</h3>
+<p>Fabric-DEV</p>
+<p>Fabric-TEST</p>
+<p>Fabric-PROD</p>
+<h3>Without automation:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>Open Fabric Portal</p>
+<p>↓</p>
+<p>Select Deployment Pipeline</p>
+<p>↓</p>
+<p>Deploy DEV → TEST</p>
+<p>↓</p>
+<p>Wait</p>
+<p>↓</p>
+<p>Validate</p>
+<p>↓</p>
+<p>Deploy TEST → PROD</p>
+<p>This works, but it involves manual operations.</p>
+<h3>With APIs:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>CI/CD Pipeline</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<p>↓</p>
+<p>Deploy / Manage Fabric</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>PROD</p>
+<p>This is where REST APIs become powerful.</p>
+<h3>2. What does REST mean?</h3>
+<h3>REST stands for:</h3>
+<p>Representational State Transfer</p>
+<p>You don&#x27;t need to focus heavily on the full form.</p>
+<h3>For Fabric, think:</h3>
+<p>Client</p>
+<p>↓</p>
+<p>HTTP Request</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<p>↓</p>
+<h3>Fabric Service</h3>
+<p>↓</p>
+<p>HTTP Response</p>
+<h3>The client could be:</h3>
+<p>Python</p>
+<p>PowerShell</p>
+<p>Azure DevOps</p>
+<p>Postman</p>
+<p>Custom application</p>
+<p>Automation script</p>
+<h3>3. Simple REST API example</h3>
+<p>Suppose you want to get Fabric workspaces.</p>
+<h3>Conceptually you send:</h3>
+<p>GET /workspaces</p>
+<h3>Fabric returns information about the workspaces the authenticated identity can access.</h3>
+<h3>For example:</h3>
+<p>{</p>
+<p>&quot;value&quot;: [</p>
+<p>{</p>
+<p>&quot;id&quot;: &quot;workspace-id-1&quot;,</p>
+<p>&quot;displayName&quot;: &quot;Fabric-DEV&quot;</p>
+<p>},</p>
+<p>{</p>
+<p>&quot;id&quot;: &quot;workspace-id-2&quot;,</p>
+<p>&quot;displayName&quot;: &quot;Fabric-TEST&quot;</p>
+<p>}</p>
+<p>]</p>
+<p>}</p>
+<p>Now your automation knows which workspaces exist.</p>
+<h3>4. REST API architecture</h3>
+<h3>Think of Fabric APIs like this:</h3>
+<pre class="diagram">                  Your Automation
+                        │
+              ┌─────────┼─────────┐
+              ▼         ▼         ▼</pre>
+<p>Python   PowerShell  Azure</p>
+<pre class="diagram">                               DevOps
+                        │
+                        ▼
+                  REST REQUEST
+                        │
+                        ▼
+              Microsoft Fabric API
+                        │
+          ┌─────────────┼──────────────┐
+          ▼             ▼              ▼</pre>
+<p>Workspaces       Items      Deployment</p>
+<p>Pipelines</p>
+<h3>5. HTTP methods</h3>
+<h3>REST APIs commonly use these methods:</h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Meaning</th></tr></thead><tbody><tr><td>GET</td><td>Read/get information</td></tr><tr><td>POST</td><td>Create or start something</td></tr><tr><td>PUT</td><td>Create/replace/update</td></tr><tr><td>PATCH</td><td>Partially update</td></tr><tr><td>DELETE</td><td>Delete</td></tr></tbody></table></div>
+<h3>Easy way to remember:</h3>
+<p>GET</p>
+<p>↓</p>
+<p>Give me something</p>
+<p>POST</p>
+<p>↓</p>
+<p>Create/start something</p>
+<p>PATCH/PUT</p>
+<p>↓</p>
+<p>Change something</p>
+<p>DELETE</p>
+<p>↓</p>
+<p>Remove something</p>
+<h3>6. GET example</h3>
+<h3>Suppose:</h3>
+<p>&quot;Give me my Fabric workspaces.&quot;</p>
+<p>GET /workspaces</p>
+<h3>Conceptually:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>GET Workspaces</p>
+<p>↓</p>
+<h3>Fabric API</h3>
+<p>↓</p>
+<p>Workspace List</p>
+<h3>7. POST example</h3>
+<p>Suppose you want an API operation to create or initiate something.</p>
+<h3>Conceptually:</h3>
+<p>POST /some-resource</p>
+<h3>with a body:</h3>
+<p>{</p>
+<p>&quot;displayName&quot;: &quot;Fabric-TEST&quot;</p>
+<p>}</p>
+<h3>Think:</h3>
+<p>POST</p>
+<p>↓</p>
+<p>Request operation</p>
+<p>↓</p>
+<h3>Fabric performs operation</h3>
+<p>↓</p>
+<p>Response</p>
+<p>The exact endpoint and body depend on the Fabric API you&#x27;re using.</p>
+<h3>8. DELETE example</h3>
+<h3>Conceptually:</h3>
+<p>DELETE /workspaces/{workspaceId}/items/{itemId}</p>
+<h3>means:</h3>
+<p>Delete a particular Fabric item.</p>
+<p>Obviously, production automation needs strict permissions and safeguards around destructive operations.</p>
+<h3>9. API endpoint</h3>
+<h3>Microsoft Fabric REST APIs use a base endpoint such as:</h3>
+<p>https://api.fabric.microsoft.com/v1/</p>
+<p>For example, the Workspaces API is documented under the Fabric REST API reference.</p>
+<p>Microsoft Fabric REST API documentation</p>
+<h3>Conceptually:</h3>
+<p>Base URL</p>
+<pre class="diagram">https://api.fabric.microsoft.com/v1
+               +</pre>
+<p>Resource</p>
+<p>↓</p>
+<p>workspaces</p>
+<h3>giving:</h3>
+<p>/v1/workspaces</p>
+<h3>10. Important concept: IDs</h3>
+<p>REST APIs generally work with IDs rather than just display names.</p>
+<h3>For example:</h3>
+<p>Fabric-DEV</p>
+<h3>has a Workspace ID:</h3>
+<p>Fabric-DEV</p>
+<p>↓</p>
+<p>Workspace ID</p>
+<p>↓</p>
+<p>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</p>
+<h3>Similarly:</h3>
+<p>Workspace</p>
+<p>↓</p>
+<p>Workspace ID</p>
+<p>Notebook</p>
+<p>↓</p>
+<p>Item ID</p>
+<p>Pipeline</p>
+<p>↓</p>
+<p>Item ID</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<p>Pipeline ID</p>
+<p>You&#x27;ll see IDs frequently when working with Fabric APIs.</p>
+<h3>11. Where can I find Workspace ID?</h3>
+<p>One approach is to query the API.</p>
+<p>GET /v1/workspaces</p>
+<h3>Conceptually:</h3>
+<p>{</p>
+<p>&quot;value&quot;: [</p>
+<p>{</p>
+<p>&quot;id&quot;: &quot;11111111-2222-3333-4444-555555555555&quot;,</p>
+<p>&quot;displayName&quot;: &quot;Fabric-DEV&quot;</p>
+<p>}</p>
+<p>]</p>
+<p>}</p>
+<h3>Your automation can locate:</h3>
+<p>displayName = Fabric-DEV</p>
+<h3>and retrieve:</h3>
+<p>id</p>
+<h3>12. Authentication</h3>
+<p>This is one of the most important REST API concepts.</p>
+<h3>Fabric doesn&#x27;t simply allow:</h3>
+<p>Unknown User</p>
+<p>↓</p>
+<p>REST API</p>
+<p>↓</p>
+<p>Production Workspace</p>
+<p>The caller must authenticate and be authorized.</p>
+<h3>Conceptually:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Authentication</p>
+<p>↓</p>
+<p>Microsoft Entra ID</p>
+<p>↓</p>
+<p>Access Token</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<h3>13. Access token</h3>
+<h3>An access token effectively tells the service:</h3>
+<p>&quot;This request comes from an authenticated identity.&quot;</p>
+<h3>The API request commonly contains:</h3>
+<p>Authorization: Bearer &lt;access-token&gt;</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Request
+│
+├── URL
+├── HTTP Method
+├── Headers
+│      └── Authorization
+└── Body</pre>
+<h3>14. Don&#x27;t hardcode tokens</h3>
+<h3>Never do this in a repository:</h3>
+<pre class="code">token = &quot;eyJxxxxxxxxxxxxxxxx&quot;</pre>
+<p>and commit it.</p>
+<p>Tokens and secrets should be handled securely.</p>
+<h3>For automated CI/CD, you might use:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Secure Identity / Credentials</p>
+<p>↓</p>
+<p>Microsoft Entra ID</p>
+<p>↓</p>
+<p>Access Token</p>
+<p>↓</p>
+<p>Fabric</p>
+<h3>15. Service Principal</h3>
+<p>For Azure DevOps automation, you&#x27;ll often encounter the service principal concept.</p>
+<h3>Instead of:</h3>
+<p>Sreehari</p>
+<p>↓</p>
+<p>Login</p>
+<p>↓</p>
+<p>Deploy PROD</p>
+<h3>automation can use:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Service Principal</p>
+<p>↓</p>
+<p>Microsoft Entra ID</p>
+<p>↓</p>
+<p>Fabric</p>
+<p>A service principal is an application identity used by automation.</p>
+<h3>16. Why not use a personal account?</h3>
+<p>Imagine an employee leaves the company.</p>
+<h3>If production deployment depends on:</h3>
+<p>employee@company.com</p>
+<p>then deployment can break when their account is disabled.</p>
+<h3>Better:</h3>
+<p>Azure DevOps Pipeline</p>
+<p>↓</p>
+<p>Controlled workload identity</p>
+<p>↓</p>
+<p>Fabric</p>
+<p>This makes the process less dependent on one individual.</p>
+<h3>17. API request structure</h3>
+<h3>A REST API request usually consists of:</h3>
+<pre class="diagram">REST Request
+│
+├── Method
+│     GET / POST / DELETE / ...
+│
+├── URL
+│
+│
+├── Headers
+│     Authorization
+│     Content-Type
+│
+└── Body</pre>
+<p>JSON</p>
+<h3>Example:</h3>
+<p>POST /some-resource</p>
+<p>Authorization: Bearer &lt;token&gt;</p>
+<p>Content-Type: application/json</p>
+<h3>Body:</h3>
+<p>{</p>
+<p>&quot;displayName&quot;: &quot;Example&quot;</p>
+<p>}</p>
+<h3>18. Response</h3>
+<p>The server responds with an HTTP status code and, often, a body.</p>
+<h3>For example:</h3>
+<p>200</p>
+<h3>generally means:</h3>
+<p>OK</p>
+<h3>Other common codes:</h3>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td>200</td><td>Success</td></tr><tr><td>201</td><td>Created</td></tr><tr><td>202</td><td>Accepted / processing</td></tr><tr><td>400</td><td>Bad request</td></tr><tr><td>401</td><td>Authentication problem</td></tr><tr><td>403</td><td>Permission denied</td></tr><tr><td>404</td><td>Resource not found</td></tr><tr><td>409</td><td>Conflict</td></tr><tr><td>429</td><td>Too many requests</td></tr><tr><td>500</td><td>Server error</td></tr></tbody></table></div>
+<p>These are very useful during troubleshooting.</p>
+<h3>19. 401 vs 403</h3>
+<p>A very common interview question.</p>
+<p>401</p>
+<p>401 Unauthorized</p>
+<h3>Usually think:</h3>
+<p>Authentication issue</p>
+<p>For example, token missing/invalid/expired.</p>
+<p>403</p>
+<p>403 Forbidden</p>
+<h3>Usually think:</h3>
+<p>Authenticated, but not allowed to perform the operation.</p>
+<h3>For example:</h3>
+<p>Identity</p>
+<p>↓</p>
+<p>Valid token ✓</p>
+<p>↓</p>
+<p>No required permission ✕</p>
+<h3>20. Fabric API resource hierarchy</h3>
+<h3>Conceptually:</h3>
+<pre class="diagram">Fabric
+│
+├── Workspaces
+│     │
+│     └── Items
+│          │
+│          ├── Notebooks
+│          ├── Pipelines
+│          ├── Lakehouses
+│          ├── Warehouses
+│          └── Other supported items
+│
+└── Deployment Pipelines</pre>
+<h3>Therefore API operations frequently need:</h3>
+<p>Workspace ID</p>
+<p>Item ID</p>
+<p>Deployment Pipeline ID</p>
+<h3>21. Get workspace items</h3>
+<h3>A common pattern is:</h3>
+<p>GET /v1/workspaces/{workspaceId}/items</p>
+<h3>Conceptually:</h3>
+<p>Fabric-DEV</p>
+<p>↓</p>
+<p>Workspace ID</p>
+<p>↓</p>
+<p>GET Items</p>
+<p>↓</p>
+<p>Notebook</p>
+<p>Pipeline</p>
+<h3>Lakehouse</h3>
+<h3>Warehouse</h3>
+<p>...</p>
+<h3>Fabric Items REST API reference</h3>
+<h3>22. Python example</h3>
+<h3>A simplified Python request might look like:</h3>
+<pre class="code">import requests
+
+url = &quot;https://api.fabric.microsoft.com/v1/workspaces&quot;
+
+headers = {
+    &quot;Authorization&quot;: f&quot;Bearer {access_token}&quot;</pre>
+<p>}</p>
+<p>response = requests.get(</p>
+<p>url,</p>
+<p>headers=headers</p>
+<p>)</p>
+<pre class="code">print(response.status_code)
+print(response.json())</pre>
+<h3>Flow:</h3>
+<p>Python</p>
+<p>↓</p>
+<p>GET</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<p>↓</p>
+<p>JSON Response</p>
+<h3>23. JSON</h3>
+<p>REST APIs frequently send and receive JSON.</p>
+<h3>JSON example:</h3>
+<p>{</p>
+<p>&quot;displayName&quot;: &quot;Fabric-DEV&quot;,</p>
+<p>&quot;description&quot;: &quot;Development workspace&quot;</p>
+<p>}</p>
+<h3>Think:</h3>
+<p>JSON</p>
+<p>=</p>
+<p>Structured key/value data</p>
+<p>If you already work with ADF/Synapse pipeline JSON, this concept should feel familiar.</p>
+<h3>24. PowerShell example</h3>
+<h3>Fabric APIs can also be called from PowerShell.</h3>
+<h3>Conceptually:</h3>
+<p>Invoke-RestMethod `</p>
+<p>-Uri $url `</p>
+<p>-Method GET `</p>
+<p>-Headers $headers</p>
+<h3>Therefore:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>PowerShell</p>
+<p>↓</p>
+<p>REST API</p>
+<p>↓</p>
+<p>Fabric</p>
+<p>is a valid automation pattern.</p>
+<h3>25. REST API + Azure DevOps</h3>
+<p>Now connect this to your previous topic.</p>
+<h3>Your architecture becomes:</h3>
+<p>Developer</p>
+<p>↓</p>
+<h3>Fabric DEV</h3>
+<p>↓</p>
+<p>Git</p>
+<p>↓</p>
+<p>Azure DevOps Repo</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Merge</p>
+<p>↓</p>
+<p>Azure Pipeline</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<p>↓</p>
+<h3>Fabric TEST</h3>
+<p>↓</p>
+<p>Testing</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<h3>Fabric REST API</h3>
+<p>↓</p>
+<h3>Fabric PROD</h3>
+<p>This is why REST APIs matter for 11.6 Deploy Across Workspaces.</p>
+<h3>26. Native deployment vs API automation</h3>
+<p>Manual/native approach</p>
+<h3>Fabric DEV</h3>
+<p>↓</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<p>Click Deploy</p>
+<p>↓</p>
+<p>TEST</p>
+<p>Good when learning or when deployments are relatively simple.</p>
+<p>Automated approach</p>
+<p>Git Merge</p>
+<p>↓</p>
+<p>Azure Pipeline</p>
+<p>↓</p>
+<p>REST API / CI-CD tooling</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>Automated Validation</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>PROD</p>
+<p>Better suited to mature enterprise CI/CD.</p>
+<h3>27. Deployment Pipeline APIs</h3>
+<h3>Fabric exposes REST APIs for deployment pipelines.</h3>
+<h3>Fabric Deployment Pipelines REST API</h3>
+<h3>Conceptually:</h3>
+<pre class="diagram">REST API
+│
+├── Get Deployment Pipelines
+├── Create Deployment Pipeline
+├── Get Pipeline
+├── Manage stages
+└── Perform supported deployment operations</pre>
+<p>This enables programmatic control over deployment processes.</p>
+<h3>28. Example deployment automation</h3>
+<h3>Suppose:</h3>
+<h3>Pipeline:</h3>
+<p>EDW-Deployment</p>
+<h3>Stages:</h3>
+<p>DEV</p>
+<p>TEST</p>
+<p>PROD</p>
+<h3>Azure DevOps can conceptually do:</h3>
+<p>Step 1</p>
+<p>Authenticate</p>
+<p>↓</p>
+<p>Step 2</p>
+<p>Get Deployment Pipeline</p>
+<p>↓</p>
+<p>Step 3</p>
+<p>Deploy DEV → TEST</p>
+<p>↓</p>
+<p>Step 4</p>
+<p>Check deployment status</p>
+<p>↓</p>
+<p>Step 5</p>
+<p>Run validation</p>
+<p>↓</p>
+<p>Step 6</p>
+<p>Approval</p>
+<p>↓</p>
+<p>Step 7</p>
+<p>Deploy TEST → PROD</p>
+<p>That&#x27;s CI/CD automation.</p>
+<h3>29. Long-running operations</h3>
+<p>Some Fabric operations aren&#x27;t instantaneous.</p>
+<h3>For example:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>POST Deployment</p>
+<p>↓</p>
+<p>Fabric</p>
+<p>↓</p>
+<p>202 Accepted</p>
+<h3>That can mean:</h3>
+<p>&quot;I accepted the request, but the operation is still running.&quot;</p>
+<h3>The automation may need to:</h3>
+<p>Start operation</p>
+<p>↓</p>
+<p>Receive operation reference</p>
+<p>↓</p>
+<p>Check status</p>
+<p>↓</p>
+<p>Running...</p>
+<p>↓</p>
+<p>Check again</p>
+<p>↓</p>
+<p>Succeeded / Failed</p>
+<p>This pattern is known as a long-running operation.</p>
+<h3>30. Why this matters for Azure DevOps</h3>
+<h3>Don&#x27;t write automation that assumes:</h3>
+<p>POST</p>
+<p>↓</p>
+<p>Immediately finished</p>
+<p>↓</p>
+<p>Deploy PROD</p>
+<h3>Instead:</h3>
+<p>POST deployment</p>
+<p>↓</p>
+<p>Wait / poll status</p>
+<p>↓</p>
+<h3>Succeeded?</h3>
+<pre class="diagram">      │
+   ┌──┴──┐
+  YES    NO
+   │      │
+   ▼      ▼</pre>
+<p>Tests   Fail Pipeline</p>
+<p>Then continue only when the operation succeeds.</p>
+<h3>31. Error handling</h3>
+<p>Production automation needs proper error handling.</p>
+<h3>For example:</h3>
+<p>Call API</p>
+<p>↓</p>
+<h3>Status?</h3>
+<pre class="diagram">   │
+   ├── 200 → Continue
+   │
+   ├── 202 → Monitor operation
+   │
+   ├── 401 → Authentication issue
+   │
+   ├── 403 → Permission issue
+   │
+   ├── 404 → Check IDs/resource
+   │
+   ├── 429 → Retry appropriately
+   │
+   └── 5xx → Handle service failure</pre>
+<h3>Don&#x27;t simply write:</h3>
+<p>requests.post(...)</p>
+<p>and assume everything succeeded.</p>
+<h3>32. Logging API deployments</h3>
+<p>Every production deployment should generate useful logs.</p>
+<h3>For example:</h3>
+<p>2026-08-03 09:00</p>
+<p>Deployment Started</p>
+<h3>Environment:</h3>
+<p>TEST</p>
+<h3>Commit:</h3>
+<p>abc123</p>
+<h3>Workspace:</h3>
+<p>EDW-Fabric-TEST</p>
+<h3>Status:</h3>
+<p>Running</p>
+<h3>Then:</h3>
+<p>09:04</p>
+<p>Deployment Completed</p>
+<h3>Status:</h3>
+<p>Succeeded</p>
+<h3>This gives you:</h3>
+<p>Who</p>
+<p>What</p>
+<p>When</p>
+<p>Which version</p>
+<p>Which environment</p>
+<p>Result</p>
+<h3>33. Secrets</h3>
+<h3>Your Azure DevOps repository should never contain:</h3>
+<pre class="code">client_secret = &quot;xxxxx&quot;
+
+password = &quot;xxxxx&quot;
+
+access_token = &quot;xxxxx&quot;</pre>
+<h3>Instead:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Secure Variable / Variable Group</p>
+<p>↓</p>
+<p>Secret Management</p>
+<p>or an appropriate Azure secret store/identity-based authentication mechanism.</p>
+<h3>The key rule:</h3>
+<p>Code belongs in Git. Secrets don&#x27;t.</p>
+<h3>34. REST API vs fabric-cicd</h3>
+<p>From the previous lesson, you saw Microsoft&#x27;s fabric-cicd package.</p>
+<h3>Think:</h3>
+<pre class="diagram">                Fabric
+                  ▲
+                  │
+             REST APIs
+                  ▲
+                  │
+          ┌───────┴───────┐
+          │               │</pre>
+<p>Your Code       fabric-cicd</p>
+<h3>With raw REST APIs:</h3>
+<h3>You manage:</h3>
+<p>Authentication</p>
+<p>Endpoints</p>
+<p>Request bodies</p>
+<p>Responses</p>
+<p>Polling</p>
+<p>Errors</p>
+<p>Deployment logic</p>
+<h3>With a higher-level CI/CD library:</h3>
+<p>Library</p>
+<p>↓</p>
+<p>Simplifies common deployment operations</p>
+<p>↓</p>
+<p>REST APIs underneath</p>
+<p>For learning Fabric APIs, understanding REST first is valuable.</p>
+<p>For production CI/CD, higher-level supported tooling can reduce custom code.</p>
+<h3>35. REST API vs Git</h3>
+<p>Don&#x27;t confuse these.</p>
+<p>Git</p>
+<p>Git</p>
+<p>↓</p>
+<p>Store versions</p>
+<p>Track changes</p>
+<p>Branches</p>
+<p>Pull Requests</p>
+<p>REST API</p>
+<p>REST API</p>
+<p>↓</p>
+<p>Perform operations</p>
+<p>Create resources</p>
+<p>Retrieve information</p>
+<p>Update resources</p>
+<p>Automate deployments</p>
+<h3>Together:</h3>
+<p>Git</p>
+<p>↓</p>
+<p>Approved Version</p>
+<p>↓</p>
+<p>Azure DevOps Pipeline</p>
+<p>↓</p>
+<p>REST API</p>
+<p>↓</p>
+<h3>Fabric Environment</h3>
+<h3>36. REST API vs Deployment Pipeline</h3>
+<p>Again, different responsibilities.</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<h3>Fabric lifecycle concept</h3>
+<p>DEV → TEST → PROD</p>
+<h3>REST API:</h3>
+<p>REST API</p>
+<p>↓</p>
+<p>Programmatically tell Fabric</p>
+<p>to perform operations</p>
+<p>You can use APIs to automate supported deployment pipeline operations.</p>
+<h3>37. Complete CI/CD architecture</h3>
+<h3>This is the diagram I&#x27;d recommend remembering:</h3>
+<pre class="diagram">                    DEVELOPER
+                        │
+                        ▼
+                    FABRIC DEV
+                        │
+                        ▼
+                  Git Integration
+                        │
+                        ▼
+                AZURE DEVOPS REPO
+                        │
+                        ▼
+                   FEATURE BRANCH
+                        │
+                        ▼
+                   PULL REQUEST
+                        │
+                        ▼
+                     REVIEW
+                        │
+                        ▼
+                      MAIN
+                        │
+                        ▼
+                AZURE PIPELINE
+                        │
+                        ▼
+                  AUTHENTICATION
+                        │
+                        ▼
+                 FABRIC REST API
+                        │
+                        ▼
+                   FABRIC TEST
+                        │
+                        ▼
+                AUTOMATED TESTS
+                        │
+                        ▼
+                  UAT / APPROVAL
+                        │
+                        ▼
+                 FABRIC REST API
+                        │
+                        ▼
+                   FABRIC PROD
+                        │
+                        ▼</pre>
+<p>MONITORING</p>
+<h3>38. Real project example</h3>
+<h3>Suppose your Fabric project contains:</h3>
+<pre class="diagram">EDW-Fabric-DEV
+│
+├── LH_EDW
+├── WH_EDW
+├── PL_Load_Customer
+├── PL_Load_Sales
+├── NB_Customer
+├── NB_Sales
+├── Semantic Model
+└── Reports</pre>
+<h3>Developer modifies:</h3>
+<p>NB_Sales</p>
+<h3>Release:</h3>
+<p>NB_Sales changed</p>
+<p>↓</p>
+<p>Commit</p>
+<p>↓</p>
+<p>Azure Repo</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Review</p>
+<p>↓</p>
+<p>Merge</p>
+<p>↓</p>
+<p>Azure Pipeline</p>
+<p>↓</p>
+<p>Authenticate</p>
+<p>↓</p>
+<h3>Fabric API / CI-CD tooling</h3>
+<p>↓</p>
+<p>Deploy TEST</p>
+<p>↓</p>
+<p>Validate</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>Deploy PROD</p>
+<p>↓</p>
+<p>Monitor</p>
+<h3>39. Interview question — What is Microsoft Fabric REST API?</h3>
+<h3>A good answer:</h3>
+<p>Microsoft Fabric REST APIs provide programmatic access to manage and automate Fabric resources and operations. They can be used from tools such as Python, PowerShell and Azure DevOps to manage workspaces and items and to automate supported CI/CD and deployment operations.</p>
+<h3>40. Interview question — How do you authenticate?</h3>
+<p>Fabric REST API requests are authenticated through Microsoft Entra ID. The client obtains an access token for an authorized identity and sends it in the Authorization Bearer header. For CI/CD, I prefer a supported workload identity such as a service principal rather than depending on a developer&#x27;s personal account.</p>
+<h3>41. Interview question — What is the difference between 401 and 403?</h3>
+<p>401 generally indicates that the request isn&#x27;t properly authenticated—for example, the token is invalid or missing. 403 means the identity is authenticated but doesn&#x27;t have sufficient authorization to perform the requested operation.</p>
+<h3>42. Interview question — How would you use REST APIs with Azure DevOps?</h3>
+<p>I would trigger an Azure DevOps pipeline after approved code is merged. The pipeline authenticates to Microsoft Entra ID using a controlled workload identity and then calls Fabric REST APIs or supported CI/CD tooling to deploy or manage Fabric resources in TEST. After automated testing and approval, the same controlled process promotes the approved version to PROD.</p>
+<h3>43. Interview question — Why REST API instead of manual deployment?</h3>
+<p>REST APIs provide repeatable automation. They reduce manual deployment steps and make it easier to integrate Fabric with Azure DevOps CI/CD, automated validation, logging, approvals and consistent environment promotion.</p>
+<h3>44. Interview question — What is a long-running operation?</h3>
+<p>Some Fabric API operations don&#x27;t complete immediately. The API can accept the request and return an operation reference, after which the client monitors the operation until it succeeds or fails before proceeding to the next deployment step.</p>
+<h3>45. REST API quick cheat sheet</h3>
+<p>GET</p>
+<p>↓</p>
+<p>Read</p>
+<p>POST</p>
+<p>↓</p>
+<p>Create / Start</p>
+<p>PUT / PATCH</p>
+<p>↓</p>
+<p>Update</p>
+<p>DELETE</p>
+<p>↓</p>
+<p>Remove</p>
+<h3>And:</h3>
+<p>200 → Success</p>
+<p>201 → Created</p>
+<p>202 → Accepted / Processing</p>
+<p>400 → Bad Request</p>
+<p>401 → Authentication</p>
+<p>403 → Authorization</p>
+<p>404 → Not Found</p>
+<p>429 → Too Many Requests</p>
+<p>500 → Server Error</p>
+<h3>46. Complete Fabric deployment picture</h3>
+<h3>Your last few topics now connect:</h3>
+<pre class="diagram">                  MICROSOFT FABRIC
+                         │
+                         ▼
+                     FABRIC DEV
+                         │
+                    Develop/Test
+                         │
+                         ▼
+                 GIT INTEGRATION
+                         │
+                         ▼
+                   AZURE DEVOPS
+                         │
+                  ┌──────┴──────┐
+                  ▼             ▼
+                Repos        Pipelines
+                  │             │
+                  ▼             ▼
+             Versioning     Automation
+                  │             │
+                  └──────┬──────┘
+                         ▼
+                    REST API
+                         │
+                         ▼
+                    FABRIC TEST
+                         │
+                    Validation
+                         │
+                     Approval
+                         │
+                         ▼
+                    REST API
+                         │
+                         ▼
+                    FABRIC PROD
+                         │
+                         ▼</pre>
+<p>MONITOR</p>
+<p>The simplest way to remember it</p>
+<p>Git stores the version. Azure DevOps controls the workflow. REST API performs automated Fabric operations. Deployment moves the approved solution from DEV → TEST → PROD.</p>
+<h3>For interviews, remember this one sentence:</h3>
+<p>“In a Fabric CI/CD solution, I use Azure DevOps Git for source control and pull requests, then Azure Pipelines with authenticated Fabric REST API or Fabric CI/CD tooling to automate deployment from DEV to TEST and PROD with testing, approvals, and monitoring.”</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-5"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.5</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-6"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.6</span><h2>Hands on Implement</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-7"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.6</span><h2>Incremental Loading</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-8"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.7</span><h2>SCD Type 1 &amp; Type 2</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-9"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.8</span><h2>Logging</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-10"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.9</span><h2>Error Handling</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-11"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.10</span><h2>Monitoring</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-12"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.11</span><h2>Git Integration</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-13"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.12</span><h2>Deployment Pipeline</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-14"><div class="lesson-head"><span class="lesson-eyebrow">Module 12 · Lesson 12.13</span><h2>Power BI Reporting</h2></div><div class="content">
+<p>Skills You Will Learn</p>
+<p>Certification Path</p>
+<p>Module Timeline Summary</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+</main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script></body></html>

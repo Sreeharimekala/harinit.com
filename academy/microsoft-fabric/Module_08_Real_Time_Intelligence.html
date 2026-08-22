@@ -1,0 +1,1564 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Real-Time Intelligence — Module 8</title><style>
+:root{
+  --bg:#0f1115;--panel:#151822;--panel-2:#11141b;--ink:#e7e9ee;
+  --ink-dim:#a7adba;--ink-faint:#6b7280;--accent:#5fd3c4;--accent-2:#f2a65a;
+  --rule:#262b38;--code-bg:#0b0d12;--code-ink:#cde5ff;--diagram-ink:#7fe3c7;
+  --table-head:#1b2030;--radius:10px;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:8px}
+.nav-link:hover{background:rgba(95,211,196,.08);color:var(--ink)}
+.nav-link.active{background:rgba(95,211,196,.12);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent-2);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:#fff}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:#fff;line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:#fff;margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px;border-left:3px solid var(--accent);padding-left:14px}
+.content h3:first-child{margin-top:0}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:24px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent-2);font-family:var(--mono)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--code-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.diagram-label{color:#e7e9ee}.diagram-branch{color:#7fe3c7}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px}thead th{background:var(--table-head);color:#fff;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--ink)}
+.callout{background:linear-gradient(180deg,rgba(95,211,196,.09),rgba(95,211,196,.03));border:1px solid rgba(95,211,196,.28);border-radius:14px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:rgba(242,166,90,.07);border:1px solid rgba(242,166,90,.25);border-radius:12px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent-2);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:#04211d;border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}main{padding:36px 20px 90px}}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../fabric-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Fabric Data Engineering</div>
+<div class="brand-title">Real-Time Intelligence</div>
+<div class="brand-sub">Module 8 · 7 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">8.1</span>Eventstream</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">8.3</span>KQL</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">8.3</span></a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">8.4</span>Streaming Data</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">8.5</span>Dashboards</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">8.6</span>Simulate Streaming Data</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">8.7</span>Query with KQL</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Module 8</div><h1>Real-Time Intelligence</h1>
+<p>8.1 Eventstream in Microsoft Fabric</p>
+<div class="doc-meta"><span class="pill">7 lessons</span><span class="pill">Microsoft Fabric</span><span class="pill">DP-700 Track</span></div></header>
+<section class="lesson" id="lesson-1"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.1</span><h2>Eventstream</h2></div><div class="content">
+<p>8.1 Eventstream in Microsoft Fabric</p>
+<p>Eventstream in Microsoft Fabric is a real-time event ingestion, processing, and routing capability within Real-Time Intelligence.</p>
+<h3>In simple terms:</h3>
+<p>Eventstream receives continuously arriving events, optionally transforms or filters them, and sends them to one or more destinations for real-time analytics.</p>
+<h3>The easiest architecture to remember is:</h3>
+<p>SOURCE</p>
+<p>↓</p>
+<p>EVENTSTREAM</p>
+<p>↓</p>
+<p>PROCESS / ROUTE</p>
+<p>↓</p>
+<p>DESTINATION</p>
+<p>↓</p>
+<p>EVENTHOUSE</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>REAL-TIME DASHBOARD</p>
+<h3>1. First understand: What is an Event?</h3>
+<p>An event is something that happens at a particular point in time.</p>
+<h3>For example:</h3>
+<p>Customer purchased a product</p>
+<p>Sensor temperature changed</p>
+<p>Machine stopped</p>
+<p>User clicked a website button</p>
+<p>Payment completed</p>
+<p>Vehicle location changed</p>
+<p>Application generated an error</p>
+<p>Stock price changed</p>
+<p>Each of these can generate an event.</p>
+<h3>For example:</h3>
+<p>{</p>
+<p>&quot;SensorId&quot;: &quot;S001&quot;,</p>
+<p>&quot;Temperature&quot;: 42.5,</p>
+<p>&quot;Location&quot;: &quot;Hyderabad&quot;,</p>
+<p>&quot;Timestamp&quot;: &quot;2026-08-02T10:30:15&quot;</p>
+<p>}</p>
+<p>That&#x27;s one event.</p>
+<h3>Now imagine the sensor generates a new reading every second:</h3>
+<p>10:30:15 → 42.5°C</p>
+<p>10:30:16 → 42.7°C</p>
+<p>10:30:17 → 43.1°C</p>
+<p>10:30:18 → 43.5°C</p>
+<p>10:30:19 → 44.0°C</p>
+<p>This continuous flow is streaming data.</p>
+<h3>2. Batch Data vs Streaming Data</h3>
+<p>Understanding this difference is essential.</p>
+<p>Batch processing</p>
+<p>Suppose a company generates sales throughout the day.</p>
+<h3>At midnight:</h3>
+<p>All Today&#x27;s Sales</p>
+<p>↓</p>
+<p>CSV File</p>
+<p>↓</p>
+<p>Pipeline</p>
+<p>↓</p>
+<h3>Warehouse</h3>
+<p>↓</p>
+<p>Power BI</p>
+<p>You process the data periodically.</p>
+<p>That&#x27;s batch processing.</p>
+<p>Streaming processing</p>
+<h3>Now imagine every transaction needs to be analyzed immediately:</h3>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>The events continuously arrive.</p>
+<p>Transaction</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Real-Time Analytics</p>
+<p>That&#x27;s streaming.</p>
+<h3>3. Why do we need Eventstream?</h3>
+<p>Suppose you operate 5,000 machines.</p>
+<h3>Each machine sends:</h3>
+<p>MachineID</p>
+<p>Temperature</p>
+<p>Pressure</p>
+<p>Speed</p>
+<p>Status</p>
+<p>Timestamp</p>
+<p>every second.</p>
+<h3>You don&#x27;t want to wait until midnight to discover:</h3>
+<p>Machine 325 reached a dangerous temperature at 10:15 AM.</p>
+<h3>Instead:</h3>
+<p>Machine</p>
+<p>↓</p>
+<p>Sensor</p>
+<p>↓</p>
+<p>Event</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Detect Temperature &gt; 90</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>Dashboard / Action</p>
+<p>Now you can analyze events close to when they occur.</p>
+<h3>4. Eventstream architecture</h3>
+<h3>The core architecture is:</h3>
+<pre class="diagram">┌─────────────────────────────────────┐
+│              SOURCES                │
+│                                     │
+│ IoT │ Apps │ Event Hubs │ CDC │ etc│
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+        ┌────────────────────┐
+        │    EVENTSTREAM     │
+        │                    │
+        │ Ingest             │
+        │ Filter             │
+        │ Transform          │
+        │ Route              │
+        └─────────┬──────────┘
+                  │
+          ┌───────┼─────────┐
+          ▼       ▼         ▼</pre>
+<p>Eventhouse Other    Real-time</p>
+<p>supported destinations</p>
+<p>Think of Eventstream as a real-time data highway.</p>
+<h3>5. Three important parts</h3>
+<h3>Every Eventstream architecture can be understood through three things:</h3>
+<pre class="diagram">EVENTSTREAM
+     │
+     ├── SOURCE
+     │
+     ├── TRANSFORMATION
+     │
+     └── DESTINATION</pre>
+<h3>Remember:</h3>
+<p>Source → Process → Destination</p>
+<h3>6. Sources</h3>
+<p>A source is where the streaming events originate.</p>
+<p>Depending on current Fabric support, sources can include services and change/event feeds such as:</p>
+<p>Azure Event Hubs</p>
+<p>Azure IoT Hub</p>
+<p>Kafka-based sources</p>
+<h3>Fabric event sources</h3>
+<p>CDC/change streams</p>
+<p>Sample events</p>
+<p>Custom endpoints</p>
+<h3>For example:</h3>
+<p>IoT Sensors</p>
+<p>↓</p>
+<p>Azure IoT Hub</p>
+<p>↓</p>
+<p>Eventstream</p>
+<h3>Or:</h3>
+<p>Application</p>
+<p>↓</p>
+<p>Azure Event Hubs</p>
+<p>↓</p>
+<p>Eventstream</p>
+<h3>7. Example: IoT sensor</h3>
+<p>Suppose a factory has temperature sensors.</p>
+<p>Sensor 001</p>
+<p>Sensor 002</p>
+<p>Sensor 003</p>
+<p>Sensor 004</p>
+<h3>Each sends:</h3>
+<p>{</p>
+<p>&quot;machine_id&quot;: &quot;M101&quot;,</p>
+<p>&quot;temperature&quot;: 92,</p>
+<p>&quot;pressure&quot;: 45,</p>
+<p>&quot;timestamp&quot;: &quot;2026-08-02T10:30:15&quot;</p>
+<p>}</p>
+<h3>Architecture:</h3>
+<p>Temperature Sensors</p>
+<p>↓</p>
+<p>IoT Hub</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<h3>8. Eventstream transformations</h3>
+<p>Eventstream isn&#x27;t only about receiving data.</p>
+<p>You can also process events while they&#x27;re flowing.</p>
+<h3>For example:</h3>
+<p>Incoming Events</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Filter</p>
+<p>↓</p>
+<p>Transform</p>
+<p>↓</p>
+<p>Route</p>
+<h3>Typical operations include concepts such as:</h3>
+<p>Filter</p>
+<p>Manage fields</p>
+<p>Group/Aggregate</p>
+<p>Join</p>
+<p>Expand</p>
+<p>Route events</p>
+<p>The available operations depend on the current Fabric Eventstream experience.</p>
+<h3>9. Filtering events</h3>
+<h3>Suppose events contain:</h3>
+<p>Machine | Temperature</p>
+<p>--------|------------</p>
+<p>M01     | 65</p>
+<p>M02     | 72</p>
+<p>M03     | 95</p>
+<p>M04     | 68</p>
+<p>M05     | 102</p>
+<h3>You only care about:</h3>
+<p>Temperature &gt; 90</p>
+<h3>Eventstream can conceptually perform:</h3>
+<p>Incoming Events</p>
+<p>↓</p>
+<h3>Temperature &gt; 90?</h3>
+<p>↓</p>
+<pre class="diagram">   ┌───┴───┐
+   │       │
+  YES      NO
+   │       │
+   ▼       ✕</pre>
+<p>Process   Ignore</p>
+<h3>Result:</h3>
+<p>M03 | 95</p>
+<p>M05 | 102</p>
+<p>This reduces unnecessary downstream processing.</p>
+<h3>10. Transforming events</h3>
+<h3>Suppose incoming data contains:</h3>
+<p>MachineID</p>
+<p>Temp_Celsius</p>
+<p>Timestamp</p>
+<h3>You may want to add:</h3>
+<p>Status</p>
+<h3>Business rule:</h3>
+<p>Temperature &lt; 70</p>
+<p>↓</p>
+<p>NORMAL</p>
+<p>70 – 90</p>
+<p>↓</p>
+<p>WARNING</p>
+<p>&gt; 90</p>
+<p>↓</p>
+<p>CRITICAL</p>
+<h3>Result:</h3>
+<p>MachineID | Temp | Status</p>
+<p>----------|------|---------</p>
+<p>M01       | 65   | NORMAL</p>
+<p>M02       | 82   | WARNING</p>
+<p>M03       | 96   | CRITICAL</p>
+<p>Now downstream analytics receives more meaningful events.</p>
+<h3>11. Routing events</h3>
+<p>Eventstream can route data to different destinations.</p>
+<h3>Imagine:</h3>
+<pre class="diagram">                    Eventstream
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+     All Events      Critical       Processed
+          │           Events          Events
+          ▼              ▼              ▼</pre>
+<p>Eventhouse      Destination    Destination</p>
+<h3>For example:</h3>
+<p>Temperature &lt; 90</p>
+<p>↓</p>
+<p>Normal Processing</p>
+<p>Temperature &gt;= 90</p>
+<p>↓</p>
+<p>Critical Stream</p>
+<p>This allows you to build different real-time paths.</p>
+<h3>12. Destination</h3>
+<p>After processing events, Eventstream sends them to a destination.</p>
+<p>For your Real-Time Intelligence syllabus, the most important destination to understand is:</p>
+<p>Eventhouse</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL Database</p>
+<p>↓</p>
+<p>KQL Query</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<p>This is the architecture you should remember for Module 8.</p>
+<h3>13. What is Eventhouse?</h3>
+<p>You&#x27;ll study this in 8.2, but you need the basic idea now.</p>
+<p>Eventstream handles the movement/processing of events.</p>
+<p>Eventhouse stores and serves real-time/event data for analytics.</p>
+<h3>Think:</h3>
+<p>Eventstream</p>
+<p>=</p>
+<p>MOVE / PROCESS EVENTS</p>
+<p>Eventhouse</p>
+<p>=</p>
+<p>STORE / ANALYZE EVENT DATA</p>
+<h3>So:</h3>
+<p>Events</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<h3>14. What is KQL?</h3>
+<p>You&#x27;ll study 8.3 KQL separately.</p>
+<h3>KQL stands for:</h3>
+<p>Kusto Query Language</p>
+<p>It&#x27;s designed for fast analysis of large volumes of telemetry, log, time-series, and event data.</p>
+<h3>For example:</h3>
+<p>MachineEvents</p>
+<p>| where Temperature &gt; 90</p>
+<p>| project MachineId, Temperature, Timestamp</p>
+<h3>Conceptually:</h3>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>MachineEvents</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Temperature &gt; 90</p>
+<p>↓</p>
+<p>Critical Machines</p>
+<h3>15. Eventstream vs Eventhouse vs KQL</h3>
+<p>This is the most important distinction in this module.</p>
+<div class="table-wrap"><table><thead><tr><th>Component</th><th>Purpose</th></tr></thead><tbody><tr><td>Eventstream</td><td>Ingest, transform and route events</td></tr><tr><td>Eventhouse</td><td>Store and serve event/real-time data</td></tr><tr><td>KQL</td><td>Query and analyze the data</td></tr><tr><td>Real-Time Dashboard</td><td>Visualize the results</td></tr></tbody></table></div>
+<h3>Easy memory:</h3>
+<p>EVENTSTREAM</p>
+<p>↓</p>
+<p>Move Events</p>
+<p>EVENTHOUSE</p>
+<p>↓</p>
+<p>Store Events</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Query Events</p>
+<p>DASHBOARD</p>
+<p>↓</p>
+<p>Visualize Events</p>
+<h3>16. Complete Real-Time Intelligence flow</h3>
+<p>REAL WORLD</p>
+<pre class="diagram">     Machine       Website       Application
+        │             │               │
+        ▼             ▼               ▼
+      Sensor         Click            Log
+        │             │               │
+        └─────────────┼───────────────┘
+                      ▼
+                 EVENT SOURCE
+                      │
+                      ▼
+                EVENTSTREAM
+                      │
+              ┌───────┼───────┐
+              │       │       │
+            Filter Transform Route
+              │       │       │
+              └───────┼───────┘
+                      ▼
+                 EVENTHOUSE
+                      │
+                      ▼
+                 KQL DATABASE
+                      │
+                      ▼
+                     KQL
+                      │
+                      ▼
+             REAL-TIME DASHBOARD
+                      │
+                      ▼</pre>
+<p>BUSINESS USER</p>
+<p>If you understand this diagram, you understand the basic architecture of Module 8.</p>
+<h3>17. Real-world example: E-commerce</h3>
+<p>Imagine Amazon-like online shopping.</p>
+<h3>Customers continuously perform:</h3>
+<p>Product View</p>
+<p>Add to Cart</p>
+<p>Remove from Cart</p>
+<p>Purchase</p>
+<p>Payment</p>
+<p>Search</p>
+<p>Login</p>
+<p>Each action generates an event.</p>
+<h3>For example:</h3>
+<p>{</p>
+<p>&quot;customer_id&quot;: 1001,</p>
+<p>&quot;event&quot;: &quot;AddToCart&quot;,</p>
+<p>&quot;product_id&quot;: 5005,</p>
+<p>&quot;timestamp&quot;: &quot;2026-08-02T18:45:20&quot;</p>
+<p>}</p>
+<h3>Architecture:</h3>
+<p>Website</p>
+<p>↓</p>
+<p>Customer Actions</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<h3>Now the company can see:</h3>
+<p>Users Online</p>
+<p>Orders / Minute</p>
+<p>Sales / Minute</p>
+<p>Top Products</p>
+<p>Cart Abandonment</p>
+<p>Payment Failures</p>
+<p>in near real time.</p>
+<h3>18. Real-world example: Banking</h3>
+<p>Imagine credit-card transactions.</p>
+<p>Card Swipe</p>
+<p>↓</p>
+<p>Transaction Event</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<h3>You could analyze:</h3>
+<p>Multiple transactions in seconds</p>
+<p>Unusual transaction amount</p>
+<p>Transactions from unusual locations</p>
+<p>Repeated payment failures</p>
+<h3>Architecture:</h3>
+<p>Transactions</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Filter / Process</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL Analysis</p>
+<p>↓</p>
+<p>Real-Time Monitoring</p>
+<h3>19. Real-world example: Application monitoring</h3>
+<h3>Suppose an application generates logs:</h3>
+<p>INFO</p>
+<p>WARNING</p>
+<p>ERROR</p>
+<p>CRITICAL</p>
+<h3>Every second:</h3>
+<p>10:30:01 INFO</p>
+<p>10:30:02 INFO</p>
+<p>10:30:03 ERROR</p>
+<p>10:30:04 INFO</p>
+<p>10:30:05 CRITICAL</p>
+<h3>Architecture:</h3>
+<p>Application</p>
+<p>↓</p>
+<p>Logs</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<h3>Query:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;ERROR&quot;</p>
+<h3>or:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;CRITICAL&quot;</p>
+<p>Then visualize those events in a real-time dashboard.</p>
+<h3>20. Real-world example: Azure Data Platform monitoring</h3>
+<h3>For a data engineering environment, imagine continuously receiving:</h3>
+<p>Pipeline Started</p>
+<p>Pipeline Completed</p>
+<p>Pipeline Failed</p>
+<p>Notebook Started</p>
+<p>Notebook Failed</p>
+<p>Dataflow Failed</p>
+<h3>You could build:</h3>
+<h3>Fabric / Azure Events</h3>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Operations Dashboard</p>
+<h3>Dashboard:</h3>
+<p>Pipeline Success Rate</p>
+<p>Failed Pipelines</p>
+<p>Running Pipelines</p>
+<p>Average Duration</p>
+<p>Failures by Workspace</p>
+<p>Failures by Error Type</p>
+<p>This is a very practical Real-Time Intelligence use case.</p>
+<h3>21. Eventstream vs Data Factory Pipeline</h3>
+<p>This is an important distinction.</p>
+<h3>Data Factory Pipeline</h3>
+<h3>Typically used for:</h3>
+<p>Batch Data</p>
+<p>Scheduled ETL</p>
+<p>Data Copy</p>
+<p>Orchestration</p>
+<h3>Example:</h3>
+<p>Every night 2 AM</p>
+<p>↓</p>
+<p>Pipeline</p>
+<p>↓</p>
+<p>Copy Sales</p>
+<p>↓</p>
+<h3>Warehouse</h3>
+<p>Eventstream</p>
+<h3>Used for:</h3>
+<p>Continuous Events</p>
+<p>Streaming Data</p>
+<p>Near-real-time Processing</p>
+<p>Event Routing</p>
+<h3>Example:</h3>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>↓</p>
+<p>Sale</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Real-Time Analytics</p>
+<h3>So:</h3>
+<div class="table-wrap"><table><thead><tr><th>Pipeline</th><th>Eventstream</th></tr></thead><tbody><tr><td>Batch/orchestration oriented</td><td>Streaming/event oriented</td></tr><tr><td>Scheduled workflows common</td><td>Continuous flow</td></tr><tr><td>Copy/ETL activities</td><td>Event ingestion/routing</td></tr><tr><td>Minutes/hours/day patterns</td><td>Seconds/near-real-time patterns</td></tr><tr><td>Lakehouse/Warehouse targets common</td><td>Real-Time Intelligence destinations</td></tr></tbody></table></div>
+<h3>22. Eventstream vs Dataflow Gen2</h3>
+<p>Don&#x27;t confuse these either.</p>
+<p>Dataflow Gen2</p>
+<p>=</p>
+<p>Power Query</p>
+<p>Batch/ETL transformation</p>
+<p>Eventstream</p>
+<p>=</p>
+<p>Streaming event processing</p>
+<h3>For example:</h3>
+<p>CSV File</p>
+<p>↓</p>
+<p>Dataflow Gen2</p>
+<p>↓</p>
+<p>Clean Customer Data</p>
+<h3>versus:</h3>
+<p>IoT Sensor</p>
+<p>↓</p>
+<p>Continuous Events</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Real-Time Processing</p>
+<h3>23. Eventstream vs Kafka</h3>
+<p>If you already know Kafka, the concepts may feel familiar.</p>
+<p>Both deal with streaming/event data, but they are different products and architectures.</p>
+<h3>Conceptually:</h3>
+<p>Producer</p>
+<p>↓</p>
+<p>Streaming Platform</p>
+<p>↓</p>
+<p>Consumer</p>
+<p>Fabric Eventstream provides a managed, low-code experience for connecting, processing and routing real-time event streams within the Fabric ecosystem.</p>
+<h3>24. Batch architecture vs Real-Time architecture</h3>
+<h3>Traditional Fabric batch analytics</h3>
+<p>SQL Server</p>
+<p>↓</p>
+<h3>Data Factory</h3>
+<p>↓</p>
+<h3>Lakehouse</h3>
+<p>↓</p>
+<h3>Warehouse</h3>
+<p>↓</p>
+<p>Power BI</p>
+<h3>Fabric Real-Time Intelligence</h3>
+<p>Streaming Source</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<p>You should know both architectures.</p>
+<h3>25. When should we use Eventstream?</h3>
+<h3>Use Eventstream when data is:</h3>
+<div class="callout"><p>✓ Continuously generated</p></div>
+<div class="callout"><p>✓ Time-sensitive</p></div>
+<div class="callout"><p>✓ Event-based</p></div>
+<div class="callout"><p>✓ High frequency</p></div>
+<div class="callout"><p>✓ Required quickly for analytics</p></div>
+<h3>Typical use cases:</h3>
+<p>IoT sensors</p>
+<p>Application logs</p>
+<p>Website clickstream</p>
+<p>Financial transactions</p>
+<p>Vehicle telemetry</p>
+<p>Manufacturing equipment</p>
+<p>Stock/market events</p>
+<p>Security monitoring</p>
+<p>Operational monitoring</p>
+<h3>26. When is Eventstream unnecessary?</h3>
+<h3>If you receive:</h3>
+<p>One Excel file</p>
+<p>Every Monday</p>
+<p>you probably don&#x27;t need Eventstream.</p>
+<h3>Use something like:</h3>
+<p>File</p>
+<p>↓</p>
+<p>Pipeline / Dataflow</p>
+<p>↓</p>
+<h3>Lakehouse / Warehouse</h3>
+<h3>Similarly, if the business says:</h3>
+<p>&quot;Our report only needs to refresh once every night.&quot;</p>
+<p>a batch architecture may be simpler.</p>
+<p>Don&#x27;t use streaming just because the technology exists.</p>
+<h3>27. Simulating events for learning</h3>
+<h3>Your syllabus includes:</h3>
+<p>8.6 Simulate Streaming Data</p>
+<p>This is useful because you probably don&#x27;t have 1,000 physical IoT devices available for training.</p>
+<h3>Instead, you can generate sample events:</h3>
+<p>Sample Data Generator</p>
+<p>↓</p>
+<p>Temperature = random</p>
+<p>Machine = random</p>
+<p>Timestamp = current</p>
+<p>↓</p>
+<p>Event</p>
+<p>↓</p>
+<p>Eventstream</p>
+<h3>For example:</h3>
+<p>{</p>
+<p>&quot;machine_id&quot;: &quot;M102&quot;,</p>
+<p>&quot;temperature&quot;: 87.4,</p>
+<p>&quot;pressure&quot;: 43.2,</p>
+<p>&quot;timestamp&quot;: &quot;2026-08-02T20:15:01&quot;</p>
+<p>}</p>
+<h3>Then another:</h3>
+<p>M102 → 87°C</p>
+<p>M103 → 72°C</p>
+<p>M101 → 95°C</p>
+<p>M104 → 67°C</p>
+<p>M101 → 102°C</p>
+<p>...</p>
+<p>This allows you to practice the complete architecture without real devices.</p>
+<h3>28. Your Module 8 learning sequence</h3>
+<p>Your syllabus is actually in a good order.</p>
+<pre class="diagram">8.1 EVENTSTREAM
+       │
+       │ Learn how events enter Fabric
+       ▼
+8.2 EVENTHOUSE
+       │
+       │ Learn where events are stored/analyzed
+       ▼
+8.3 KQL
+       │
+       │ Learn how to query events
+       ▼
+8.4 STREAMING DATA
+       │
+       │ Understand streaming concepts
+       ▼
+8.5 DASHBOARDS
+       │
+       │ Visualize real-time information
+       ▼
+8.6 SIMULATE STREAMING DATA
+       │
+       │ Generate practical events
+       ▼
+8.7 QUERY WITH KQL
+       │
+       ▼</pre>
+<p>END-TO-END PROJECT</p>
+<h3>29. Interview question: What is Eventstream?</h3>
+<h3>A strong answer is:</h3>
+<p>Eventstream is a real-time event ingestion, transformation, and routing capability in Microsoft Fabric Real-Time Intelligence. It can receive continuously generated events from supported sources, apply stream-processing operations such as filtering and transformation, and route the events to destinations such as an Eventhouse for real-time analysis using KQL.</p>
+<h3>30. Interview question: Eventstream vs Eventhouse?</h3>
+<h3>Answer:</h3>
+<p>Eventstream is responsible primarily for ingesting, processing, and routing streaming events, whereas Eventhouse is designed to store and serve large volumes of event and time-series data for real-time analytics. Eventhouse data can then be queried using KQL.</p>
+<h3>Remember:</h3>
+<p>Eventstream</p>
+<p>=</p>
+<p>TRANSPORT / PROCESS</p>
+<p>Eventhouse</p>
+<p>=</p>
+<p>STORE / ANALYZE</p>
+<h3>31. Quick revision</h3>
+<pre class="diagram">EVENTSTREAM
+==============================
+Purpose
+-------</pre>
+<p>Real-Time Event Processing</p>
+<pre class="diagram">Input
+-----</pre>
+<p>Streaming Events</p>
+<pre class="diagram">Sources
+-------</pre>
+<p>IoT</p>
+<p>Applications</p>
+<p>Event Hubs</p>
+<p>Kafka</p>
+<p>CDC</p>
+<p>Other supported sources</p>
+<pre class="diagram">Operations
+----------</pre>
+<p>Ingest</p>
+<p>Filter</p>
+<p>Transform</p>
+<p>Route</p>
+<pre class="diagram">Destination
+-----------</pre>
+<p>Eventhouse</p>
+<p>Other supported destinations</p>
+<pre class="diagram">Query
+-----</pre>
+<p>KQL</p>
+<pre class="diagram">Visualization
+-------------</pre>
+<p>Real-Time Dashboard</p>
+<p>One diagram to remember for the entire module</p>
+<p>REAL-TIME DATA</p>
+<pre class="diagram">      IoT Sensors
+           │
+      Applications
+           │
+      Transactions
+           │
+      Website Events
+           │
+           ▼
+      ┌─────────────┐
+      │ EVENTSTREAM │
+      │             │
+      │   INGEST    │
+      │   FILTER    │
+      │  TRANSFORM  │
+      │    ROUTE    │
+      └──────┬──────┘
+             │
+             ▼
+      ┌─────────────┐
+      │ EVENTHOUSE  │
+      │             │
+      │ STORE EVENT │
+      │    DATA     │
+      └──────┬──────┘
+             │
+             ▼
+            KQL
+             │
+             ▼
+      REAL-TIME DASHBOARD
+             │
+             ▼</pre>
+<p>BUSINESS USER</p>
+<p>The one line to memorize</p>
+<p>Eventstream receives the events → Eventhouse stores them → KQL analyzes them → Dashboard visualizes them.</p>
+<p>That single flow will make the rest of Module 8: Real-Time Intelligence much easier to understand.</p>
+<p>8.2  Eventhouse</p>
+<p>8.2 Eventhouse in Microsoft Fabric</p>
+<p>Eventhouse is a Microsoft Fabric Real-Time Intelligence item designed to store, manage, and analyze large volumes of event, telemetry, log, and time-series data.</p>
+<h3>The easiest way to understand it is:</h3>
+<p>Eventstream brings the events → Eventhouse stores and serves the events → KQL analyzes them → Dashboard visualizes them.</p>
+<p>Streaming Source</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL Database</p>
+<p>↓</p>
+<p>KQL Query</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<h3>1. Why do we need Eventhouse?</h3>
+<p>Imagine a factory with 10,000 sensors.</p>
+<h3>Every second, they generate:</h3>
+<p>MachineID</p>
+<p>Temperature</p>
+<p>Pressure</p>
+<p>Speed</p>
+<p>Status</p>
+<p>Timestamp</p>
+<h3>Events continuously arrive:</h3>
+<p>10:30:01 → M001 → 72°C</p>
+<p>10:30:01 → M002 → 85°C</p>
+<p>10:30:01 → M003 → 91°C</p>
+<p>10:30:02 → M001 → 73°C</p>
+<p>10:30:02 → M002 → 86°C</p>
+<p>10:30:02 → M003 → 95°C</p>
+<p>...</p>
+<p>That&#x27;s potentially millions or billions of time-based events.</p>
+<p>We need somewhere optimized to store and query this type of data.</p>
+<p>That&#x27;s where Eventhouse comes in.</p>
+<p>Millions of Events</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>Fast Event Analytics</p>
+<h3>2. Eventstream vs Eventhouse</h3>
+<p>This is the first distinction you should understand.</p>
+<p>Eventstream</p>
+<h3>Responsible for:</h3>
+<p>Receive</p>
+<p>↓</p>
+<p>Process</p>
+<p>↓</p>
+<p>Route</p>
+<p>Eventhouse</p>
+<h3>Responsible for:</h3>
+<p>Store</p>
+<p>↓</p>
+<p>Manage</p>
+<p>↓</p>
+<p>Query</p>
+<p>↓</p>
+<p>Analyze</p>
+<h3>Think about water:</h3>
+<p>Water Source</p>
+<p>↓</p>
+<p>Pipe</p>
+<p>↓</p>
+<p>Tank</p>
+<h3>In this analogy:</h3>
+<p>Events</p>
+<p>=</p>
+<p>Water</p>
+<p>Eventstream</p>
+<p>=</p>
+<p>Pipe</p>
+<p>Eventhouse</p>
+<p>=</p>
+<p>Tank</p>
+<p>Then KQL is how you examine and analyze what&#x27;s in the tank.</p>
+<h3>3. Eventhouse Architecture</h3>
+<h3>A simplified Fabric Real-Time Intelligence architecture is:</h3>
+<pre class="diagram">┌───────────────────────────────────────────┐
+│                SOURCES                    │
+│                                           │
+│ IoT │ Apps │ Logs │ Events │ Transactions│
+└────────────────────┬──────────────────────┘
+                     │
+                     ▼
+              ┌─────────────┐
+              │ EVENTSTREAM │
+              │             │
+              │ Ingest      │
+              │ Transform   │
+              │ Route       │
+              └──────┬──────┘
+                     │
+                     ▼</pre>
+<p>╔═══════════════════════════════════════════╗</p>
+<p>║                 EVENTHOUSE                ║</p>
+<p>║                                           ║</p>
+<pre class="diagram">║             ┌─────────────────┐           ║
+║             │  KQL DATABASE   │           ║
+║             │                 │           ║
+║             │   TABLES        │           ║
+║             │                 │           ║
+║             │ MachineEvents   │           ║
+║             │ AppLogs         │           ║
+║             │ Transactions    │           ║
+║             └────────┬────────┘           ║</pre>
+<p>╚══════════════════════╪════════════════════╝</p>
+<pre class="diagram">                       │
+                       ▼
+                      KQL
+                       │
+                       ▼</pre>
+<p>Real-Time Dashboard</p>
+<h3>4. Eventhouse and KQL Database</h3>
+<p>An Eventhouse can contain KQL databases.</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Eventhouse
+    │
+    ├── KQL Database A
+    │      │
+    │      ├── MachineEvents
+    │      ├── SensorReadings
+    │      └── Alerts
+    │
+    └── KQL Database B
+           │
+           ├── ApplicationLogs
+           └── SecurityEvents</pre>
+<h3>For example:</h3>
+<pre class="diagram">Factory_Eventhouse
+      │
+      ▼
+Factory_KQL_DB
+      │
+      ├── MachineEvents
+      ├── TemperatureEvents
+      ├── PressureEvents
+      └── MachineAlerts</pre>
+<h3>5. What is a KQL Database?</h3>
+<h3>A KQL Database is a database optimized for analytical workloads involving data such as:</h3>
+<p>Logs</p>
+<p>Telemetry</p>
+<p>Time-Series Data</p>
+<p>IoT Data</p>
+<p>Application Events</p>
+<p>Operational Events</p>
+<p>Clickstream Data</p>
+<p>The data can then be queried using Kusto Query Language (KQL).</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL Database</p>
+<p>↓</p>
+<p>Tables</p>
+<p>↓</p>
+<p>KQL</p>
+<h3>6. Tables inside Eventhouse</h3>
+<h3>Suppose we create:</h3>
+<p>FactoryDB</p>
+<h3>Inside it:</h3>
+<pre class="diagram">FactoryDB
+│
+├── MachineEvents
+├── TemperatureReadings
+├── PressureReadings
+└── MachineAlerts</pre>
+<h3>MachineEvents might contain:</h3>
+<div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>MachineID</th><th>Temperature</th><th>Pressure</th><th>Status</th></tr></thead><tbody><tr><td>10:30:01</td><td>M001</td><td>72</td><td>40</td><td>Normal</td></tr><tr><td>10:30:02</td><td>M002</td><td>85</td><td>44</td><td>Warning</td></tr><tr><td>10:30:03</td><td>M003</td><td>95</td><td>51</td><td>Critical</td></tr><tr><td>10:30:04</td><td>M001</td><td>73</td><td>41</td><td>Normal</td></tr></tbody></table></div>
+<p>Now you can analyze it with KQL.</p>
+<h3>7. Querying Eventhouse with KQL</h3>
+<p>Suppose we want all machine events.</p>
+<p>MachineEvents</p>
+<p>That&#x27;s a valid starting point in KQL.</p>
+<h3>Now filter:</h3>
+<p>MachineEvents</p>
+<p>| where Temperature &gt; 90</p>
+<h3>Conceptually:</h3>
+<p>MachineEvents</p>
+<p>↓</p>
+<p>WHERE Temperature &gt; 90</p>
+<p>↓</p>
+<p>Critical Machines</p>
+<h3>8. KQL pipe |</h3>
+<p>If you are coming from SQL, the KQL pipe is important.</p>
+<h3>KQL often works like:</h3>
+<pre class="diagram">Table
+  |</pre>
+<p>↓</p>
+<pre class="diagram">Filter
+  |</pre>
+<p>↓</p>
+<pre class="diagram">Select
+  |</pre>
+<p>↓</p>
+<pre class="diagram">Aggregate
+  |</pre>
+<p>↓</p>
+<p>Result</p>
+<h3>Example:</h3>
+<p>MachineEvents</p>
+<p>| where Temperature &gt; 90</p>
+<p>| project Timestamp, MachineID, Temperature</p>
+<h3>Read it as:</h3>
+<p>Take MachineEvents → filter temperature &gt; 90 → return selected columns.</p>
+<h3>9. SQL vs KQL</h3>
+<p>Since you work with SQL, this comparison will make KQL easier.</p>
+<p>SQL</p>
+<p>SELECT</p>
+<p>MachineID,</p>
+<p>Temperature</p>
+<p>FROM MachineEvents</p>
+<p>WHERE Temperature &gt; 90;</p>
+<p>KQL</p>
+<p>MachineEvents</p>
+<p>| where Temperature &gt; 90</p>
+<p>| project MachineID, Temperature</p>
+<p>Same idea, different syntax.</p>
+<h3>Think:</h3>
+<p>SQL</p>
+<p>SELECT</p>
+<p>FROM</p>
+<p>WHERE</p>
+<p>GROUP BY</p>
+<p>KQL</p>
+<p>Table</p>
+<p>| where</p>
+<p>| project</p>
+<p>| summarize</p>
+<h3>10. Aggregation with KQL</h3>
+<p>Suppose we want average temperature by machine.</p>
+<h3>SQL:</h3>
+<pre class="code">SELECT
+    MachineID,
+    AVG(Temperature)
+FROM MachineEvents
+GROUP BY MachineID;</pre>
+<h3>KQL:</h3>
+<p>MachineEvents</p>
+<p>| summarize AvgTemperature = avg(Temperature) by MachineID</p>
+<h3>Result:</h3>
+<div class="table-wrap"><table><thead><tr><th>MachineID</th><th>AvgTemperature</th></tr></thead><tbody><tr><td>M001</td><td>72.5</td></tr><tr><td>M002</td><td>84.7</td></tr><tr><td>M003</td><td>94.2</td></tr></tbody></table></div>
+<h3>11. Time is extremely important</h3>
+<p>Eventhouse is particularly suited to time-oriented analytical data.</p>
+<h3>Most event datasets have something like:</h3>
+<p>Timestamp</p>
+<p>EventTime</p>
+<p>CreatedTime</p>
+<p>LogTime</p>
+<p>TransactionTime</p>
+<h3>For example:</h3>
+<p>10:30:01</p>
+<p>10:30:02</p>
+<p>10:30:03</p>
+<p>10:30:04</p>
+<p>...</p>
+<h3>This allows questions such as:</h3>
+<h3>What happened in the last 5 minutes?</h3>
+<h3>How many errors occurred in the last hour?</h3>
+<h3>What&#x27;s the average temperature every minute?</h3>
+<h3>How many transactions occurred per second?</h3>
+<h3>Which machines failed today?</h3>
+<h3>12. Querying recent data</h3>
+<h3>For example:</h3>
+<p>MachineEvents</p>
+<p>| where Timestamp &gt; ago(10m)</p>
+<h3>Meaning:</h3>
+<p>Give me events from approximately the last 10 minutes.</p>
+<h3>Then:</h3>
+<p>MachineEvents</p>
+<p>| where Timestamp &gt; ago(10m)</p>
+<p>| where Temperature &gt; 90</p>
+<h3>Meaning:</h3>
+<p>Show machines with temperature above 90 during the last 10 minutes.</p>
+<p>This is exactly the kind of query Eventhouse is designed for.</p>
+<h3>13. Time-based aggregation</h3>
+<p>Suppose events arrive every second.</p>
+<p>10:30:01</p>
+<p>10:30:02</p>
+<p>10:30:03</p>
+<p>...</p>
+<h3>But your dashboard needs:</h3>
+<p>Average temperature every 5 minutes.</p>
+<p>KQL can perform time-based aggregation.</p>
+<h3>For example:</h3>
+<p>MachineEvents</p>
+<p>| summarize AvgTemperature = avg(Temperature)</p>
+<p>by bin(Timestamp, 5m)</p>
+<h3>Conceptually:</h3>
+<p>Individual Events</p>
+<p>↓</p>
+<p>Group into 5-minute windows</p>
+<p>↓</p>
+<p>Calculate Average</p>
+<p>↓</p>
+<p>Dashboard</p>
+<h3>14. Eventhouse is not only IoT</h3>
+<h3>A common misconception is:</h3>
+<p>Eventhouse = IoT database.</p>
+<p>No.</p>
+<p>IoT is only one use case.</p>
+<h3>Eventhouse can handle:</h3>
+<p>IoT Telemetry</p>
+<p>Application Logs</p>
+<p>Website Clickstream</p>
+<p>Security Events</p>
+<p>Financial Transactions</p>
+<p>Vehicle Telemetry</p>
+<p>Infrastructure Monitoring</p>
+<p>Operational Events</p>
+<p>Business Events</p>
+<p>Network Logs</p>
+<h3>15. Application log example</h3>
+<h3>Suppose your application produces:</h3>
+<p>Timestamp | Level    | Service | Message</p>
+<p>----------|----------|---------|----------------</p>
+<p>10:30:01  | INFO     | API     | Request received</p>
+<p>10:30:02  | ERROR    | DB      | Connection failed</p>
+<p>10:30:03  | INFO     | API     | Request completed</p>
+<p>10:30:04  | CRITICAL | Payment | Payment service down</p>
+<h3>Store this in:</h3>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>ApplicationDB</p>
+<p>↓</p>
+<p>ApplicationLogs</p>
+<h3>Query:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;ERROR&quot;</p>
+<h3>Or:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;CRITICAL&quot;</p>
+<h3>16. Count errors</h3>
+<h3>You could write:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;ERROR&quot;</p>
+<p>| summarize ErrorCount = count()</p>
+<h3>Or count by service:</h3>
+<p>ApplicationLogs</p>
+<p>| where Level == &quot;ERROR&quot;</p>
+<p>| summarize ErrorCount = count() by Service</p>
+<h3>Result:</h3>
+<pre class="diagram">Service     Errors
+------------------</pre>
+<p>API           15</p>
+<p>Database      32</p>
+<p>Payment       47</p>
+<p>Authentication 8</p>
+<p>Now you have real-time operational analytics.</p>
+<h3>17. Banking example</h3>
+<h3>Imagine:</h3>
+<p>Credit Card Transactions</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>Transactions Table</p>
+<h3>Table:</h3>
+<p>TransactionID</p>
+<p>CustomerID</p>
+<p>Amount</p>
+<p>Location</p>
+<p>Merchant</p>
+<p>Timestamp</p>
+<p>Status</p>
+<h3>You could query high-value transactions:</h3>
+<p>Transactions</p>
+<p>| where Amount &gt; 100000</p>
+<h3>Or failed transactions:</h3>
+<p>Transactions</p>
+<p>| where Status == &quot;Failed&quot;</p>
+<p>Then show them in a dashboard.</p>
+<h3>18. Website analytics example</h3>
+<p>Imagine an e-commerce website.</p>
+<h3>Users continuously generate:</h3>
+<p>PageView</p>
+<p>Search</p>
+<p>ProductView</p>
+<p>AddToCart</p>
+<p>Purchase</p>
+<p>Logout</p>
+<h3>Architecture:</h3>
+<p>Website</p>
+<p>↓</p>
+<p>Events</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>WebEvents</p>
+<p>↓</p>
+<p>KQL</p>
+<h3>Now you can calculate:</h3>
+<p>Active users</p>
+<p>Views/minute</p>
+<p>Products viewed</p>
+<p>Cart additions</p>
+<p>Purchases/minute</p>
+<p>Failed payments</p>
+<h3>19. Eventhouse vs Fabric Warehouse</h3>
+<p>This is a very important distinction.</p>
+<h3>Fabric Warehouse</h3>
+<h3>Best suited to:</h3>
+<p>Structured Business Data</p>
+<p>Fact Tables</p>
+<p>Dimension Tables</p>
+<p>Star Schema</p>
+<p>Financial Reporting</p>
+<p>Sales Reporting</p>
+<p>BI Analytics</p>
+<h3>Typical language:</h3>
+<p>T-SQL</p>
+<p>Eventhouse</p>
+<h3>Best suited to:</h3>
+<p>Events</p>
+<p>Logs</p>
+<p>Telemetry</p>
+<p>Time-Series</p>
+<p>Streaming Data</p>
+<p>Operational Analytics</p>
+<h3>Typical language:</h3>
+<p>KQL</p>
+<p>20. Warehouse vs Eventhouse comparison</p>
+<div class="table-wrap"><table><thead><tr><th>Fabric Warehouse</th><th>Eventhouse</th></tr></thead><tbody><tr><td>Structured analytical data</td><td>Event/time-series/log data</td></tr><tr><td>T-SQL</td><td>KQL</td></tr><tr><td>Fact &amp; Dimension tables</td><td>Event tables</td></tr><tr><td>Star Schema common</td><td>Time-oriented/event model</td></tr><tr><td>Traditional BI analytics</td><td>Real-time/operational analytics</td></tr><tr><td>Sales/Finance/HR</td><td>IoT/Logs/Telemetry</td></tr><tr><td>Batch/analytical workloads</td><td>Streaming + real-time workloads</td></tr></tbody></table></div>
+<h3>Easy memory:</h3>
+<p>WAREHOUSE</p>
+<p>=</p>
+<p>Business Analytics</p>
+<p>EVENTHOUSE</p>
+<p>=</p>
+<p>Event Analytics</p>
+<h3>21. Eventhouse vs Lakehouse</h3>
+<h3>Another important distinction:</h3>
+<h3>Lakehouse</h3>
+<h3>General-purpose analytical storage:</h3>
+<p>Files</p>
+<p>Delta Tables</p>
+<p>Structured Data</p>
+<p>Semi-Structured Data</p>
+<p>Spark</p>
+<p>SQL</p>
+<p>Eventhouse</p>
+<h3>Specialized for:</h3>
+<p>Events</p>
+<p>Logs</p>
+<p>Telemetry</p>
+<p>Time-Series</p>
+<p>High-volume event analytics</p>
+<p>KQL</p>
+<h3>So:</h3>
+<h3>Lakehouse</h3>
+<p>=</p>
+<p>Data Engineering</p>
+<h3>Warehouse</h3>
+<p>=</p>
+<p>SQL Analytics</p>
+<p>Eventhouse</p>
+<p>=</p>
+<p>Real-Time Event Analytics</p>
+<p>That&#x27;s a useful Fabric mental model.</p>
+<h3>22. Eventhouse vs Eventstream</h3>
+<h3>Another way to remember:</h3>
+<pre class="diagram">                    EVENT DATA
+                        │
+                        ▼
+                  EVENTSTREAM
+                        │
+                  Transport Layer
+                        │
+                        ▼
+                   EVENTHOUSE
+                        │</pre>
+<p>Storage +</p>
+<pre class="diagram">                    Analytics
+                        │
+                        ▼</pre>
+<p>KQL</p>
+<p>Eventstream does not replace Eventhouse.</p>
+<p>Eventhouse does not replace Eventstream.</p>
+<p>They work together.</p>
+<h3>23. Batch vs Real-Time architecture</h3>
+<h3>Your earlier Fabric modules might use:</h3>
+<p>BATCH ARCHITECTURE</p>
+<p>SQL Server</p>
+<p>↓</p>
+<h3>Data Factory</h3>
+<p>↓</p>
+<h3>Lakehouse</h3>
+<p>↓</p>
+<h3>Warehouse</h3>
+<p>↓</p>
+<p>Power BI</p>
+<h3>Real-Time Intelligence can use:</h3>
+<p>REAL-TIME ARCHITECTURE</p>
+<p>Streaming Source</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<p>This distinction is worth memorizing.</p>
+<h3>24. Eventhouse and dashboards</h3>
+<h3>Once data is in Eventhouse:</h3>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Query Results</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<h3>For example, a factory dashboard could show:</h3>
+<pre class="diagram">┌─────────────────────────────────────┐
+│      FACTORY MONITORING             │
+├─────────────────────────────────────┤
+│                                     │
+│ Active Machines        975          │
+│ Failed Machines         25          │
+│ Critical Temperature    17          │
+│ Average Temperature     74°C         │
+│                                     │
+├─────────────────────────────────────┤
+│ Temperature Trend                   │
+│                                     │
+│     /\     /\                       │
+│ ___/  \___/  \_____                 │
+│                                     │
+├─────────────────────────────────────┤
+│ Critical Machines                   │
+│                                     │
+│ M103     102°C                      │
+│ M405      98°C                      │
+│ M725      96°C                      │
+└─────────────────────────────────────┘</pre>
+<h3>The underlying flow is:</h3>
+<p>Sensors</p>
+<p>↓</p>
+<p>Eventstream</p>
+<p>↓</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>KQL</p>
+<p>↓</p>
+<p>Dashboard</p>
+<h3>25. How this fits your Module 8</h3>
+<h3>Your module now becomes much easier:</h3>
+<pre class="diagram">8.1 EVENTSTREAM
+       │
+       │
+       │ Bring Events
+       ▼
+8.2 EVENTHOUSE
+       │
+       │
+       │ Store Events
+       ▼
+8.3 KQL
+       │
+       │
+       │ Query Events
+       ▼
+8.4 STREAMING DATA
+       │
+       ▼
+8.5 DASHBOARDS
+       │
+       │
+       │ Visualize Events
+       ▼
+8.6 SIMULATE STREAMING DATA
+       │
+       │
+       │ Generate Events
+       ▼</pre>
+<p>8.7 QUERY WITH KQL</p>
+<h3>26. Complete example</h3>
+<p>Suppose we want to monitor taxis.</p>
+<h3>Every taxi sends:</h3>
+<p>{</p>
+<p>&quot;TaxiID&quot;: &quot;T101&quot;,</p>
+<p>&quot;Latitude&quot;: 17.385,</p>
+<p>&quot;Longitude&quot;: 78.4867,</p>
+<p>&quot;Speed&quot;: 65,</p>
+<p>&quot;Timestamp&quot;: &quot;2026-08-02T20:30:15&quot;</p>
+<p>}</p>
+<h3>Events continuously arrive:</h3>
+<p>T101 → 65 km/h</p>
+<p>T102 → 72 km/h</p>
+<p>T103 → 95 km/h</p>
+<p>T104 → 45 km/h</p>
+<h3>Architecture:</h3>
+<pre class="diagram">                 TAXIS
+                   │
+                   ▼
+              GPS EVENTS
+                   │
+                   ▼
+             EVENTSTREAM
+                   │
+                   ▼
+              EVENTHOUSE
+                   │
+                   ▼
+               TaxiEvents
+                   │
+                   ▼</pre>
+<p>KQL</p>
+<h3>Query speeding taxis:</h3>
+<p>TaxiEvents</p>
+<p>| where Speed &gt; 80</p>
+<p>| project TaxiID, Speed, Timestamp</p>
+<h3>Then:</h3>
+<p>KQL</p>
+<p>↓</p>
+<p>Real-Time Dashboard</p>
+<p>↓</p>
+<p>Operations Team</p>
+<p>That&#x27;s an end-to-end Eventhouse use case.</p>
+<h3>27. Interview question — What is Eventhouse?</h3>
+<h3>A strong answer is:</h3>
+<p>Eventhouse is a Microsoft Fabric Real-Time Intelligence item designed for storing, managing, and analyzing large volumes of event-based, telemetry, log, and time-series data. It works with KQL databases and enables fast analytical querying using Kusto Query Language. Streaming events can be ingested through capabilities such as Eventstream and then analyzed and visualized through KQL queries and Real-Time Dashboards.</p>
+<h3>28. Interview question — Eventstream vs Eventhouse</h3>
+<h3>A simple answer:</h3>
+<p>Eventstream is primarily responsible for ingesting, transforming, and routing streaming events, whereas Eventhouse provides the storage and analytical environment for those events. Once data is stored in an Eventhouse KQL database, we can analyze it using KQL.</p>
+<h3>Remember:</h3>
+<p>EVENTSTREAM</p>
+<p>=</p>
+<p>Bring the data</p>
+<p>EVENTHOUSE</p>
+<p>=</p>
+<p>Store the data</p>
+<p>KQL</p>
+<p>=</p>
+<p>Analyze the data</p>
+<p>DASHBOARD</p>
+<p>=</p>
+<p>Show the data</p>
+<h3>29. Interview question — Eventhouse vs Warehouse</h3>
+<p>Fabric Warehouse is designed primarily for structured relational analytical workloads and is queried using T-SQL, while Eventhouse is optimized for high-volume event, telemetry, log, and time-series analytics and is primarily queried using KQL.</p>
+<h3>Easy memory:</h3>
+<h3>Warehouse</h3>
+<p>↓</p>
+<p>Fact / Dimension</p>
+<p>↓</p>
+<p>T-SQL</p>
+<p>Eventhouse</p>
+<p>↓</p>
+<p>Events / Logs</p>
+<p>↓</p>
+<p>KQL</p>
+<h3>30. Quick revision</h3>
+<pre class="diagram">EVENTHOUSE
+================================
+Part of
+-------</pre>
+<p>Real-Time Intelligence</p>
+<pre class="diagram">Purpose
+-------</pre>
+<p>Store and analyze</p>
+<p>real-time/event data</p>
+<pre class="diagram">Best for
+--------</pre>
+<p>Events</p>
+<p>Logs</p>
+<p>Telemetry</p>
+<p>Time-Series</p>
+<p>IoT</p>
+<p>Clickstream</p>
+<p>Operational Data</p>
+<pre class="diagram">Contains
+--------</pre>
+<p>KQL Databases</p>
+<pre class="diagram">Query Language
+--------------</pre>
+<p>KQL</p>
+<pre class="diagram">Common Input
+------------</pre>
+<p>Eventstream</p>
+<pre class="diagram">Visualization
+-------------</pre>
+<p>Real-Time Dashboard</p>
+<p>One diagram to remember</p>
+<p>REAL WORLD</p>
+<pre class="diagram">       IoT / Apps / Logs
+              │
+              ▼
+       ┌───────────────┐
+       │  EVENTSTREAM  │
+       │               │
+       │ Bring Events  │
+       └───────┬───────┘
+               │
+               ▼</pre>
+<p>╔═══════════════╗</p>
+<p>║  EVENTHOUSE   ║</p>
+<p>║               ║</p>
+<p>║ Store Events  ║</p>
+<p>║               ║</p>
+<p>║ KQL DATABASE  ║</p>
+<pre class="diagram">       ║       │       ║
+       ║       ▼       ║</pre>
+<p>║    TABLES     ║</p>
+<p>╚═══════╤═══════╝</p>
+<pre class="diagram">               │
+               ▼
+              KQL
+               │
+               ▼
+       REAL-TIME DASHBOARD
+               │
+               ▼</pre>
+<p>BUSINESS USER</p>
+<h3>Key takeaway</h3>
+<h3>For 8.2 Eventhouse, remember these four words:</h3>
+<p>Eventstream → Eventhouse → KQL → Dashboard</p>
+<h3>Or even simpler:</h3>
+<p>Eventstream brings it. Eventhouse stores it. KQL queries it. Dashboard shows it.</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-2"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.3</span><h2>KQL</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-3"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.3</span><h2></h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-4"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.4</span><h2>Streaming Data</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-5"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.5</span><h2>Dashboards</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-6"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.6</span><h2>Simulate Streaming Data</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-7"><div class="lesson-head"><span class="lesson-eyebrow">Module 8 · Lesson 8.7</span><h2>Query with KQL</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+</main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script></body></html>
