@@ -1,0 +1,1055 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CI/CD &amp; DevOps — Module 11</title><style>
+:root{
+  --bg:#0f1115;--panel:#151822;--panel-2:#11141b;--ink:#e7e9ee;
+  --ink-dim:#a7adba;--ink-faint:#6b7280;--accent:#5fd3c4;--accent-2:#f2a65a;
+  --rule:#262b38;--code-bg:#0b0d12;--code-ink:#cde5ff;--diagram-ink:#7fe3c7;
+  --table-head:#1b2030;--radius:10px;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:8px}
+.nav-link:hover{background:rgba(95,211,196,.08);color:var(--ink)}
+.nav-link.active{background:rgba(95,211,196,.12);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent-2);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:#fff}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:#fff;line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:#fff;margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px;border-left:3px solid var(--accent);padding-left:14px}
+.content h3:first-child{margin-top:0}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:24px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent-2);font-family:var(--mono)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--code-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.diagram-label{color:#e7e9ee}.diagram-branch{color:#7fe3c7}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px}thead th{background:var(--table-head);color:#fff;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--ink)}
+.callout{background:linear-gradient(180deg,rgba(95,211,196,.09),rgba(95,211,196,.03));border:1px solid rgba(95,211,196,.28);border-radius:14px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:rgba(242,166,90,.07);border:1px solid rgba(242,166,90,.25);border-radius:12px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent-2);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:#04211d;border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}main{padding:36px 20px 90px}}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../fabric-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Fabric Data Engineering</div>
+<div class="brand-title">CI/CD &amp; DevOps</div>
+<div class="brand-sub">Module 11 · 6 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">11.1</span>Git Integration</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">11.2</span>Deployment Pipelines</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">11.3</span>Workspace Promotion</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">11.4</span>Environment Management</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">11.5</span>GitHub Integration</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">11.6</span>Deploy Across Workspaces</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Module 11</div><h1>CI/CD &amp; DevOps</h1>
+<p>11.6 Deploy Across Workspaces — Complete Microsoft Fabric + Azure DevOps Guide</p>
+<div class="doc-meta"><span class="pill">6 lessons</span><span class="pill">Microsoft Fabric</span><span class="pill">DP-700 Track</span></div></header>
+<section class="lesson" id="lesson-1"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.1</span><h2>Git Integration</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-2"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.2</span><h2>Deployment Pipelines</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-3"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.3</span><h2>Workspace Promotion</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-4"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.4</span><h2>Environment Management</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-5"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.5</span><h2>GitHub Integration</h2></div><div class="content">
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+<section class="lesson" id="lesson-6"><div class="lesson-head"><span class="lesson-eyebrow">Module 11 · Lesson 11.6</span><h2>Deploy Across Workspaces</h2></div><div class="content">
+<p>11.6 Deploy Across Workspaces — Complete Microsoft Fabric + Azure DevOps Guide</p>
+<p>For a real Microsoft Fabric project, I recommend thinking about deployment as two separate but connected processes:</p>
+<p>Azure DevOps Git = source control and collaboration</p>
+<h3>Fabric Deployment / CI/CD = promotion from DEV → TEST → PROD</h3>
+<p>Microsoft&#x27;s current Fabric CI/CD tooling supports Git integration with Azure DevOps and multiple approaches for automating deployments. (Microsoft Learn)</p>
+<h3>A production architecture typically looks like this:</h3>
+<pre class="diagram">                    DEVELOPERS
+                        │
+                        ▼
+              ┌──────────────────┐
+              │ FABRIC DEV       │
+              │ WORKSPACE        │
+              │                  │
+              │ Lakehouse        │
+              │ Pipelines        │
+              │ Notebooks        │
+              │ Dataflows Gen2   │
+              │ Warehouse        │
+              │ Semantic Models  │
+              │ Reports          │
+              └────────┬─────────┘
+                       │
+                  Git Integration
+                       │
+                       ▼
+              ┌──────────────────┐
+              │ AZURE DEVOPS     │
+              │                  │
+              │ Azure Repos      │
+              │ Branches         │
+              │ Pull Requests    │
+              │ Code Reviews     │
+              │ Pipelines        │
+              └────────┬─────────┘
+                       │
+                       ▼
+                 Approved Code
+                       │
+                       ▼
+              ┌──────────────────┐
+              │ FABRIC TEST      │
+              │ WORKSPACE        │
+              └────────┬─────────┘
+                       │
+                  Testing / UAT
+                       │
+                    Approval
+                       │
+                       ▼
+              ┌──────────────────┐
+              │ FABRIC PROD      │
+              │ WORKSPACE        │
+              └──────────────────┘</pre>
+<p>This is the overall idea behind 11.6 Deploy Across Workspaces.</p>
+<h3>1. What does &quot;Deploy Across Workspaces&quot; mean?</h3>
+<h3>Suppose your organization has three Fabric workspaces:</h3>
+<pre class="diagram">Fabric
+│
+├── Sales-DEV
+│
+├── Sales-TEST
+│
+└── Sales-PROD</pre>
+<p>Developers should not develop directly in PROD.</p>
+<h3>Instead:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>DEV</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>PROD</p>
+<h3>For example, you create a new notebook:</h3>
+<p>NB_Load_Customers</p>
+<p>You don&#x27;t manually recreate it three times.</p>
+<h3>You develop it once:</h3>
+<p>DEV</p>
+<p>↓</p>
+<p>Version Control</p>
+<p>↓</p>
+<p>Deploy</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>Validate</p>
+<p>↓</p>
+<p>Deploy</p>
+<p>↓</p>
+<p>PROD</p>
+<h3>2. Why Azure DevOps?</h3>
+<p>Microsoft Fabric CI/CD documentation</p>
+<h3>Azure DevOps provides capabilities such as:</h3>
+<pre class="diagram">Azure DevOps
+│
+├── Repos
+│     └── Git source control
+│
+├── Branches
+│     └── Development workflow
+│
+├── Pull Requests
+│     └── Code review
+│
+├── Pipelines
+│     └── Automation
+│
+└── Environments
+      └── Deployment approvals</pre>
+<p>Fabric&#x27;s native Git integration can synchronize workspace items with an Azure DevOps Git repository. (Microsoft Learn)</p>
+<h3>3. Git integration vs Deployment Pipeline</h3>
+<p>This distinction is extremely important.</p>
+<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Purpose</th></tr></thead><tbody><tr><td>Git Integration</td><td>Version control</td></tr><tr><td>Azure DevOps Repo</td><td>Store Fabric definitions</td></tr><tr><td>Branches</td><td>Isolate development</td></tr><tr><td>Pull Requests</td><td>Review changes</td></tr><tr><td>Fabric Deployment Pipeline</td><td>Promote between workspaces</td></tr><tr><td>Azure Pipeline</td><td>Automate CI/CD</td></tr><tr><td>Fabric REST API / fabric-cicd</td><td>Programmatic deployment</td></tr></tbody></table></div>
+<h3>Think:</h3>
+<p>Git Integration</p>
+<p>↓</p>
+<p>&quot;What changed?&quot;</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<p>&quot;Where should this version go?&quot;</p>
+<h3>4. Recommended workspace architecture</h3>
+<h3>For your learning project, create:</h3>
+<pre class="diagram">FABRIC TRAINING PROJECT
+│
+├── Fabric-DEV
+│
+├── Fabric-TEST
+│
+└── Fabric-PROD</pre>
+<h3>For a company project, naming might look like:</h3>
+<p>EDW-Fabric-DEV</p>
+<p>EDW-Fabric-TEST</p>
+<p>EDW-Fabric-PROD</p>
+<p>Each environment represents a separate lifecycle stage.</p>
+<h3>5. What should exist inside the workspaces?</h3>
+<h3>For example:</h3>
+<pre class="diagram">EDW-Fabric-DEV
+│
+├── LH_EDW
+│
+├── WH_EDW
+│
+├── PL_Load_Customers
+│
+├── PL_Load_Orders
+│
+├── NB_Transform_Customers
+│
+├── NB_Transform_Sales
+│
+├── DF_Customer_Cleanup
+├── Semantic Model
+└── Reports</pre>
+<h3>After promotion, corresponding supported items can exist in:</h3>
+<p>EDW-Fabric-TEST</p>
+<h3>and eventually:</h3>
+<p>EDW-Fabric-PROD</p>
+<p>But be aware that support varies by Fabric item type, and some item types/features are still preview or have deployment limitations. Always check the current supported-items documentation before designing the pipeline.</p>
+<h3>6. Step 1 — Create an Azure DevOps project</h3>
+<h3>Open Azure DevOps and create something like:</h3>
+<p>Organization</p>
+<p>↓</p>
+<p>Project</p>
+<p>↓</p>
+<p>Fabric-EDW</p>
+<h3>Inside the project:</h3>
+<pre class="diagram">Fabric-EDW
+│
+├── Boards
+├── Repos
+├── Pipelines
+├── Test Plans
+└── Artifacts</pre>
+<h3>For Fabric CI/CD, we&#x27;re primarily interested in:</h3>
+<pre class="diagram">Repos
++</pre>
+<p>Pipelines</p>
+<h3>7. Step 2 — Create Azure Repo</h3>
+<h3>Go to:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Fabric-EDW Project</p>
+<p>↓</p>
+<p>Repos</p>
+<h3>Create/select a repository:</h3>
+<p>fabric-edw</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">Azure DevOps
+│
+└── Repos
+     │
+     └── fabric-edw</pre>
+<p>This repository will store the definitions of supported Fabric items.</p>
+<h3>8. Step 3 — Decide your branch strategy</h3>
+<h3>For a beginner project, you might think in terms of:</h3>
+<pre class="diagram">main
+│
+└── feature/*</pre>
+<h3>For example:</h3>
+<p>main</p>
+<p>feature/customer-pipeline</p>
+<p>feature/sales-notebook</p>
+<p>feature/order-transformation</p>
+<h3>A developer creates:</h3>
+<p>feature/customer-pipeline</p>
+<p>makes changes and raises a Pull Request.</p>
+<p>feature/customer-pipeline</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Review</p>
+<p>↓</p>
+<p>main</p>
+<p>For more automated enterprise CI/CD, Microsoft also documents patterns using long-lived dev, test, and prod branches. Its current Azure DevOps + fabric-cicd tutorial, for example, connects DEV to dev, while test and prod record promoted versions and deployment is handled by the CI/CD tooling. (Microsoft Learn)</p>
+<p>So branch strategy should match the deployment model you choose.</p>
+<h3>9. Step 4 — Enable Fabric Git integration</h3>
+<p>Your Fabric administrator must allow Git integration.</p>
+<p>The relevant tenant setting allows users to synchronize workspace items with Git repositories. (Microsoft Learn)</p>
+<h3>Conceptually:</h3>
+<h3>Fabric Admin Portal</h3>
+<p>↓</p>
+<p>Tenant Settings</p>
+<p>↓</p>
+<p>Git Integration</p>
+<p>↓</p>
+<p>Enable</p>
+<p>You may need your Fabric administrator if you can&#x27;t see or use the Git options.</p>
+<h3>10. Step 5 — Connect Fabric DEV to Azure DevOps</h3>
+<p>Microsoft documentation: Fabric Git integration process</p>
+<h3>Open:</h3>
+<p>Microsoft Fabric</p>
+<p>↓</p>
+<p>DEV Workspace</p>
+<h3>Then:</h3>
+<p>Workspace settings</p>
+<p>↓</p>
+<p>Source control</p>
+<p>↓</p>
+<p>Connect</p>
+<h3>Select:</h3>
+<p>Azure DevOps</p>
+<h3>You&#x27;ll configure information such as:</h3>
+<p>Azure DevOps organization</p>
+<p>Project</p>
+<p>Git repository</p>
+<p>Branch</p>
+<p>Folder</p>
+<h3>For example:</h3>
+<h3>Organization:</h3>
+<p>mycompany</p>
+<h3>Project:</h3>
+<p>Fabric-EDW</p>
+<h3>Repository:</h3>
+<p>fabric-edw</p>
+<h3>Branch:</h3>
+<p>main</p>
+<p>or whichever branch your workflow uses.</p>
+<h3>11. What happens after connection?</h3>
+<h3>Now:</h3>
+<h3>Fabric DEV Workspace</h3>
+<p>↕</p>
+<p>Azure DevOps Git</p>
+<h3>Fabric can show synchronization status between the workspace and repository.</h3>
+<h3>Conceptually:</h3>
+<p>Fabric</p>
+<p>PL_Load_Customers</p>
+<p>NB_Transform_Sales</p>
+<p>LH_EDW</p>
+<p>↓ Commit</p>
+<p>Azure DevOps</p>
+<p>PL_Load_Customers/</p>
+<p>NB_Transform_Sales/</p>
+<p>LH_EDW/</p>
+<h3>Fabric serializes supported item definitions into Git-trackable representations. (Microsoft Learn)</h3>
+<h3>12. Important: Git isn&#x27;t backing up all your Lakehouse data</h3>
+<p>This is a critical concept.</p>
+<p>For Lakehouse, Fabric Git integration tracks metadata, not the actual data stored in tables/files.</p>
+<p>Microsoft specifically states that Lakehouse tables and Files data aren&#x27;t versioned in Git, and Git/deployment operations don&#x27;t overwrite that data. (Microsoft Learn)</p>
+<h3>So:</h3>
+<pre class="diagram">Lakehouse
+│
+├── Definition / metadata → Git ✓
+│
+└── Actual TBs of data    → Git ✕</pre>
+<p>You are not pushing terabytes of Parquet data into Azure DevOps.</p>
+<h3>13. Step 6 — Developer makes changes</h3>
+<h3>Suppose you modify:</h3>
+<p>NB_Transform_Customers</p>
+<p>in DEV.</p>
+<h3>Fabric detects a difference:</h3>
+<p>Workspace Version</p>
+<p>≠</p>
+<p>Git Version</p>
+<p>You can commit the change.</p>
+<h3>Conceptually:</h3>
+<p>Developer</p>
+<p>↓</p>
+<h3>Fabric DEV</h3>
+<p>↓</p>
+<p>Modify Notebook</p>
+<p>↓</p>
+<p>Commit</p>
+<p>↓</p>
+<p>Azure DevOps</p>
+<p>Now the notebook definition is version controlled.</p>
+<h3>14. Step 7 — Pull Request</h3>
+<h3>In a controlled enterprise process:</h3>
+<p>Developer Branch</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Reviewer</p>
+<p>↓</p>
+<p>Approve</p>
+<p>↓</p>
+<p>Merge</p>
+<h3>For example:</h3>
+<p>feature/sales-transformation</p>
+<p>↓</p>
+<p>PR</p>
+<p>↓</p>
+<p>main</p>
+<h3>Benefits:</h3>
+<p>Code Review</p>
+<p>Change History</p>
+<p>Approval</p>
+<p>Auditability</p>
+<p>Rollback capability</p>
+<h3>15. Step 8 — Create Fabric Deployment Pipeline</h3>
+<p>Now we move from source control to environment promotion.</p>
+<p>Microsoft guide: Get started with Fabric deployment pipelines</p>
+<p>Create a deployment pipeline in Fabric.</p>
+<h3>For example:</h3>
+<p>EDW Deployment Pipeline</p>
+<h3>Configure stages representing:</h3>
+<p>Development</p>
+<p>↓</p>
+<p>Test</p>
+<p>↓</p>
+<p>Production</p>
+<p>The current Fabric deployment-pipeline experience supports assigning workspaces to pipeline stages. (Microsoft Learn)</p>
+<h3>16. Step 9 — Assign workspaces</h3>
+<h3>Assign:</h3>
+<p>Development</p>
+<p>↓</p>
+<p>EDW-Fabric-DEV</p>
+<p>Test</p>
+<p>↓</p>
+<p>EDW-Fabric-TEST</p>
+<p>Production</p>
+<p>↓</p>
+<p>EDW-Fabric-PROD</p>
+<h3>Architecture:</h3>
+<p>EDW Deployment Pipeline</p>
+<pre class="diagram">┌────────────────┐
+│ Development    │
+│                │
+│ Fabric-DEV     │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Test           │
+│                │
+│ Fabric-TEST    │
+└───────┬────────┘
+        │
+        ▼
+┌────────────────┐
+│ Production     │
+│                │
+│ Fabric-PROD    │
+└────────────────┘</pre>
+<h3>17. Step 10 — Deploy DEV → TEST</h3>
+<h3>Suppose DEV contains:</h3>
+<p>PL_Load_Customers</p>
+<p>NB_Transform_Customers</p>
+<p>LH_EDW</p>
+<h3>After development and review:</h3>
+<p>DEV</p>
+<p>↓</p>
+<p>Deploy</p>
+<p>↓</p>
+<p>TEST</p>
+<p>Fabric lets you select supported content for deployment. Deploying source items can overwrite their paired target-stage items; items absent from the source aren&#x27;t simply deleted automatically as part of an ordinary deployment. (Microsoft Learn)</p>
+<p>When deploying into an empty stage, Fabric preserves supported item relationships—for example, relationships between reports and semantic models. (Microsoft Learn)</p>
+<h3>18. TEST environment</h3>
+<p>TEST is where you validate the solution.</p>
+<pre class="diagram">TEST
+│
+├── Functional Testing
+├── Integration Testing
+├── Data Validation
+├── Performance Testing
+├── Security Testing
+└── UAT</pre>
+<h3>For a data pipeline:</h3>
+<p>Pipeline</p>
+<p>↓</p>
+<p>Run</p>
+<p>↓</p>
+<p>Check Success</p>
+<p>↓</p>
+<p>Validate Row Counts</p>
+<p>↓</p>
+<p>Validate Data</p>
+<p>↓</p>
+<p>Validate Business Rules</p>
+<p>Only after validation should the release move to PROD.</p>
+<h3>19. Step 11 — Deploy TEST → PROD</h3>
+<h3>After testing:</h3>
+<p>TEST</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>PROD</p>
+<h3>Conceptually:</h3>
+<pre class="diagram">DEV
+ │
+ │ Develop
+ ▼
+TEST
+ │
+ │ Validate
+ ▼</pre>
+<p>PROD</p>
+<p>The production workspace should ideally be treated as controlled deployment territory rather than a development environment.</p>
+<h3>20. Environment-specific configuration</h3>
+<p>This is one of the biggest real-world issues.</p>
+<h3>Imagine your DEV pipeline connects to:</h3>
+<h3>Server:</h3>
+<p>sql-dev.company.com</p>
+<h3>Database:</h3>
+<p>SalesDEV</p>
+<h3>TEST should use:</h3>
+<p>sql-test.company.com</p>
+<p>SalesTEST</p>
+<h3>PROD:</h3>
+<p>sql-prod.company.com</p>
+<p>SalesPROD</p>
+<p>You do not want the PROD deployment continuing to connect to DEV.</p>
+<h3>21. Use environment-specific configuration</h3>
+<h3>Conceptually:</h3>
+<pre class="diagram">                 SAME CODE
+                    │
+         ┌──────────┼──────────┐
+         ▼          ▼          ▼</pre>
+<p>DEV        TEST       PROD</p>
+<p>Server  DEVSQL     TESTSQL    PRODSQL</p>
+<p>DB      SalesDev   SalesTest  SalesProd</p>
+<p>Fabric supports lifecycle-management approaches for handling environment-specific references and configuration; Variable Libraries are also part of Fabric&#x27;s current CI/CD tooling. (Microsoft Learn)</p>
+<h3>This is preferable to hardcoding:</h3>
+<pre class="code">server = &quot;devserver&quot;</pre>
+<p>throughout notebooks.</p>
+<h3>22. Example notebook design</h3>
+<h3>Bad:</h3>
+<pre class="code">server = &quot;sql-dev.company.com&quot;
+database = &quot;SalesDEV&quot;</pre>
+<p>because when deployed to PROD it can still point at DEV.</p>
+<h3>Better architectural thinking:</h3>
+<p>Notebook</p>
+<p>↓</p>
+<p>Environment configuration</p>
+<p>↓</p>
+<p>DEV → DEV values</p>
+<p>TEST → TEST values</p>
+<p>PROD → PROD values</p>
+<p>The code remains logically consistent while configuration changes by environment.</p>
+<h3>23. Connections and credentials</h3>
+<p>Treat these differently from normal code.</p>
+<h3>Don&#x27;t store passwords in notebooks or Git:</h3>
+<pre class="code">password = &quot;MyProductionPassword123&quot;</pre>
+<p>Never commit secrets like that to Azure DevOps.</p>
+<p>Instead use appropriate Fabric/Azure connection and secret-management mechanisms.</p>
+<p>For fully automated Azure DevOps CI/CD, Microsoft demonstrates Azure Key Vault + Azure DevOps variable groups + a service principal. (Microsoft Learn)</p>
+<h3>Conceptually:</h3>
+<p>Azure DevOps Pipeline</p>
+<p>↓</p>
+<p>Secure Authentication</p>
+<p>↓</p>
+<h3>Fabric API</h3>
+<h3>24. Option A — Native Fabric Deployment Pipelines</h3>
+<p>For learning 11.6 Deploy Across Workspaces, start here.</p>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Version Control</p>
+<h3>Fabric DEV</h3>
+<p>↓</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<h3>Fabric TEST</h3>
+<p>↓</p>
+<p>Deployment Pipeline</p>
+<p>↓</p>
+<h3>Fabric PROD</h3>
+<h3>Advantages:</h3>
+<p>Simple</p>
+<p>Visual</p>
+<p>Fabric-native</p>
+<p>Easy to understand</p>
+<p>Good for learning</p>
+<p>Microsoft explicitly documents this hybrid model: Git up to the development stage, then Fabric deployment pipelines to TEST and PROD. (Microsoft Learn)</p>
+<h3>25. Option B — Azure DevOps automated CI/CD</h3>
+<h3>For enterprise automation:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>Git Commit</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Merge</p>
+<p>↓</p>
+<p>Azure Pipeline</p>
+<p>↓</p>
+<p>Authenticate</p>
+<p>↓</p>
+<h3>Fabric APIs / deployment tooling</h3>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>Tests</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>PROD</p>
+<p>This is closer to traditional DevOps.</p>
+<h3>26. fabric-cicd</h3>
+<p>Microsoft now documents an open-source Python package called fabric-cicd for code-first Fabric deployments.</p>
+<p>Microsoft Fabric fabric-cicd documentation</p>
+<p>It provides an abstraction over Fabric REST APIs and is designed to work with Azure Pipelines and other CI/CD systems. (Microsoft Learn)</p>
+<h3>Installation:</h3>
+<p>pip install fabric-cicd</p>
+<p>Microsoft currently documents Python 3.9–3.13 as supported for the package. (Microsoft Learn)</p>
+<h3>27. Enterprise Azure DevOps architecture</h3>
+<h3>A more advanced architecture is:</h3>
+<pre class="diagram">                    DEVELOPERS
+                         │
+                         ▼
+                   FABRIC DEV
+                         │
+                         ▼
+                  AZURE DEVOPS
+                         │
+                   Azure Repos
+                         │
+                  Pull Request
+                         │
+                       MAIN
+                         │
+                         ▼
+                AZURE PIPELINE
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+          Build/Test            Authentication
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+                    fabric-cicd
+                         │
+                  Fabric REST APIs
+                         │
+                         ▼
+                    FABRIC TEST
+                         │
+                  Automated Tests
+                         │
+                         ▼
+                 Approval / Gate
+                         │
+                         ▼</pre>
+<p>FABRIC PROD</p>
+<p>This allows deployment without someone manually clicking Deploy.</p>
+<h3>28. Azure Pipeline YAML concept</h3>
+<h3>An Azure DevOps pipeline may conceptually contain:</h3>
+<h3>trigger:</h3>
+<h3>branches:</h3>
+<h3>include:</h3>
+<p>- main</p>
+<h3>stages:</h3>
+<p>- stage: Validate</p>
+<h3>jobs:</h3>
+<p>- job: ValidateFabric</p>
+<p>- stage: DeployTest</p>
+<h3>jobs:</h3>
+<p>- job: DeployToTest</p>
+<p>- stage: Test</p>
+<h3>jobs:</h3>
+<p>- job: RunTests</p>
+<p>- stage: DeployProd</p>
+<h3>jobs:</h3>
+<p>- job: DeployToProduction</p>
+<p>The actual Fabric deployment commands can use Microsoft&#x27;s supported APIs/tooling.</p>
+<p>Don&#x27;t treat this illustrative YAML as a ready-to-run production pipeline—the authentication, workspace IDs, item scope, parameters, and deployment commands still need to be configured.</p>
+<h3>29. Service Principal</h3>
+<h3>For automation, you don&#x27;t want:</h3>
+<p>Sreehari&#x27;s User Account</p>
+<p>↓</p>
+<p>Production Deployment</p>
+<p>because the deployment would depend on one employee&#x27;s interactive identity.</p>
+<h3>A better enterprise pattern is:</h3>
+<p>Azure DevOps</p>
+<p>↓</p>
+<p>Service Principal</p>
+<p>↓</p>
+<p>Microsoft Fabric</p>
+<p>Microsoft now documents service-principal-based Azure DevOps Git integration and automated Fabric CI/CD scenarios. (Microsoft Learn)</p>
+<h3>30. CI vs CD</h3>
+<p>Very common interview question.</p>
+<p>CI — Continuous Integration</p>
+<p>Developer</p>
+<p>↓</p>
+<p>Commit</p>
+<p>↓</p>
+<p>Git</p>
+<p>↓</p>
+<p>Pull Request</p>
+<p>↓</p>
+<p>Validation</p>
+<p>↓</p>
+<p>Merge</p>
+<h3>Purpose:</h3>
+<p>Ensure changes are safely integrated into the codebase.</p>
+<p>CD — Continuous Delivery/Deployment</p>
+<p>Approved Version</p>
+<p>↓</p>
+<p>DEV</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>PROD</p>
+<h3>Purpose:</h3>
+<p>Move tested versions safely between environments.</p>
+<h3>31. Fabric CI/CD</h3>
+<h3>Therefore:</h3>
+<pre class="diagram">                  CI
+                  │
+Developer → Git → PR → Review
+                  │
+                  ▼
+                 MAIN
+                  │
+                  │
+                  CD
+                  ▼</pre>
+<p>DEV</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>PROD</p>
+<h3>32. Example end-to-end project</h3>
+<h3>Suppose you have:</h3>
+<p>PL_Load_Sales</p>
+<p>NB_Clean_Sales</p>
+<p>NB_Sales_Gold</p>
+<p>LH_Sales</p>
+<p>Sales Semantic Model</p>
+<p>Sales Dashboard</p>
+<h3>Developer changes:</h3>
+<p>NB_Clean_Sales</p>
+<h3>Flow:</h3>
+<p>1. Modify notebook in DEV</p>
+<p>↓</p>
+<p>2. Commit change</p>
+<p>↓</p>
+<p>3. Azure DevOps repository</p>
+<p>↓</p>
+<p>4. Pull Request</p>
+<p>↓</p>
+<p>5. Code review</p>
+<p>↓</p>
+<p>6. Merge approved version</p>
+<p>↓</p>
+<p>7. Synchronize/deploy DEV</p>
+<p>↓</p>
+<p>8. Deploy DEV → TEST</p>
+<p>↓</p>
+<p>9. Run tests</p>
+<p>↓</p>
+<p>10. Validate data</p>
+<p>↓</p>
+<p>11. UAT approval</p>
+<p>↓</p>
+<p>12. Deploy TEST → PROD</p>
+<p>↓</p>
+<p>13. Validate production</p>
+<p>↓</p>
+<h3>14. Monitor</h3>
+<p>That&#x27;s a complete release lifecycle.</p>
+<h3>33. Lakehouse deployment warning</h3>
+<p>This is particularly important for your Fabric learning.</p>
+<h3>Suppose:</h3>
+<p>DEV Lakehouse</p>
+<p>FactSales</p>
+<p>100 GB</p>
+<h3>Deploying the Lakehouse definition doesn&#x27;t mean:</h3>
+<p>100 GB DEV Data</p>
+<p>↓</p>
+<p>Copied into TEST</p>
+<p>Fabric&#x27;s Lakehouse lifecycle management tracks metadata rather than copying the underlying Files/Tables data. (Microsoft Learn)</p>
+<h3>Instead:</h3>
+<p>DEV</p>
+<h3>Lakehouse Definition</h3>
+<p>↓</p>
+<p>Deployment</p>
+<p>↓</p>
+<p>TEST</p>
+<h3>Lakehouse Definition</h3>
+<p>Then TEST pipelines/data processes populate or reference the appropriate TEST data.</p>
+<h3>34. Notebook deployment</h3>
+<p>Fabric notebooks support Git integration and deployment pipelines. Notebook dependencies can also maintain supported bindings through lifecycle operations. (Microsoft Learn)</p>
+<h3>For example:</h3>
+<pre class="diagram">NB_TransformSales
+       │
+       ▼</pre>
+<p>DEV Environment</p>
+<h3>After deployment:</h3>
+<pre class="diagram">NB_TransformSales
+       │
+       ▼</pre>
+<p>TEST Environment</p>
+<p>You should define deployment/configuration rules on the target stage where applicable rather than hardcoding DEV references. (Microsoft Learn)</p>
+<h3>35. Real-Time Intelligence items</h3>
+<p>Since you also studied Eventstream and Eventhouse, this matters.</p>
+<p>Fabric currently supports Git/deployment lifecycle management for Real-Time Intelligence items including:</p>
+<p>Eventstream</p>
+<p>Eventhouse / KQL database</p>
+<p>KQL queryset</p>
+<p>Real-time dashboard</p>
+<p>Activator (preview)</p>
+<p>(Microsoft Learn)</p>
+<p>But cross-workspace Eventstream scenarios have limitations. Microsoft recommends care around destinations, and Direct Ingestion destinations may require connection reconfiguration after deployment. (Microsoft Learn)</p>
+<h3>36. What should NOT go into Git?</h3>
+<p>Don&#x27;t think of Azure DevOps as a dump of everything in Fabric.</p>
+<h3>Generally:</h3>
+<p>CODE / DEFINITIONS</p>
+<p>↓</p>
+<p>Git</p>
+<h3>Examples:</h3>
+<p>Notebook definitions</p>
+<p>Pipeline definitions</p>
+<p>Supported item metadata</p>
+<p>Configuration templates</p>
+<p>Deployment scripts</p>
+<p>Documentation</p>
+<h3>Not:</h3>
+<p>Passwords</p>
+<p>Secrets</p>
+<p>Production credentials</p>
+<p>Terabytes of Lakehouse data</p>
+<p>Temporary files</p>
+<h3>37. Deployment approval strategy</h3>
+<h3>For a company environment:</h3>
+<pre class="diagram">DEV
+ │
+ │ Developer controlled
+ ▼
+TEST
+ │
+ │ QA / UAT Approval
+ ▼</pre>
+<p>PROD</p>
+<h3>Production deployment could require:</h3>
+<p>Tech Lead Approval</p>
+<p>+</p>
+<p>Business/UAT Approval</p>
+<p>+</p>
+<p>Release Approval</p>
+<p>Azure DevOps Environments can provide approval gates in an automated pipeline design; Microsoft&#x27;s current fabric-cicd tutorial demonstrates this pattern. (Microsoft Learn)</p>
+<h3>38. Rollback strategy</h3>
+<h3>Suppose:</h3>
+<p>Version 10</p>
+<p>is deployed to PROD.</p>
+<p>Then users report a critical problem.</p>
+<h3>Because Git contains history:</h3>
+<p>v8</p>
+<p>v9</p>
+<p>v10 ← bad</p>
+<p>you can identify a known-good version and follow your controlled deployment process to restore/redeploy it.</p>
+<p>This is a major reason Git matters.</p>
+<h3>Without source control:</h3>
+<p>&quot;What changed?&quot;</p>
+<p>Nobody knows.</p>
+<h3>With Git:</h3>
+<p>Commit History</p>
+<p>↓</p>
+<p>PR</p>
+<p>↓</p>
+<p>Author</p>
+<p>↓</p>
+<p>Changes</p>
+<p>↓</p>
+<p>Previous Version</p>
+<h3>39. Don&#x27;t manually change PROD</h3>
+<h3>One of the most important enterprise rules:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>PROD</p>
+<p>↓</p>
+<p>Edit Notebook</p>
+<div class="note"><p>❌ Avoid this.</p></div>
+<h3>Prefer:</h3>
+<p>Developer</p>
+<p>↓</p>
+<p>DEV</p>
+<p>↓</p>
+<p>Git</p>
+<p>↓</p>
+<p>PR</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>Approval</p>
+<p>↓</p>
+<p>PROD</p>
+<p>Otherwise your environments can drift.</p>
+<h3>40. Environment drift</h3>
+<h3>Suppose:</h3>
+<p>DEV Notebook</p>
+<p>Version 12</p>
+<p>TEST Notebook</p>
+<p>Version 11</p>
+<p>PROD Notebook</p>
+<p>Version 8 + manual fix</p>
+<p>Now nobody knows what PROD really contains.</p>
+<h3>That&#x27;s:</h3>
+<p>Environment drift</p>
+<h3>A good CI/CD process aims for:</h3>
+<p>Git</p>
+<p>↓</p>
+<p>Controlled version</p>
+<p>↓</p>
+<p>DEV</p>
+<p>↓</p>
+<p>TEST</p>
+<p>↓</p>
+<p>PROD</p>
+<p>with traceability.</p>
+<h3>41. Recommended setup for learning</h3>
+<h3>For your Fabric syllabus, build this hands-on lab:</h3>
+<p>Azure DevOps</p>
+<h3>Project:</h3>
+<p>FabricTraining</p>
+<h3>Repo:</h3>
+<p>fabric-training</p>
+<h3>Create:</h3>
+<p>FabricTraining-DEV</p>
+<p>FabricTraining-TEST</p>
+<p>FabricTraining-PROD</p>
+<h3>In DEV create:</h3>
+<p>LH_Sales</p>
+<p>NB_LoadSales</p>
+<p>NB_TransformSales</p>
+<p>PL_Sales_ETL</p>
+<h3>Then practice:</h3>
+<p>DEV</p>
+<p>↓</p>
+<p>Azure DevOps Git</p>
+<p>↓</p>
+<p>Commit</p>
+<p>↓</p>
+<p>Change Notebook</p>
+<p>↓</p>
+<p>Commit Again</p>
+<p>↓</p>
+<p>View Difference</p>
+<p>↓</p>
+<p>Create Deployment Pipeline</p>
+<p>↓</p>
+<p>DEV → TEST</p>
+<p>↓</p>
+<p>Validate</p>
+<p>↓</p>
+<p>TEST → PROD</p>
+<p>If you can complete this lab yourself, you&#x27;ll understand most of the practical concepts behind 11.6 Deploy Across Workspaces.</p>
+<h3>42. Recommended enterprise approach</h3>
+<h3>For an organization moving toward Fabric, I&#x27;d structure the lifecycle as:</h3>
+<pre class="diagram">              AZURE DEVOPS
+                   │
+          ┌────────┴────────┐
+          │                 │
+       Azure Repo       Azure Pipeline
+          │                 │
+      Versioning         Automation
+          │                 │
+          └────────┬────────┘
+                   │
+                   ▼
+               FABRIC DEV
+                   │
+                   ▼
+                TEST
+                   │
+             Automated Tests
+                   │
+              UAT / Approval
+                   │
+                   ▼
+                PROD
+                   │
+                   ▼</pre>
+<p>MONITOR</p>
+<h3>For your first implementation, however, use:</h3>
+<p>Azure DevOps Git + Fabric Deployment Pipelines</p>
+<p>before moving to full REST API / fabric-cicd automation.</p>
+<p>That makes the concepts much easier to understand.</p>
+<h3>43. Interview question — How do you deploy Fabric items across workspaces?</h3>
+<h3>A strong answer:</h3>
+<p>I separate environments into DEV, TEST, and PROD workspaces. The DEV workspace is integrated with Git, such as Azure DevOps, for version control, branching, pull requests and code reviews. Approved changes are then promoted through Fabric deployment pipelines or an automated CI/CD process. Environment-specific connections and configuration are handled separately so the same logical solution can point to DEV, TEST, and PROD resources appropriately.</p>
+<h3>44. Interview question — Git integration vs Deployment Pipelines?</h3>
+<p>Git integration provides source control, collaboration and version history for supported Fabric items. Deployment pipelines promote supported Fabric content between environment workspaces such as DEV, TEST and PROD. Git answers which version we have; deployment pipelines control where that version is promoted.</p>
+<h3>45. Interview question — Does Fabric Git integration store Lakehouse data?</h3>
+<p>No. For Lakehouse Git integration, Fabric tracks the Lakehouse definition and supported metadata, not the actual table and Files data. The data remains in OneLake and isn&#x27;t copied into Azure DevOps. (Microsoft Learn)</p>
+<h3>46. Interview question — How do you handle DEV/TEST/PROD connections?</h3>
+<p>I avoid hardcoding environment-specific server names, workspace IDs, Lakehouse IDs and credentials. Instead, I externalize environment-specific configuration and use Fabric deployment configuration/Variable Libraries or CI/CD parameterization, with credentials managed securely.</p>
+<h3>47. Interview question — How would you automate Fabric deployment with Azure DevOps?</h3>
+<p>I would keep Fabric definitions in an Azure DevOps repository, use pull requests for controlled merges, and trigger an Azure Pipeline after approval. The pipeline would authenticate using a service principal or another supported workload identity and use Fabric deployment APIs or Microsoft&#x27;s fabric-cicd tooling to deploy to TEST. After automated validation and approval gates, the pipeline would deploy the approved version to PROD. (Microsoft Learn)</p>
+<h3>48. The complete diagram to remember</h3>
+<pre class="diagram">                         DEVELOPER
+                             │
+                             ▼
+                      FEATURE BRANCH
+                             │
+                             ▼
+                       FABRIC DEV
+                             │
+                        Git Commit
+                             │
+                             ▼
+                    ┌────────────────┐
+                    │ AZURE DEVOPS   │
+                    │                │
+                    │ Azure Repos    │
+                    │ Git History    │
+                    │ Pull Requests  │
+                    │ Code Review    │
+                    └───────┬────────┘
+                            │
+                         APPROVE
+                            │
+                            ▼
+                           MAIN
+                            │
+                            ▼
+                       CI/CD PROCESS
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │</pre>
+<h3>Fabric Deployment             Azure Pipeline</h3>
+<pre class="diagram">          Pipeline                       +
+              │                      Fabric APIs /
+              │                      fabric-cicd
+              │                           │
+              └─────────────┬─────────────┘
+                            ▼
+                       FABRIC TEST
+                            │</pre>
+<p>Functional Test</p>
+<p>Data Validation</p>
+<p>Performance Test</p>
+<pre class="diagram">                          UAT
+                            │
+                         APPROVAL
+                            │
+                            ▼
+                       FABRIC PROD
+                            │
+                            ▼</pre>
+<p>MONITOR</p>
+<h3>Quick revision</h3>
+<div class="table-wrap"><table><thead><tr><th>Component</th><th>Purpose</th></tr></thead><tbody><tr><td>Fabric DEV</td><td>Development</td></tr><tr><td>Azure DevOps Repo</td><td>Source control</td></tr><tr><td>Git Branch</td><td>Isolate changes</td></tr><tr><td>Pull Request</td><td>Review changes</td></tr><tr><td>Main/approved branch</td><td>Approved source</td></tr><tr><td>Fabric Deployment Pipeline</td><td>Promote content</td></tr><tr><td>Fabric TEST</td><td>Testing/UAT</td></tr><tr><td>Fabric PROD</td><td>Production</td></tr><tr><td>Azure Pipeline</td><td>CI/CD automation</td></tr><tr><td>Service Principal</td><td>Automated identity</td></tr><tr><td>Fabric REST APIs</td><td>Programmatic Fabric operations</td></tr><tr><td>fabric-cicd</td><td>Code-first Fabric deployment</td></tr><tr><td>Variable/configuration layer</td><td>Environment-specific values</td></tr><tr><td>Key Vault / secure store</td><td>Secrets</td></tr><tr><td>Monitoring</td><td>Validate production health</td></tr></tbody></table></div>
+<p>The flow to memorize for interviews</p>
+<p>Develop → Commit → Pull Request → Review → Merge → Deploy DEV → TEST → Validate → Approve → Deploy PROD → Monitor</p>
+<h3>And remember the three responsibilities:</h3>
+<p>Azure DevOps Git = Version Control
+Fabric/Azure DevOps CI/CD = Deployment Automation
+DEV → TEST → PROD = Environment Promotion</p>
+<p>For your syllabus, this is the complete mental model for 11.6 Deploy Across Workspaces. The official Microsoft guidance also recognizes both Fabric-native deployment pipelines and Azure DevOps/API-based automation, so you can start simple and later evolve the same design into enterprise CI/CD. (Microsoft Learn)</p>
+<a class="top-link" href="#top">↑ Back to top</a></div></section>
+</main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script></body></html>
