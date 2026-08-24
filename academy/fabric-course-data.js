@@ -1,4 +1,6 @@
 window.HARINIT_FABRIC_COURSE = {
+  slug: 'microsoft-fabric',
+  label: 'Microsoft Fabric',
   storageKey: 'harinit_fabric_course_progress',
   modules: [
     { number: 1, title: 'Microsoft Fabric Fundamentals', file: 'Module_01_Microsoft_Fabric_Fundamentals.html', count: 14, prefix: 'lesson-' },
@@ -15,3 +17,4 @@ window.HARINIT_FABRIC_COURSE = {
     { number: 12, title: 'End-to-End Project', file: 'Module_12_End_to_End_Project.html', count: 14, prefix: 'lesson-' }
   ]
 };
+window.HARINIT_COURSE = window.HARINIT_FABRIC_COURSE;

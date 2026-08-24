@@ -1,7 +1,7 @@
 window.HarinitFabricSearch = (() => {
   let index = null;
   let building = null;
-  const course = () => window.HARINIT_FABRIC_COURSE;
+  const course = () => window.HARINIT_COURSE;
   const clean = value => (value || '').replace(/\s+/g, ' ').trim();
   async function buildIndex() {
     if (index) return index;
@@ -29,7 +29,8 @@ window.HarinitFabricSearch = (() => {
   function mount(target) {
     if (!target || target.dataset.searchMounted) return;
     target.dataset.searchMounted = 'true';
-    target.innerHTML = '<label class="fabric-search-label" for="fabricSearch">Search Microsoft Fabric</label><input id="fabricSearch" class="fabric-search-input" type="search" autocomplete="off" placeholder="🔍 Search Microsoft Fabric..." aria-expanded="false"><div class="fabric-search-results" role="listbox" aria-label="Search results"></div>';
+    const label = (course() && course().label) || 'Microsoft Fabric';
+    target.innerHTML = `<label class="fabric-search-label" for="fabricSearch">Search ${label}</label><input id="fabricSearch" class="fabric-search-input" type="search" autocomplete="off" placeholder="🔍 Search ${label}..." aria-expanded="false"><div class="fabric-search-results" role="listbox" aria-label="Search results"></div>`;
     const input = target.querySelector('input'); const results = target.querySelector('.fabric-search-results'); let matches = []; let selected = -1;
     const render = () => { results.innerHTML = matches.length ? matches.map((item, i) => `<a role="option" aria-selected="${i === selected}" class="fabric-search-result" href="${item.href}"><strong>${item.title}</strong><span>${item.context}</span><em>Open lesson →</em></a>`).join('') : `<p class="fabric-search-empty">No lessons found for: “${input.value}”</p>`; input.setAttribute('aria-expanded', 'true'); };
     input.addEventListener('input', async () => {
