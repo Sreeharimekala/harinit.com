@@ -1,5 +1,5 @@
 (() => {
-  const course = window.HARINIT_FABRIC_COURSE;
+  const course = window.HARINIT_COURSE;
   if (!course) return;
   const keyFor = (module, id) => `${module.file}#${id}`;
   const read = () => { try { const value = JSON.parse(localStorage.getItem(course.storageKey) || '{}'); return value && typeof value === 'object' ? value : {}; } catch (_) { return {}; } };
