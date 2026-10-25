@@ -42,6 +42,21 @@ window.HARINIT_COURSES = [
       { label: 'Capstone Projects', sub: 'Apply your knowledge' }
     ],
     button: { label: 'Explore AI & ML', href: 'ai-ml/' }
+  },
+  {
+    id: 'databricks',
+    badge: 'Databricks',
+    title: 'Databricks',
+    subtitle: 'Data Engineering',
+    description: 'Learn Databricks from the ground up: Spark, PySpark, Delta Lake, Unity Catalog, Medallion Architecture, pipelines, streaming, optimization, security, CI/CD, and a full end-to-end project.',
+    stats: [
+      { label: '24 Chapters', sub: 'A clear learning path' },
+      { label: '200+ Lessons', sub: 'Focused practical learning' },
+      { label: 'Hands-on Learning', sub: 'Build as you learn' },
+      { label: 'End-to-End Project', sub: 'Apply your knowledge' }
+    ],
+    button: { label: 'Explore Databricks', href: 'databricks/' },
+    accent: { accent: '#ff6b4a', accent2: '#ffb347' }
   }
 
   // -------------------------------------------------------------------

@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 20: Monitoring & Troubleshooting</title>
+<meta name="description" content="Chapter 20 of a Databricks learning path: job and pipeline monitoring, SLA detection, Spark troubleshooting, data pipeline errors, system tables, alerting, and a tested monitoring framework.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 20 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s20-1">20.1 Monitoring Fundamentals</a></li>
+    <li class="lvl2"><a href="#s20-1-2">Architecture</a></li>
+    <li class="lvl2"><a href="#s20-1-3">Job &amp; pipeline runs</a></li>
+    <li class="lvl2"><a href="#s20-1-5">Notebooks &amp; queries</a></li>
+    <li class="lvl2"><a href="#s20-1-7">Compute &amp; cluster events</a></li>
+    <li class="lvl1"><a href="#s20-2">20.2 Job Monitoring</a></li>
+    <li class="lvl2"><a href="#s20-2-1">Run states</a></li>
+    <li class="lvl2"><a href="#s20-2-2">Duration &amp; baselines</a></li>
+    <li class="lvl2"><a href="#s20-2-3">Retries</a></li>
+    <li class="lvl2"><a href="#s20-2-4">Task &amp; dependency failures</a></li>
+    <li class="lvl2"><a href="#s20-2-5">Delays &amp; SLAs</a></li>
+    <li class="lvl2"><a href="#s20-2-7">Notifications</a></li>
+    <li class="lvl1"><a href="#s20-3">20.3 Spark Troubleshooting</a></li>
+    <li class="lvl2"><a href="#s20-3-2">Slow jobs</a></li>
+    <li class="lvl2"><a href="#s20-3-3">Executor &amp; driver failures</a></li>
+    <li class="lvl2"><a href="#s20-3-5">Out of memory</a></li>
+    <li class="lvl2"><a href="#s20-3-6">Shuffle failures</a></li>
+    <li class="lvl2"><a href="#s20-3-7">Data skew</a></li>
+    <li class="lvl2"><a href="#s20-3-8">Stage &amp; task retries</a></li>
+    <li class="lvl1"><a href="#s20-4">20.4 Pipeline Troubleshooting</a></li>
+    <li class="lvl2"><a href="#s20-4-1">Schema &amp; types</a></li>
+    <li class="lvl2"><a href="#s20-4-3">Duplicates &amp; missing rows</a></li>
+    <li class="lvl2"><a href="#s20-4-5">Connectivity &amp; permissions</a></li>
+    <li class="lvl2"><a href="#s20-4-7">Ingestion failures</a></li>
+    <li class="lvl2"><a href="#s20-4-8">Delta conflicts</a></li>
+    <li class="lvl1"><a href="#s20-5">20.5 Monitoring &amp; Alerting</a></li>
+    <li class="lvl2"><a href="#s20-5-2">Event logs &amp; audit</a></li>
+    <li class="lvl2"><a href="#s20-5-4">System tables</a></li>
+    <li class="lvl2"><a href="#s20-5-6">Usage &amp; Azure Monitor</a></li>
+    <li class="lvl1"><a href="#s20-6">20.6 Monitoring Framework</a></li>
+    <li class="lvl2"><a href="#s20-6-2">Steps 1–2: Tables</a></li>
+    <li class="lvl2"><a href="#s20-6-4">Step 3: Framework code</a></li>
+    <li class="lvl2"><a href="#s20-6-6">Steps 4–5: Pipeline &amp; run</a></li>
+    <li class="lvl2"><a href="#s20-6-8">Step 6: SLA monitor</a></li>
+    <li class="lvl2"><a href="#s20-6-10">Step 7: Alerts</a></li>
+    <li class="lvl2"><a href="#s20-6-11">Step 8: Recovery</a></li>
+    <li class="lvl1"><a href="#s20-7">20.7 Dashboard</a></li>
+    <li class="lvl1"><a href="#s20-8">20.8 End-to-End Project</a></li>
+    <li class="lvl1"><a href="#s20-9">20.9 Production Improvements</a></li>
+    <li class="lvl1"><a href="#s20-10">20.10 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s20-11">20.11 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 7 · Chapter 20 · Security, Monitoring, and DevOps</span>
+  <h1>Databricks Monitoring and Troubleshooting</h1>
+  <p class="lead">Monitor jobs and pipelines, troubleshoot Spark failures, diagnose data-pipeline problems, set up alerting, and build a production-ready monitoring framework. This is the production-support chapter: pipeline reliability, incident handling, and SLA compliance.</p>
+  <div class="callout key"><span class="label">Five questions every monitoring solution must answer</span>
+  <ol style="margin-bottom:0">
+    <li><strong>What happened?</strong> Which pipeline or task failed?</li>
+    <li><strong>When?</strong> When did it start, finish, or fall behind?</li>
+    <li><strong>Why?</strong> What was the root cause?</li>
+    <li><strong>What was affected?</strong> Which tables, records, or downstream jobs?</li>
+    <li><strong>What next?</strong> Retry, recover, alert, or escalate?</li>
+  </ol></div>
+  <div class="callout"><span class="label">Verified on Spark 4</span><p>The framework in 20.6 (wrapper, error classification, retries, schema contract, SLA monitor, alert de-duplication, KPI and slow-run queries) and the skew demo in 20.3.7 were all run locally, and the outputs shown are real. System tables, job settings, and Azure Monitor are Databricks or Azure only and are marked as untested where they appear.</p></div>
+  <div class="chips">
+    <a class="chip" href="#s20-1"><span>20.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s20-2"><span>20.2</span><strong>Job Monitoring</strong></a>
+    <a class="chip" href="#s20-3"><span>20.3</span><strong>Spark</strong></a>
+    <a class="chip" href="#s20-4"><span>20.4</span><strong>Pipelines</strong></a>
+    <a class="chip" href="#s20-5"><span>20.5</span><strong>Alerting</strong></a>
+    <a class="chip" href="#s20-6"><span>20.6</span><strong>Framework</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 20.1 ===================== -->
+<h2 id="s20-1"><span class="num">20.1</span>Monitoring Fundamentals</h2>
+
+<h3 id="s20-1-1"><span class="num">20.1.1</span>What Is Monitoring?</h3>
+<p>Monitoring is the continuous observation of jobs, pipelines, compute, queries, and data processing to spot failures, performance problems, and operational risks.</p>
+<div class="grid-2">
+<pre class="diagram">SQL Server / Oracle / REST API
+             |
+             v
+    Databricks ingestion
+             |
+             v
+       Bronze tables
+             |
+             v
+       Silver tables
+             |
+             v
+        Gold tables
+             |
+             v
+     Power BI reports</pre>
+<div class="card"><h4>The 2 AM failure</h4><p style="margin-bottom:0">The customer ingestion job fails at 2:00 AM. Without monitoring, the business finds out at 9:00 AM from an incomplete report. With it, the failure is detected, the error captured, support notified, and the failing stage (source, ingestion, transformation, or downstream) identified before anyone opens a dashboard.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Activity</th><th>Purpose</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Monitoring</td><td>Detect abnormal conditions</td><td>Customer pipeline failed</td></tr>
+<tr><td>Alerting</td><td>Notify the responsible team</td><td>Teams notification</td></tr>
+<tr><td>Troubleshooting</td><td>Find the cause</td><td>A schema mismatch</td></tr>
+<tr><td>Recovery</td><td>Restore processing</td><td>Fix the schema and rerun</td></tr>
+<tr><td>Prevention</td><td>Reduce recurrence</td><td>Add schema validation and tests</td></tr>
+</tbody></table></div>
+
+<h3 id="s20-1-2"><span class="num">20.1.2</span>Monitoring Architecture</h3>
+<div class="grid-2">
+<div class="card"><h4>Five layers</h4><ol style="margin-bottom:0">
+<li><strong>Execution:</strong> jobs, notebook/Python/SQL tasks, Spark, streaming.</li>
+<li><strong>Telemetry:</strong> status, run IDs, times, durations, errors, retries, row counts, compute and query metrics.</li>
+<li><strong>Storage:</strong> system tables, Delta audit tables, Azure Monitor / Log Analytics, external platforms.</li>
+<li><strong>Detection:</strong> failures, SLA breaches, slow runs, missing data, odd counts, repeated retries, no success within the expected interval.</li>
+<li><strong>Alerting and visualization:</strong> job notifications, email, Teams, action groups, incident tools, dashboards.</li>
+</ol></div>
+<pre class="diagram">          Databricks jobs
+                |
+       +--------+--------+
+       |                 |
+  Job run history   Pipeline audit
+  (system tables)   (Delta tables)
+       |                 |
+       +--------+--------+
+                |
+       Monitoring framework
+       /        |         \
+  Failure     SLA       Data quality
+  detection   checks    validation
+       \        |         /
+         Alerting layer
+       /        |         \
+    Email     Teams     Incident tool
+                |
+       Monitoring dashboard</pre>
+</div>
+<div class="callout warn"><span class="label">Different data, different places</span><p>Job run history, Spark logs, SQL query history, audit events, and Azure resource metrics are separate sources with separate interfaces. A real implementation typically uses system tables for run history, Delta tables for application-specific audit, and Azure Monitor for selected platform telemetry.</p></div>
+
+<h3 id="s20-1-3"><span class="num">20.1.3</span>Job and Pipeline Run Monitoring</h3>
+<div class="grid-2">
+<pre class="diagram">job_retail_daily_load
+        |
+  Task 1: Load customers
+        |
+  Task 2: Load products
+        |
+  Task 3: Load orders
+        |
+  Task 4: Build sales summary</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Attribute</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>Job ID</td><td>The configured job</td></tr>
+<tr><td>Run ID</td><td>One execution</td></tr>
+<tr><td>Task key</td><td>A task within the job</td></tr>
+<tr><td>Status</td><td>Current or final state</td></tr>
+<tr><td>Start / end / duration</td><td>Timing</td></tr>
+<tr><td>Error details</td><td>Failure information</td></tr>
+<tr><td>Attempt number</td><td>Which retry</td></tr>
+<tr><td>Trigger type</td><td>Schedule, manual, file arrival…</td></tr>
+</tbody></table></div>
+</div>
+<p>Inspect recent runs, status, dependencies, failed tasks, errors, durations, and output in <strong>Jobs &amp; Pipelines</strong> (Chapter 14). For automation, use the Jobs API or system tables (20.5.4) rather than checking the UI by hand.</p>
+<p><strong>Pipelines</strong> (a multi-task job, a Lakeflow Spark Declarative Pipeline (formerly Delta Live Tables), or custom orchestration) should be monitored <em>per stage</em>, not just overall:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Stage</th><th>Status</th><th>Duration</th></tr></thead>
+<tbody>
+<tr><td>Source extraction</td><td>Success</td><td>8 min</td></tr>
+<tr><td>Bronze ingestion</td><td>Success</td><td>12 min</td></tr>
+<tr><td><strong>Silver transformation</strong></td><td><strong>Failed</strong></td><td>35 min</td></tr>
+<tr><td>Gold aggregation</td><td>Skipped</td><td>0 min</td></tr>
+<tr><td>Report refresh</td><td>Skipped</td><td>0 min</td></tr>
+</tbody></table></div>
+<p class="ref">"Pipeline failed" alone gives support little to go on; "Silver transformation failed after 35 minutes, two downstream stages skipped" points straight at the problem. Capture both pipeline-level and task-level status.</p>
+
+<h3 id="s20-1-5"><span class="num">20.1.4</span>Notebook Execution History and Query History</h3>
+<div class="grid-2">
+<div class="card"><h4>Notebook history</h4><p>Shows executed cells, output, exceptions, durations, associated Spark jobs, and logs. Useful for development and interactive debugging, but <strong>not a substitute for production monitoring</strong>: production code should write structured, queryable records (20.6).</p><p class="ref" style="margin-bottom:0">Each <code>count()</code> is a separate Spark job. Count deliberately, not after every step.</p></div>
+<div class="card"><h4>Query history</h4><p>Finds slow and failed SQL statements, large scans, expensive joins, and repeated queries. A report that went from 20 seconds to 15 minutes could be more data, lost pruning, a bad join strategy, skew, contention, or changed logic.</p><p class="ref" style="margin-bottom:0">Query history shows <em>which</em> statement and <em>when</em>; diagnosing <em>why</em> may also need the query profile, plan, and Spark UI.</p></div>
+</div>
+
+<h3 id="s20-1-7"><span class="num">20.1.5</span>Compute Utilization and Cluster Events</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Metric (40-minute job)</th><th>Observation</th><th>Possible interpretation</th></tr></thead>
+<tbody>
+<tr><td>CPU</td><td>Consistently low</td><td>Waiting on I/O, or too little parallelism</td></tr>
+<tr><td>Memory</td><td>Very high</td><td>Large working sets, memory-heavy operations</td></tr>
+<tr><td>Shuffle spill</td><td>High</td><td>Shuffle data exceeds execution memory</td></tr>
+<tr><td>Task duration</td><td>Very uneven</td><td>Skew or uneven partitions</td></tr>
+<tr><td>Workers</td><td>Many idle</td><td>A bottleneck in one stage</td></tr>
+</tbody></table></div>
+<p class="ref">These are clues, not conclusions; correlate several. On classic compute, see the compute's <strong>Metrics</strong> tab; serverless exposes less infrastructure detail, so rely more on the query profile and Spark UI.</p>
+<p><strong>Cluster events</strong> (start, terminate, resize, configuration change, driver restart, lost workers) explain failures that the job itself can't. If a job fails after compute terminates unexpectedly, check in order: the run timeline, the compute event log, driver logs, executor logs, cloud or network events, and whether the termination was expected. A job failure and a compute failure are related but distinct; record both.</p>
+
+<!-- ===================== 20.2 ===================== -->
+<h2 id="s20-2"><span class="num">20.2</span>Job Monitoring</h2>
+
+<h3 id="s20-2-1"><span class="num">20.2.1</span>Successful and Failed Runs</h3>
+<p>Don't treat every non-success state as a failure. These are the <code>result_state</code> values in Databricks' job system tables:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>State</th><th>Meaning</th><th>Typical response</th></tr></thead>
+<tbody>
+<tr><td><code>SUCCEEDED</code></td><td>Completed successfully</td><td>Validate output if required</td></tr>
+<tr><td><code>FAILED</code> / <code>ERROR</code></td><td>Completed with an error</td><td>Investigate and alert</td></tr>
+<tr><td><code>TIMED_OUT</code></td><td>Exceeded its timeout</td><td>Check runtime and timeout settings</td></tr>
+<tr><td><code>CANCELLED</code></td><td>Cancelled by a user</td><td>Check who and why</td></tr>
+<tr><td><code>SKIPPED</code></td><td>Not executed (condition not met)</td><td>Expected?</td></tr>
+<tr><td><code>BLOCKED</code></td><td>Blocked on an upstream dependency</td><td>Find the upstream failure</td></tr>
+<tr><td><code>NULL</code></td><td>Still running (intermediate row)</td><td>Watch duration</td></tr>
+</tbody></table></div>
+<p class="ref">Names differ between the UI, the Jobs API, and system tables. Our own audit table (20.6) uses <code>RUNNING</code>, <code>SUCCESS</code>, and <code>FAILED</code>.</p>
+
+<h3 id="s20-2-2"><span class="num">20.2.2</span>Execution Duration and Baselines</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT pipeline_name, run_id, start_time, end_time,
+       timestampdiff(SECOND, start_time, end_time) AS duration_seconds
+FROM retail_dev.ops.pipeline_run_latest
+WHERE end_time IS NOT NULL;</code></pre></div>
+<div class="card"><h4>Why it matters</h4><p style="margin-bottom:0">The customer load normally takes 12 minutes; today 55, and it still succeeded. That's an early warning: a slow source, more data, an inefficient join, spill, contention, or a changed distribution. Catch degradation <em>before</em> it becomes a failure.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Pipeline</th><th>Normal</th><th>Warning</th><th>Critical</th></tr></thead>
+<tbody>
+<tr><td>Customer load</td><td>12 min</td><td>20 min</td><td>30 min</td></tr>
+<tr><td>Product load</td><td>8 min</td><td>15 min</td><td>25 min</td></tr>
+<tr><td>Sales aggregation</td><td>25 min</td><td>35 min</td><td>50 min</td></tr>
+</tbody></table></div>
+<p>Don't use one threshold for every job. Rather than hard-coding baselines, derive them from history. This query flags runs that were much slower than that pipeline's own recent runs:</p>
+<div class="code-wrap"><span class="lang">SQL · slow-run detection</span><pre class="code"><code>-- Successful runs more than 50% slower than the p90 of that pipeline's previous 30 successful runs
+WITH history AS (
+    SELECT pipeline_name, run_id, start_time, duration_seconds,
+           percentile_approx(duration_seconds, 0.9) OVER w AS p90_previous,
+           count(*) OVER w                                AS previous_runs
+    FROM retail_dev.ops.pipeline_run_latest
+    WHERE status = 'SUCCESS'
+    WINDOW w AS (PARTITION BY pipeline_name ORDER BY start_time
+                 ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING)
+)
+SELECT pipeline_name, run_id, start_time, duration_seconds, p90_previous,
+       round(duration_seconds / p90_previous, 1) AS times_p90
+FROM history
+WHERE previous_runs &gt;= 5                      -- need a baseline first
+  AND duration_seconds &gt; 1.5 * p90_previous
+ORDER BY start_time DESC</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified: 9 successful runs of 700–780 s, then one of 2000 s)</span><pre class="code"><code>pipeline_name  run_id  duration_seconds  p90_previous  times_p90
+pl_orders      o9      2000              780           2.6</code></pre></div>
+<p class="ref">The 1.5× factor and five-run minimum are starting points; tune them. Compare like with like: a full reload shouldn't be judged against incremental runs.</p>
+
+<h3 id="s20-2-3"><span class="num">20.2.3</span>Retry Tracking</h3>
+<div class="grid-2">
+<div class="card"><h4>Retry these (transient)</h4><ul style="margin-bottom:0"><li>Temporary network interruptions.</li><li>Transient service errors.</li><li>Temporary throttling.</li><li>Some infrastructure interruptions.</li></ul></div>
+<div class="card"><h4>Don't blindly retry (permanent)</h4><ul style="margin-bottom:0"><li>Invalid data types.</li><li>Missing required columns.</li><li>Wrong business logic.</li><li>Permission failures.</li><li>Invalid credentials.</li><li>Duplicate keys violating rules.</li></ul></div>
+</div>
+<pre class="diagram">Operation fails
+      |
+Classify the error
+      |
+      +--&gt; Transient and retry-safe --&gt; wait (2s, 4s, 8s ... capped) --&gt; retry, up to N attempts
+      |
+      +--&gt; Permanent ------------------&gt; stop, record, alert</pre>
+<p>The original's <code>retry_operation</code> retried <em>every</em> exception, which it said wasn't production-ready. The framework's <code>retry_transient</code> (20.6.3) retries only errors classified as transient. Tested:</p>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>Timeout twice, then success   -&gt; "ok" after 3 attempts, delays [2, 4]
+Schema contract violation     -&gt; raised immediately, attempts: 1</code></pre></div>
+<p class="ref">For whole tasks, prefer the job's built-in retry settings (<code>max_retries</code>, <code>min_retry_interval_millis</code>; see 20.2.7). Custom retries suit a single call inside a task, such as one API request.</p>
+
+<h3 id="s20-2-4"><span class="num">20.2.4</span>Task-Level and Dependency Failures</h3>
+<div class="grid-2">
+<pre class="diagram">Task A: Extract customers   SUCCEEDED
+Task B: Extract products    SUCCEEDED
+Task C: Transform orders    FAILED     &amp;lt;-- root cause
+Task D: Build sales summary BLOCKED / SKIPPED
+                            (depends on C)</pre>
+<div class="card"><h4>Record for the failed task</h4><p style="margin-bottom:0">Job ID, job run ID, failed task key, task run ID, error message, attempt number, start and end times, upstream dependencies, and downstream tasks skipped or blocked.</p></div>
+</div>
+<p>Task D's state is a <strong>consequence</strong>, not a second problem. Alert on the first failure in the dependency chain; <code>job_task_run_timeline</code> (20.5.4) gives the task-level view.</p>
+
+<h3 id="s20-2-5"><span class="num">20.2.5</span>Delayed Jobs and SLA Monitoring</h3>
+<div class="grid-2">
+<div class="card"><h4>Two different delays</h4><p><strong>Start delay</strong> = actual start − expected start<br><strong>Completion delay</strong> = actual completion − expected completion</p><p style="margin-bottom:0">Scheduled 2:00–3:00 AM, actual 2:25–3:20 AM: start delay 25 min, completion delay 20 min. Find whether scheduling, queueing, upstream delays, or slow execution caused it.</p></div>
+<div class="card"><h4>A data-pipeline SLA might say</h4><ul style="margin-bottom:0"><li>Complete by 5:00 AM.</li><li>Process the latest source batch.</li><li>Meet a completeness threshold.</li><li>Stay under an agreed failure rate.</li><li>Data ready before business hours.</li></ul></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">Expected completion: 04:30 IST
+Actual completion:   04:47 IST
+
+SLA status: BREACHED
+Delay:      17 minutes</pre>
+<div class="callout key" style="margin:0"><span class="label">SLA ≠ duration</span><p>A 20-minute run misses its SLA if it starts too late; a 40-minute run meets it if the deadline allows. And three cases need detecting, not one: <strong>finished late</strong>, <strong>still running past the deadline</strong>, and <strong>never started</strong>. A missing record is not a success. 20.6.8 builds a monitor for all three.</p></div>
+</div>
+<p class="ref">An SLA record should hold pipeline, business date, expected and actual times, threshold, breach duration, current status, and notification status.</p>
+
+<h3 id="s20-2-7"><span class="num">20.2.6</span>Failure Notifications</h3>
+<p>Decide which failures alert, who receives them, whether to alert during retries or only on final failure, how to de-duplicate, how to escalate, and how recovery is confirmed. Here's what that looks like in a job's settings (the JSON view or the Jobs API):</p>
+<div class="code-wrap"><span class="lang">JSON · job settings (excerpt)</span><pre class="code"><code>{
+  "name": "pl_retail_daily_load",
+  "timeout_seconds": 7200,
+  "health": {
+    "rules": [
+      { "metric": "RUN_DURATION_SECONDS", "op": "GREATER_THAN", "value": 3600 }
+    ]
+  },
+  "email_notifications": {
+    "on_failure": ["data-support@example.com"],
+    "on_duration_warning_threshold_exceeded": ["data-support@example.com"]
+  },
+  "notification_settings": {
+    "no_alert_for_skipped_runs": true,
+    "no_alert_for_canceled_runs": true
+  },
+  "tasks": [
+    {
+      "task_key": "extract_customers",
+      "notebook_task": { "notebook_path": "/Workspace/retail/extract_customers" },
+      "max_retries": 2,
+      "min_retry_interval_millis": 120000,
+      "retry_on_timeout": false
+    }
+  ]
+}</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>What each part does</h4><ul style="margin-bottom:0"><li><code>on_failure</code> at job level: fires when the run ends failed, after task retries are used up, so no email per retry.</li><li><code>health</code> + <code>on_duration_warning_threshold_exceeded</code>: warns when a run exceeds 60 minutes while still running.</li><li><code>timeout_seconds</code>: stops a hung run.</li><li><code>notification_settings</code>: silences skipped and cancelled runs.</li><li>Task <code>max_retries</code> / <code>min_retry_interval_millis</code>: built-in retries for transient failures.</li></ul></div>
+<div class="code-wrap"><span class="lang">Text · a good alert</span><pre class="code"><code>[PROD] Databricks pipeline failed
+
+Pipeline:       pl_retail_daily_load
+Run ID:         83921
+Failed task:    transform_orders
+Started:        02:00 IST   Failed: 02:18 IST
+Error category: SCHEMA_MISMATCH
+First action:   Check the source schema change;
+                open the failed task's output.</code></pre></div>
+</div>
+<p class="ref">Webhook destinations (Teams, Slack, PagerDuty) are set up by an admin and added under <code>webhook_notifications</code>. The JSON wasn't run here; the keys follow the Jobs API. Never put passwords, tokens, or customer data in alerts. Docs: <a href="https://docs.databricks.com/aws/en/jobs/notifications" target="_blank" rel="noopener">Job notifications</a>.</p>
+
+<!-- ===================== 20.3 ===================== -->
+<h2 id="s20-3"><span class="num">20.3</span>Spark Troubleshooting</h2>
+
+<h3 id="s20-3-1"><span class="num">20.3.1</span>Spark Execution Fundamentals</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("retail_dev.bronze.orders")
+filtered_df = df.filter("order_status = 'COMPLETED'")
+grouped_df = filtered_df.groupBy("customer_id").count()
+# Nothing has run yet: transformations are lazy
+
+grouped_df.write.mode("overwrite").saveAsTable(
+    "retail_dev.silver.customer_order_counts")   # action: runs</code></pre></div>
+<pre class="diagram">Spark application (driver)
+       |
+      Job        (one per action)
+       |
+     Stages      (split at shuffles)
+       |
+     Tasks       (one per partition)
+       |
+   Executors     (run the tasks)</pre>
+</div>
+<p class="ref"><strong>Driver:</strong> plans and schedules. <strong>Executor:</strong> runs tasks and caches data. <strong>Stage:</strong> operations between shuffle boundaries. <strong>Task:</strong> one partition's work. (Chapter 3 covered this in depth.)</p>
+
+<h3 id="s20-3-2"><span class="num">20.3.2</span>Slow Spark Jobs</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Cause</th><th>Typical symptom</th><th>Investigation</th></tr></thead>
+<tbody>
+<tr><td>Too much data scanned</td><td>Long read stage</td><td>Input size, pruning (Chapter 15)</td></tr>
+<tr><td>Large shuffle</td><td>Expensive exchange</td><td>Shuffle metrics</td></tr>
+<tr><td>Data skew</td><td>A few tasks run far longer</td><td>Task-duration spread (20.3.7)</td></tr>
+<tr><td>Too little parallelism</td><td>Few active tasks</td><td>Partition count, plan</td></tr>
+<tr><td>Memory pressure</td><td>Spill or OOM</td><td>Executor metrics</td></tr>
+<tr><td>Poor join strategy</td><td>Expensive join stage</td><td>Join plan, input sizes</td></tr>
+<tr><td>Slow source</td><td>Long input wait</td><td>Source throughput</td></tr>
+<tr><td>Many small files</td><td>Many tiny read tasks</td><td>File layout, compaction</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="card"><h4>Workflow</h4><ol style="margin-bottom:0"><li>Find the slow run (job run → Spark UI or query profile).</li><li>Find the slow stage (timeline, task-duration distribution).</li><li>Check input, shuffle, and spill metrics.</li><li>Read the plan: <code>df.explain("formatted")</code>.</li><li>Fix the actual bottleneck.</li></ol></div>
+<div class="card"><h4>Typical fixes</h4><ul style="margin-bottom:0"><li>Filter earlier when semantically valid.</li><li>Select only needed columns.</li><li>Avoid unnecessary shuffles.</li><li>Handle skewed keys.</li><li>Improve data layout.</li><li>Choose suitable compute.</li></ul></div>
+</div>
+<p class="ref">Don't just add workers. If one skewed partition or a bad join is the problem, more workers help little.</p>
+
+<h3 id="s20-3-3"><span class="num">20.3.3</span>Executor and Driver Failures</h3>
+<div class="grid-2">
+<div class="card"><h4>Executor failures</h4><p>Causes: OOM, worker or infrastructure failure, process killed, resource exhaustion, dependency problems. Symptoms: repeated task failures, executors vanishing from the Spark UI, stage retries, eventual job failure.</p><ol style="margin-bottom:0"><li>Find the failed task and stage.</li><li>Read executor logs.</li><li>One executor or many?</li><li>Check memory, disk, CPU.</li><li>Read the exception and exit reason.</li><li>Does one partition always fail? Then inspect its data.</li><li>Decide: data, code, or infrastructure.</li></ol></div>
+<div class="card"><h4>Driver failures</h4><p>The driver coordinates everything, so if it dies the whole application ends even though executors are fine. Causes: driver OOM, collecting large results, huge query plans, too much driver-side metadata, application exceptions.</p>
+<div class="code-wrap" style="margin:0"><span class="lang">Python</span><pre class="code"><code># Dangerous: pulls every row into driver memory
+rows = spark.table("retail_dev.bronze.orders").collect()
+
+# Better: keep the work distributed
+(spark.table("retail_dev.bronze.orders")
+      .groupBy("order_status").count()
+      .show())</code></pre></div></div>
+</div>
+<p class="ref">Use <code>collect()</code> and <code>toPandas()</code> only when the result is known to be small. The driver log shows "Driver is temporarily unavailable" or similar when it has restarted.</p>
+
+<h3 id="s20-3-5"><span class="num">20.3.4</span>Out-of-Memory Errors</h3>
+<div class="grid-2">
+<div class="card"><h4>Driver memory pressure</h4><ul style="margin-bottom:0"><li>Collecting large datasets.</li><li>Large Python objects.</li><li>Large metadata structures.</li><li>Driver-side processing of big results.</li></ul></div>
+<div class="card"><h4>Executor memory pressure</h4><ul style="margin-bottom:0"><li>Large joins and aggregations.</li><li>Caching too much.</li><li>Oversized partitions.</li><li>Data skew.</li><li>Memory-heavy UDFs.</li></ul></div>
+</div>
+<p><strong>Cache only what you reuse.</strong> <code>df.cache()</code> pays off when a DataFrame is used several times and recomputing it is expensive; for a single-use DataFrame it wastes memory. (Serverless doesn't support <code>cache()</code> on DataFrames at all.)</p>
+<p class="ref">Approach: which process died (driver or executor)? Read the exception and logs, check partition sizes, review joins and aggregations, drop unnecessary caching, avoid large collects, consider another strategy, and resize compute only once you understand the bottleneck.</p>
+
+<h3 id="s20-3-6"><span class="num">20.3.5</span>Shuffle Failures</h3>
+<p>A shuffle redistributes data so rows with the same key meet, e.g. for <code>df.groupBy("customer_id").sum("sales_amount")</code>. Failures are linked to executor loss, disk pressure, network interruptions, huge shuffles, memory pressure, and oversized partitions.</p>
+<p class="ref">Inspect shuffle read/write volume, spill, stage retry history, executor failures, task-duration variation, and disk. A shuffle isn't a problem in itself; it's normal distributed processing. Reduce <em>unnecessary</em> shuffles and make necessary ones reliable (Chapter 15's AQE and partition sizing help).</p>
+
+<h3 id="s20-3-7"><span class="num">20.3.6</span>Data Skew</h3>
+<p>Skew is uneven data across partitions. If one <code>customer_id</code> (say, a "walk-in customer" placeholder) holds 40% of rows, its partition dwarfs the rest and the stage waits for that one task.</p>
+<div class="code-wrap"><span class="lang">Python · detect and handle skew</span><pre class="code"><code>from pyspark.sql import functions as F
+
+# 1M orders; customer "C0" (e.g. a 'walk-in' placeholder) has 40% of them
+orders = (spark.range(1_000_000)
+          .withColumn("customer_id",
+                      F.when(F.col("id") % 10 &lt; 4, F.lit("C0"))
+                       .otherwise(F.concat(F.lit("C"), (F.col("id") % 5000 + 1).cast("string"))))
+          .withColumn("sales_amount", (F.col("id") % 100 + 1).cast("decimal(18,2)")))
+
+# 1. Key frequency: is one key dominant?
+orders.groupBy("customer_id").count().orderBy(F.desc("count")).show(3)
+
+# 2. Partition sizes after hashing on the key (what a shuffle on customer_id does)
+sizes = (orders.repartition(8, "customer_id")
+               .groupBy(F.spark_partition_id().alias("partition")).count())
+stats = sizes.agg(F.max("count").alias("largest"),
+                  F.expr("percentile(count, 0.5)").alias("median")).first()
+print(f"largest partition {stats.largest:,} rows vs median {int(stats.median):,}")
+
+# 3. Two-phase (salted) aggregation: spread the hot key over 16 salts, then combine
+salted = (orders
+          .withColumn("salt", (F.rand(seed=42) * 16).cast("int"))
+          .groupBy("customer_id", "salt").agg(F.sum("sales_amount").alias("partial"))
+          .groupBy("customer_id").agg(F.sum("partial").alias("total_sales")))
+plain = orders.groupBy("customer_id").agg(F.sum("sales_amount").alias("total_sales"))
+print("salted result identical:", salted.exceptAll(plain).isEmpty() and plain.exceptAll(salted).isEmpty())</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>+-----------+------+
+|customer_id| count|
++-----------+------+
+|         C0|400000|
+|       C609|   200|
+|       C650|   200|
++-----------+------+
+largest partition 471,400 rows vs median 75,600
+salted result identical: True</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>How to detect</h4><ul style="margin-bottom:0"><li>Task-duration distribution (max ≫ median).</li><li>Input records per task.</li><li>Shuffle read size per task.</li><li>Key frequencies (step 1 above; itself costly on huge tables).</li></ul></div>
+<div class="card"><h4>How to address</h4><ul style="margin-bottom:0"><li><strong>AQE skew-join handling</strong> (on by default in Databricks) splits oversized partitions in joins.</li><li><strong>Broadcast</strong> a genuinely small dimension.</li><li><strong>Two-phase aggregation</strong> (salting, step 3) for skewed group-bys.</li><li>Handle special keys separately where business logic allows.</li></ul></div>
+</div>
+<p class="ref">Salting is safe for <em>sums and counts</em> (verified identical above) because partial results combine. It's not safe for every aggregate (e.g. <code>count(DISTINCT …)</code> needs care) and salted <em>joins</em> require replicating the other side. Don't apply it blindly.</p>
+
+<h3 id="s20-3-8"><span class="num">20.3.7</span>Stage Retries and Task Failures</h3>
+<div class="grid-2">
+<pre class="diagram">Stage 12
+  +-- Task 1: success
+  +-- Task 2: success
+  +-- Task 3: FAILED --&gt; retried --&gt; success
+  +-- Task 4: success</pre>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>Task retry</th><th>Job retry</th></tr></thead>
+<tbody>
+<tr><td>Who retries</td><td>Spark, inside the run</td><td>The orchestrator (job settings)</td></tr>
+<tr><td>Scope</td><td>One task of one stage</td><td>A whole job task</td></tr>
+<tr><td>Visible as</td><td>Failed attempts in the Spark UI</td><td>A new attempt / run in job history</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">A recovered task failure doesn't usually need an incident, but repeated retries lengthen runs and signal degradation. Don't count every task retry as a new pipeline run.</p>
+
+<!-- ===================== 20.4 ===================== -->
+<h2 id="s20-4"><span class="num">20.4</span>Data Pipeline Troubleshooting</h2>
+<p class="section-intro">Many production incidents come from source data or pipeline logic, not Spark. The framework's <code>classify_error</code> (20.6.3) maps these to categories; the table below shows what it returned for real Spark 4 errors.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Real error (verified)</th><th>Category</th></tr></thead>
+<tbody>
+<tr><td><code>[CAST_INVALID_INPUT] The value 'ABC' … cannot be cast to "DECIMAL(18,2)"</code></td><td>INVALID_DATA</td></tr>
+<tr><td><code>[UNRESOLVED_COLUMN.WITH_SUGGESTION] … name `email` cannot be resolved</code></td><td>SCHEMA_MISMATCH</td></tr>
+<tr><td><code>ConnectionError: Connection refused by sql-prod:1433</code></td><td>SOURCE_CONNECTIVITY</td></tr>
+<tr><td><code>ZeroDivisionError</code> (a bug)</td><td>UNKNOWN</td></tr>
+</tbody></table></div>
+
+<h3 id="s20-4-1"><span class="num">20.4.1</span>Schema Mismatch and Invalid Data Types</h3>
+<p>The pipeline expects <code>customer_id BIGINT</code>; the source now sends <code>STRING</code>. Or a required column disappears or is renamed. The original checked only column <em>names</em> and suggested comparing <code>df.schema</code> for types. The framework's <code>validate_schema_contract</code> does both:</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>CUSTOMER_CONTRACT = StructType([
+    StructField("customer_id", LongType()),
+    StructField("customer_name", StringType()),
+    StructField("email", StringType()),
+    StructField("updated_at", TimestampType()),
+])
+
+validate_schema_contract(df, CUSTOMER_CONTRACT)</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified, source sent strings)</span><pre class="code"><code>SchemaContractError: Schema contract violated:
+  type changes ['customer_id: expected bigint,
+  got string', 'updated_at: expected timestamp,
+  got string']
+
+classify_error -&gt; SCHEMA_MISMATCH</code></pre></div>
+</div>
+<p class="ref">Extra columns are allowed by default (<code>allow_extra_columns=False</code> to forbid). Practice: define expected schemas, validate before transforming, detect type changes, decide whether new columns are allowed, log differences, never cast silently, and have a quarantine policy.</p>
+<p><strong>Invalid values</strong> (an <code>amount</code> of <code>"ABC"</code>): under ANSI mode a plain cast fails the whole job. Use <code>try_cast</code> to find them, as in Chapter 18:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>typed_df = source_df.withColumn("amount_decimal", F.expr("try_cast(amount AS DECIMAL(18,2))"))
+invalid_records = typed_df.filter(F.col("amount").isNotNull() &amp; F.col("amount_decimal").isNull())</code></pre></div>
+<p class="ref">Then: count and sample them, apply correction or rejection rules, store rejects, alert above a threshold, never silently drop. Also treat blanks, whitespace, and formatted values like <code>"₹1,200"</code> explicitly.</p>
+
+<h3 id="s20-4-3"><span class="num">20.4.2</span>Duplicate and Missing Records</h3>
+<div class="grid-2">
+<div class="card"><h4>Duplicates come from</h4><ul style="margin-bottom:0"><li>Repeated source events.</li><li>Overlapping incremental loads.</li><li>Incorrect joins (fan-out).</li><li>Retries of non-idempotent appends.</li><li>Source-system duplication.</li><li>Missing deduplication.</li></ul></div>
+<div class="card"><h4>Missing rows come from</h4><ul style="margin-bottom:0"><li>Incomplete source extract.</li><li>Wrong incremental watermark.</li><li>An inner join dropping unmatched rows.</li><li>A too-restrictive filter.</li><li>An unprocessed file.</li><li>A partial load after failure.</li><li>Downstream refresh before data was complete.</li></ul></div>
+</div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · duplicates on the real key</span><pre class="code"><code>duplicates = (df.groupBy("order_id", "line_number")
+                .count().filter("count &amp;gt; 1"))</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · source keys missing in target</span><pre class="code"><code>missing_df = (source_df.select("order_id")
+              .join(target_df.select("order_id"),
+                    "order_id", "left_anti"))</code></pre></div>
+</div>
+<p class="ref"><code>dropDuplicates</code> keeps an arbitrary row; when duplicates differ, keep the latest by a reliable timestamp with a window (the 20.6 pipeline does this). Compare source and target for the <em>same batch</em>, and remember equal counts don't prove a match. Chapter 18's validation framework covers all of this.</p>
+
+<h3 id="s20-4-5"><span class="num">20.4.3</span>Source Connectivity and Permission Errors</h3>
+<div class="grid-2">
+<div class="card"><h4>Connectivity checklist</h4><ol style="margin-bottom:0"><li>Identify the source and endpoint.</li><li>Read the exact exception.</li><li>DNS resolves? Host reachable?</li><li>Port open?</li><li>Authentication mechanism correct, credentials not expired?</li><li>Identity has source permissions?</li><li>Source available, not throttling?</li><li>Retry only if transient.</li></ol></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Example rejection</th></tr></thead>
+<tbody>
+<tr><td>Workspace</td><td>Can't open a resource</td></tr>
+<tr><td>Job</td><td>Can't run or manage the job</td></tr>
+<tr><td>Compute</td><td>Can't use the compute</td></tr>
+<tr><td>Unity Catalog</td><td><code>PERMISSION_DENIED</code> on a table</td></tr>
+<tr><td>Storage</td><td>Can't read an external path</td></tr>
+<tr><td>Database</td><td>Login failed</td></tr>
+<tr><td>Network</td><td>Timeout: blocked by a firewall</td></tr>
+</tbody></table></div>
+</div>
+<div class="callout key"><span class="label">Troubleshooting rule</span><p>A connection <em>timeout</em> is usually network, not a missing <code>SELECT</code>. Find which layer rejected the operation before changing any permission (Chapter 19). Never log passwords, connection strings, or tokens; the framework's <code>sanitize_message</code> masks common patterns (verified: <code>Password=Sup3rS3cret; token: dapi0123…</code> → <code>Password=***; token=***</code>).</p></div>
+
+<h3 id="s20-4-7"><span class="num">20.4.4</span>Ingestion Failures</h3>
+<div class="grid-2">
+<div class="card"><h4>Causes and what to record</h4><p>Missing, malformed, or corrupted files; schema changes; API failures; incomplete uploads; wrong watermarks; auth errors; unsupported types.</p><p style="margin-bottom:0">Record: source system, input path or batch ID, file name, expected and actual counts, start and end, validation outcome, rejected count, error, recovery status. (Auto Loader's <code>_rescued_data</code> and <code>_metadata.file_path</code>, Chapter 12, help here.)</p></div>
+<pre class="diagram">Discover source data
+        |
+Validate availability
+        |
+Validate schema
+        |
+Ingest to Bronze
+        |
+Validate counts and keys
+        |
+Commit / publish</pre>
+</div>
+<p class="ref">Delta writes are transactional per table, not across a multi-table pipeline. If it fails midway, recovery must account for what already committed (Chapter 18, 18.4).</p>
+
+<h3 id="s20-4-8"><span class="num">20.4.5</span>Delta Transaction Conflicts</h3>
+<p>Concurrent operations conflict when they make incompatible changes to overlapping data: e.g. Job A <code>MERGE</code>s customer updates while Job B <code>DELETE</code>s obsolete customers. One fails with an exception such as <code>ConcurrentAppendException</code> or <code>ConcurrentDeleteReadException</code> and must be retried.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · who else wrote the table?</span><pre class="code"><code>DESCRIBE HISTORY retail_dev.silver.customers LIMIT 20;
+-- version, timestamp, operation, userName,
+-- job (job id / run id), operationParameters</code></pre></div>
+<div class="card"><h4>Troubleshoot and prevent</h4><ul style="margin-bottom:0"><li>Capture the full exception; identify table and operation.</li><li>Find overlapping writers and schedules.</li><li>Retry only if the operation is idempotent (e.g. a MERGE).</li><li>Give critical tables one owning pipeline.</li><li>Make MERGE conditions specific (e.g. include the partition or date) so writers touch disjoint data.</li><li>Don't retry schema or logical conflicts.</li></ul></div>
+</div>
+<p class="ref">A conflict doesn't mean corruption: Delta's optimistic concurrency rejected a commit to <em>protect</em> the table. That's why the framework doesn't classify <code>DELTA_CONFLICT</code> as automatically retryable; add it to <code>TRANSIENT_CATEGORIES</code> only for idempotent writes. Docs: <a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" target="_blank" rel="noopener">Isolation levels and write conflicts</a>.</p>
+
+<!-- ===================== 20.5 ===================== -->
+<h2 id="s20-5"><span class="num">20.5</span>Monitoring and Alerting</h2>
+
+<h3 id="s20-5-2"><span class="num">20.5.1</span>Job Notifications, Pipeline Event Logs, and Audit</h3>
+<p><strong>Job notifications</strong> (20.2.6) are the first line: final-failure alerts to the support team, duration warnings, and webhooks, configured per job or task. Avoid an email for every transient retry.</p>
+<p><strong>Pipeline event logs.</strong> Lakeflow Spark Declarative Pipelines record updates, progress, data-quality expectation results, errors, and flow details in an event log you can query:</p>
+<div class="code-wrap"><span class="lang">SQL · declarative pipeline event log</span><pre class="code"><code>SELECT timestamp, event_type, level, message
+FROM event_log(TABLE(retail_dev.silver.orders_clean))     -- a table the pipeline manages
+WHERE level IN ('WARN', 'ERROR')
+ORDER BY timestamp DESC;</code></pre></div>
+<p class="ref">Ordinary jobs don't have this event log; use job run history for them. Not run here.</p>
+<div class="grid-2">
+<div class="card"><h4>Operational monitoring asks</h4><ul style="margin-bottom:0"><li>Did the job succeed?</li><li>How long did it take?</li><li>How many records?</li><li>What error?</li></ul></div>
+<div class="card"><h4>Security auditing asks</h4><ul style="margin-bottom:0"><li>Who accessed the data?</li><li>Who changed a permission?</li><li>Which identity ran an operation?</li><li>Who changed the job configuration?</li></ul></div>
+</div>
+<p class="ref">Correlate the two, but a custom audit table never replaces platform audit logs (<code>system.access.audit</code>, Chapter 19).</p>
+
+<h3 id="s20-5-4"><span class="num">20.5.2</span>System Tables and Query History</h3>
+<p>System tables are queryable, account-wide records of job runs, queries, audit events, billing, and more. An admin must enable them and grant access, and availability and retention vary. As the original advises, start with <code>SHOW TABLES IN system.lakeflow</code> and <code>DESCRIBE</code> before building queries. The key job tables:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>One row per</th><th>Useful columns</th></tr></thead>
+<tbody>
+<tr><td><code>system.lakeflow.jobs</code></td><td>Job version (SCD-style)</td><td><code>job_id</code>, <code>name</code>, <code>change_time</code>, <code>run_as</code></td></tr>
+<tr><td><code>system.lakeflow.job_run_timeline</code></td><td>Run, sliced hourly</td><td><code>run_id</code>, <code>period_start_time</code>, <code>period_end_time</code>, <code>result_state</code>, <code>termination_code</code>, <code>trigger_type</code></td></tr>
+<tr><td><code>system.lakeflow.job_task_run_timeline</code></td><td>Task run, sliced hourly</td><td><code>job_run_id</code>, <code>task_key</code>, <code>result_state</code>, <code>termination_code</code></td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Two traps in the timeline tables</span><p>Runs longer than an hour span <strong>several rows</strong> with the same <code>run_id</code>, and <code>result_state</code> is set <strong>only on the final row</strong>. So filter <code>result_state IS NOT NULL</code> for outcomes, and use <code>MIN(period_start_time)</code> / <code>MAX(period_end_time)</code> per run for duration. <code>jobs</code> keeps a row per change, so take the latest per job.</p></div>
+<div class="code-wrap"><span class="lang">SQL · failed runs in the last 24 hours, with job names</span><pre class="code"><code>WITH latest_jobs AS (
+    SELECT workspace_id, job_id, name,
+           row_number() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) AS rn
+    FROM system.lakeflow.jobs
+)
+SELECT j.name AS job_name, r.run_id, r.period_end_time AS finished_at,
+       r.result_state, r.termination_code
+FROM system.lakeflow.job_run_timeline AS r
+JOIN latest_jobs AS j
+  ON j.workspace_id = r.workspace_id AND j.job_id = r.job_id AND j.rn = 1
+WHERE r.result_state IN ('FAILED', 'ERROR', 'TIMED_OUT')
+  AND r.period_end_time &gt;= current_timestamp() - INTERVAL 24 HOURS
+ORDER BY finished_at DESC;</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · which task failed?</span><pre class="code"><code>SELECT task_key, result_state, termination_code,
+       period_end_time
+FROM system.lakeflow.job_task_run_timeline
+WHERE job_run_id = :job_run_id
+  AND result_state IS NOT NULL
+ORDER BY period_end_time;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · run durations (multi-row safe)</span><pre class="code"><code>SELECT job_id, run_id,
+       timestampdiff(SECOND, MIN(period_start_time),
+                     MAX(period_end_time)) AS duration_s,
+       max(result_state) AS result_state
+FROM system.lakeflow.job_run_timeline
+WHERE period_start_time &amp;gt;= current_date() - 7
+GROUP BY job_id, run_id;</code></pre></div>
+</div>
+<p><strong>Query history</strong> (<code>system.query.history</code>) records SQL statements on warehouses and serverless:</p>
+<div class="code-wrap"><span class="lang">SQL · slowest failed or long queries today</span><pre class="code"><code>SELECT statement_id, executed_by, execution_status,
+       total_duration_ms / 1000 AS seconds, start_time,
+       left(statement_text, 200) AS statement_preview
+FROM system.query.history
+WHERE start_time &amp;gt;= current_date()
+  AND (execution_status = 'FAILED' OR total_duration_ms &amp;gt; 300000)
+ORDER BY total_duration_ms DESC
+LIMIT 50;</code></pre></div>
+<p class="ref">The system-table queries weren't run here (they need a workspace); column names follow the current system-table reference. Query text can contain business-sensitive literals, so restrict access to query history. Docs: <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" target="_blank" rel="noopener">Jobs system tables</a>.</p>
+
+<h3 id="s20-5-6"><span class="num">20.5.3</span>Usage Monitoring, Azure Monitor, and External Tools</h3>
+<p><strong>Usage:</strong> which workloads and teams cost most, which jobs keep getting more expensive, which compute is idle? <code>system.billing.usage</code> with tags (Chapter 19, 19.5.3) answers by workspace, job, owner, environment, cost center, SKU, and period. Don't infer cost from duration; use the usage records.</p>
+<div class="grid-2">
+<pre class="diagram">Azure Databricks
+      |
+      | diagnostic settings
+      | (selected log categories)
+      v
+Azure Monitor / Log Analytics
+      |
+      v
+Queries and alert rules
+      |
+      v
+Action groups
+      +--&gt; Email
+      +--&gt; SMS / voice
+      +--&gt; Webhook / ITSM</pre>
+<div class="card"><h4>Azure Monitor</h4><p>Diagnostic settings send chosen Databricks <strong>audit-log categories</strong> (jobs, clusters, accounts, notebooks…) to Log Analytics, where alert rules and action groups notify people. Spark-level metrics and job run history are <em>not</em> automatically there; use Databricks-native sources for those.</p><p style="margin-bottom:0" class="ref">Log Analytics ingestion and retention cost money. Collect only the categories that feed actionable alerts, check for sensitive data, and expand later.</p></div>
+</div>
+<p><strong>External tools</strong> (Teams, email, ServiceNow, PagerDuty) connect through job webhook notifications, Databricks SQL alerts, Azure Monitor action groups, or your own dispatcher (20.6.10). A good alert carries environment, pipeline, run ID, failure time, failed task, error category, business impact, a link to the run, and a first action. Keep raw stack traces and data out of broad channels.</p>
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" target="_blank" rel="noopener">Monitoring Azure Databricks</a>.</p>
+
+<!-- ===================== 20.6 ===================== -->
+<h2 id="s20-6"><span class="num">20.6</span>Building a Monitoring Framework</h2>
+<p class="section-intro">We'll build application-level monitoring with PySpark and Delta that records each run's status, timings, row counts, and categorized errors; detects failed, late, overdue, and missing runs against a schedule; and sends de-duplicated alerts. Everything in this section was run on Spark 4.</p>
+<pre class="diagram">  Databricks job --{{job.run_id}}--&gt; execute_monitored_pipeline()
+                                         |  writes RUNNING, then SUCCESS / FAILED
+                                         v
+                             ops.pipeline_execution_audit
+                                         |  latest event per run
+                                         v
+  ops.pipeline_sla_registry --&gt; SLA check (every 15 min) &lt;-- system tables (independent view)
+                                         |
+                                         v
+                                 dispatch_alerts() --&gt; Email / Teams
+                                         |
+                                         v
+                                   ops.alert_log --&gt; Dashboard</pre>
+<div class="callout"><span class="label">What changed from the original, and why</span><p>The original framework worked but had gaps it partly acknowledged. Fixes, all verified:</p>
+<ol style="margin-bottom:0">
+<li><strong>An audit-write failure hid the pipeline's error.</strong> If the failure record couldn't be written, the audit exception replaced the original. Now the original error is always re-raised and audit failures go to a fallback log (tested: <code>ZeroDivisionError</code> preserved, two fallback lines logged).</li>
+<li><strong>Running and overdue runs were invisible</strong>, because the record was written only at the end. A <code>RUNNING</code> event is now written at start.</li>
+<li><strong>Failed runs got <code>sla_status = MET</code></strong> if they failed before the deadline. Failed runs are now <code>NOT_EVALUATED</code>; the SLA monitor judges each pipeline by its latest attempt.</li>
+<li>Errors are <strong>categorized</strong> (as 20.9 recommends) and <strong>sanitized</strong>, not stored as raw messages.</li>
+<li>The SLA check was conceptual; it's now a working query with a schedule registry and time zones, plus a de-duplicating alert dispatcher.</li>
+<li>The sample pipeline kept an arbitrary duplicate and computed its output twice. It now keeps the latest version and counts what was committed.</li>
+</ol></div>
+
+<h3 id="s20-6-2"><span class="num">20.6.1</span>Steps 1–2: Create the Monitoring Tables</h3>
+<div class="code-wrap"><span class="lang">SQL · execution audit (append-only events)</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.ops;
+
+CREATE TABLE IF NOT EXISTS retail_dev.ops.pipeline_execution_audit (
+    pipeline_name    STRING,
+    run_id           STRING,      -- the job run ID: pass {{job.run_id}}
+    batch_id         STRING,      -- e.g. BATCH_20261025
+    environment      STRING,
+    status           STRING,      -- RUNNING, SUCCESS, FAILED
+    start_time       TIMESTAMP,
+    end_time         TIMESTAMP,
+    duration_seconds BIGINT,
+    source_row_count BIGINT,
+    target_row_count BIGINT,
+    sla_deadline     TIMESTAMP,
+    sla_status       STRING,      -- MET, BREACHED, NOT_EVALUATED
+    error_type       STRING,      -- category, e.g. SCHEMA_MISMATCH
+    error_message    STRING,      -- sanitized, max 1000 chars
+    created_at       TIMESTAMP
+);</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · SLA registry and "latest event per run" view</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.ops.pipeline_sla_registry (
+    pipeline_name       STRING,
+    expected_completion STRING,    -- local clock time 'HH:mm'
+    sla_timezone        STRING,    -- the business time zone, e.g. 'Asia/Kolkata'
+    severity            STRING,    -- CRITICAL, HIGH, MEDIUM
+    active              BOOLEAN
+);
+
+INSERT INTO retail_dev.ops.pipeline_sla_registry VALUES
+    ('pl_customers',     '02:30', 'Asia/Kolkata', 'HIGH',     true),
+    ('pl_products',      '02:45', 'Asia/Kolkata', 'MEDIUM',   true),
+    ('pl_orders',        '03:30', 'Asia/Kolkata', 'HIGH',     true),
+    ('pl_sales_summary', '04:15', 'Asia/Kolkata', 'CRITICAL', true);
+
+-- One row per run: the latest event (RUNNING is later replaced by SUCCESS/FAILED)
+CREATE OR REPLACE VIEW retail_dev.ops.pipeline_run_latest AS
+SELECT * EXCEPT (rn) FROM (
+    SELECT *, row_number() OVER (PARTITION BY pipeline_name, run_id
+                                 ORDER BY created_at DESC) AS rn
+    FROM retail_dev.ops.pipeline_execution_audit
+) WHERE rn = 1;</code></pre></div>
+<p class="ref">Each run writes two rows (RUNNING, then the outcome); the view keeps the latest, so every query below sees one row per run. The original's <code>alert_status</code> column moved to a separate <code>alert_log</code> table, since one run can produce several alerts. For task-level detail, add a <code>pipeline_task_audit</code> table with the same pattern plus <code>task_name</code>, or read <code>job_task_run_timeline</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Pipeline</th><th>Task</th><th>Status</th><th>Duration (s)</th></tr></thead>
+<tbody><tr><td><code>retail_daily_load</code></td><td><code>load_customers</code></td><td>SUCCESS</td><td>240</td></tr><tr><td><code>retail_daily_load</code></td><td><code>load_orders</code></td><td>FAILED</td><td>720</td></tr><tr><td><code>retail_daily_load</code></td><td><code>build_sales_summary</code></td><td>SKIPPED</td><td>0</td></tr></tbody></table></div>
+
+<h3 id="s20-6-4"><span class="num">20.6.2</span>Step 3: The Framework Code</h3>
+<p>Save as a notebook or <code>monitoring.py</code> and import it. It contains the audit writer, error classification and sanitizing, the monitored-pipeline wrapper, transient-only retries, and the schema contract check.</p>
+<div class="code-wrap"><span class="lang">Python · monitoring.py</span><pre class="code"><code>import json
+import re
+import sys
+import time
+from datetime import datetime, timezone
+
+from pyspark.sql.types import (
+    LongType, StringType, StructField, StructType, TimestampType,
+)
+
+AUDIT_TABLE = "retail_dev.ops.pipeline_execution_audit"
+
+AUDIT_SCHEMA = StructType([
+    StructField("pipeline_name", StringType()),
+    StructField("run_id", StringType()),
+    StructField("batch_id", StringType()),
+    StructField("environment", StringType()),
+    StructField("status", StringType()),            # RUNNING, SUCCESS, FAILED
+    StructField("start_time", TimestampType()),
+    StructField("end_time", TimestampType()),
+    StructField("duration_seconds", LongType()),
+    StructField("source_row_count", LongType()),
+    StructField("target_row_count", LongType()),
+    StructField("sla_deadline", TimestampType()),
+    StructField("sla_status", StringType()),        # MET, BREACHED, NOT_EVALUATED
+    StructField("error_type", StringType()),        # category from classify_error
+    StructField("error_message", StringType()),     # sanitized, truncated
+    StructField("created_at", TimestampType()),
+])
+
+
+# ---------------------------------------------------------------- errors
+# First match wins. Patterns are matched against "ExceptionClass: message".
+ERROR_PATTERNS = [
+    ("SCHEMA_MISMATCH",     ["UNRESOLVED_COLUMN", "Schema contract", "DELTA_FAILED_TO_MERGE_FIELDS"]),
+    ("INVALID_DATA",        ["CAST_INVALID_INPUT", "NumberFormatException"]),
+    ("AUTHORIZATION",       ["PERMISSION_DENIED", "INSUFFICIENT_PERMISSIONS", "AccessDenied"]),
+    ("DELTA_CONFLICT",      ["ConcurrentAppendException", "ConcurrentDeleteReadException",
+                             "ConcurrentDeleteDeleteException", "ConcurrentTransactionException",
+                             "MetadataChangedException"]),
+    ("SOURCE_CONNECTIVITY", ["ConnectionError", "TimeoutError", "Connection refused",
+                             "timed out", "UnknownHostException"]),
+]
+TRANSIENT_CATEGORIES = {"SOURCE_CONNECTIVITY"}   # add DELTA_CONFLICT only for idempotent writes
+
+
+def classify_error(exc):
+    text = f"{type(exc).__name__}: {exc}".lower()
+    for category, patterns in ERROR_PATTERNS:
+        if any(p.lower() in text for p in patterns):
+            return category
+    return "UNKNOWN"
+
+
+_SECRET_PATTERNS = [
+    (re.compile(r"(?i)\b(password|pwd|secret|token)\s*[=:]\s*[^;\s,]+"), r"\1=***"),
+    (re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"), "Bearer ***"),
+    (re.compile(r"dapi[0-9a-f]{16,}"), "dapi***"),
+]
+
+
+def sanitize_message(message, max_length=1000):
+    for pattern, replacement in _SECRET_PATTERNS:
+        message = pattern.sub(replacement, message)
+    return message[:max_length]
+
+
+def _fallback_log(event, **details):
+    """Last resort when the audit table can't be written: one JSON line in the driver log."""
+    payload = {"event": event, "ts": datetime.now(timezone.utc).isoformat(), **details}
+    print(json.dumps(payload, default=str), file=sys.stderr)
+
+
+# ---------------------------------------------------------------- audit
+def write_execution_audit(spark, **record):
+    if record.get("start_time") and record.get("end_time"):
+        record["duration_seconds"] = int(
+            (record["end_time"] - record["start_time"]).total_seconds())
+    record["created_at"] = datetime.now(timezone.utc)
+    row = tuple(record.get(field.name) for field in AUDIT_SCHEMA)
+    (spark.createDataFrame([row], AUDIT_SCHEMA)
+          .write.mode("append").saveAsTable(AUDIT_TABLE))
+
+
+def evaluate_sla(end_time, sla_deadline):
+    if sla_deadline is None:
+        return "NOT_EVALUATED"
+    return "BREACHED" if end_time &gt; sla_deadline else "MET"
+
+
+# ---------------------------------------------------------------- wrapper
+def execute_monitored_pipeline(spark, pipeline_name, run_id, batch_id, environment,
+                               pipeline_function, sla_deadline=None):
+    base = dict(pipeline_name=pipeline_name, run_id=run_id, batch_id=batch_id,
+                environment=environment, sla_deadline=sla_deadline,
+                start_time=datetime.now(timezone.utc))
+
+    # 1. Best-effort RUNNING marker, so overdue runs are visible while still running
+    try:
+        write_execution_audit(spark, **base, status="RUNNING", sla_status="NOT_EVALUATED")
+    except Exception as audit_exc:
+        _fallback_log("AUDIT_WRITE_FAILED", stage="start", error=str(audit_exc)[:300], **base)
+
+    # 2. Run the pipeline
+    failure = None
+    final = dict(base)
+    try:
+        result = pipeline_function() or {}
+        final.update(status="SUCCESS",
+                     source_row_count=result.get("source_row_count"),
+                     target_row_count=result.get("target_row_count"))
+    except Exception as exc:
+        failure = exc
+        final.update(status="FAILED",
+                     error_type=classify_error(exc),
+                     error_message=sanitize_message(f"{type(exc).__name__}: {exc}"))
+
+    final["end_time"] = datetime.now(timezone.utc)
+    # A failed run delivered nothing, so it can't "meet" an SLA; the SLA monitor
+    # judges the pipeline by its latest attempt instead
+    final["sla_status"] = (evaluate_sla(final["end_time"], sla_deadline)
+                           if failure is None else "NOT_EVALUATED")
+
+    # 3. Final record. An audit failure must never hide the pipeline's own error.
+    try:
+        write_execution_audit(spark, **final)
+    except Exception as audit_exc:
+        _fallback_log("AUDIT_WRITE_FAILED", stage="end", error=str(audit_exc)[:300], **final)
+
+    # 4. Re-raise so the job run itself is marked FAILED
+    if failure is not None:
+        raise failure
+    return final
+
+
+# ---------------------------------------------------------------- retries
+def retry_transient(operation, max_attempts=3, base_delay_seconds=2, sleep=time.sleep):
+    """Retry only errors classified as transient, with capped exponential backoff."""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return operation()
+        except Exception as exc:
+            category = classify_error(exc)
+            if category not in TRANSIENT_CATEGORIES or attempt == max_attempts:
+                raise
+            delay = min(base_delay_seconds * 2 ** (attempt - 1), 30)
+            _fallback_log("RETRYING", attempt=attempt, category=category, delay_seconds=delay)
+            sleep(delay)
+
+
+# ---------------------------------------------------------------- schema contract
+class SchemaContractError(ValueError):
+    pass
+
+
+def validate_schema_contract(df, expected_schema, allow_extra_columns=True):
+    actual = {f.name: f.dataType for f in df.schema}
+    missing = [f.name for f in expected_schema if f.name not in actual]
+    mismatched = [f"{f.name}: expected {f.dataType.simpleString()}, got {actual[f.name].simpleString()}"
+                  for f in expected_schema
+                  if f.name in actual and actual[f.name] != f.dataType]
+    extra = [c for c in actual if c not in {f.name for f in expected_schema}]
+
+    problems = []
+    if missing:
+        problems.append(f"missing columns {missing}")
+    if mismatched:
+        problems.append(f"type changes {mismatched}")
+    if extra and not allow_extra_columns:
+        problems.append(f"unexpected columns {extra}")
+    if problems:
+        raise SchemaContractError("Schema contract violated: " + "; ".join(problems))
+    return {"extra_columns": extra}</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Why the wrapper re-raises</h4><p style="margin-bottom:0">Catching the exception to log it would otherwise make the notebook, and therefore the job run, look successful. Re-raising keeps the job FAILED, so job notifications and retries still work.</p></div>
+<div class="card"><h4>What it can't catch</h4><p style="margin-bottom:0">If compute is lost or the run is killed, the <code>except</code> block never runs and only the RUNNING row exists. The SLA monitor shows it as OVERDUE, and 20.9 reconciles audit rows against system-table run history.</p></div>
+</div>
+
+<h3 id="s20-6-6"><span class="num">20.6.3</span>Steps 4–5: A Sample Pipeline, Run Under Monitoring</h3>
+<div class="code-wrap"><span class="lang">Python · customer_pipeline.py</span><pre class="code"><code>from pyspark.sql import Window, functions as F
+from pyspark.sql.types import LongType, StringType, StructField, StructType, TimestampType
+
+SOURCE_TABLE = "retail_dev.bronze.customers"
+TARGET_TABLE = "retail_dev.silver.customers"
+
+CUSTOMER_CONTRACT = StructType([
+    StructField("customer_id", LongType()),
+    StructField("customer_name", StringType()),
+    StructField("email", StringType()),
+    StructField("updated_at", TimestampType()),
+])
+
+
+def customer_pipeline():
+    source_df = spark.table(SOURCE_TABLE)
+    validate_schema_contract(source_df, CUSTOMER_CONTRACT)      # fail fast, clear message
+
+    latest_first = Window.partitionBy("customer_id").orderBy(F.col("updated_at").desc())
+    cleaned_df = (
+        source_df
+        .filter(F.col("customer_id").isNotNull())
+        .withColumn("_rn", F.row_number().over(latest_first))  # keep the latest version
+        .filter("_rn = 1")
+        .drop("_rn")
+    )
+
+    # Full refresh by design: overwrite replaces the whole target table
+    cleaned_df.write.mode("overwrite").saveAsTable(TARGET_TABLE)
+
+    return {
+        "source_row_count": source_df.count(),
+        "target_row_count": spark.table(TARGET_TABLE).count(),   # what was committed
+    }</code></pre></div>
+<p class="ref"><code>overwrite</code> replaces the target: correct only for a full-refresh design. Incremental pipelines use append, MERGE, or <code>replaceWhere</code> (Chapters 13, 17). A successful write doesn't prove correctness; add Chapter 18's checks.</p>
+<div class="code-wrap"><span class="lang">Python · in the job's notebook task</span><pre class="code"><code>from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+run_id = dbutils.widgets.get("run_id")          # job parameter set to {{job.run_id}}
+business_date = dbutils.widgets.get("business_date")   # e.g. 2026-10-25
+
+# Deadline comes from the business schedule, not from "now + 30 minutes"
+deadline = (datetime.fromisoformat(f"{business_date} 02:30")
+            .replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+            .astimezone(timezone.utc))
+
+result = execute_monitored_pipeline(
+    spark,
+    pipeline_name="pl_customers",
+    run_id=run_id,
+    batch_id="BATCH_" + business_date.replace("-", ""),
+    environment="PROD",
+    pipeline_function=customer_pipeline,
+    sla_deadline=deadline,
+)</code></pre></div>
+<p class="ref">The original built the deadline as "now + 30 minutes", which it warned about: a late start would get a later deadline and look compliant. Here it's fixed to the schedule in IST and stored in UTC.</p>
+<div class="code-wrap"><span class="lang">Output (verified: three test runs, then the audit table)</span><pre class="code"><code>A  valid source, deadline ahead     -&gt; SUCCESS, MET, source 4 rows, target 2 rows
+   (null ID dropped; customer 1 keeps the latest version, "Asha R")
+B  source lost the email column     -&gt; raised SchemaContractError (job fails)
+C  succeeded after the deadline     -&gt; SUCCESS, BREACHED
+
+pipeline_name  run_id  status   source  target  sla_status     error_type
+customer_load  run-A   RUNNING  NULL    NULL    NOT_EVALUATED  NULL
+customer_load  run-A   SUCCESS  4       2       MET            NULL
+customer_load  run-B   RUNNING  NULL    NULL    NOT_EVALUATED  NULL
+customer_load  run-B   FAILED   NULL    NULL    NOT_EVALUATED  SCHEMA_MISMATCH
+product_load   run-C   RUNNING  NULL    NULL    NOT_EVALUATED  NULL
+product_load   run-C   SUCCESS  10      10      BREACHED       NULL</code></pre></div>
+
+<h4>Query the monitoring data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Recent runs (one row each)
+SELECT pipeline_name, run_id, status, start_time, end_time, duration_seconds,
+       source_row_count, target_row_count, sla_status
+FROM retail_dev.ops.pipeline_run_latest
+ORDER BY start_time DESC;
+
+-- Failures with their category
+SELECT pipeline_name, run_id, start_time, error_type, error_message
+FROM retail_dev.ops.pipeline_run_latest
+WHERE status = 'FAILED'
+ORDER BY start_time DESC;
+
+-- Completed runs that missed the deadline, and by how much
+SELECT pipeline_name, run_id, end_time, sla_deadline,
+       timestampdiff(MINUTE, sla_deadline, end_time) AS minutes_late
+FROM retail_dev.ops.pipeline_run_latest
+WHERE sla_status = 'BREACHED'
+ORDER BY end_time DESC;</code></pre></div>
+
+<h3 id="s20-6-8"><span class="num">20.6.4</span>Step 6: SLA Breach Detection (Late, Overdue, Missing)</h3>
+<p>The wrapper can only judge runs that finish. A <strong>separate scheduled check</strong> compares the registry against actual runs, which catches runs still going past their deadline and runs that never started. Schedule it every 15 minutes in the early morning.</p>
+<div class="code-wrap"><span class="lang">SQL · sla_check.sql (parameters :run_date and :as_of)</span><pre class="code"><code>WITH expected AS (
+    SELECT pipeline_name, severity,
+           make_timestamp(year(:run_date), month(:run_date), day(:run_date),
+                          CAST(split(expected_completion, ':')[0] AS INT),
+                          CAST(split(expected_completion, ':')[1] AS INT),
+                          0, sla_timezone) AS deadline          -- converted to UTC instant
+    FROM retail_dev.ops.pipeline_sla_registry
+    WHERE active
+),
+runs AS (                                                       -- latest attempt per pipeline
+    SELECT *, row_number() OVER (PARTITION BY pipeline_name ORDER BY start_time DESC) AS attempt_rank
+    FROM retail_dev.ops.pipeline_run_latest
+    WHERE batch_id = concat('BATCH_', date_format(:run_date, 'yyyyMMdd'))
+)
+SELECT e.pipeline_name, e.severity, e.deadline, r.run_id, r.status, r.end_time,
+       CASE
+           WHEN r.run_id IS NULL AND :as_of &gt; e.deadline   THEN 'MISSING'
+           WHEN r.run_id IS NULL                           THEN 'NOT_STARTED'
+           WHEN r.status = 'RUNNING' AND :as_of &gt; e.deadline THEN 'OVERDUE'
+           WHEN r.status = 'RUNNING'                       THEN 'RUNNING'
+           WHEN r.status = 'FAILED'                        THEN 'FAILED'
+           WHEN r.end_time &gt; e.deadline                    THEN 'BREACHED'
+           ELSE 'MET'
+       END AS sla_state,
+       greatest(0, timestampdiff(MINUTE, e.deadline, coalesce(r.end_time, :as_of))) AS minutes_late
+FROM expected e
+LEFT JOIN runs r ON r.pipeline_name = e.pipeline_name AND r.attempt_rank = 1
+ORDER BY e.deadline</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · run it</span><pre class="code"><code>from datetime import date, datetime, timezone
+
+findings = spark.sql(open("sla_check.sql").read(),
+                     args={"run_date": date.today(), "as_of": datetime.now(timezone.utc)})</code></pre></div>
+<p>Test: checked at <strong>04:30 IST</strong> on 25 Oct with these runs: customers failed at 02:05 and was retried successfully at 02:22; products failed at 02:31; orders started at 03:00 and is still running; sales summary never started.</p>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>pipeline_name     severity  run_id  status   sla_state  minutes_late  deadline (IST)
+pl_customers      HIGH      r2      SUCCESS  MET        0             02:30
+pl_products       MEDIUM    r3      FAILED   FAILED     0             02:45
+pl_orders         HIGH      r4      RUNNING  OVERDUE    60            03:30
+pl_sales_summary  CRITICAL  NULL    NULL     MISSING    15            04:15</code></pre></div>
+<p class="ref">Customers is judged by its <em>latest</em> attempt (the successful retry), so it's MET. <code>make_timestamp(…, sla_timezone)</code> converts 02:30 IST to the correct UTC instant whatever the session time zone. Store timestamps in UTC; keep the business time zone in the registry.</p>
+
+<h3 id="s20-6-10"><span class="num">20.6.5</span>Step 7: Failure Alerting with De-duplication</h3>
+<p>The dispatcher sends one alert per <em>environment + pipeline + run (or date) + state</em> and records every attempt. Since the check runs every 15 minutes, without de-duplication the overdue orders run would alert four times an hour.</p>
+<div class="code-wrap"><span class="lang">Python · alerts.py</span><pre class="code"><code>from datetime import datetime, timezone
+
+ALERT_LOG_TABLE = "retail_dev.ops.alert_log"
+ALERT_STATES = ("FAILED", "BREACHED", "OVERDUE", "MISSING")
+
+
+def build_alert(environment, finding):
+    subject = f"[{environment}] {finding['pipeline_name']}: {finding['sla_state']}"
+    body = "\n".join([
+        f"Environment: {environment}",
+        f"Pipeline: {finding['pipeline_name']}",
+        f"Run ID: {finding['run_id'] or 'no run found'}",
+        f"State: {finding['sla_state']} ({finding['minutes_late']} min past deadline)",
+        f"Deadline (UTC): {finding['deadline']}",
+        f"Severity: {finding['severity']}",
+        "First action: open the job run, check the failed task and the audit row.",
+    ])
+    return subject, body
+
+
+def dispatch_alerts(spark, findings_df, environment, run_date, send):
+    """Send one alert per (environment, pipeline, run or date, state); never repeat a sent one."""
+    already_sent = set()
+    if spark.catalog.tableExists(ALERT_LOG_TABLE):
+        already_sent = {r.alert_key for r in
+                        spark.table(ALERT_LOG_TABLE).filter("delivery_status = 'SENT'")
+                             .select("alert_key").collect()}
+
+    log_rows = []
+    for f in findings_df.filter(findings_df.sla_state.isin(*ALERT_STATES)).collect():
+        finding = f.asDict()
+        alert_key = "|".join([environment, finding["pipeline_name"],
+                              finding["run_id"] or str(run_date), finding["sla_state"]])
+        if alert_key in already_sent:
+            continue
+        subject, body = build_alert(environment, finding)
+        try:
+            send(subject, body)
+            status, error = "SENT", None
+        except Exception as exc:                  # record it; retry on the next check
+            status, error = "FAILED", str(exc)[:300]
+        log_rows.append((alert_key, finding["pipeline_name"], finding["sla_state"],
+                         finding["severity"], status, error, datetime.now(timezone.utc)))
+
+    if log_rows:
+        (spark.createDataFrame(log_rows,
+            "alert_key STRING, pipeline_name STRING, alert_type STRING, severity STRING, "
+            "delivery_status STRING, delivery_error STRING, created_at TIMESTAMP")
+              .write.mode("append").saveAsTable(ALERT_LOG_TABLE))
+    return log_rows</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · a Teams sender (not run here)</span><pre class="code"><code>import requests
+
+def send_teams(subject, body):
+    url = dbutils.secrets.get("retail-prod-secrets",
+                              "teams-webhook-url")
+    response = requests.post(
+        url, json={"text": f"**{subject}**\n\n{body}"},
+        timeout=10)
+    response.raise_for_status()
+
+dispatch_alerts(spark, findings, "PROD",
+                date.today(), send_teams)</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified, with a test sender)</span><pre class="code"><code>first check sent:
+  [PROD] pl_products: FAILED
+  [PROD] pl_orders: OVERDUE
+  [PROD] pl_sales_summary: MISSING
+second check sent: []
+
+sender down    -&gt; logged FAILED "webhook unreachable"
+next check     -&gt; sent, logged SENT</code></pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Text · the generated alert body (verified)</span><pre class="code"><code>Environment: PROD
+Pipeline: pl_orders
+Run ID: r4
+State: OVERDUE (60 min past deadline)
+Deadline (UTC): 2026-10-24 22:00:00
+Severity: HIGH
+First action: open the job run, check the failed task and the audit row.</code></pre></div>
+<p class="ref">The webhook URL lives in a secret, never in code. Teams webhook payload formats vary by how your admin set the webhook up, so check yours. A genuinely new incident (a new run ID or a new state) still alerts. <strong>Simpler alternative:</strong> a Databricks SQL alert on the SLA query ("rows where <code>sla_state</code> is FAILED, OVERDUE, or MISSING &gt; 0") notifies without any Python.</p>
+
+<h3 id="s20-6-11"><span class="num">20.6.6</span>Step 8: Automated Recovery</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Failure category</th><th>Response</th></tr></thead>
+<tbody>
+<tr><td>SOURCE_CONNECTIVITY (transient)</td><td>Bounded retry with backoff</td></tr>
+<tr><td>Throttling</td><td>Retry with backoff</td></tr>
+<tr><td>SCHEMA_MISMATCH</td><td>Stop and alert</td></tr>
+<tr><td>INVALID_DATA</td><td>Quarantine or reject per policy</td></tr>
+<tr><td>Missing input file</td><td>Check arrival schedule, alert</td></tr>
+<tr><td>AUTHORIZATION</td><td>Alert the administrator</td></tr>
+<tr><td>DELTA_CONFLICT</td><td>Retry only if idempotent</td></tr>
+<tr><td>Unexpected count variance</td><td>Stop publication or quarantine</td></tr>
+<tr><td>Compute failure</td><td>Retry when safe (job retries)</td></tr>
+<tr><td>UNKNOWN</td><td>Alert support</td></tr>
+</tbody></table></div>
+<pre class="diagram">Failure detected
+      |
+Classify error
+      |
+      +--&gt; Transient, retry-safe --&gt; retry with limit
+      |
+      +--&gt; Data issue -----------&gt; quarantine / alert
+      |
+      +--&gt; Permission issue -----&gt; escalate
+      |
+      +--&gt; Unknown --------------&gt; alert support</pre>
+</div>
+<p class="ref">Retries are only safe if the pipeline is <strong>idempotent</strong>: unique batch IDs, deterministic source boundaries, dedup on a defined key, MERGE or <code>replaceWhere</code>, processed-batch tracking, and recovery steps for partial multi-table writes (Chapter 18).</p>
+
+<!-- ===================== 20.7 ===================== -->
+<h2 id="s20-7"><span class="num">20.7</span>Building an Operational Dashboard</h2>
+<p>Support engineers should see at a glance what's healthy, what failed, and what needs attention.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>KPI</th><th>Definition</th><th>Decide</th></tr></thead>
+<tbody>
+<tr><td>Total executions</td><td>Runs in the period</td><td>Per run, not per retry event</td></tr>
+<tr><td>Success rate</td><td>Successful ÷ <em>completed</em> × 100</td><td>Exclude still-running runs</td></tr>
+<tr><td>Failure count</td><td>Failed runs in the period</td><td>Count retries separately?</td></tr>
+<tr><td>SLA compliance</td><td>Met ÷ runs with an applicable SLA × 100</td><td>How missing and cancelled runs count</td></tr>
+<tr><td>Average duration</td><td>Comparable successful runs</td><td>Exclude backfills</td></tr>
+<tr><td>Reconciliation variance</td><td>Source − target count</td><td>Expected differences (filters, dedup)</td></tr>
+<tr><td>Acknowledgement time</td><td>Alert → acknowledged</td><td>Needs ack tracking</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · KPI tiles</span><pre class="code"><code>-- Dashboard tiles: last 30 days, one row per run (latest event)
+SELECT
+    count(*)                                   AS total_runs,
+    count_if(status = 'SUCCESS')               AS succeeded,
+    count_if(status = 'FAILED')                AS failed,
+    count_if(status = 'RUNNING')               AS still_running,
+    round(100 * count_if(status = 'SUCCESS')
+          / nullif(count_if(status IN ('SUCCESS', 'FAILED')), 0), 1)  AS success_rate_pct,
+    round(100 * count_if(sla_status = 'MET')
+          / nullif(count_if(sla_status IN ('MET', 'BREACHED')), 0), 1) AS sla_compliance_pct
+FROM retail_dev.ops.pipeline_run_latest
+WHERE start_time &gt;= current_timestamp() - INTERVAL 30 DAYS</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified: 9 successes (8 met SLA), 1 failure, 1 running)</span><pre class="code"><code>total_runs  succeeded  failed  still_running  success_rate_pct  sla_compliance_pct
+11          9          1       1              90.0              88.9</code></pre></div>
+<pre class="diagram">+------------------+------------------+------------------+
+| Success rate     | Failed runs      | SLA breaches     |
+| 90.0%            | 1                | 1                |
++------------------+------------------+------------------+
+| Run trend: success / failure / duration (line chart)   |
++--------------------------------------------------------+
+| Today's SLA board (sla_check.sql): MET / OVERDUE /...  |
++--------------------------------------------------------+
+| Failed runs: pipeline | run | error_type | message     |
++--------------------------------------------------------+
+| Slow runs (slow_runs.sql) | Reconciliation variance    |
++--------------------------------------------------------+</pre>
+<p class="ref">Build it as a Databricks AI/BI dashboard (each tile a query above) or in Power BI. If Power BI connects, its identity should read only the <code>ops</code> schema.</p>
+
+<!-- ===================== 20.8 ===================== -->
+<h2 id="s20-8"><span class="num">20.8</span>End-to-End Hands-On Project</h2>
+<p class="section-intro">Build a production monitoring solution for four daily pipelines that tracks execution, captures failures, records duration, and alerts when a pipeline fails or misses its SLA.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Pipeline</th><th>Purpose</th><th>Expected completion (IST)</th></tr></thead>
+<tbody>
+<tr><td><code>pl_customers</code></td><td>Load customer data</td><td>2:30 AM</td></tr>
+<tr><td><code>pl_products</code></td><td>Load product data</td><td>2:45 AM</td></tr>
+<tr><td><code>pl_orders</code></td><td>Load order data</td><td>3:30 AM</td></tr>
+<tr><td><code>pl_sales_summary</code></td><td>Build sales reporting data</td><td>4:15 AM</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="card"><h4>Tasks</h4><ol style="margin-bottom:0">
+<li><strong>Tables:</strong> audit, registry, view (20.6.1).</li>
+<li><strong>Instrument</strong> each pipeline with the wrapper; pass <code>{{job.run_id}}</code>, batch ID, environment, deadline.</li>
+<li><strong>Row counts</strong> for the batch or window, not the whole history.</li>
+<li><strong>Errors:</strong> categorized, sanitized, re-raised.</li>
+<li><strong>Failed runs:</strong> audit table, cross-checked with system tables.</li>
+<li><strong>SLA:</strong> schedule <code>sla_check.sql</code> every 15 min.</li>
+<li><strong>Alerts:</strong> <code>dispatch_alerts</code> or a SQL alert.</li>
+<li><strong>Dashboard:</strong> KPIs, SLA board, failures, slow runs.</li>
+<li><strong>Test failures</strong> (below).</li>
+<li><strong>Test recovery:</strong> rerun without duplicates; document manual cases.</li>
+</ol></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Failure test</th><th>How to simulate</th><th>Expected capture</th></tr></thead>
+<tbody>
+<tr><td>Missing column</td><td>Drop <code>email</code> from the source</td><td>FAILED, SCHEMA_MISMATCH ✓</td></tr>
+<tr><td>Invalid number</td><td>Insert <code>'ABC'</code> in an amount</td><td>INVALID_DATA ✓</td></tr>
+<tr><td>Connection failure</td><td>Wrong host name</td><td>SOURCE_CONNECTIVITY, retried ✓</td></tr>
+<tr><td>Duplicate key</td><td>Insert a repeated customer</td><td>Latest version kept ✓</td></tr>
+<tr><td>Late finish</td><td>Deadline already past</td><td>SUCCESS, BREACHED ✓</td></tr>
+<tr><td>Never ran</td><td>Pause one job</td><td>MISSING after deadline ✓</td></tr>
+<tr><td>Hung run</td><td><code>time.sleep</code> past deadline</td><td>OVERDUE ✓</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">✓ = verified locally with the code in this chapter. Repeat them in your workspace as the final check.</p>
+
+<!-- ===================== 20.9 ===================== -->
+<h2 id="s20-9"><span class="num">20.9</span>Recommended Production Design Improvements</h2>
+<div class="grid-2">
+<div class="card"><h4>1. Independent run detection</h4><p style="margin-bottom:0">Don't rely only on code reporting its own failure. Use run history (system tables, Jobs API) to see actual run states.</p></div>
+<div class="card"><h4>2. Reliable audit writes</h4><p style="margin-bottom:0">Fallback logging (done) plus a reconciliation that finds runs with no audit record (below).</p></div>
+<div class="card"><h4>3. Business dates vs timestamps</h4><p style="margin-bottom:0">Store UTC; keep the business time zone (e.g. IST) for SLAs. Never mix naive and UTC timestamps (done in the registry).</p></div>
+<div class="card"><h4>4. Batch-level reconciliation</h4><p style="margin-bottom:0">Record the exact batch or watermark processed; compare like with like.</p></div>
+<div class="card"><h4>5. Structured error categories</h4><p style="margin-bottom:0"><code>SOURCE_CONNECTIVITY</code>, <code>AUTHORIZATION</code>, <code>SCHEMA_MISMATCH</code>, <code>INVALID_DATA</code>, <code>DELTA_CONFLICT</code>, <code>UNKNOWN</code>… based on observed exceptions (done; extend the patterns as you meet new errors).</p></div>
+<div class="card"><h4>6. No unsafe retries</h4><p style="margin-bottom:0">Retry only transient categories on idempotent operations (done).</p></div>
+<div class="card"><h4>7. Prevent alert fatigue</h4><p style="margin-bottom:0">Severity levels, de-duplication (done), escalation, acknowledgement tracking. A slightly slow job shouldn't page like a failed finance load.</p></div>
+<div class="card"><h4>8. Recovery runbooks</h4><p style="margin-bottom:0">Partial writes, failed incremental batches, wrong watermarks, duplicate loads, failed downstream tasks, late source data.</p></div>
+</div>
+<h3>9. Monitor the Monitoring</h3>
+<p>The monitor itself can fail silently, which is its own operational risk. Two checks:</p>
+<div class="code-wrap"><span class="lang">SQL · job runs that left no audit record (needs system tables; not run here)</span><pre class="code"><code>SELECT r.job_id, r.run_id, r.result_state, r.period_end_time
+FROM system.lakeflow.job_run_timeline AS r
+WHERE r.result_state IS NOT NULL
+  AND r.period_end_time &amp;gt;= current_timestamp() - INTERVAL 1 DAY
+  AND r.job_id IN (123456789, 987654321)              -- your monitored jobs
+  AND NOT EXISTS (
+        SELECT 1 FROM retail_dev.ops.pipeline_execution_audit AS a
+        WHERE a.run_id = CAST(r.run_id AS STRING));</code></pre></div>
+<p class="ref">Any row means the wrapper didn't run, couldn't write, or wasn't given <code>{{job.run_id}}</code>. Also alert if the SLA check job itself hasn't succeeded in the last 30 minutes (a job health rule or its own <code>on_failure</code> notification), and periodically send a test alert to prove delivery works.</p>
+
+<!-- ===================== 20.10 ===================== -->
+<h2 id="s20-10"><span class="num">20.10</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. How do you monitor Databricks jobs in production?</summary><div class="answer">Jobs UI for investigation; system tables (<code>job_run_timeline</code>, <code>job_task_run_timeline</code>) or the Jobs API for automated monitoring; application audit tables for row counts and errors; job notifications and alerts on top.</div></details>
+<details class="q"><summary>Q2. Job-level vs task-level monitoring?</summary><div class="answer">Job-level tracks the overall run; task-level identifies which task failed, was skipped or blocked, or ran long, so you find the root cause rather than the consequence.</div></details>
+<details class="q"><summary>Q3. How do you detect a pipeline that didn't run?</summary><div class="answer">Keep an expected-run registry and compare it with actual runs; flag MISSING after the deadline. A missing record must never be read as success.</div></details>
+<details class="q"><summary>Q4. How do you detect an SLA breach?</summary><div class="answer">Compare completion time with the business deadline (in the business time zone), and separately detect runs still running past it (OVERDUE) and runs that never started (MISSING).</div></details>
+<details class="q"><summary>Q5. Troubleshooting a slow Spark job?</summary><div class="answer">Find the slow stage in the Spark UI or query profile, compare task durations, check shuffle, spill, and input sizes, look for skew and memory pressure, read the plan, and fix the actual bottleneck before resizing.</div></details>
+<details class="q"><summary>Q6. Causes of executor OOM?</summary><div class="answer">Oversized partitions, large joins and aggregations, excessive caching, skew, memory-heavy UDFs. Determine whether it's data, logic, or configuration before adding memory.</div></details>
+<details class="q"><summary>Q7. Identifying data skew?</summary><div class="answer">Max task duration or shuffle read far above the median, plus key-frequency analysis showing a few dominant keys.</div></details>
+<details class="q"><summary>Q8. Task retry vs job retry?</summary><div class="answer">Spark retries a failed task inside a run; the orchestrator retries a whole job task as a new attempt. Different levels, different visibility.</div></details>
+<details class="q"><summary>Q9. Handling a schema mismatch?</summary><div class="answer">Validate names and types against a defined contract before transforming; on violation, record the difference and stop or quarantine the batch. Don't retry; it's permanent.</div></details>
+<details class="q"><summary>Q10. Detecting missing records?</summary><div class="answer">Row-count reconciliation plus key-level left-anti joins, both scoped to the same batch or business period.</div></details>
+<details class="q"><summary>Q11. Handling Delta transaction conflicts?</summary><div class="answer">Identify the concurrent writers (DESCRIBE HISTORY), retry only idempotent operations, and if conflicts recur, redesign ownership, schedules, or make writes touch disjoint data.</div></details>
+<details class="q"><summary>Q12. Designing a reusable monitoring framework?</summary><div class="answer">Standard audit tables, a wrapper that records start and outcome and re-raises, error categories, an SLA registry and scheduled check, de-duplicated alerts, dashboards, and independent run-history checks for failures the wrapper can't see.</div></details>
+<details class="q"><summary>Q13. Preventing duplicates when rerunning?</summary><div class="answer">Batch IDs, deterministic boundaries, MERGE or replaceWhere, processed-batch tracking, reconciliation, and checking what already committed.</div></details>
+<details class="q"><summary>Q14. Operational audit tables vs Databricks audit logs?</summary><div class="answer">Audit tables capture application-specific execution and data metrics; platform audit logs capture platform activity (access, permission and configuration changes). Complementary, not interchangeable.</div></details>
+<details class="q"><summary>Q15. Integrating with Azure Monitor?</summary><div class="answer">Configure diagnostic settings for the needed audit-log categories to Log Analytics, write alert rules, route through action groups, and keep Databricks-native sources for job history and Spark diagnostics. Watch ingestion cost.</div></details>
+<details class="q"><summary>Q16. Why must the wrapper re-raise the exception?</summary><div class="answer">Otherwise the notebook completes normally and the job run shows success, so job notifications and retries never fire.</div></details>
+<details class="q"><summary>Q17. Why write a RUNNING record at start?</summary><div class="answer">So runs that hang or are killed are visible as overdue; an end-only record leaves no trace of them.</div></details>
+<details class="q"><summary>Q18. Why is result_state sometimes NULL in job_run_timeline?</summary><div class="answer">Runs are sliced hourly; only the final row of a run has result_state. Filter IS NOT NULL for outcomes.</div></details>
+<details class="q"><summary>Q19. How do you avoid alert storms from a check that runs every 15 minutes?</summary><div class="answer">De-duplicate on environment + pipeline + run + state, record deliveries, and only alert again for genuinely new incidents or failed deliveries.</div></details>
+<details class="q"><summary>Q20. How do you know the monitoring itself is working?</summary><div class="answer">Reconcile job runs against audit records, alert when the monitor job fails or stops running, and periodically test alert delivery.</div></details>
+
+<!-- ===================== 20.11 ===================== -->
+<h2 id="s20-11"><span class="num">20.11</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Fundamentals, run history</td><td>Inspect successful and failed runs; find the failed task</td></tr>
+<tr><td>2</td><td>Job monitoring, SLAs</td><td>Duration, slow-run, and SLA queries</td></tr>
+<tr><td>3</td><td>Spark troubleshooting</td><td>Run the skew demo; read the Spark UI and a plan</td></tr>
+<tr><td>4</td><td>Pipeline troubleshooting</td><td>Schema contract, duplicates, reconciliation</td></tr>
+<tr><td>5</td><td>System tables, Azure Monitor</td><td>Explore <code>system.lakeflow</code>; build the failed-runs query</td></tr>
+<tr><td>6</td><td>Audit framework and alerting</td><td>Create tables, instrument a pipeline, dispatch alerts</td></tr>
+<tr><td>7</td><td>End-to-end project</td><td>Run all failure tests; build the dashboard</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://docs.databricks.com/aws/en/jobs/" target="_blank" rel="noopener">Databricks Lakeflow Jobs</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/notifications" target="_blank" rel="noopener">Job notifications</a></li>
+<li><a href="https://docs.databricks.com/aws/en/admin/system-tables/" target="_blank" rel="noopener">System tables</a> · <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" target="_blank" rel="noopener">Jobs system tables</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" target="_blank" rel="noopener">Monitoring Azure Databricks</a></li>
+<li><a href="https://spark.apache.org/docs/latest/web-ui.html" target="_blank" rel="noopener">Apache Spark web UI</a></li>
+<li><a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html" target="_blank" rel="noopener">Spark SQL performance tuning</a></li>
+<li><a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" target="_blank" rel="noopener">Delta isolation levels and write conflicts</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" target="_blank" rel="noopener">Azure Monitor</a></li>
+</ul></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch20-checklist">
+<label><input type="checkbox"> <span><strong>Monitoring architecture</strong> collects execution, compute, query, and data information from different sources.</span></label>
+<label><input type="checkbox"> <span><strong>Job monitoring</strong> tracks outcomes, duration, retries, and task dependencies.</span></label>
+<label><input type="checkbox"> <span><strong>SLA monitoring</strong> detects late, overdue, and missing runs against a schedule.</span></label>
+<label><input type="checkbox"> <span><strong>Spark troubleshooting</strong> means drivers, executors, stages, tasks, shuffles, and skew.</span></label>
+<label><input type="checkbox"> <span><strong>Pipeline troubleshooting</strong> covers schema, types, duplicates, missing rows, and connectivity.</span></label>
+<label><input type="checkbox"> <span><strong>Delta conflicts</strong> are retried only when the write is idempotent.</span></label>
+<label><input type="checkbox"> <span><strong>System tables</strong> give an independent view beyond notebook logs.</span></label>
+<label><input type="checkbox"> <span><strong>Azure Monitor</strong> alerts on the telemetry you choose to send it.</span></label>
+<label><input type="checkbox"> <span><strong>Audit tables</strong> record each run's status, counts, and categorized errors.</span></label>
+<label><input type="checkbox"> <span>A <strong>production framework</strong> alerts without storms, recovers safely, and monitors itself.</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch20-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch20-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 21!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="callout key"><span class="label">Production-support recommendation</span><p>Start with three components: <strong>run-history monitoring</strong>, a <strong>Delta-based audit framework</strong>, and <strong>SLA and failure alerts</strong>. Once they're reliable, add Spark performance diagnostics, reconciliation, cost monitoring, and smarter automated recovery.</p></div>
+
+<div class="next">
+<h3>Next chapter: Databricks DevOps and CI/CD</h3>
+<p>Chapter 21 puts everything into version control and automated delivery: Git branching, pull requests and code reviews, environment-specific configuration, Databricks Asset Bundles for defining and deploying jobs and pipelines, and CI/CD pipelines with automated tests and GitHub Actions.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-19.html"><span>← Previous</span><strong>Chapter 19: Security &amp; Administration</strong></a>
+  <a class="pager-link" href="databricks-chapter-21.html"><span>Next →</span><strong>Chapter 21: DevOps &amp; CI/CD</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 7 · Chapter 20 of 24</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

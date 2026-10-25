@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 2: Architecture</title>
+<meta name="description" content="Databricks Tutorial — Chapter 2: Databricks Architecture. Workspace, control and compute planes, compute types, storage, and Spark processing internals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 2 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s2-1">2.1 Core Architecture</a></li>
+    <li class="lvl2"><a href="#s2-1-1">Databricks workspace</a></li>
+    <li class="lvl2"><a href="#s2-1-2">Control plane</a></li>
+    <li class="lvl2"><a href="#s2-1-3">Compute plane</a></li>
+    <li class="lvl2"><a href="#s2-1-4">Workspace resources</a></li>
+    <li class="lvl2"><a href="#s2-1-5">Cloud infrastructure</a></li>
+    <li class="lvl2"><a href="#s2-1-6">Storage &amp; compute separation</a></li>
+    <li class="lvl2"><a href="#s2-1-7">How a job executes</a></li>
+    <li class="lvl1"><a href="#s2-2">2.2 Compute Concepts</a></li>
+    <li class="lvl2"><a href="#s2-2-1">What is compute?</a></li>
+    <li class="lvl2"><a href="#s2-2-2">Compute options</a></li>
+    <li class="lvl2"><a href="#s2-2-3">All-purpose compute</a></li>
+    <li class="lvl2"><a href="#s2-2-4">Job compute</a></li>
+    <li class="lvl2"><a href="#s2-2-5">Serverless compute</a></li>
+    <li class="lvl2"><a href="#s2-2-6">SQL warehouses</a></li>
+    <li class="lvl2"><a href="#s2-2-7">Classic vs serverless</a></li>
+    <li class="lvl2"><a href="#s2-2-8">Selecting compute</a></li>
+    <li class="lvl1"><a href="#s2-3">2.3 Storage Architecture</a></li>
+    <li class="lvl2"><a href="#s2-3-1">Cloud object storage</a></li>
+    <li class="lvl2"><a href="#s2-3-2">ADLS Gen2</a></li>
+    <li class="lvl2"><a href="#s2-3-3">Amazon S3</a></li>
+    <li class="lvl2"><a href="#s2-3-4">Google Cloud Storage</a></li>
+    <li class="lvl2"><a href="#s2-3-5">Stored vs processed data</a></li>
+    <li class="lvl2"><a href="#s2-3-6">Managed vs external tables</a></li>
+    <li class="lvl1"><a href="#s2-4">2.4 Processing Architecture</a></li>
+    <li class="lvl2"><a href="#s2-4-1">Driver node</a></li>
+    <li class="lvl2"><a href="#s2-4-2">Worker nodes</a></li>
+    <li class="lvl2"><a href="#s2-4-3">Executors</a></li>
+    <li class="lvl2"><a href="#s2-4-4">Tasks</a></li>
+    <li class="lvl2"><a href="#s2-4-5">Jobs</a></li>
+    <li class="lvl2"><a href="#s2-4-6">Stages</a></li>
+    <li class="lvl2"><a href="#s2-4-7">Partitions</a></li>
+    <li class="lvl2"><a href="#s2-4-8">Distributed processing</a></li>
+    <li class="lvl2"><a href="#s2-4-9">Parallel execution</a></li>
+    <li class="lvl1"><a href="#together">Putting it all together</a></li>
+    <li class="lvl1"><a href="#exercise">Hands-on exercise</a></li>
+    <li class="lvl1"><a href="#practice">Practice &amp; revision</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 1 · Chapter 2 · Beginner → Data Engineer</span>
+  <h1>Databricks Architecture</h1>
+  <p class="lead">In Chapter 1 you learned what Databricks is and how it compares with Spark, Fabric, and Synapse. This chapter shows how Databricks actually works behind the scenes, from the workspace and control plane down to drivers, executors, stages, and partitions.</p>
+  <div class="callout key"><span class="label">By the end of this lesson you should be able to explain</span>
+  <ul>
+    <li>How a Databricks workspace is organized.</li>
+    <li>What the control plane and compute plane do.</li>
+    <li>How compute processes data stored in cloud storage.</li>
+    <li>The differences between all-purpose, job, serverless, and SQL compute.</li>
+    <li>How Databricks interacts with ADLS Gen2, Amazon S3, and Google Cloud Storage.</li>
+    <li>The roles of drivers, executors, jobs, stages, tasks, and partitions.</li>
+    <li>What happens when you execute a SQL query or PySpark notebook.</li>
+  </ul></div>
+  <p class="ref">Most examples use Azure Databricks because it relates closely to Azure Data Factory, Azure Synapse Analytics, and Azure Data Lake Storage.</p>
+  <div class="chips">
+    <a class="chip" href="#s2-1"><span>2.1</span><strong>Core Architecture</strong></a>
+    <a class="chip" href="#s2-2"><span>2.2</span><strong>Compute Concepts</strong></a>
+    <a class="chip" href="#s2-3"><span>2.3</span><strong>Storage Architecture</strong></a>
+    <a class="chip" href="#s2-4"><span>2.4</span><strong>Processing Architecture</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 2.1 ===================== -->
+<h2 id="s2-1"><span class="num">2.1</span>Core Architecture</h2>
+
+<h3 id="s2-1-1"><span class="num">2.1.1</span>What Is a Databricks Workspace?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A Databricks workspace is an environment where you develop, execute, manage, and monitor data engineering and analytics workloads. Think of it as your working environment for Databricks. When you log in, you typically interact with a workspace containing notebooks, queries, jobs, pipelines, and other resources.</p></div>
+<p><strong>Example:</strong> you work for a retail company and need to read customer data from SQL Server, load it into a Delta table, clean it with PySpark, create a Gold table for reporting, schedule the pipeline daily, and monitor execution. You can develop and manage much of this work through a Databricks workspace.</p>
+
+<h4>What does a workspace contain?</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Resource</th><th>Purpose</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Notebooks</td><td>Write and execute code</td><td>A PySpark notebook for customer cleansing</td></tr>
+<tr><td>SQL editor</td><td>Write and execute SQL queries</td><td>A query calculating daily sales</td></tr>
+<tr><td>Jobs</td><td>Schedule and orchestrate workloads</td><td>A daily customer-processing job</td></tr>
+<tr><td>Pipelines</td><td>Define data transformation workflows</td><td>A Bronze-to-Silver pipeline</td></tr>
+<tr><td>Catalog Explorer</td><td>Discover and manage data assets</td><td>Explore <code>main.sales.customers</code></td></tr>
+<tr><td>Repos or Git folders</td><td>Work with version-controlled code</td><td>A repository containing ETL scripts</td></tr>
+<tr><td>Compute resources</td><td>Provide processing capacity</td><td>Compute used to execute a notebook</td></tr>
+<tr><td>Dashboards</td><td>Present analytical results</td><td>A sales performance dashboard</td></tr>
+</tbody></table></div>
+<p class="ref">Exact resource names and available features depend on the workspace configuration and product version.</p>
+
+<h4>Workspace example</h4>
+<p>Imagine your company creates a workspace named <code>retail-databricks-dev</code>:</p>
+<pre class="diagram">retail-databricks-dev
+│
+├── Notebooks
+│   ├── 01_load_customers
+│   ├── 02_clean_customers
+│   └── 03_load_sales
+│
+├── Jobs
+│   └── daily_retail_load
+│
+├── SQL
+│   └── sales_analysis
+│
+└── Pipelines
+    └── retail_data_pipeline</pre>
+<p class="ref">This is a conceptual organization, not a required physical folder structure.</p>
+
+<h4>Can one company have multiple workspaces?</h4>
+<p>Yes. Developers build and test code in development, validate it in testing, and deploy approved changes to production.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Workspace</th><th>Purpose</th></tr></thead>
+<tbody><tr><td>retail-dev</td><td>Development</td></tr><tr><td>retail-test</td><td>Testing</td></tr><tr><td>retail-prod</td><td>Production</td></tr></tbody></table></div>
+<div class="callout"><span class="label">Remember</span><p>A workspace is not the same thing as a cloud storage account or a cluster. A workspace is where you <strong>manage</strong> your work. Compute <strong>executes</strong> it, and storage <strong>holds</strong> the data.</p></div>
+
+<h3 id="s2-1-2"><span class="num">2.1.2</span>What Is the Control Plane?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>The control plane manages the Databricks environment and coordinates operations such as workspace interfaces, job orchestration, and compute management. Think of it as the management layer of the platform. When you click a notebook, submit a job, or configure compute, you interact with control-plane services.</p></div>
+<p><strong>Example:</strong> you open a notebook called <code>load_customers</code>, write the code below, and click Run.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("main.bronze.customers")
+
+display(df)</code></pre></div>
+<p>The platform needs to coordinate several activities:</p>
+<ol class="steps">
+  <li>Receive your execution request.</li>
+  <li>Validate access and execution permissions.</li>
+  <li>Determine the configured compute resource.</li>
+  <li>Submit or coordinate the work.</li>
+  <li>Track execution status.</li>
+  <li>Return results to the notebook interface.</li>
+</ol>
+<div class="callout warn"><span class="label">Note</span><p>The control plane does not itself perform every data-processing operation. The actual execution takes place in the appropriate compute environment.</p></div>
+<h4>What does the control plane manage?</h4>
+<ul><li>Workspace interfaces and APIs.</li><li>Job and workflow management.</li><li>Compute provisioning and management.</li><li>Access to workspace resources.</li><li>Execution coordination.</li><li>Operational metadata and status.</li></ul>
+<p class="ref">The precise division of responsibilities depends on the cloud and compute architecture.</p>
+<h4>Real-world analogy: an airport</h4>
+<p>The control tower coordinates aircraft movements, aircraft engines provide the power to move, and the airport's fuel storage holds fuel.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Airport</th><th>Databricks</th></tr></thead>
+<tbody>
+<tr><td>Control tower</td><td>Control plane</td></tr>
+<tr><td>Aircraft engines</td><td>Compute resources</td></tr>
+<tr><td>Fuel storage</td><td>Data storage</td></tr>
+<tr><td>Flight operations</td><td>Data processing jobs</td></tr>
+</tbody></table></div>
+<p class="ref">This is an analogy to help you remember the concepts, not an exact technical mapping.</p>
+
+<h3 id="s2-1-3"><span class="num">2.1.3</span>What Is the Compute Plane?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>The compute plane is where data-processing workloads execute. When you run a PySpark transformation that joins two large datasets, compute resources perform the actual processing. Depending on the workload, compute may be provisioned in a classic architecture or provided through serverless infrastructure.</p></div>
+<p><strong>Example:</strong> with two tables, <code>main.silver.customers</code> and <code>main.silver.orders</code>, you execute:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    c.customer_id,
+    c.customer_name,
+    COUNT(o.order_id) AS total_orders
+FROM main.silver.customers AS c
+LEFT JOIN main.silver.orders AS o
+    ON c.customer_id = o.customer_id
+GROUP BY
+    c.customer_id,
+    c.customer_name;</code></pre></div>
+<p>The compute environment reads the required data, performs the join, aggregates the results, and returns the output.</p>
+<h4>What does the compute plane contain?</h4>
+<p>Depending on the architecture: driver processes, worker nodes, Spark executors, SQL execution engines, CPU and memory, temporary processing resources, and network connections to data sources.</p>
+<p class="ref">Not every workload uses the same execution architecture. SQL warehouses and serverless compute have platform-specific implementation details.</p>
+
+<h4>Control plane versus compute plane</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Control plane</th><th>Compute plane</th></tr></thead>
+<tbody>
+<tr><td>Main responsibility</td><td>Manage and coordinate operations</td><td>Execute data-processing workloads</td></tr>
+<tr><td>Notebook interface</td><td>Supports the workspace experience</td><td>Executes notebook code</td></tr>
+<tr><td>Job management</td><td>Coordinates job execution</td><td>Runs the tasks</td></tr>
+<tr><td>Compute management</td><td>Manages compute lifecycle and configuration</td><td>Provides processing resources</td></tr>
+<tr><td>Data transformation</td><td>Does not perform every transformation itself</td><td>Performs the actual processing</td></tr>
+<tr><td>Resource usage</td><td>Platform management services</td><td>Processing resources, including CPU and memory</td></tr>
+</tbody></table></div>
+<h4>Simplified architecture</h4>
+<pre class="diagram">                   USER
+                    |
+                    v
+          +--------------------+
+          |   CONTROL PLANE    |
+          |                    |
+          | Workspace          |
+          | Job Management     |
+          | Compute Management |
+          +--------------------+
+                    |
+              Coordinates
+                    |
+                    v
+          +--------------------+
+          |   COMPUTE PLANE    |
+          |                    |
+          | Driver             |
+          | Executors          |
+          | Processing Tasks   |
+          +--------------------+
+                    |
+                    v
+          +--------------------+
+          |   CLOUD STORAGE    |
+          |                    |
+          | Delta Tables       |
+          | Parquet Files      |
+          +--------------------+</pre>
+<p class="ref">This diagram is conceptual. Actual network paths, data access, and the location of compute resources depend on the deployment architecture.</p>
+
+<h3 id="s2-1-4"><span class="num">2.1.4</span>Workspace Resources</h3>
+<p>Workspace resources are the objects you use to develop, execute, and manage your workloads.</p>
+<div class="grid-2">
+  <div class="card"><h4>1. Notebooks</h4><p>Write and execute code in Python, SQL, and other languages. Use them to explore data, develop transformations, and troubleshoot failures.</p></div>
+  <div class="card"><h4>2. Compute resources</h4><p>Execute your workloads: interactive development compute, job compute, SQL warehouses, and serverless options.</p></div>
+  <div class="card"><h4>3. Jobs</h4><p>Orchestrate tasks and workflows that can be scheduled and monitored.</p></div>
+  <div class="card"><h4>4. Catalogs and schemas</h4><p>Unity Catalog organizes data assets into a hierarchy.</p></div>
+  <div class="card"><h4>5. SQL warehouses</h4><p>Compute for SQL queries, dashboards, and supported BI workloads.</p></div>
+  <div class="card"><h4>6. Pipelines</h4><p>Declarative pipelines define data transformation workflows and their dependencies.</p></div>
+  <div class="card"><h4>7. Git integration</h4><p>Manage code versions, collaborate with other developers, and deploy changes safely.</p></div>
+  <div class="card"><h4>8. Monitoring resources</h4><p>Job run details, query history, pipeline events, and more help you investigate failures and performance problems.</p></div>
+</div>
+<div class="grid-2">
+<div><h5>A job workflow</h5>
+<pre class="diagram">Task 1: Load Customers
+          |
+          v
+Task 2: Clean Customers
+          |
+          v
+Task 3: Load Sales
+          |
+          v
+Task 4: Validate Data</pre></div>
+<div><h5>Unity Catalog hierarchy</h5>
+<pre class="diagram">main
+ └── sales
+      ├── customers
+      ├── orders
+      └── products</pre>
+<p><code>main</code> is the catalog, <code>sales</code> is the schema, and <code>customers</code> is a table. The fully qualified name is <code>main.sales.customers</code>.</p></div>
+</div>
+<p>A SQL warehouse can run a query such as:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT COUNT(*)
+FROM main.sales.customers;</code></pre></div>
+
+<h3 id="s2-1-5"><span class="num">2.1.5</span>Cloud Infrastructure</h3>
+<p>Databricks runs on cloud infrastructure. The cloud provider supplies the underlying infrastructure and services, while Databricks provides the data platform. For Azure Databricks, these may include virtual machines or other compute, virtual networks, cloud storage, identity services, networking and security services, and monitoring services.</p>
+<p><strong>Example:</strong> you create a classic compute resource with a driver and several workers. That capacity is backed by cloud infrastructure. When you execute a Spark job, the driver coordinates execution and workers perform distributed processing.</p>
+<pre class="diagram">                MICROSOFT AZURE
+                       |
+         +-------------+-------------+
+         |             |             |
+         v             v             v
+      Compute        Storage      Networking
+         |             |             |
+         v             v             v
+     Databricks      ADLS Gen2     VNet / Rules
+         |
+         v
+   Data Processing</pre>
+<p class="ref">This is a conceptual view. Not every component must be configured directly by the user.</p>
+<h4>Who manages what?</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Responsibility</th><th>Typical owner</th></tr></thead>
+<tbody>
+<tr><td>Cloud infrastructure availability</td><td>Cloud provider</td></tr>
+<tr><td>Databricks platform services</td><td>Databricks, with responsibilities varying by service</td></tr>
+<tr><td>Workspace configuration</td><td>Customer administrators</td></tr>
+<tr><td>Data access permissions</td><td>Customer administrators and data owners</td></tr>
+<tr><td>Pipeline code</td><td>Data engineering team</td></tr>
+<tr><td>Data quality</td><td>Data engineering and business teams</td></tr>
+<tr><td>Workload performance</td><td>Data engineers and platform teams</td></tr>
+<tr><td>Cost monitoring</td><td>Cloud and platform administrators</td></tr>
+</tbody></table></div>
+<p class="ref">The division of responsibility varies by service and deployment model.</p>
+
+<h3 id="s2-1-6"><span class="num">2.1.6</span>Storage and Compute Separation</h3>
+<p class="section-intro">This is one of the most important concepts in modern cloud data engineering.</p>
+<div class="callout key"><span class="label">What it means</span><p>Data can remain in persistent storage while processing resources are provisioned, scaled, or terminated independently. In a typical Databricks lakehouse, the data stays in cloud object storage while compute processes it.</p></div>
+<p><strong>Example:</strong> 2 TB of sales data sits in ADLS Gen2, and two separate compute resources work on it.</p>
+<pre class="diagram">          ADLS GEN2
+       2 TB SALES DATA
+              |
+              |
+      +-------+-------+
+      |               |
+      v               v
+  Compute A        Compute B
+  Daily ETL        Data Analysis
+      |               |
+      v               v
+  Process Data     Query Data</pre>
+<p>Both workloads can access the same underlying data, subject to permissions and the table's concurrency capabilities. The data does not need to be copied into a separate permanent store just because a different compute resource is used.</p>
+<h4>What happens when compute stops?</h4>
+<ul><li>The persistent data remains in cloud storage.</li><li>The compute resource stops consuming resources once terminated.</li><li>The data can be processed again later.</li><li>Another authorized compute resource can access the data.</li></ul>
+<div class="callout warn"><span class="label">Watch out</span><p>Temporary processing state, local disks, cached data, and other transient resources may not survive termination.</p></div>
+<h4>Benefits</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Benefit</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>1. Independent scaling</td><td>Storage capacity and processing capacity can be managed separately.</td></tr>
+<tr><td>2. Better resource utilization</td><td>You do not need to keep every processing resource running continuously.</td></tr>
+<tr><td>3. Workload flexibility</td><td>Different compute resources can process the same governed data.</td></tr>
+<tr><td>4. Potential cost savings</td><td>Compute can be stopped when not needed, although storage and other services may still incur charges.</td></tr>
+<tr><td>5. Persistent data</td><td>Terminating compute does not normally delete the underlying persistent tables.</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Important clarification</span><p>Separation does not mean no data is transferred during processing. Spark must still read data from storage, move intermediate results between tasks when necessary, and write results back to storage.</p></div>
+
+<h3 id="s2-1-7"><span class="num">2.1.7</span>How a Databricks Job Executes</h3>
+<p>Now let's connect the concepts. Your company runs a daily pipeline that must read source data, remove duplicates, calculate total sales by product, and write the result to a Delta table.</p>
+<h4>Step 1: Create the notebook</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_df = spark.read.table("main.bronze.sales")
+
+clean_sales_df = sales_df.dropDuplicates()
+
+product_sales_df = (
+    clean_sales_df
+    .groupBy("product_id")
+    .sum("sales_amount")
+)
+
+(
+    product_sales_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.gold.product_sales")
+)</code></pre></div>
+<p class="ref">This assumes the source and target tables exist or can be created, the data types are suitable, and the required privileges are available.</p>
+<div class="callout warn"><span class="label">Production note</span><p><code>overwrite</code> replaces the target table's data. Production pipelines often use incremental processing or <code>MERGE INTO</code> instead.</p></div>
+<h4>Steps 2–8: From job to result</h4>
+<ol class="steps">
+  <li><strong>Configure a job</strong> that executes the notebook: task type, compute selection, parameters, schedule, retry policy, and notifications.</li>
+  <li><strong>Start the job</strong> manually or on schedule. The control plane coordinates execution and the selected compute is made available.</li>
+  <li><strong>Initialize execution.</strong> For a classic Spark workload, the driver coordinates the application, obtains information about the data, and plans the computation.</li>
+  <li><strong>Read data</strong> from the Bronze Delta table. How much is read depends on the query, file layout, partition pruning, and other optimizations.</li>
+  <li><strong>Process data:</strong> remove duplicates, group by product, calculate totals. Some operations may shuffle data between tasks.</li>
+  <li><strong>Write the results</strong> to the Gold Delta table.</li>
+  <li><strong>Record status.</strong> If the job fails, inspect the failure details, fix the issue, and rerun or repair the workflow.</li>
+</ol>
+<h4>Execution flow</h4>
+<pre class="diagram">User / Schedule
+       |
+       v
+Databricks Job
+       |
+       v
+Control Plane Coordination
+       |
+       v
+Compute Initialization
+       |
+       v
+Driver Plans Execution
+       |
+       v
+Spark Tasks Execute
+       |
+       v
+Read Bronze Delta Data
+       |
+       v
+Transform and Aggregate
+       |
+       v
+Write Gold Delta Data
+       |
+       v
+Record Job Outcome</pre>
+<div class="callout key"><span class="label">Key takeaway</span><p>The control plane <strong>coordinates</strong> the workload; compute <strong>executes</strong> it; storage <strong>holds</strong> the persistent data.</p></div>
+
+<!-- ===================== 2.2 ===================== -->
+<h2 id="s2-2"><span class="num">2.2</span>Compute Concepts</h2>
+
+<h3 id="s2-2-1"><span class="num">2.2.1</span>What Is Compute?</h3>
+<p>In cloud computing, compute refers to the processing resources used to execute applications and workloads: CPU, memory, processing engines, network resources, and temporary storage. In Databricks, compute processes your SQL, PySpark, and other supported workloads.</p>
+<div class="grid-2">
+<pre class="diagram">Persistent Storage
+100 Million Records
+         |
+         v
+   Databricks Compute
+         |
+         v
+Read / Filter / Join / Aggregate
+         |
+         v
+   Sales Summary Table</pre>
+<div class="card"><h4>If compute is insufficient</h4><ul><li>Slow query execution.</li><li>Long processing times.</li><li>Memory errors.</li><li>Excessive task failures.</li><li>Poor resource utilization.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Remember</span><p>More compute does not automatically solve every problem. Inefficient joins, data skew, unnecessary shuffles, and poor file layouts can also cause performance issues.</p></div>
+
+<h3 id="s2-2-2"><span class="num">2.2.2</span>Compute Resources and Their Purpose</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Compute option</th><th>Primary purpose</th></tr></thead>
+<tbody>
+<tr><td>All-purpose (interactive) compute</td><td>Development, exploration, and interactive workloads</td></tr>
+<tr><td>Job compute</td><td>Scheduled or automated jobs</td></tr>
+<tr><td>Serverless compute</td><td>Managed execution for supported workloads</td></tr>
+<tr><td>SQL warehouse</td><td>SQL analytics, dashboards, and BI queries</td></tr>
+</tbody></table></div>
+<p class="ref">The exact choices and terminology depend on your workspace, cloud, and product configuration.</p>
+<p><strong>Example:</strong> you have three tasks. <strong>Task A</strong>, experimenting with PySpark code, needs an interactive environment. <strong>Task B</strong>, a daily ETL pipeline at 2:00 AM, needs compute suited to automation. <strong>Task C</strong>, letting 50 analysts run SQL, needs a suitable SQL warehouse. Using one compute configuration for all three may be inefficient.</p>
+
+<h3 id="s2-2-3"><span class="num">2.2.3</span>All-Purpose Compute</h3>
+<p>All-purpose compute, commonly called interactive compute, is intended for interactive development and exploration: notebook development, testing PySpark code, exploring data, debugging transformations, interactive analysis, and collaborating with other developers.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("main.bronze.customers")
+
+display(df.limit(100))</code></pre></div>
+<p>You inspect the output and modify the code several times. Interactive compute lets you run cells repeatedly while developing.</p>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Convenient for development.</li><li>Supports iterative experimentation.</li><li>Useful for troubleshooting.</li><li>Supports interactive data exploration.</li></ul></div>
+  <div class="card"><h4>Disadvantages</h4><ul><li>Running compute unnecessarily can increase costs.</li><li>Long-running interactive resources may be underutilized.</li><li>May not be the best choice for production jobs.</li></ul></div>
+</div>
+<div class="callout key"><span class="label">Best practice</span><p>Use interactive compute for development, and evaluate job-specific compute or serverless options for production workloads.</p></div>
+
+<h3 id="s2-2-4"><span class="num">2.2.4</span>Job Compute</h3>
+<p>Job compute is intended for automated workloads such as scheduled ETL jobs and production pipelines. For example, your company loads sales data every day at 2:00 AM:</p>
+<div class="grid-2">
+<pre class="diagram">Daily Sales Pipeline
+        |
+        v
+Load Bronze
+        |
+        v
+Clean Silver
+        |
+        v
+Aggregate Gold
+        |
+        v
+Validate Results</pre>
+<div class="card"><h4>Why job-specific compute?</h4><ul><li>Compute can be associated with automated workloads.</li><li>Job execution can be monitored independently.</li><li>Resources can be configured for the workload.</li><li>Compute lifecycle can be managed around execution.</li></ul></div>
+</div>
+<p>Depending on the platform configuration, the job may use dedicated job compute or serverless compute.</p>
+<div class="callout"><span class="label">Important distinction</span><p>Do not assume every Databricks job automatically creates a new cluster. Execution depends on the selected compute configuration, and job tasks can use different compute options.</p></div>
+
+<h3 id="s2-2-5"><span class="num">2.2.5</span>Serverless Compute</h3>
+<p>Serverless compute lets Databricks manage much of the underlying compute provisioning and infrastructure lifecycle for supported workloads. You focus more on the workload and less on configuring infrastructure. Depending on the service, the platform can manage provisioning, scaling, and other operational aspects.</p>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Less infrastructure management.</li><li>Faster access to compute in supported configurations.</li><li>Managed scaling for supported workloads.</li><li>Simpler operational experience.</li></ul></div>
+  <div class="card"><h4>Limitations and considerations</h4><ul><li>Availability depends on cloud, region, workspace configuration, and workload type.</li><li>Not every classic compute option is available in serverless.</li><li>Networking and data access requirements still matter.</li><li>Pricing and performance must be evaluated.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Is serverless always cheaper?</span><p>No. It may reduce operational overhead and improve utilization, but the most cost-effective option depends on workload duration, consumption, configuration, and pricing.</p></div>
+
+<h3 id="s2-2-6"><span class="num">2.2.6</span>SQL Warehouses</h3>
+<p>A SQL warehouse provides compute optimized for SQL analytics and supported BI workloads. It is a central component of Databricks SQL. A business analyst querying the Gold table <code>main.gold.daily_sales</code> might run:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    sales_date,
+    SUM(total_sales) AS revenue
+FROM main.gold.daily_sales
+GROUP BY sales_date
+ORDER BY sales_date;</code></pre></div>
+<p>The SQL warehouse executes the query, and results appear in the SQL editor or a supported BI client. Common uses: SQL queries, dashboards, business intelligence, ad hoc analysis, Power BI connectivity, and concurrent analytical queries.</p>
+<h4>SQL warehouse versus notebook compute</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>SQL warehouse</th><th>Notebook compute</th></tr></thead>
+<tbody>
+<tr><td>Primary purpose</td><td>SQL analytics</td><td>Interactive development and supported workloads</td></tr>
+<tr><td>Main interface</td><td>SQL editor and BI clients</td><td>Notebooks</td></tr>
+<tr><td>Typical language</td><td>SQL</td><td>Python, SQL, Scala, and other supported languages</td></tr>
+<tr><td>Typical users</td><td>Analysts and BI developers</td><td>Data engineers, data scientists, and developers</td></tr>
+<tr><td>Main workload</td><td>Analytical queries</td><td>Data transformation, experimentation, and development</td></tr>
+<tr><td>Power BI integration</td><td>Common pattern</td><td>Possible, but SQL warehouses are often the natural choice</td></tr>
+</tbody></table></div>
+<p class="ref">A SQL warehouse is not simply a notebook cluster with a different name. It is a compute offering designed for SQL workloads.</p>
+
+<h3 id="s2-2-7"><span class="num">2.2.7</span>Classic versus Serverless Compute</h3>
+<p><strong>Classic compute</strong> runs in the customer-managed cloud environment according to the Databricks deployment model; you generally have more responsibility for configuring compute and networking. With <strong>serverless compute</strong>, Databricks manages more of the infrastructure and compute lifecycle for supported workloads.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Classic compute</th><th>Serverless compute</th></tr></thead>
+<tbody>
+<tr><td>Infrastructure management</td><td>More customer configuration and responsibility</td><td>More infrastructure managed by Databricks</td></tr>
+<tr><td>Compute provisioning</td><td>Depends on configured resources and lifecycle</td><td>Managed provisioning for supported workloads</td></tr>
+<tr><td>Networking</td><td>Configured per the classic deployment architecture</td><td>Uses supported serverless networking and connectivity models</td></tr>
+<tr><td>Configuration flexibility</td><td>Depends on compute type and supported settings</td><td>Some settings and customizations may differ</td></tr>
+<tr><td>Workload support</td><td>Depends on compute type</td><td>Limited to supported serverless workload types</td></tr>
+<tr><td>Cost</td><td>Depends on configuration and consumption</td><td>Depends on serverless consumption and pricing</td></tr>
+<tr><td>Administration</td><td>Requires understanding compute and network configuration</td><td>Reduces some infrastructure-management tasks</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Important</span><p>"Serverless" does not mean servers do not exist. It means the provider manages more of the infrastructure.</p></div>
+
+<h3 id="s2-2-8"><span class="num">2.2.8</span>Selecting Compute for Different Workloads</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Scenario</th><th>Possible starting choice</th><th>Reason</th></tr></thead>
+<tbody>
+<tr><td>Developing a PySpark notebook</td><td>Interactive compute</td><td>Supports iterative development</td></tr>
+<tr><td>Testing a transformation</td><td>Interactive compute</td><td>Convenient for experimentation</td></tr>
+<tr><td>Running a scheduled ETL job</td><td>Job compute or supported serverless</td><td>Suitable for automation</td></tr>
+<tr><td>Executing SQL reports</td><td>SQL warehouse</td><td>Designed for SQL analytics</td></tr>
+<tr><td>Serving Power BI queries</td><td>SQL warehouse</td><td>Supports BI connectivity</td></tr>
+<tr><td>Processing a large batch dataset</td><td>Job compute or suitable serverless</td><td>Can be sized or managed for the workload</td></tr>
+<tr><td>Running a supported streaming pipeline</td><td>Suitable job or pipeline compute</td><td>Must support the required streaming configuration</td></tr>
+<tr><td>Running a short, supported SQL query</td><td>Serverless SQL warehouse where available</td><td>Reduces infrastructure management</td></tr>
+</tbody></table></div>
+<h4>How should you size compute?</h4>
+<p>Start with these questions:</p>
+<ul><li>How much data will be processed?</li><li>Is the workload CPU-intensive or memory-intensive?</li><li>Does it require a distributed Spark job?</li><li>How frequently does it run?</li><li>What is the expected execution time?</li><li>Does it have strict latency requirements?</li><li>What is the budget?</li><li>Does it require special networking or libraries?</li></ul>
+<div class="callout key"><span class="label">Rule of thumb</span><p>Start with a reasonable configuration, measure performance, and optimize based on actual results. Avoid choosing the largest configuration without evidence the workload needs it.</p></div>
+
+<!-- ===================== 2.3 ===================== -->
+<h2 id="s2-3"><span class="num">2.3</span>Storage Architecture</h2>
+
+<h3 id="s2-3-1"><span class="num">2.3.1</span>What Is Cloud Object Storage?</h3>
+<p>Cloud object storage stores data as objects, each commonly consisting of data, metadata, and a key or identifier. Examples include Azure Blob Storage and ADLS Gen2, Amazon S3, and Google Cloud Storage. Object storage is widely used for data lakes and lakehouses because it can hold large amounts of data in many formats.</p>
+<div class="grid-2">
+<pre class="diagram">sales/
+   |
+   +-- 2026/
+        |
+        +-- 10/
+             |
+             +-- sales_20261023.parquet
+             +-- sales_20261024.parquet
+             +-- sales_20261025.parquet</pre>
+<div class="card"><h4>Why is object storage useful?</h4><ul><li>Stores large amounts of data.</li><li>Supports many file formats.</li><li>Storage and compute managed separately.</li><li>Integrates with cloud data platforms.</li><li>Can underpin Delta tables.</li></ul></div>
+</div>
+<p class="ref">Object storage itself does not provide all the table-management features of a lakehouse. Table formats and platform services add those capabilities.</p>
+
+<h3 id="s2-3-2"><span class="num">2.3.2</span>Azure Data Lake Storage Gen2</h3>
+<p>ADLS Gen2 is a common storage service used with Azure Databricks, providing cloud storage capabilities suited to data lakes.</p>
+<pre class="diagram">Azure Data Lake Storage Gen2
+             |
+       +-----+-----+
+       |     |     |
+       v     v     v
+     Raw   Clean  Curated
+       |     |     |
+       +-----+-----+
+             |
+             v
+      Azure Databricks
+             |
+             v
+       Spark Processing</pre>
+<p class="ref">One possible arrangement. Databricks may also read and write governed tables through Unity Catalog-managed storage.</p>
+<p>An example file location using the ADLS Gen2 filesystem URI format:</p>
+<pre class="diagram">abfss://raw@retailstorage.dfs.core.windows.net/sales/</pre>
+<h4>How does Databricks access ADLS Gen2?</h4>
+<p>Common approaches include Microsoft Entra ID-based authentication, supported managed identity integrations, service principals, and Unity Catalog storage credentials and external locations. The right method depends on the workspace configuration and security architecture.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("main.bronze.sales")
+
+display(df)</code></pre></div>
+<div class="callout key"><span class="label">Why governed tables help</span><p>You don't need to provide the raw storage path in every query. When you read a registered table, Databricks resolves its metadata and storage location for you.</p></div>
+
+<h3 id="s2-3-3"><span class="num">2.3.3</span>Amazon S3</h3>
+<p>Amazon S3 is AWS's object storage service, and Databricks on AWS commonly uses it for lakehouse storage. Example URI: <code>s3://retail-data-lake/sales/</code>. A company can store raw sales files in S3 and use Databricks to process them into Delta tables.</p>
+<div class="grid-2">
+<pre class="diagram">Amazon S3
+    |
+    v
+Databricks on AWS
+    |
+    v
+Spark Processing
+    |
+    v
+Delta Tables
+    |
+    v
+Analytics and BI</pre>
+<div class="card"><h4>Key points</h4><ul><li>S3 stores the objects.</li><li>Databricks provides the processing environment.</li><li>Delta Lake adds table-management capabilities.</li><li>Access must be authorized through the appropriate cloud and Databricks security mechanisms.</li></ul></div>
+</div>
+<p class="ref">Official reference: <a href="https://docs.aws.amazon.com/s3/" target="_blank" rel="noopener">Amazon S3</a></p>
+
+<h3 id="s2-3-4"><span class="num">2.3.4</span>Google Cloud Storage</h3>
+<p>Google Cloud Storage is Google's object storage service, used by Databricks on Google Cloud for lakehouse storage. Example path: <code>gs://retail-data-lake/sales/</code>.</p>
+<pre class="diagram">Google Cloud Storage
+          |
+          v
+Databricks on Google Cloud
+          |
+          v
+Spark Processing
+          |
+          v
+Delta Tables
+          |
+          v
+Analytics / BI / AI</pre>
+<p>As with Azure and AWS, access depends on appropriate authentication, permissions, and configuration.</p>
+<p class="ref">Official reference: <a href="https://cloud.google.com/storage/docs" target="_blank" rel="noopener">Google Cloud Storage</a></p>
+
+<h3 id="s2-3-5"><span class="num">2.3.5</span>Data Stored in Cloud Storage versus Data Processed by Compute</h3>
+<p>Suppose a company has 500 GB of sales data in ADLS Gen2 and starts a Databricks job to calculate sales by product.</p>
+<div class="grid-2">
+  <div class="card"><h4>What is stored?</h4><p>The persistent data files remain in cloud storage.</p></div>
+  <div class="card"><h4>What is processed?</h4><p>Compute reads the necessary files and performs the calculations.</p></div>
+  <div class="card"><h4>Where do results go?</h4><p>Back to cloud storage, for example as a Delta table.</p></div>
+  <div class="card"><h4>When the job completes?</h4><p>Compute may be terminated or returned to an available state; persistent data remains and can be processed again later.</p></div>
+</div>
+<pre class="diagram">              ADLS GEN2
+           Sales Data Files
+                  |
+                  v
+          +----------------+
+          |    COMPUTE     |
+          |                |
+          | Read Data      |
+          | Filter Rows    |
+          | Join Tables    |
+          | Aggregate Data |
+          +----------------+
+                  |
+                  v
+          +----------------+
+          |   ADLS GEN2    |
+          |                |
+          | Delta Table    |
+          | Sales Summary  |
+          +----------------+</pre>
+<div class="callout warn"><span class="label">What about caching?</span><p>Spark may cache data in memory or on disk to improve performance. Cached data is not the same as the persistent source data, and you should not assume it survives compute termination.</p></div>
+
+<h3 id="s2-3-6"><span class="num">2.3.6</span>Managed Tables versus External Tables</h3>
+<p>Databricks tables are logical objects registered in the metastore and associated with underlying data. The key distinction is whether Databricks manages the storage lifecycle or the table points to an externally specified location.</p>
+<h4>Managed table</h4>
+<p>Databricks manages the storage location and lifecycle according to catalog and table rules. You do not specify a storage location:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.sales.customers (
+    customer_id BIGINT,
+    customer_name STRING,
+    city STRING
+);</code></pre></div>
+<h4>External table</h4>
+<p>Associated with a specified storage location whose lifecycle is managed externally:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.sales.external_customers (
+    customer_id BIGINT,
+    customer_name STRING,
+    city STRING
+)
+USING DELTA
+LOCATION 'abfss://curated@retailstorage.dfs.core.windows.net/customers/';</code></pre></div>
+<p class="ref">Assumes the location exists or can be initialized, permissions are configured, and the location contains compatible data or is suitable for a new table.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Managed table</th><th>External table</th></tr></thead>
+<tbody>
+<tr><td>Storage location</td><td>Managed by Databricks</td><td>Explicitly associated with an external location</td></tr>
+<tr><td>Data lifecycle</td><td>Governed by managed-table rules</td><td>Storage lifecycle managed externally</td></tr>
+<tr><td>Table metadata</td><td>Managed by the catalog</td><td>Registered in the catalog</td></tr>
+<tr><td>Storage administration</td><td>More platform-managed</td><td>Requires coordination with external storage management</td></tr>
+<tr><td>Common use case</td><td>Data primarily managed through Databricks</td><td>Data that must remain at a controlled external location</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">What happens when you drop a table?</span><p>Dropping a <strong>managed</strong> table can remove its underlying data according to retention and lifecycle rules. Dropping an <strong>external</strong> table generally removes only its catalog registration, leaving the files in place. Always verify the lifecycle implications before dropping production tables.</p></div>
+<p>Use managed tables when Databricks should manage the storage lifecycle. Use external tables when data must stay at a specific external location or external storage management is part of your architecture. In Unity Catalog, implement both with appropriate governance and storage configuration.</p>
+
+<!-- ===================== 2.4 ===================== -->
+<h2 id="s2-4"><span class="num">2.4</span>Processing Architecture</h2>
+<p class="section-intro">How Spark processes data internally. This section is especially important for interviews and for troubleshooting slow pipelines.</p>
+
+<h3 id="s2-4-1"><span class="num">2.4.1</span>Driver Node</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>The driver coordinates the execution of a Spark application. It maintains application information, plans execution, schedules tasks, and coordinates work with executors.</p></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("main.bronze.sales")
+
+result = (
+    df.groupBy("product_id")
+      .sum("sales_amount")
+)
+
+display(result)</code></pre></div>
+<p>For this code, the driver helps determine what operations must be performed, how the execution plan is organized, which tasks need to run, how task execution is coordinated, and how results and status are handled.</p>
+<div class="callout"><span class="label">Important clarification</span><p>The driver does not necessarily perform all the data processing itself. In a distributed workload, executors process partitions in parallel while the driver coordinates.</p></div>
+<p><strong>If the driver fails,</strong> the Spark application can be interrupted. The effect on the overall job depends on compute configuration, recovery capabilities, and the workload. Monitor driver failures in production and investigate their causes.</p>
+
+<h3 id="s2-4-2"><span class="num">2.4.2</span>Worker Nodes</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>Worker nodes are compute nodes that provide resources for distributed processing. In a classic Spark architecture, worker nodes host executor processes.</p></div>
+<div class="grid-2">
+<pre class="diagram">               DRIVER
+                 |
+        +--------+--------+
+        |        |        |
+        v        v        v
+     Worker 1 Worker 2 Worker 3
+        |
+        v
+     Worker 4</pre>
+<div class="card"><h4>What do workers do?</h4><ul><li>Process data partitions.</li><li>Run tasks.</li><li>Perform joins and aggregations.</li><li>Execute transformations.</li><li>Manage intermediate processing data.</li></ul></div>
+</div>
+<p class="ref">One driver and four workers; the actual scheduling topology is more complex.</p>
+<p><strong>Do all workloads require worker nodes?</strong> No. Some SQL and serverless workloads abstract away the underlying worker infrastructure, so you may never manage workers directly.</p>
+
+<h3 id="s2-4-3"><span class="num">2.4.3</span>Executors</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>An executor is a process that runs tasks and manages processing resources for a Spark application. Executors typically run on worker nodes in a classic Spark cluster.</p></div>
+<p>Suppose Spark divides a dataset into 20 partitions. Tasks are scheduled to process them, and executors run those tasks using available CPU and memory.</p>
+<pre class="diagram">               DRIVER
+                  |
+           Task Scheduling
+                  |
+        +---------+---------+
+        |                   |
+        v                   v
+    Executor 1          Executor 2
+        |                   |
+    Partitions           Partitions
+    1–10                  11–20</pre>
+<p class="ref">Illustrative. Executor, partition, and task counts are configured or determined by the execution plan and runtime.</p>
+<p><strong>An executor:</strong> executes tasks, processes data partitions, maintains cached data when configured, performs local processing, and exchanges data with other executors when required.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Driver</th><th>Executor</th></tr></thead>
+<tbody>
+<tr><td>Primary role</td><td>Coordinates the Spark application</td><td>Executes tasks</td></tr>
+<tr><td>Task scheduling</td><td>Yes</td><td>Executes assigned tasks</td></tr>
+<tr><td>Data processing</td><td>Can perform some local work</td><td>Performs distributed task processing</td></tr>
+<tr><td>Application coordination</td><td>Yes</td><td>No, not at the application-coordinator level</td></tr>
+<tr><td>Caching</td><td>Can hold driver-side data</td><td>Can cache distributed partitions</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Remember</span><p>The driver coordinates the work; executors perform the distributed processing.</p></div>
+
+<h3 id="s2-4-4"><span class="num">2.4.4</span>Tasks</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A task is a unit of work that Spark executes on a partition. For many common operations, a stage has one task per partition.</p></div>
+<div class="grid-2">
+<pre class="diagram">DataFrame
+    |
+    v
+10 Partitions
+    |
+    v
+10 Tasks
+    |
+    v
+Executors Process Tasks</pre>
+<div class="card"><h4>Task metrics help you find</h4><ul><li>Slow partitions.</li><li>Data skew.</li><li>Executor failures.</li><li>Excessive processing overhead.</li><li>Uneven workload distribution.</li></ul></div>
+</div>
+<p>If one task processes far more data than the others, the whole stage may take longer than expected.</p>
+
+<h3 id="s2-4-5"><span class="num">2.4.5</span>Jobs</h3>
+<p>In Spark, a job is a unit of execution triggered by an action or another execution request.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("main.bronze.sales")
+
+df.count()</code></pre></div>
+<p><code>count()</code> requires Spark to compute the number of records, which can trigger a Spark job. Common actions include <code>count()</code>, <code>collect()</code>, <code>show()</code>, writing a DataFrame, and displaying a DataFrame in an environment that triggers evaluation. Some actions trigger more than one job.</p>
+<h4>Databricks Job versus Spark job</h4>
+<p class="section-intro">This distinction is critical.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Databricks Job</th><th>Spark job</th></tr></thead>
+<tbody>
+<tr><td>Purpose</td><td>Orchestrates tasks and workflows</td><td>Executes Spark computation</td></tr>
+<tr><td>Scope</td><td>Platform-level</td><td>Spark application-level</td></tr>
+<tr><td>Scheduling</td><td>Can be scheduled through Databricks</td><td>Triggered by Spark execution</td></tr>
+<tr><td>Components</td><td>Tasks, dependencies, schedules, notifications</td><td>Stages and tasks</td></tr>
+<tr><td>Example</td><td>Daily ETL workflow</td><td>Aggregation triggered by <code>count()</code></td></tr>
+</tbody></table></div>
+<p>A Databricks Job can contain multiple tasks, and a single notebook task can execute multiple Spark jobs.</p>
+
+<h3 id="s2-4-6"><span class="num">2.4.6</span>Stages</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A stage is a group of Spark tasks that can execute without crossing a shuffle boundary. Spark commonly splits a job into multiple stages when data must be redistributed between tasks.</p></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result = (
+    df.groupBy("product_id")
+      .sum("sales_amount")
+)</code></pre></div>
+<p>Spark may need to bring records with the same <code>product_id</code> together for the final aggregation, which can require a shuffle:</p>
+<div class="grid-2">
+<pre class="diagram">Stage 1
+Read Data
+    |
+    v
+Partial Aggregation
+    |
+    v
+Shuffle
+    |
+    v
+Stage 2
+Final Aggregation
+    |
+    v
+Output</pre>
+<div class="card"><h4>If a stage is slow, inspect</h4><ul><li>Task durations.</li><li>Shuffle read and write.</li><li>Input size.</li><li>Output size.</li><li>Data skew.</li><li>Memory and spill metrics.</li></ul></div>
+</div>
+<p class="ref">Actual execution plans depend on the query, optimization, and runtime.</p>
+
+<h3 id="s2-4-7"><span class="num">2.4.7</span>Partitions</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A partition is a logical division of a dataset used to distribute processing work, allowing Spark to process different parts of a dataset independently.</p></div>
+<pre class="diagram">       100 Million Records
+                 |
+                 v
+         Spark DataFrame
+                 |
+     +-----------+-----------+
+     |           |           |
+     v           v           v
+ Partition 1  Partition 2  Partition 3
+     ...         ...         ...
+                 |
+                 v
+            Partition 100</pre>
+<p class="ref">The number of partitions depends on the source data, execution plan, configuration, and transformations.</p>
+<div class="grid-2">
+  <div class="card"><h4>Too few partitions</h4><ul><li>May limit parallelism.</li><li>May create large tasks.</li><li>Can cause uneven resource utilization.</li></ul></div>
+  <div class="card"><h4>Too many partitions</h4><ul><li>Excessive task overhead.</li><li>Increased scheduling overhead.</li><li>Many small output files.</li></ul></div>
+</div>
+<h4>Repartition versus coalesce</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Redistributes data; generally causes a shuffle
+df_repartitioned = df.repartition(20)
+
+# Reduces partitions, usually avoiding a full shuffle
+df_coalesced = df.coalesce(5)</code></pre></div>
+<div class="callout warn"><span class="label">Use carefully</span><p>Changing partition counts does not automatically improve performance. The right count depends on the workload and available compute.</p></div>
+
+<h3 id="s2-4-8"><span class="num">2.4.8</span>Distributed Processing</h3>
+<p>Distributed processing divides work across multiple processing resources. With 500 million sales records, a single machine may be too slow; Spark splits the dataset into partitions and executes tasks across executors.</p>
+<pre class="diagram">             500 Million Records
+                     |
+                     v
+              Spark Application
+                     |
+         +-----------+-----------+
+         |           |           |
+         v           v           v
+      Executor 1  Executor 2  Executor 3
+         |           |           |
+         v           v           v
+      Process     Process     Process
+      Partition   Partition   Partition
+         |           |           |
+         +-----------+-----------+
+                     |
+                     v
+             Combined Results</pre>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Work divided across resources.</li><li>Large datasets processed in parallel.</li><li>Compute capacity chosen per workload.</li><li>Independent tasks run concurrently.</li></ul></div>
+  <div class="card"><h4>Limitations</h4><p>Distribution adds overhead. For small datasets Spark may be slower than a local tool because it must plan and coordinate execution. For large workloads, performance depends on partitioning, data layout, compute, and transformation design.</p></div>
+</div>
+
+<h3 id="s2-4-9"><span class="num">2.4.9</span>Parallel Execution</h3>
+<p>Parallel execution means multiple tasks run simultaneously. If a stage has 100 independent tasks and the compute has enough capacity, many of them can run at once.</p>
+<pre class="diagram">Stage with 100 Tasks
+         |
+         v
++----------------------+
+| Available Executors  |
++----------------------+
+         |
+         v
+Multiple Tasks Run
+Simultaneously
+         |
+         v
+Stage Completes</pre>
+<h4>Parallelism versus partitioning</h4>
+<ul>
+<li><strong>Partitioning</strong> divides the dataset into logical units.</li>
+<li><strong>Tasks</strong> process partitions during a stage.</li>
+<li><strong>Parallelism</strong> describes how much work can execute simultaneously.</li>
+</ul>
+<div class="callout"><span class="label">Example</span><p>100 partitions does not mean 100 tasks run at the same moment. If the compute can run only 10 tasks concurrently, Spark runs roughly 10 at a time and the rest wait for free resources.</p></div>
+
+<!-- ===================== Together ===================== -->
+<h2 id="together">Putting It All Together: How Spark Executes a Query</h2>
+<p>You run this PySpark code against a table with 100 million sales records:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_df = spark.read.table("main.bronze.sales")
+
+result_df = (
+    sales_df
+    .filter("sales_amount &gt; 1000")
+    .groupBy("product_id")
+    .sum("sales_amount")
+)
+
+display(result_df)</code></pre></div>
+<ol class="steps">
+  <li><strong>Notebook submits the request.</strong> The platform coordinates it with the selected compute.</li>
+  <li><strong>Driver plans execution</strong> and builds or uses an optimized execution plan.</li>
+  <li><strong>Spark reads the data</strong> from storage. Predicate pushdown and data skipping can reduce the files read.</li>
+  <li><strong>Data is processed in partitions.</strong> The filter removes rows where <code>sales_amount</code> is not above 1,000.</li>
+  <li><strong>Aggregation is performed</strong> per product, which may require a shuffle to bring each product's records together.</li>
+  <li><strong>Executors process tasks</strong> on partitions according to the plan.</li>
+  <li><strong>Results are returned</strong> to the notebook display.</li>
+</ol>
+<h4>Execution summary</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
+<tbody>
+<tr><td>Workspace</td><td>Provides the development environment</td></tr>
+<tr><td>Control plane</td><td>Coordinates platform operations</td></tr>
+<tr><td>Compute plane</td><td>Provides the workload execution environment</td></tr>
+<tr><td>Driver</td><td>Coordinates Spark application execution</td></tr>
+<tr><td>Executors</td><td>Execute distributed tasks</td></tr>
+<tr><td>Partitions</td><td>Divide the data into logical processing units</td></tr>
+<tr><td>Tasks</td><td>Process partitions during a stage</td></tr>
+<tr><td>Stages</td><td>Organize tasks around execution and shuffle boundaries</td></tr>
+<tr><td>Spark job</td><td>An execution unit triggered by an action</td></tr>
+<tr><td>Cloud storage</td><td>Holds the persistent table data</td></tr>
+<tr><td>Delta Lake</td><td>Provides transaction and table-management capabilities</td></tr>
+</tbody></table></div>
+
+<!-- ===================== Exercise ===================== -->
+<h2 id="exercise">Hands-on Exercise: Trace a Notebook Query</h2>
+<p class="section-intro">Objective: understand how Databricks reads data from storage, processes it through Spark, and produces results.</p>
+
+<h4>Step 1: Create a sample table</h4>
+<p>If you have a workspace and permission to create tables in the schema, run:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS main.default.sales_demo
+USING DELTA
+AS
+SELECT *
+FROM VALUES
+    (1, 'Laptop', 75000),
+    (2, 'Mobile', 25000),
+    (3, 'Laptop', 80000),
+    (4, 'Tablet', 30000),
+    (5, 'Mobile', 20000),
+    (6, 'Tablet', 35000)
+AS sales(sale_id, product_name, sales_amount);</code></pre></div>
+<p class="ref">If <code>main.default</code> is unavailable or you lack permission, choose a catalog and schema where you can create tables.</p>
+
+<h4>Step 2: Read the table</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_df = spark.read.table("main.default.sales_demo")
+
+display(sales_df)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>sale_id</th><th>product_name</th><th>sales_amount</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Laptop</td><td>75000</td></tr><tr><td>2</td><td>Mobile</td><td>25000</td></tr><tr><td>3</td><td>Laptop</td><td>80000</td></tr>
+<tr><td>4</td><td>Tablet</td><td>30000</td></tr><tr><td>5</td><td>Mobile</td><td>20000</td></tr><tr><td>6</td><td>Tablet</td><td>35000</td></tr>
+</tbody></table></div>
+<p><strong>What happened:</strong> the notebook submitted the request, the selected compute processed the read, Databricks resolved the table metadata, Spark read the data, and the notebook displayed the result.</p>
+
+<h4>Step 3: Filter the data</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>filtered_df = sales_df.filter(
+    sales_df.sales_amount &gt; 30000
+)
+
+display(filtered_df)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>sale_id</th><th>product_name</th><th>sales_amount</th></tr></thead>
+<tbody><tr><td>1</td><td>Laptop</td><td>75000</td></tr><tr><td>3</td><td>Laptop</td><td>80000</td></tr><tr><td>6</td><td>Tablet</td><td>35000</td></tr></tbody></table></div>
+<p>The filter keeps records with a sales amount greater than 30,000. Spark may optimize this as part of its execution plan.</p>
+
+<h4>Step 4: Aggregate the data</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+product_sales_df = (
+    sales_df
+    .groupBy("product_name")
+    .agg(
+        F.sum("sales_amount").alias("total_sales"),
+        F.count("*").alias("number_of_sales")
+    )
+)
+
+display(product_sales_df)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>product_name</th><th>total_sales</th><th>number_of_sales</th></tr></thead>
+<tbody><tr><td>Laptop</td><td>155000</td><td>2</td></tr><tr><td>Mobile</td><td>45000</td><td>2</td></tr><tr><td>Tablet</td><td>65000</td><td>2</td></tr></tbody></table></div>
+<p class="ref">The order of rows may differ.</p>
+
+<h4>Step 5: Examine the execution plan</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>product_sales_df.explain("formatted")</code></pre></div>
+<p>Look for operators related to table scans or data reads, aggregations, exchanges or shuffles, and the final aggregation. The exact plan may differ by runtime and optimizer.</p>
+<div class="callout"><span class="label">Important</span><p><code>explain()</code> displays the execution plan; it does not necessarily execute the full data-processing job.</p></div>
+
+<h4>Step 6: Identify the execution stages</h4>
+<p>Inspect the Spark UI, or the query and execution details available for your compute type. Look for the number of jobs, stages, and tasks; task duration; input and output size; shuffle read and write; and failed tasks.</p>
+<div class="callout warn"><span class="label">Small datasets</span><p>Spark may optimize away some operations or finish with very little distributed processing, so this exercise shows the concepts but may produce few tasks or stages.</p></div>
+
+<!-- ===================== Practice ===================== -->
+<h2 id="practice">Practice Questions</h2>
+<p>Try answering these without referring to the lesson.</p>
+<details class="q" open><summary>Beginner level</summary>
+<ol>
+<li>What is a Databricks workspace?</li><li>What is the control plane?</li><li>What is the compute plane?</li><li>What is compute?</li><li>What is the difference between a driver and an executor?</li><li>What is a partition?</li><li>What is a Spark task?</li><li>What is a Spark job?</li><li>What is a stage?</li><li>What is a SQL warehouse?</li>
+</ol></details>
+<details class="q"><summary>Intermediate level</summary>
+<ol>
+<li>What is the difference between Databricks Jobs and Spark jobs?</li>
+<li>Why are storage and compute separated?</li>
+<li>What happens to persistent data when compute is terminated?</li>
+<li>What is the difference between classic and serverless compute?</li>
+<li>What is the difference between managed and external tables?</li>
+<li>How does Spark process a large dataset?</li>
+<li>Why can a shuffle affect performance?</li>
+<li>What is the difference between partitioning and parallel execution?</li>
+<li>When would you use interactive compute rather than job compute?</li>
+<li>How would you investigate a slow Spark stage?</li>
+</ol></details>
+<details class="q"><summary>Scenario 1: Slow pipeline</summary>
+<p style="padding-bottom:4px">Your Databricks job takes three hours to process a large sales table. What would you investigate?</p>
+<ul style="padding-bottom:12px"><li>Spark UI.</li><li>Stage and task durations.</li><li>Shuffle metrics.</li><li>Data skew.</li><li>Partition counts.</li><li>Join strategies.</li><li>Compute utilization.</li></ul></details>
+<details class="q"><summary>Scenario 2: Job completed, data remains</summary>
+<p style="padding-bottom:12px">You terminate a compute resource after a successful ETL run. Does the Delta table disappear? In a normal persistent table setup, no. Terminating compute does not itself delete the underlying persistent table data.</p></details>
+<details class="q"><summary>Scenario 3: Query failure</summary>
+<p style="padding-bottom:4px">A notebook fails because it cannot access an ADLS Gen2 path. What would you investigate?</p>
+<ul style="padding-bottom:12px"><li>Storage path.</li><li>DNS and network connectivity.</li><li>Authentication.</li><li>Permissions.</li><li>Unity Catalog configuration.</li><li>Whether the storage location is supported by the selected compute.</li></ul></details>
+
+<h3 id="revision">Final Revision Notes</h3>
+<p>Remember these five relationships:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Role</th><th>In one line</th></tr></thead>
+<tbody>
+<tr><td>1. Workspace</td><td>Development environment</td><td>You write and manage your code here.</td></tr>
+<tr><td>2. Control plane</td><td>Coordination</td><td>Manages platform operations and coordinates workloads.</td></tr>
+<tr><td>3. Compute plane</td><td>Execution</td><td>The selected compute environment performs the processing.</td></tr>
+<tr><td>4. Cloud storage</td><td>Persistence</td><td>Holds the underlying data files and persistent table data.</td></tr>
+<tr><td>5. Spark</td><td>Distributed processing</td><td>The driver coordinates, executors run tasks, and tasks process partitions through stages.</td></tr>
+</tbody></table></div>
+<h4>The overall flow</h4>
+<pre class="diagram">Notebook / Databricks Job
+            |
+            v
+       Control Plane
+            |
+            v
+      Compute Selected
+            |
+            v
+        Spark Driver
+            |
+            v
+       Spark Executors
+            |
+            v
+      Tasks Process Data
+            |
+            v
+      Results Written to
+       Cloud Storage</pre>
+<p class="ref">Official learning resources: <a href="https://docs.databricks.com/" target="_blank" rel="noopener">Databricks Documentation</a> · <a href="https://spark.apache.org/docs/latest/cluster-overview.html" target="_blank" rel="noopener">Apache Spark Cluster Overview</a> · <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction" target="_blank" rel="noopener">Azure Data Lake Storage</a></p>
+
+<div class="next">
+<h3>Next chapter: Workspace and Environment Setup</h3>
+<p>Chapter 3 covers creating a Databricks learning environment, navigating the workspace, creating notebooks, running SQL and Python, notebook magic commands, compute configuration, creating tables, importing sample datasets, and your first practical Databricks exercise.</p>
+<p style="margin-bottom:0">Before moving on, make sure you understand the distinction between the control plane, compute plane, driver, executors, tasks, stages, and partitions. These concepts are the foundation for Databricks performance and troubleshooting.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-1.html"><span>← Previous</span><strong>Chapter 1: Introduction and Fundamentals</strong></a>
+  <a class="pager-link" href="databricks-chapter-3.html"><span>Next →</span><strong>Chapter 3: Workspace and Environment Setup</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 1 · Chapter 2 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

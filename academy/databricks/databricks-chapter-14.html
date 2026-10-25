@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 14: Lakeflow Jobs</title>
+<meta name="description" content="Chapter 14 of a Databricks learning path: Lakeflow Jobs and workflow orchestration — tasks, dependencies, schedules, parameters, task values, retries, repair, backfills, ADF and REST API, with an idempotent daily sales job project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 14 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s14-1">14.1 Introduction</a></li>
+    <li class="lvl2"><a href="#s14-1-1">Workflow orchestration</a></li>
+    <li class="lvl2"><a href="#s14-1-2">What is Lakeflow Jobs?</a></li>
+    <li class="lvl2"><a href="#s14-1-3">Jobs vs pipelines</a></li>
+    <li class="lvl2"><a href="#s14-1-4">Tasks &amp; dependencies</a></li>
+    <li class="lvl2"><a href="#s14-1-5">Scheduling</a></li>
+    <li class="lvl2"><a href="#s14-1-6">Triggers</a></li>
+    <li class="lvl2"><a href="#s14-1-7">Parameters</a></li>
+    <li class="lvl1"><a href="#s14-2">14.2 Creating Jobs</a></li>
+    <li class="lvl2"><a href="#s14-2-1">Creating a job</a></li>
+    <li class="lvl2"><a href="#s14-2-2">Notebook tasks</a></li>
+    <li class="lvl2"><a href="#s14-2-3">Python tasks</a></li>
+    <li class="lvl2"><a href="#s14-2-4">SQL tasks</a></li>
+    <li class="lvl2"><a href="#s14-2-5">Pipeline tasks</a></li>
+    <li class="lvl2"><a href="#s14-2-6">Multiple-task workflows</a></li>
+    <li class="lvl2"><a href="#s14-2-7">Dependency conditions</a></li>
+    <li class="lvl2"><a href="#s14-2-8">Parallel execution</a></li>
+    <li class="lvl2"><a href="#s14-2-9">Conditional execution</a></li>
+    <li class="lvl1"><a href="#s14-3">14.3 Production Features</a></li>
+    <li class="lvl2"><a href="#s14-3-1">Retries</a></li>
+    <li class="lvl2"><a href="#s14-3-2">Timeouts</a></li>
+    <li class="lvl2"><a href="#s14-3-3">Failure handling</a></li>
+    <li class="lvl2"><a href="#s14-3-4">Notifications</a></li>
+    <li class="lvl2"><a href="#s14-3-5">Job parameters</a></li>
+    <li class="lvl2"><a href="#s14-3-6">Task values</a></li>
+    <li class="lvl2"><a href="#s14-3-7">Repairing runs</a></li>
+    <li class="lvl2"><a href="#s14-3-8">Restarting tasks</a></li>
+    <li class="lvl1"><a href="#s14-4">14.4 Advanced Orchestration</a></li>
+    <li class="lvl2"><a href="#s14-4-1">Multi-pipeline</a></li>
+    <li class="lvl2"><a href="#s14-4-2">Parent &amp; child jobs</a></li>
+    <li class="lvl2"><a href="#s14-4-3">Dependency levels</a></li>
+    <li class="lvl2"><a href="#s14-4-4">Concurrency</a></li>
+    <li class="lvl2"><a href="#s14-4-5">Backfills</a></li>
+    <li class="lvl2"><a href="#s14-4-6">Scheduled workloads</a></li>
+    <li class="lvl2"><a href="#s14-4-7">Environments</a></li>
+    <li class="lvl1"><a href="#s14-5">14.5 Integration</a></li>
+    <li class="lvl2"><a href="#s14-5-1">Azure Data Factory</a></li>
+    <li class="lvl2"><a href="#s14-5-2">REST API &amp; SDK</a></li>
+    <li class="lvl2"><a href="#s14-5-3">External orchestrators</a></li>
+    <li class="lvl2"><a href="#s14-5-4">Job monitoring</a></li>
+    <li class="lvl2"><a href="#s14-5-5">Operational alerts</a></li>
+    <li class="lvl1"><a href="#s14-6">14.6 Project: Daily Sales Job</a></li>
+    <li class="lvl2"><a href="#s14-6-1">Setup</a></li>
+    <li class="lvl2"><a href="#s14-6-2">The four notebooks</a></li>
+    <li class="lvl2"><a href="#s14-6-6">Build the job</a></li>
+    <li class="lvl2"><a href="#s14-6-10">Test failure &amp; recovery</a></li>
+    <li class="lvl1"><a href="#s14-7">14.7 Pipeline-Based Design</a></li>
+    <li class="lvl1"><a href="#s14-8">14.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s14-9">14.9 Learning Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 5 · Chapter 14 · Data Engineering &amp; Pipeline Development</span>
+  <h1>Lakeflow Jobs and Workflow Orchestration</h1>
+  <p class="lead">Run the right task at the right time, in the right order, and recover cleanly when something breaks. This chapter covers tasks and dependencies, schedules and triggers, parameters and task values, retries, timeouts, notifications, run repair, backfills, and integration with Azure Data Factory and the REST API. The project is a daily Bronze → Silver → Gold job that's safe to rerun.</p>
+  <p class="ref">Formerly <strong>Databricks Workflows</strong>. Prerequisites: notebooks, Delta Lake, and Chapter 13's declarative pipelines. Level: intermediate to advanced.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain workflow orchestration and its role in data engineering.</li>
+    <li>Differentiate Lakeflow Jobs from Lakeflow Spark Declarative Pipelines.</li>
+    <li>Create workflows with notebook, Python, SQL, and pipeline tasks.</li>
+    <li>Configure task dependencies and parallel execution.</li>
+    <li>Schedule jobs and trigger them from events.</li>
+    <li>Configure retries, timeouts, notifications, and failure handling.</li>
+    <li>Pass parameters to jobs and values between tasks.</li>
+    <li>Repair failed runs and backfill historical data.</li>
+    <li>Orchestrate multiple pipelines and integrate with Azure Data Factory.</li>
+    <li>Build and monitor a production-style Bronze → Silver → Gold workflow.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s14-1"><span>14.1</span><strong>Introduction</strong></a>
+    <a class="chip" href="#s14-2"><span>14.2</span><strong>Creating Jobs</strong></a>
+    <a class="chip" href="#s14-3"><span>14.3</span><strong>Production</strong></a>
+    <a class="chip" href="#s14-4"><span>14.4</span><strong>Advanced</strong></a>
+    <a class="chip" href="#s14-5"><span>14.5</span><strong>Integration</strong></a>
+    <a class="chip" href="#s14-6"><span>14.6</span><strong>Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 14.1 ===================== -->
+<h2 id="s14-1"><span class="num">14.1</span>Introduction</h2>
+
+<h3 id="s14-1-1"><span class="num">14.1.1</span>What Is Workflow Orchestration?</h3>
+<p>Workflow orchestration coordinates multiple tasks so they run in the correct order according to dependencies, schedules, conditions, and operational rules. A retail company might need to ingest orders, validate and clean them, remove duplicates, aggregate sales, refresh reports, and alert support if anything fails. Run independently, Gold might start before Silver finishes, or a report might refresh after ingestion failed.</p>
+<div class="grid-2">
+<pre class="diagram">Without orchestration:
+
+Bronze ingestion    Silver cleansing
+      |                   |
+Runs independently  Runs independently
+         \               /
+          v             v
+        Gold aggregation
+  (may start before either finishes!)</pre>
+<pre class="diagram">With orchestration:
+
+  Bronze Ingestion
+         |
+         v
+  Silver Cleansing
+         |
+         v
+  Gold Aggregation
+         |
+         v
+  Refresh Reporting</pre>
+</div>
+<div class="grid-2">
+<div class="card"><h4>An orchestrator manages</h4><ul style="margin-bottom:0"><li>Execution order and dependencies.</li><li>Scheduling and triggers.</li><li>Parallel and conditional execution.</li><li>Retries and timeouts.</li><li>Failure notifications.</li><li>Parameter passing.</li><li>Run history and monitoring.</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Time</th><th>Activity (6:00 AM deadline)</th></tr></thead>
+<tbody>
+<tr><td>1:00 AM</td><td>Ingest source data</td></tr>
+<tr><td>1:20 AM</td><td>Validate and cleanse</td></tr>
+<tr><td>2:00 AM</td><td>Aggregate sales</td></tr>
+<tr><td>2:30 AM</td><td>Refresh reporting datasets</td></tr>
+<tr><td>3:00 AM</td><td>Verify data quality</td></tr>
+<tr><td>3:15 AM</td><td>Send completion notification</td></tr>
+</tbody></table></div>
+</div>
+
+<h3 id="s14-1-2"><span class="num">14.1.2</span>What Is Lakeflow Jobs?</h3>
+<p><strong>Lakeflow Jobs</strong> is Databricks' orchestrator. A job combines tasks (notebooks, Python scripts, SQL, pipeline updates, and more) with schedules, parameters, dependencies, notifications, retries, and limits.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th colspan="2"><code>Retail_Daily_Sales_Job</code></th></tr></thead>
+<tbody>
+<tr><td><code>Bronze_Ingestion</code></td><td>Load incoming orders</td></tr>
+<tr><td><code>Silver_Cleansing</code></td><td>Validate and clean</td></tr>
+<tr><td><code>Gold_Aggregation</code></td><td>Calculate daily sales</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Why use it?</h4><ul style="margin-bottom:0"><li>Centralized workflow management.</li><li>Dependency-aware execution.</li><li>Scheduling, retries, notifications.</li><li>Run history and task-level monitoring.</li><li>Native integration with Databricks workloads.</li></ul></div>
+</div>
+
+<h3 id="s14-1-3"><span class="num">14.1.3</span>Jobs Versus Pipelines</h3>
+<div class="callout key"><span class="label">The key distinction</span><p><strong>Lakeflow Jobs orchestrates tasks. Lakeflow Spark Declarative Pipelines manages datasets.</strong> In production you usually use both together.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Lakeflow Jobs</th><th>Declarative Pipelines</th></tr></thead>
+<tbody>
+<tr><td>Primary purpose</td><td>Workflow orchestration</td><td>Managed data transformation</td></tr>
+<tr><td>Main responsibility</td><td>Coordinate tasks</td><td>Define and maintain datasets</td></tr>
+<tr><td>Dependencies</td><td>Between tasks</td><td>Between datasets</td></tr>
+<tr><td>Scheduling</td><td>Yes</td><td>Usually via a job</td></tr>
+<tr><td>Data-quality expectations</td><td>Not built in</td><td>Built in</td></tr>
+<tr><td>Streaming tables / MVs</td><td>Can run the pipeline that defines them</td><td>Defines and manages them</td></tr>
+<tr><td>Retries</td><td>Configured per task</td><td>Own update and recovery behavior</td></tr>
+<tr><td>Typical output</td><td>A completed workflow run</td><td>Updated tables and views</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<pre class="diagram">          LAKEFLOW JOB
+               |
+               v
+    Pipeline update task
+               |
+               v
+      Bronze -&gt; Silver -&gt; Gold
+               |
+               v
+    Data reconciliation task
+               |
+               v
+       Reporting refresh</pre>
+<div class="card"><h4>When to use each</h4><p><strong>Pipelines:</strong> managed transformations, expectations, streaming tables, materialized views.</p><p style="margin-bottom:0"><strong>Jobs:</strong> coordinating multiple tasks, schedules, retries, and combining pipeline updates with notebooks, SQL, and other operations.</p></div>
+</div>
+
+<h3 id="s14-1-4"><span class="num">14.1.4</span>Tasks and Dependencies</h3>
+<p>A <strong>task</strong> is one unit of work: run a notebook, a Python script, a SQL statement, a pipeline update, or another job. A <strong>dependency</strong> defines when a task may run relative to others. With <code>A → B → C</code>, if A fails, B and C don't run on the normal path.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Depends on</th><th>Condition</th></tr></thead>
+<tbody>
+<tr><td>Bronze Ingestion</td><td>None</td><td>Starts first</td></tr>
+<tr><td>Silver Cleansing</td><td>Bronze Ingestion</td><td>Upstream succeeds</td></tr>
+<tr><td>Gold Aggregation</td><td>Silver Cleansing</td><td>Upstream succeeds</td></tr>
+</tbody></table></div>
+<p>Dependencies prevent reading incomplete data, aggregating unvalidated records, refreshing reports too early, and continuing after a critical failure.</p>
+<div class="callout"><span class="label">Best practice</span><p>Base dependencies on <strong>data requirements</strong>, not on the order you'd like tasks to appear.</p></div>
+
+<h3 id="s14-1-5"><span class="num">14.1.5</span>Job Scheduling</h3>
+<div class="grid-2">
+<div class="card"><h4>Common patterns</h4><ul style="margin-bottom:0"><li><strong>Daily:</strong> sales processing at 1:00 AM.</li><li><strong>Hourly:</strong> operational metrics.</li><li><strong>Weekly:</strong> weekly sales summary.</li><li><strong>Event-based:</strong> when new files arrive.</li><li><strong>Continuous:</strong> a new run starts as soon as the previous one ends.</li></ul></div>
+<div class="card"><h4>Consider</h4><ul style="margin-bottom:0"><li>Time zone.</li><li>When source data actually arrives.</li><li>Processing duration and retries.</li><li>The reporting deadline.</li><li>Upstream availability and maintenance windows.</li><li>Overlapping runs.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Start time ≠ deadline</span><p>If the workflow must finish by 6:00 AM, allow for retries and the <em>worst-case</em> duration, not just the typical one.</p></div>
+
+<h3 id="s14-1-6"><span class="num">14.1.6</span>Trigger-Based Execution</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Trigger</th><th>Starts the job when…</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Scheduled</td><td>A time/cron schedule fires</td><td>Every day at 1:00 AM</td></tr>
+<tr><td>File arrival</td><td>New files land in a monitored storage location or volume</td><td>New order files arrive</td></tr>
+<tr><td>Table update</td><td>Monitored source tables are updated</td><td>Upstream Silver table changes</td></tr>
+<tr><td>Continuous</td><td>The previous run finishes (always running)</td><td>Low-latency streaming jobs</td></tr>
+<tr><td>External</td><td>Another system calls the API</td><td>Azure Data Factory, Airflow</td></tr>
+<tr><td>Manual</td><td>Someone clicks <strong>Run now</strong></td><td>Testing, ad-hoc backfills</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Suitable approach</th></tr></thead>
+<tbody>
+<tr><td>Process once every night</td><td>Scheduled trigger</td></tr>
+<tr><td>Process newly arriving files</td><td>File-arrival trigger</td></tr>
+<tr><td>Run after an upstream system finishes</td><td>Dependency, table-update trigger, or external orchestration</td></tr>
+<tr><td>Run a pipeline as part of a larger workflow</td><td>Pipeline task in a job</td></tr>
+</tbody></table></div>
+
+<h3 id="s14-1-7"><span class="num">14.1.7</span>Parameterized Execution</h3>
+<p>Parameters let the same job process different inputs without code changes. Instead of hard-coding <code>processing_date = "2026-10-25"</code>, the job passes it in, and tomorrow it passes a different date.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Parameter</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td><code>processing_date</code></td><td><code>2026-10-25</code></td></tr>
+<tr><td><code>catalog</code></td><td><code>retail_dev</code></td></tr>
+<tr><td><code>target_schema</code></td><td><code>analytics</code></td></tr>
+<tr><td><code>load_type</code></td><td><code>INCREMENTAL</code></td></tr>
+<tr><td><code>batch_id</code></td><td><code>BATCH_20261025_001</code></td></tr>
+</tbody></table></div>
+<p>Parameters make workflows reusable, testable, easy to backfill, and portable across environments.</p>
+<div class="callout warn"><span class="label">Never pass secrets as parameters</span><p>Parameters are visible in the job configuration and run history. Use secret scopes for passwords and tokens.</p></div>
+
+<!-- ===================== 14.2 ===================== -->
+<h2 id="s14-2"><span class="num">14.2</span>Creating Jobs</h2>
+
+<h3 id="s14-2-1"><span class="num">14.2.1</span>Creating a Lakeflow Job</h3>
+<div class="grid-2">
+<div class="card"><h4>Steps</h4><ol class="steps"><li>Open <strong>Jobs &amp; Pipelines</strong> → <strong>Create</strong> → <strong>Job</strong>.</li><li>Give the job a meaningful name.</li><li>Add the first task: key, type, notebook path, compute.</li><li>Click <strong>+ Add task</strong> for each further task, and set <strong>Depends on</strong>.</li><li>Configure retries, timeouts, notifications, schedule, parameters, and permissions.</li><li>Click <strong>Run now</strong> to test, then inspect the run.</li></ol></div>
+<pre class="diagram">Notebooks (illustrative paths):
+
+/Workspace/Users/you@example.com/
+   retail/01_bronze_ingestion
+   retail/02_silver_cleansing
+   retail/03_gold_aggregation
+
+Dependencies:
+
+01_bronze_ingestion
+        |
+        v
+02_silver_cleansing
+        |
+        v
+03_gold_aggregation</pre>
+</div>
+<p class="ref">Verify that each task starts only when its dependencies are satisfied. The project in 14.6 walks through this end to end.</p>
+
+<h3 id="s14-2-2"><span class="num">14.2.2</span>Notebook Tasks</h3>
+<p>Notebook tasks run PySpark, SQL, validation, and operational checks. Notebooks read parameters through widgets:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>dbutils.widgets.text("processing_date", "2026-10-25")   # default for interactive runs
+
+processing_date = dbutils.widgets.get("processing_date")
+print(f"Processing date: {processing_date}")</code></pre></div>
+<p>When the job runs, the job parameter with the same name overrides the widget default. Job parameters are passed to every notebook task automatically.</p>
+<div class="card"><h4>Best practices</h4><ul style="margin-bottom:0"><li>Keep each notebook focused on one responsibility.</li><li>Don't hard-code environment-specific paths.</li><li>Log important execution information.</li><li>Validate parameters early.</li><li>Raise exceptions for critical failures.</li><li>Make data operations safe to retry. What happens if the task runs twice?</li></ul></div>
+
+<h3 id="s14-2-3"><span class="num">14.2.3</span>Python Tasks</h3>
+<p>Python script tasks run a <code>.py</code> file for file validation, API extraction, utilities, quality checks, or metadata processing.</p>
+<div class="code-wrap"><span class="lang">Python · validate_orders.py</span><pre class="code"><code>import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--processing-date", required=True)
+    args = parser.parse_args()
+
+    print(f"Validating orders for {args.processing_date}")
+    # Add validation logic here.
+
+
+if __name__ == "__main__":
+    main()</code></pre></div>
+<p>Script tasks receive <strong>command-line arguments</strong>, not widgets. In the task's <strong>Parameters</strong> field, map the job parameter with a dynamic reference:</p>
+<div class="code-wrap"><span class="lang">Task parameters (JSON array)</span><pre class="code"><code>["--processing-date", "{{job.parameters.processing_date}}"]</code></pre></div>
+
+<h3 id="s14-2-4"><span class="num">14.2.4</span>SQL Tasks</h3>
+<p>SQL tasks run queries or SQL files on a SQL warehouse: statements, dataset refreshes, count checks, quality checks, and SQL business logic.</p>
+<div class="code-wrap"><span class="lang">SQL · summarize Gold</span><pre class="code"><code>SELECT
+    order_date,
+    SUM(order_count) AS total_orders,
+    SUM(total_sales) AS total_sales
+FROM retail_dev.jobs_lab.sales_gold
+GROUP BY order_date
+ORDER BY order_date DESC;</code></pre></div>
+<p>A query that returns duplicate rows does <strong>not</strong> fail the task on its own. To make a SQL check fail the job, raise an error:</p>
+<div class="code-wrap"><span class="lang">SQL · fail the task on duplicates</span><pre class="code"><code>SELECT
+    CASE
+        WHEN COUNT(*) &gt; 0
+        THEN raise_error('Duplicate order IDs found in Silver')
+        ELSE 'OK'
+    END AS check_result
+FROM (
+    SELECT order_id
+    FROM retail_dev.jobs_lab.orders_silver
+    GROUP BY order_id
+    HAVING COUNT(*) &gt; 1
+);</code></pre></div>
+<p class="ref">Tested on Spark: with no duplicates it returns <code>OK</code>; with duplicates it raises <code>USER_RAISED_EXCEPTION</code>, which fails the task.</p>
+
+<h3 id="s14-2-5"><span class="num">14.2.5</span>Pipeline Tasks</h3>
+<p>A pipeline task runs a Lakeflow Spark Declarative Pipeline update (Chapter 13) as one unit of work. The pipeline manages its own datasets, and downstream tasks wait for it to finish.</p>
+<div class="grid-2">
+<pre class="diagram">Task 1: Validate source files
+            |
+            v
+Task 2: Run Lakeflow pipeline
+            |
+            v
+Task 3: Reconcile Gold data
+            |
+            v
+Task 4: Refresh reporting</pre>
+<div class="card"><h4>Use a pipeline task when</h4><ul style="margin-bottom:0"><li>Transformations already live in a pipeline.</li><li>The pipeline is part of a larger workflow.</li><li>Downstream tasks must wait for it.</li><li>You want central orchestration across workloads.</li></ul><p style="margin:8px 0 0">This avoids re-implementing Bronze/Silver/Gold as separate notebooks.</p></div>
+</div>
+
+<h3 id="s14-2-6"><span class="num">14.2.6</span>Multiple-Task Workflows</h3>
+<div class="grid-2">
+<pre class="diagram">Sequential:
+
+Orders Ingestion
+      |
+      v
+Orders Cleansing
+      |
+      v
+Sales Aggregation</pre>
+<pre class="diagram">Parallel branches:
+
+        Source Validation
+          /           \
+         v             v
+Customer Ingestion  Product Ingestion
+         |             |
+         v             v
+Customer Cleansing  Product Cleansing
+          \           /
+           v         v
+        Sales Processing</pre>
+</div>
+<p>Independent branches run concurrently, and the final task waits for both. That gives shorter runtime and better use of compute, at the cost of more concurrent compute and possible contention. Use it only for genuinely independent tasks.</p>
+
+<h3 id="s14-2-7"><span class="num">14.2.7</span>Task Dependencies and Conditions</h3>
+<div class="grid-2">
+<pre class="diagram">Bronze
+  |
+  v
+Silver
+  |
+  v
+Gold
+  |
+  v
+Validation
+  |
+  v
+Reporting Refresh</pre>
+<pre class="diagram">Multiple upstreams:
+
+Orders Ingestion ---+
+                    |
+                    v
+               Sales Report
+                    ^
+                    |
+Customer Ingestion -+</pre>
+</div>
+<p>Each task has a <strong>Run if dependencies</strong> setting:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Run if</th><th>Task runs when upstream tasks…</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td><strong>All succeeded</strong> (default)</td><td>all succeeded</td><td>Normal data processing</td></tr>
+<tr><td>At least one succeeded</td><td>at least one succeeded</td><td>Partial-success reporting</td></tr>
+<tr><td>None failed</td><td>none failed (some may be skipped)</td><td>Optional branches</td></tr>
+<tr><td>All done</td><td>finished, whatever the result</td><td>Cleanup, audit logging</td></tr>
+<tr><td>At least one failed</td><td>at least one failed</td><td>Failure alerts, quarantine</td></tr>
+<tr><td>All failed</td><td>all failed</td><td>Escalation</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Best practice</span><p>Use success dependencies for normal processing; use failure or "all done" dependencies for cleanup, error handling, and notifications.</p></div>
+
+<h3 id="s14-2-8"><span class="num">14.2.8</span>Parallel Execution</h3>
+<div class="grid-2">
+<pre class="diagram">         Bronze Ingestion
+                |
+                v
+         Silver Cleansing
+            /        \
+           v          v
+  Customer Summary  Product Summary
+            \        /
+             v      v
+           Final Report</pre>
+<div class="card"><h4>Performance example</h4><p>Customer processing: 15 min. Product processing: 20 min.</p><p><strong>Sequential:</strong> ~35 min.<br><strong>Parallel:</strong> ~20 min (the longer branch).</p><p style="margin-bottom:0" class="ref">Excluding overhead and contention; actual gains depend on compute.</p></div>
+</div>
+<div class="grid-2">
+<div class="card"><h4>Use parallelism when</h4><ul style="margin-bottom:0"><li>Tasks don't depend on each other.</li><li>Source data is ready.</li><li>Shared resources can handle the load.</li><li>It actually reduces total runtime.</li></ul></div>
+<div class="card"><h4>Avoid it when</h4><ul style="margin-bottom:0"><li>Tasks modify the same target data.</li><li>Operations aren't safe concurrently.</li><li>They compete heavily for resources.</li><li>Order matters for correctness.</li></ul></div>
+</div>
+
+<h3 id="s14-2-9"><span class="num">14.2.9</span>Conditional Execution</h3>
+<div class="grid-2">
+<pre class="diagram">Bronze Ingestion
+        |
+        v
+If/else: records_ingested &gt; 0 ?
+       /          \
+    true          false
+      |             |
+      v             v
+   Silver      Notify "no data"
+      |
+      v
+    Gold</pre>
+<div class="card"><h4>If/else condition task</h4><p>Compares two values. Either side can be a dynamic reference, such as a task value:</p>
+<pre class="diagram" style="margin:0">Left:     {{tasks.Bronze_Ingestion.values.records_ingested}}
+Operator: &gt;
+Right:    0</pre>
+<p style="margin:8px 0 0">Downstream tasks depend on the <code>true</code> or <code>false</code> outcome.</p></div>
+</div>
+<p><strong>Example conditions:</strong> run Gold only if Silver validation passed; quarantine when invalid records exist; skip reporting when no new data arrived; notify when a critical task fails; backfill only for a valid date range.</p>
+<div class="callout"><span class="label">Condition vs expectation</span><p>A pipeline <strong>expectation</strong> validates dataset records. A workflow <strong>condition</strong> decides which tasks run. They work well together.</p></div>
+
+<!-- ===================== 14.3 ===================== -->
+<h2 id="s14-3"><span class="num">14.3</span>Production Features</h2>
+
+<h3 id="s14-3-1"><span class="num">14.3.1</span>Retry Policies</h3>
+<p>Retries re-attempt a task after failure, which helps with transient problems such as network errors, temporary service unavailability, intermittent connections, and some rate limits.</p>
+<div class="grid-2">
+<pre class="diagram">Bronze Ingestion
+       |
+       v
+    Failure
+       |
+       v
+     Retry
+       |
+       +----&gt; Success
+       |
+       +----&gt; Failure (retries exhausted)
+                  |
+                  v
+             Final Failure</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Failure type</th><th>Approach</th></tr></thead>
+<tbody>
+<tr><td>Temporary network error</td><td>Retry may help</td></tr>
+<tr><td>Temporary service error</td><td>Retry may help</td></tr>
+<tr><td>Invalid SQL syntax</td><td>Fix the code</td></tr>
+<tr><td>Missing required column</td><td>Investigate the schema</td></tr>
+<tr><td>Invalid business data</td><td>Correct or quarantine</td></tr>
+<tr><td>Permission denied</td><td>Fix permissions</td></tr>
+<tr><td>Wrong transformation logic</td><td>Fix the code</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">Per task you set the maximum retries and minimum interval between attempts (and optionally retry on timeout).</p>
+<div class="callout warn"><span class="label">Retries require idempotency</span><p>A retry runs the same task again. If the task appends the same records each time, a retry creates duplicates (Chapter 11's problem). Use file tracking, <code>MERGE</code>, <code>replaceWhere</code>, or full rebuilds. The project shows how.</p></div>
+
+<h3 id="s14-3-2"><span class="num">14.3.2</span>Timeouts</h3>
+<p>A timeout stops a task (or job) that runs too long, so a hung task doesn't block everything. If Bronze normally takes 10 minutes, a 45-minute timeout allows variation while preventing an endless run.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Timeout</th></tr></thead>
+<tbody>
+<tr><td>Entire job</td><td>3 hours</td></tr>
+<tr><td>Bronze ingestion</td><td>45 minutes</td></tr>
+<tr><td>Silver cleansing</td><td>60 minutes</td></tr>
+<tr><td>Gold aggregation</td><td>30 minutes</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Choosing a timeout</h4><ul style="margin-bottom:0"><li>Typical and historical maximum duration.</li><li>Data volume and source latency.</li><li>Compute availability.</li><li>Retry time.</li><li>Overall deadline.</li></ul><p style="margin:8px 0 0">Also consider a <strong>duration warning</strong> threshold that alerts before the timeout kills the run.</p></div>
+</div>
+<p class="ref">Illustrative values. Base them on measured run history.</p>
+
+<h3 id="s14-3-3"><span class="num">14.3.3</span>Failure Handling</h3>
+<div class="grid-2">
+<pre class="diagram">          Bronze
+             |
+             v
+          Silver
+             |
+       +-----+-----+
+       |           |
+    Success     Failure
+       |           |
+       v           v
+      Gold     Alert_Team  (Run if: At least one failed)
+       |
+       v
+   Reporting</pre>
+<div class="card"><h4>A good strategy</h4><ol style="margin-bottom:0"><li>Records the failure.</li><li>Notifies the responsible team.</li><li>Preserves information for investigation.</li><li>Retries transient failures.</li><li>Blocks incorrect downstream processing.</li><li>Allows safe recovery after the fix.</li></ol></div>
+</div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · ✗ hides the failure</span><pre class="code"><code>try:
+    perform_critical_load()
+except Exception as exc:
+    print(f"Load failed: {exc}")
+    # task reports SUCCESS!</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · ✓ fails correctly</span><pre class="code"><code>try:
+    perform_critical_load()
+except Exception as exc:
+    print(f"Load failed: {exc}")
+    raise          # task reports FAILED</code></pre></div>
+</div>
+<div class="callout warn"><span class="label">Don't swallow exceptions</span><p>If the exception is caught and not re-raised, the task looks successful, and Gold happily runs on top of a failed load. The same applies to <code>dbutils.notebook.exit()</code>: exiting "successfully" after an error hides it.</p></div>
+
+<h3 id="s14-3-4"><span class="num">14.3.4</span>Notifications</h3>
+<p>Notifications can fire on job start, success, failure, and duration-threshold breaches, and can go to email or configured destinations (Slack, Microsoft Teams, PagerDuty, webhooks).</p>
+<div class="grid-2">
+<pre class="diagram">Job:     Retail_Daily_Sales_Job
+Status:  Failed
+Task:    Silver_Cleansing
+Time:    2:15 AM
+Action:  Review the failed task and
+         inspect the source data.</pre>
+<div class="card"><h4>Best practices</h4><ol style="margin-bottom:0"><li>Notify the responsible support team.</li><li>Include job and task names.</li><li>Include failure details or a run link.</li><li>Don't alert on every retry. Enable "mute notifications until the last retry".</li><li>Separate critical failures from informational events.</li><li>Define an escalation path.</li></ol></div>
+</div>
+<p class="ref">Combine job notifications with your organization's monitoring and incident tools. Critical data-quality failures may need their own alerts.</p>
+
+<h3 id="s14-3-5"><span class="num">14.3.5</span>Job Parameters</h3>
+<p>Job parameters (e.g. <code>processing_date</code>, <code>environment</code>, <code>load_type</code>) are defined once on the job and passed to tasks.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Task type</th><th>How it receives job parameters</th></tr></thead>
+<tbody>
+<tr><td>Notebook</td><td>Automatically, as widgets with the same name</td></tr>
+<tr><td>Python script / wheel</td><td>Via task arguments, e.g. <code>"{{job.parameters.processing_date}}"</code></td></tr>
+<tr><td>SQL</td><td>As query parameters</td></tr>
+<tr><td>Pipeline</td><td>Pipeline settings (or a full refresh option)</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Dynamic dates</span><p>Don't leave <code>2026-10-25</code> hard-coded for scheduled runs. Set the parameter's default to the dynamic value <code>{{job.start_time.iso_date}}</code> (the run's start date). For "yesterday", compute it in the notebook from that date. Override the value manually with <strong>Run now with different parameters</strong> for backfills.</p></div>
+<div class="code-wrap"><span class="lang">Python · validate parameters</span><pre class="code"><code>from datetime import date
+
+processing_date = date.fromisoformat("2026-10-25")   # raises ValueError if malformed
+print(processing_date)</code></pre></div>
+
+<h3 id="s14-3-6"><span class="num">14.3.6</span>Task Values</h3>
+<p>Task values let one task publish <strong>small</strong> values for downstream tasks: record counts, batch IDs, validation results, status flags.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · producer (task key Bronze_Ingestion)</span><pre class="code"><code>dbutils.jobs.taskValues.set(
+    key="records_ingested",
+    value=150000
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · consumer</span><pre class="code"><code>records_ingested = dbutils.jobs.taskValues.get(
+    taskKey="Bronze_Ingestion",
+    key="records_ingested",
+    default=0,
+    debugValue=0   # used when run interactively
+)</code></pre></div>
+</div>
+<p>Outside notebooks, reference it as <code>{{tasks.Bronze_Ingestion.values.records_ingested}}</code> (e.g. in an if/else task). The <code>taskKey</code> must match the producer's task key exactly.</p>
+<p class="ref">Without <code>debugValue</code>, <code>get()</code> raises an error when you run the notebook outside a job. Task values aren't for datasets; store data in tables.</p>
+
+<h3 id="s14-3-7"><span class="num">14.3.7</span>Repairing Failed Runs</h3>
+<p>A failed run doesn't need a full restart. <strong>Repair run</strong> reruns only the failed and selected tasks, keeping the results of successful ones.</p>
+<div class="grid-2">
+<pre class="diagram">Bronze_Ingestion   SUCCESS
+       |
+       v
+Silver_Cleansing   FAILED
+       |
+       v
+Gold_Aggregation   SKIPPED (upstream failed)
+
+-&gt; fix, then Repair run:
+   reruns Silver + Gold only</pre>
+<div class="card"><h4>Procedure</h4><ol style="margin-bottom:0"><li>Open the failed run.</li><li>Identify the failed task.</li><li>Inspect the error and output.</li><li>Fix the underlying issue.</li><li>Click <strong>Repair run</strong>.</li><li>Select tasks to rerun (failed + dependents are preselected).</li><li>Verify downstream results.</li></ol></div>
+</div>
+<div class="callout warn"><span class="label">Repair doesn't fix data</span><p>If the failed task partially wrote its target before failing, make sure it's safe to run again. That's idempotency again.</p></div>
+
+<h3 id="s14-3-8"><span class="num">14.3.8</span>Restarting Failed Tasks</h3>
+<p>If A succeeds, B fails, and C doesn't run, then after fixing B, C must still run to produce the final output. Before restarting:</p>
+<ul><li>Check whether the source has changed.</li><li>Check whether the task wrote partial results.</li><li>Verify the task is idempotent.</li><li>Determine which downstream tasks must rerun.</li><li>Confirm parameters are correct.</li><li>Reconcile the output afterwards.</li></ul>
+<p class="ref">Not every run resumes at exactly the point of failure. Behavior depends on task types and run state.</p>
+
+<!-- ===================== 14.4 ===================== -->
+<h2 id="s14-4"><span class="num">14.4</span>Advanced Orchestration</h2>
+
+<h3 id="s14-4-1"><span class="num">14.4.1</span>Multi-Pipeline Orchestration</h3>
+<div class="grid-2">
+<pre class="diagram">          Retail_Master_Job
+                  |
+       +----------+----------+
+       |          |          |
+       v          v          v
+   Customer    Product     Orders
+   Pipeline    Pipeline    Pipeline
+       |          |          |
+       +----------+----------+
+                  |
+                  v
+          Data Validation
+                  |
+                  v
+           Gold Reporting</pre>
+<div class="card"><h4>Why</h4><ul style="margin-bottom:0"><li>Domains are maintained independently.</li><li>Independent pipelines run in parallel.</li><li>Shared reporting waits for all inputs.</li><li>Failure handling is centralized.</li></ul><p style="margin:8px 0 0" class="ref">Don't run pipelines in parallel if they write to the same targets or depend on each other.</p></div>
+</div>
+
+<h3 id="s14-4-2"><span class="num">14.4.2</span>Parent and Child Workflows</h3>
+<p>A <strong>Run Job</strong> task lets a parent job trigger another job as a child, which is useful when a workflow is reused by several business processes.</p>
+<div class="grid-2">
+<pre class="diagram">Parent: Retail_Daily_Master
+           |
+     +-----+------+
+     |            |
+     v            v
+Orders Job    Customer Job
+     |            |
+     v            v
+ Sales Job    Customer Report
+      \          /
+       v        v
+    Final Validation</pre>
+<div><div class="card"><h4>Benefits</h4><p style="margin-bottom:0">Reuse, clear responsibilities, independent development, clear ownership, organized large workflows.</p></div><div class="card"><h4>Risks</h4><p style="margin-bottom:0">More complex dependencies, harder end-to-end troubleshooting, concurrency conflicts, harder parameter propagation. For a small workflow, one job is simpler.</p></div></div>
+</div>
+
+<h3 id="s14-4-3"><span class="num">14.4.3</span>Dependency Management</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Level</th><th>Example</th><th>Managed by</th></tr></thead>
+<tbody>
+<tr><td>Dataset</td><td><code>orders_bronze → orders_silver → sales_gold</code></td><td>The declarative pipeline</td></tr>
+<tr><td>Task</td><td><code>Validate_Source → Run_Pipeline → Reconcile_Gold</code></td><td>The job</td></tr>
+<tr><td>Cross-workflow</td><td>Job B waits for Job A</td><td>Run Job task, table-update trigger, or external orchestrator</td></tr>
+</tbody></table></div>
+<p><strong>Best practices:</strong> keep graphs understandable; no circular dependencies; wait for the right upstream outputs; use explicit task keys; document shared datasets; plan for missing upstream data; avoid needless serial execution.</p>
+
+<h3 id="s14-4-4"><span class="num">14.4.4</span>Concurrent Execution</h3>
+<pre class="diagram">Daily Run:      1:00 AM ================ 2:00 AM
+Backfill Run:          1:30 AM ===================== 3:00 AM
+                         ^ both writing the same tables?</pre>
+<div class="grid-2">
+<div class="card"><h4>Risks</h4><ul style="margin-bottom:0"><li>Duplicate processing.</li><li>Conflicting writes.</li><li>Compute contention and cost.</li><li>Unpredictable completion times.</li><li>Incorrect watermark updates.</li></ul></div>
+<div class="card"><h4>Controls</h4><ul style="margin-bottom:0"><li><strong>Maximum concurrent runs</strong> (default 1); with queueing on, extra runs wait instead of being skipped.</li><li>Can runs for different dates proceed independently?</li><li>Can targets handle concurrent writes safely?</li><li>Isolate backfills from the normal schedule.</li></ul></div>
+</div>
+<p class="ref">A concurrency limit controls runs, not data correctness. You still need idempotent writes.</p>
+
+<h3 id="s14-4-5"><span class="num">14.4.5</span>Backfills</h3>
+<p>A backfill processes historical data that was missed, corrected, or must be recalculated, e.g. the job failed on 2026-10-20, 21, and 22.</p>
+<div class="grid-2">
+<div class="card"><h4>Options</h4><ul style="margin-bottom:0"><li><strong>Run now with different parameters</strong> once per date.</li><li>A <strong>For each</strong> task that loops over a list of dates, running a nested task per date (with configurable concurrency).</li><li>A job with <code>start_date</code>/<code>end_date</code> parameters that iterates internally.</li></ul></div>
+<div class="card"><h4>Before running</h4><ol style="margin-bottom:0"><li>Identify the missing dates.</li><li>Verify source data exists.</li><li>Confirm the transformation logic.</li><li>Check whether outputs already exist.</li><li>Make sure writes are safe to repeat.</li><li>Validate results.</li><li>Monitor resource usage.</li></ol></div>
+</div>
+<div class="callout key"><span class="label">Idempotent backfills</span><p>Processing the same date twice must not duplicate data. Either <strong>replace the date's slice atomically</strong> (Delta <code>replaceWhere</code>, used in the project) or <code>MERGE</code> on business keys.</p></div>
+
+<h3 id="s14-4-6"><span class="num">14.4.6</span>Scheduled Workloads</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Workflow step</th><th>Runs</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Source ingestion</td><td>Daily at 1:00 AM (scheduled)</td><td>Load source files</td></tr>
+<tr><td>Silver transformation</td><td>After ingestion succeeds</td><td>Clean and validate</td></tr>
+<tr><td>Gold aggregation</td><td>After Silver succeeds</td><td>Business metrics</td></tr>
+<tr><td>Reconciliation</td><td>After Gold succeeds</td><td>Validate totals</td></tr>
+<tr><td>Reporting refresh</td><td>After reconciliation succeeds</td><td>Publish results</td></tr>
+</tbody></table></div>
+<p>Schedule only the master job and let dependencies drive the rest. If a run overruns into the next scheduled start, the concurrency setting decides whether the new run waits or is skipped.</p>
+
+<h3 id="s14-4-7"><span class="num">14.4.7</span>Environment-Specific Configuration</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Property</th><th>Development</th><th>Production</th></tr></thead>
+<tbody>
+<tr><td>Catalog</td><td><code>retail_dev</code></td><td><code>retail_prod</code></td></tr>
+<tr><td>Schema</td><td><code>analytics</code></td><td><code>analytics</code></td></tr>
+<tr><td>Compute</td><td>Dev configuration</td><td>Prod configuration</td></tr>
+<tr><td>Notifications</td><td>Dev team</td><td>Prod support team</td></tr>
+<tr><td>Data</td><td>Test data</td><td>Production data</td></tr>
+<tr><td>Permissions</td><td>Dev access</td><td>Restricted</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>catalog = dbutils.widgets.get("catalog")      # job parameter: retail_dev or retail_prod
+
+source_table = f"{catalog}.bronze.orders_raw"
+target_table = f"{catalog}.analytics.sales_gold"</code></pre></div>
+<p><strong>Deployment practices:</strong> code in Git; separate dev and prod configuration; restricted prod permissions; no secrets in code; test deployments; verify job configuration afterwards. Databricks Asset Bundles (Chapter 21) define jobs as code for exactly this.</p>
+
+<!-- ===================== 14.5 ===================== -->
+<h2 id="s14-5"><span class="num">14.5</span>Integration</h2>
+
+<h3 id="s14-5-1"><span class="num">14.5.1</span>Databricks Jobs with Azure Data Factory</h3>
+<div class="grid-2">
+<pre class="diagram">      Azure Data Factory
+              |
+              v
+   Source System Ingestion
+              |
+              v
+     Start Databricks Job
+              |
+              v
+    Lakeflow Jobs Workflow
+              |
+              v
+    Bronze -&gt; Silver -&gt; Gold
+              |
+              v
+     Return status to ADF
+              |
+              v
+   Continue enterprise ETL</pre>
+<div><div class="card"><h4>Let ADF orchestrate when</h4><ul style="margin-bottom:0"><li>The workflow spans many Azure services.</li><li>ADF already coordinates source ingestion.</li><li>Scheduling is centralized in ADF.</li></ul></div><div class="card"><h4>Let Lakeflow Jobs orchestrate when</h4><ul style="margin-bottom:0"><li>The workload is mainly Databricks.</li><li>Tasks are tightly coupled to pipelines.</li><li>You want integrated task monitoring.</li></ul></div></div>
+</div>
+<p><strong>Using both</strong> works when responsibilities are clear: ADF ingests from external systems, coordinates Azure services, and owns enterprise scheduling; Databricks runs Bronze/Silver/Gold, quality checks, and analytical datasets. ADF's Databricks <strong>Job</strong> activity runs an entire job; the older Notebook activity runs a single notebook. Avoid stacking orchestration layers that make failures hard to trace.</p>
+
+<h3 id="s14-5-2"><span class="num">14.5.2</span>REST API Integration</h3>
+<p>The Jobs REST API and the Databricks SDK let external systems start, monitor, and manage jobs.</p>
+<div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code>pip install databricks-sdk</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · Databricks SDK</span><pre class="code"><code>from databricks.sdk import WorkspaceClient
+
+w = WorkspaceClient()   # auth from env vars / config profile, never hard-coded tokens
+
+run = w.jobs.run_now(
+    job_id=123456789,
+    job_parameters={"processing_date": "2026-10-20"}
+)
+print(f"Run ID: {run.run_id}")          # returned immediately
+
+finished = run.result()                 # blocks until the run ends
+print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></div>
+<div class="code-wrap"><span class="lang">Bash · REST equivalent</span><pre class="code"><code>curl -X POST "https://$DATABRICKS_HOST/api/2.1/jobs/run-now" \
+  -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+  -d '{"job_id": 123456789, "job_parameters": {"processing_date": "2026-10-20"}}'</code></pre></div>
+<div class="callout warn"><span class="label">Starting ≠ finishing</span><p><code>run-now</code> returns a run ID immediately, before processing completes. Callers must poll <code>jobs/runs/get</code> (or use the SDK's <code>.result()</code>) to learn the outcome. Use a service principal for production authentication.</p></div>
+
+<h3 id="s14-5-3"><span class="num">14.5.3</span>External Orchestration Tools</h3>
+<p>Apache Airflow (via the Databricks provider), enterprise schedulers, and custom apps can all start jobs and wait for completion. In a typical Airflow flow: extract source data → start the Databricks job → wait → validate → continue.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Potential choice</th></tr></thead>
+<tbody>
+<tr><td>Databricks-only processing</td><td>Lakeflow Jobs</td></tr>
+<tr><td>Enterprise workflow across Azure services</td><td>Azure Data Factory</td></tr>
+<tr><td>Existing Airflow platform</td><td>Apache Airflow</td></tr>
+<tr><td>Custom application integration</td><td>REST API or SDK</td></tr>
+</tbody></table></div>
+
+<h3 id="s14-5-4"><span class="num">14.5.4</span>Job Monitoring</h3>
+<div class="grid-2">
+<div class="card"><h4>Job level</h4><p style="margin-bottom:0">Status, start/end, duration, failed runs, retry counts, schedule delays, concurrent runs.</p></div>
+<div class="card"><h4>Task level</h4><p style="margin-bottom:0">Status, duration, errors, retries, upstream dependencies, compute failures.</p></div>
+<div class="card"><h4>Data level</h4><p style="margin-bottom:0">Record counts, duplicates, invalid records, freshness, Gold totals, reconciliation.</p></div>
+<div class="card"><h4>System tables</h4><p style="margin-bottom:0">Where enabled, <code>system.lakeflow.jobs</code> and <code>system.lakeflow.job_run_timeline</code> let you query run history across all jobs with SQL.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Job</th><th>Status</th><th>Duration</th><th>Failed tasks</th></tr></thead>
+<tbody>
+<tr><td>Retail_Daily_Sales_Job</td><td>Success</td><td>42 min</td><td>0</td></tr>
+<tr><td>Customer_Dimension_Job</td><td>Failed</td><td>18 min</td><td>1</td></tr>
+<tr><td>Product_Dimension_Job</td><td>Success</td><td>12 min</td><td>0</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Remember</span><p>A job that succeeds but produces incomplete data is still a data-quality incident.</p></div>
+
+<h3 id="s14-5-5"><span class="num">14.5.5</span>Operational Alerts</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Condition</th><th>Severity</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Job fails after retries</td><td>High</td><td>Notify support team</td></tr>
+<tr><td>Source files delayed</td><td>Medium/high</td><td>Investigate source availability</td></tr>
+<tr><td>Invalid-record rate over threshold</td><td>By business impact</td><td>Review source data</td></tr>
+<tr><td>Gold reconciliation fails</td><td>High</td><td>Investigate; restrict reporting if needed</td></tr>
+<tr><td>Job runs longer than expected</td><td>Medium</td><td>Investigate performance</td></tr>
+</tbody></table></div>
+<p><strong>Avoid alert fatigue:</strong> distinguish temporary failures that self-recover, final failures, data-quality problems, and SLA breaches. Base thresholds on SLAs and history.</p>
+
+<!-- ===================== 14.6 ===================== -->
+<h2 id="s14-6"><span class="num">14.6</span>Hands-On Project: Daily Retail Sales Workflow</h2>
+<p class="section-intro">Build <code>Retail_Daily_Sales_Job</code>: four notebook tasks that run in order, take a <code>processing_date</code> parameter, retry transient failures, time out, alert on failure, and, crucially, can be rerun or backfilled without duplicating data.</p>
+<pre class="diagram">             DAILY SCHEDULE (1:00 AM Asia/Kolkata)
+                          |
+                          v
+                  Bronze_Ingestion    -- task value: records_ingested
+                          |
+                          v
+                  Silver_Cleansing
+                          |
+                          v
+                  Gold_Aggregation
+                          |
+                          v
+                   Validate_Gold
+                          |
+             +------------+-------------+
+             |                          |
+       (all succeeded)        (any task failed)
+             |                          |
+             v                          v
+       Job complete         Failure notification</pre>
+
+<h3 id="s14-6-1"><span class="num">14.6.1</span>Setup</h3>
+<p>Run once in a SQL editor or notebook. It creates a dedicated schema, a landing volume, and the Bronze and Silver tables (created up front so the date-replace writes work from the first run):</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.jobs_lab;
+CREATE VOLUME IF NOT EXISTS retail_dev.jobs_lab.landing;
+
+CREATE TABLE IF NOT EXISTS retail_dev.jobs_lab.orders_bronze (
+    order_id STRING, customer_id STRING, order_date DATE,
+    amount DECIMAL(18,2), status STRING, updated_at TIMESTAMP,
+    _source_file STRING, _ingested_at TIMESTAMP, _processing_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS retail_dev.jobs_lab.orders_silver (
+    order_id STRING, customer_id STRING, order_date DATE,
+    amount DECIMAL(18,2), status STRING, updated_at TIMESTAMP,
+    _processing_date DATE
+);</code></pre></div>
+<p>Upload Chapter 13's sample file, <code>orders_20261020.json</code>, to the <code>landing</code> volume (Catalog Explorer → volume → <strong>Upload to this volume</strong>). It contains a duplicate, a missing ID, a negative amount, and a messy status.</p>
+<details class="q"><summary>Show orders_20261020.json</summary><div class="answer"><div class="code-wrap"><span class="lang">JSON lines</span><pre class="code"><code>{"order_id": "O1001", "customer_id": "C101", "order_date": "2026-10-20", "amount": 2500.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:00:00"}
+{"order_id": "O1002", "customer_id": "C102", "order_date": "2026-10-20", "amount": 1800.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:05:00"}
+{"order_id": "O1003", "customer_id": "C103", "order_date": "2026-10-20", "amount": 900.00, "status": " cancelled ", "updated_at": "2026-10-20T09:10:00"}
+{"order_id": "O1002", "customer_id": "C102", "order_date": "2026-10-20", "amount": 1800.00, "status": "COMPLETED", "updated_at": "2026-10-20T11:30:00"}
+{"order_id": null, "customer_id": "C104", "order_date": "2026-10-20", "amount": 1200.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:20:00"}
+{"order_id": "O1005", "customer_id": "C105", "order_date": "2026-10-20", "amount": -500.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:25:00"}</code></pre></div></div></details>
+<p class="ref">On Free Edition, use a catalog you own (e.g. <code>workspace</code>) and set the job's <code>catalog</code> parameter to match.</p>
+
+<h3 id="s14-6-2"><span class="num">14.6.2</span>Step 1: Bronze Ingestion Notebook</h3>
+<p>Create notebook <code>01_bronze_ingestion</code>. It validates the date, reads that day's file, adds metadata, and <strong>replaces only that date's slice</strong> of Bronze. That's why retries and backfills never duplicate rows.</p>
+<div class="code-wrap"><span class="lang">Python · 01_bronze_ingestion</span><pre class="code"><code># 01_bronze_ingestion
+from datetime import date
+from pyspark.sql import functions as F
+
+dbutils.widgets.text("catalog", "retail_dev")
+dbutils.widgets.text("processing_date", "2026-10-20")
+
+catalog = dbutils.widgets.get("catalog")
+processing_date = date.fromisoformat(dbutils.widgets.get("processing_date"))  # fails fast on a bad date
+
+source_path = (
+    f"/Volumes/{catalog}/jobs_lab/landing/"
+    f"orders_{processing_date:%Y%m%d}.json"
+)
+
+orders_df = (
+    spark.read
+    .schema("order_id STRING, customer_id STRING, order_date DATE, "
+            "amount DECIMAL(18,2), status STRING, updated_at TIMESTAMP")
+    .json(source_path)                     # a missing file fails the task
+    .withColumn("_source_file", F.col("_metadata.file_path"))
+    .withColumn("_ingested_at", F.current_timestamp())
+    .withColumn("_processing_date", F.lit(processing_date))
+)
+
+records_ingested = orders_df.count()
+if records_ingested == 0:
+    raise RuntimeError(f"No records found in {source_path}")
+
+# Idempotent: replace only this date's slice, so retries and backfills never duplicate
+(
+    orders_df.write
+    .format("delta")
+    .mode("overwrite")
+    .option("replaceWhere", f"_processing_date = '{processing_date}'")
+    .saveAsTable(f"{catalog}.jobs_lab.orders_bronze")
+)
+
+dbutils.jobs.taskValues.set(key="records_ingested", value=records_ingested)
+print(f"Bronze: {records_ingested} records ingested for {processing_date}")</code></pre></div>
+<div class="callout key"><span class="label">What makes it retry-safe</span><p><code>mode("overwrite")</code> + <code>replaceWhere</code> atomically swaps out just the rows for <code>_processing_date</code>. Run it twice for the same date and Bronze still holds one copy, unlike Chapter 11's <code>append</code>. It also publishes <code>records_ingested</code> as a task value.</p></div>
+
+<h4>Step 2: Silver cleansing notebook</h4>
+<p>Create <code>02_silver_cleansing</code>. It normalizes status, keeps the latest version of each order, drops invalid rows, and replaces that date's Silver slice:</p>
+<div class="code-wrap"><span class="lang">Python · 02_silver_cleansing</span><pre class="code"><code># 02_silver_cleansing
+from datetime import date
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+dbutils.widgets.text("catalog", "retail_dev")
+dbutils.widgets.text("processing_date", "2026-10-20")
+
+catalog = dbutils.widgets.get("catalog")
+processing_date = date.fromisoformat(dbutils.widgets.get("processing_date"))
+
+bronze_df = (
+    spark.table(f"{catalog}.jobs_lab.orders_bronze")
+    .filter(F.col("_processing_date") == F.lit(processing_date))
+    .withColumn("status", F.upper(F.trim(F.col("status"))))
+)
+
+# Deduplicate: keep the latest version of each order_id
+latest_first = Window.partitionBy("order_id").orderBy(F.col("updated_at").desc_nulls_last())
+
+deduped_df = (
+    bronze_df
+    .filter(F.col("order_id").isNotNull())
+    .withColumn("_rn", F.row_number().over(latest_first))
+    .filter(F.col("_rn") == 1)
+    .drop("_rn")
+)
+
+is_valid = (
+    F.col("customer_id").isNotNull()
+    &amp; (F.col("amount") &gt;= 0)
+    &amp; F.col("status").isin("COMPLETED", "CANCELLED", "PENDING")
+)
+
+silver_df = deduped_df.filter(is_valid).select(
+    "order_id", "customer_id", "order_date", "amount",
+    "status", "updated_at", "_processing_date"
+)
+
+(
+    silver_df.write
+    .format("delta")
+    .mode("overwrite")
+    .option("replaceWhere", f"_processing_date = '{processing_date}'")
+    .saveAsTable(f"{catalog}.jobs_lab.orders_silver")
+)
+
+silver_count = silver_df.count()
+rejected = bronze_df.count() - silver_count       # duplicates + invalid rows
+dbutils.jobs.taskValues.set(key="silver_records", value=silver_count)
+print(f"Silver: {silver_count} records kept, {rejected} removed for {processing_date}")</code></pre></div>
+<p class="ref">Deduplication is within the processing date. If the same order can arrive on different days, switch Silver to a <code>MERGE</code> on <code>order_id</code> (Chapter 9) or <code>AUTO CDC</code> (Chapter 13).</p>
+
+<h4>Step 3: Gold aggregation notebook</h4>
+<p>Create <code>03_gold_aggregation</code>. Gold is small, so it's simply rebuilt from Silver each run. A full rebuild is naturally idempotent.</p>
+<div class="code-wrap"><span class="lang">Python · 03_gold_aggregation</span><pre class="code"><code># 03_gold_aggregation
+dbutils.widgets.text("catalog", "retail_dev")
+catalog = dbutils.widgets.get("catalog")
+
+# Rebuilt from Silver on every run, so reruns and backfills are always safe
+spark.sql(f"""
+    CREATE OR REPLACE TABLE {catalog}.jobs_lab.sales_gold AS
+    SELECT
+        order_date,
+        status,
+        COUNT(*)    AS order_count,
+        SUM(amount) AS total_sales,
+        AVG(amount) AS average_order_value
+    FROM {catalog}.jobs_lab.orders_silver
+    GROUP BY order_date, status
+""")
+
+print("Gold: sales_gold rebuilt from Silver")</code></pre></div>
+
+<h4>Step 4: Validation notebook</h4>
+<p>Create <code>04_validate_gold</code>. Each check <strong>raises</strong> an exception on failure, so the task fails and the job reports it:</p>
+<div class="code-wrap"><span class="lang">Python · 04_validate_gold</span><pre class="code"><code># 04_validate_gold
+from datetime import date
+from pyspark.sql import functions as F
+
+dbutils.widgets.text("catalog", "retail_dev")
+dbutils.widgets.text("processing_date", "2026-10-20")
+
+catalog = dbutils.widgets.get("catalog")
+processing_date = date.fromisoformat(dbutils.widgets.get("processing_date"))
+
+silver = spark.table(f"{catalog}.jobs_lab.orders_silver")
+gold = spark.table(f"{catalog}.jobs_lab.sales_gold")
+
+# 1. No duplicate order IDs in Silver
+duplicates = silver.groupBy("order_id").count().filter(F.col("count") &gt; 1)
+if not duplicates.isEmpty():
+    raise RuntimeError("Validation failed: duplicate order IDs in Silver.")
+
+# 2. Silver has data for this processing date
+if silver.filter(F.col("_processing_date") == F.lit(processing_date)).isEmpty():
+    raise RuntimeError(f"Validation failed: no Silver rows for {processing_date}.")
+
+# 3. Gold reconciles with Silver (same grain, no extra filters)
+s = silver.agg(F.count("*").alias("orders"), F.sum("amount").alias("sales")).first()
+g = gold.agg(F.sum("order_count").alias("orders"), F.sum("total_sales").alias("sales")).first()
+if (s["orders"], s["sales"]) != (g["orders"], g["sales"]):
+    raise RuntimeError(f"Reconciliation failed: Silver {s} vs Gold {g}")
+
+# 4. Bronze task's record count (task value) is sane
+ingested = dbutils.jobs.taskValues.get(
+    taskKey="Bronze_Ingestion", key="records_ingested", default=0, debugValue=6
+)
+print(f"Validation passed: {s['orders']} orders, sales {s['sales']}, "
+      f"{ingested} raw records ingested.")</code></pre></div>
+<p class="ref"><code>isEmpty()</code> replaces the original <code>limit(1).count()</code> checks (as in Chapter 8). The task-value read uses <code>debugValue</code> so the notebook also runs interactively.</p>
+
+<h3 id="s14-6-6"><span class="num">14.6.6</span>Step 5: Create the Job</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Task key</th><th>Notebook</th><th>Depends on</th></tr></thead>
+<tbody>
+<tr><td><code>Bronze_Ingestion</code></td><td>01_bronze_ingestion</td><td>none</td></tr>
+<tr><td><code>Silver_Cleansing</code></td><td>02_silver_cleansing</td><td>Bronze_Ingestion</td></tr>
+<tr><td><code>Gold_Aggregation</code></td><td>03_gold_aggregation</td><td>Silver_Cleansing</td></tr>
+<tr><td><code>Validate_Gold</code></td><td>04_validate_gold</td><td>Gold_Aggregation</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Job parameters</h4><table style="margin:0"><tbody><tr><td><code>catalog</code></td><td><code>retail_dev</code></td></tr><tr><td><code>processing_date</code></td><td><code>2026-10-20</code> for testing; <code>{{job.start_time.iso_date}}</code> once scheduled</td></tr></tbody></table><p style="margin:8px 0 0" class="ref">Notebook tasks receive these automatically as widgets.</p></div>
+</div>
+<p>Use serverless compute (or one shared job cluster) for all four tasks. The task keys must match exactly, because <code>04_validate_gold</code> reads the task value from <code>Bronze_Ingestion</code>.</p>
+
+<h4>Step 6: Configure retries and timeouts</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Retries</th><th>Timeout</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Bronze_Ingestion</td><td>3</td><td>45 min</td><td>Most exposed to transient source and storage errors</td></tr>
+<tr><td>Silver_Cleansing</td><td>2</td><td>60 min</td><td>Inputs already landed; compute can still fail</td></tr>
+<tr><td>Gold_Aggregation</td><td>2</td><td>30 min</td><td>Same</td></tr>
+<tr><td>Validate_Gold</td><td>0–1</td><td>15 min</td><td>A failed check is deterministic and needs investigation, not retries</td></tr>
+</tbody></table></div>
+<p class="ref">Example values. Tune them from run history. Retries are only safe because every task is idempotent.</p>
+
+<h4>Step 7: Configure failure notifications</h4>
+<p>Under <strong>Job notifications</strong>, add the support email for <strong>Failure</strong>, and tick <em>mute notifications until the last retry</em>. For example, if Silver hits an unexpected data type:</p>
+<pre class="diagram">Bronze_Ingestion  -&gt; SUCCESS
+Silver_Cleansing  -&gt; FAILED   (after 2 retries)  -&gt; email sent
+Gold_Aggregation  -&gt; UPSTREAM FAILED (not run)
+Validate_Gold     -&gt; UPSTREAM FAILED (not run)</pre>
+<p class="ref">Optional: add a <code>Notify_Failure</code> task with <strong>Run if: At least one failed</strong> that posts to Teams or Slack or writes an audit row.</p>
+
+<h4>Step 8: Configure the daily schedule</h4>
+<div class="grid-2">
+<pre class="diagram">Job:        Retail_Daily_Sales_Job
+Trigger:    Scheduled, daily
+Time:       1:00 AM
+Time zone:  (UTC+05:30) Asia/Kolkata
+processing_date = {{job.start_time.iso_date}}</pre>
+<div class="card"><h4>Operational checks</h4><ul style="margin-bottom:0"><li>Source data is available before 1:00 AM.</li><li>Timeouts are set.</li><li>Max concurrent runs = 1 (no overlaps).</li><li>Failure notifications work.</li><li>The job finishes before the reporting deadline.</li></ul></div>
+</div>
+<p class="ref">Using the run's start date means the job processes files named for that day. If files for day <em>D</em> arrive overnight, compute <code>D − 1</code> in the notebook instead.</p>
+
+<h3 id="s14-6-10"><span class="num">14.6.10</span>Step 9: Test Failure and Recovery</h3>
+<p>First, click <strong>Run now</strong> with <code>processing_date = 2026-10-20</code>. Expected results, verified by running all four notebooks' logic in Spark (with the Delta writes simulated, since Delta can't run locally):</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Output</th></tr></thead>
+<tbody>
+<tr><td>Bronze_Ingestion</td><td>6 records ingested (task value = 6)</td></tr>
+<tr><td>Silver_Cleansing</td><td>3 kept, 3 removed (1 duplicate + 2 invalid)</td></tr>
+<tr><td>Gold_Aggregation</td><td>sales_gold rebuilt</td></tr>
+<tr><td>Validate_Gold</td><td>Passed: 3 orders, sales 5,200.00</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>status</th><th>order_count</th><th>total_sales</th></tr></thead>
+<tbody><tr><td>COMPLETED</td><td>2</td><td>4,300.00</td></tr><tr><td>CANCELLED</td><td>1</td><td>900.00</td></tr></tbody></table></div>
+</div>
+<div class="card"><h4>Then run these tests</h4>
+<ol class="steps">
+<li><strong>Idempotency:</strong> click <strong>Run now</strong> again with the same date. Bronze must still have 6 rows and Gold the same totals (verified locally: identical results on the second run).</li>
+<li><strong>Bronze failure:</strong> run with <code>processing_date = 2026-10-21</code> (no such file). Bronze fails after its retries; Silver, Gold, and Validate show <em>Upstream failed</em>; the notification arrives.</li>
+<li><strong>Bad parameter:</strong> run with <code>processing_date = 2026-13-45</code>. Bronze fails immediately on <code>date.fromisoformat</code>, a deterministic error that retries can't fix.</li>
+<li><strong>Silver/Gold failure:</strong> temporarily add <code>raise RuntimeError("test")</code> at the end of <code>02_silver_cleansing</code> and run. Gold and Validate don't run.</li>
+<li><strong>Repair:</strong> remove the test error, open the failed run, click <strong>Repair run</strong>. Only Silver, Gold, and Validate rerun, and Bronze keeps its earlier result.</li>
+<li><strong>Backfill:</strong> upload a file for another date (e.g. <code>orders_20261021.json</code>) and run with that date. Bronze and Silver gain a new slice; the 2026-10-20 data is untouched.</li>
+</ol>
+<p style="margin:8px 0 0">After recovery, verify: no duplicate orders, Gold reconciles with Silver, validation succeeds, and the job status reflects what actually happened.</p></div>
+
+<!-- ===================== 14.7 ===================== -->
+<h2 id="s14-7"><span class="num">14.7</span>Production Implementation with a Single Lakeflow Pipeline</h2>
+<p>The notebook job teaches orchestration. But if Bronze, Silver, and Gold already live in one declarative pipeline (Chapter 13), you don't need three transformation notebooks:</p>
+<div class="grid-2">
+<pre class="diagram">       Daily Schedule
+              |
+              v
+   Run Lakeflow Pipeline (pipeline task)
+              |
+              v
+     Bronze -&gt; Silver -&gt; Gold
+              |
+              v
+    Validate Gold (notebook/SQL task)
+              |
+              v
+     Notify on failure</pre>
+<div class="card"><h4>Advantages</h4><ul style="margin-bottom:0"><li>Dataset dependencies stay inside the pipeline.</li><li>The job handles the broader workflow.</li><li>No duplicated transformation logic.</li><li>Monitoring splits cleanly: pipeline UI for datasets, job UI for tasks.</li></ul></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Situation</th><th>Recommended design</th></tr></thead>
+<tbody>
+<tr><td>Transformations are independent notebooks</td><td>Multi-task job</td></tr>
+<tr><td>Transformations are in one declarative pipeline</td><td>Pipeline task + validation</td></tr>
+<tr><td>Workflow includes multiple external systems</td><td>Lakeflow Jobs or external orchestrator, by ownership</td></tr>
+<tr><td>Several independent pipelines</td><td>Multi-task job or parent workflow</td></tr>
+<tr><td>Ingestion coordinated across many Azure services</td><td>Consider ADF + Databricks</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Rule of thumb</span><p>For Databricks-centric work, one declarative pipeline orchestrated by a job is usually simpler than rebuilding the pipeline's dependencies as separate notebook tasks.</p></div>
+
+<!-- ===================== 14.8 ===================== -->
+<h2 id="s14-8"><span class="num">14.8</span>Common Interview Questions</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. What is workflow orchestration?</summary><div class="answer">Coordinating multiple tasks according to dependencies, schedules, conditions, and operational rules.</div></details>
+<details class="q"><summary>Q2. What is Lakeflow Jobs?</summary><div class="answer">Databricks' orchestrator (formerly Workflows) for coordinating notebooks, scripts, SQL, pipeline updates, and other tasks with schedules, retries, and notifications.</div></details>
+<details class="q"><summary>Q3. Lakeflow Jobs vs Declarative Pipelines?</summary><div class="answer">Jobs orchestrate tasks; pipelines define and manage datasets. Production systems typically run pipelines from jobs.</div></details>
+<details class="q"><summary>Q4. What is a task dependency?</summary><div class="answer">The condition (e.g. "All succeeded", "At least one failed") under which a task may run relative to its upstream tasks.</div></details>
+<details class="q"><summary>Q5. What is parallel execution?</summary><div class="answer">Running independent tasks simultaneously to cut total duration when resources and dependencies allow.</div></details>
+<details class="q"><summary>Q6. Why are retries important?</summary><div class="answer">They recover from transient failures without manual intervention, but don't fix deterministic errors.</div></details>
+<details class="q"><summary>Q7. Why is idempotency important in a job?</summary><div class="answer">Retries, repairs, and backfills run tasks more than once. Idempotent writes (<code>replaceWhere</code>, <code>MERGE</code>, full rebuilds) keep repeated runs from duplicating data.</div></details>
+<details class="q"><summary>Q8. What is a task timeout?</summary><div class="answer">The maximum time a task may run before it's stopped and marked timed out.</div></details>
+<details class="q"><summary>Q9. Job parameters vs task values?</summary><div class="answer">Job parameters are inputs to the whole run; task values are small outputs one task publishes for downstream tasks (<code>dbutils.jobs.taskValues</code>).</div></details>
+<details class="q"><summary>Q10. What is run repair?</summary><div class="answer">Rerunning only failed and selected tasks of a previous run, keeping successful task results, instead of restarting everything.</div></details>
+<details class="q"><summary>Q11. What is a backfill?</summary><div class="answer">Processing historical periods that were missed, corrected, or need recalculation, typically by rerunning a parameterized job per date.</div></details>
+<details class="q"><summary>Q12. How does Databricks integrate with ADF?</summary><div class="answer">ADF can run a Databricks job (or notebook) as an activity, wait for it, and continue its wider Azure workflow based on the result.</div></details>
+<details class="q"><summary>Q13. Why might a job succeed while the data is wrong?</summary><div class="answer">Task success only means code didn't throw. Wrong logic, incomplete sources, or swallowed exceptions all "succeed". Validation and reconciliation catch these.</div></details>
+<details class="q"><summary>Q14. When use Lakeflow Jobs instead of ADF?</summary><div class="answer">For Databricks-centric workflows; ADF fits orchestration spanning many Azure services or organizations standardized on ADF.</div></details>
+<details class="q"><summary>Q15. How would you design a production sales workflow?</summary><div class="answer">Ingest Bronze idempotently, cleanse and validate Silver, aggregate Gold, reconcile, with retries, timeouts, failure notifications, a schedule matched to source arrival, and monitoring against the SLA.</div></details>
+
+<!-- ===================== 14.9 ===================== -->
+<h2 id="s14-9"><span class="num">14.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topic</th><th>Hands-on exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Orchestration fundamentals</td><td>Create a simple two-task job</td></tr>
+<tr><td>2</td><td>Notebook and Python tasks</td><td>Run parameterized notebook and script tasks</td></tr>
+<tr><td>3</td><td>Dependencies and parallelism</td><td>Build a branching workflow</td></tr>
+<tr><td>4</td><td>Retries, timeouts, alerts</td><td>Simulate task failures</td></tr>
+<tr><td>5</td><td>Parameters and task values</td><td>Pass dates and record counts between tasks</td></tr>
+<tr><td>6</td><td>Pipelines and backfills</td><td>Run a pipeline from a job; process historical dates</td></tr>
+<tr><td>7</td><td>Monitoring and ADF</td><td>Build and validate the complete retail workflow</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://docs.databricks.com/aws/en/jobs/" target="_blank" rel="noopener">Lakeflow Jobs overview</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/tasks" target="_blank" rel="noopener">Configure job tasks</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/scheduled" target="_blank" rel="noopener">Schedule jobs</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/parameters" target="_blank" rel="noopener">Job parameters</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/repair-job-failures" target="_blank" rel="noopener">Repair a job run</a></li>
+<li><a href="https://docs.databricks.com/api/workspace/jobs" target="_blank" rel="noopener">Jobs REST API reference</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/" target="_blank" rel="noopener">Azure Data Factory documentation</a></li>
+</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; switch to the Azure docs for Azure-specific options.</p></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch14-checklist">
+<label><input type="checkbox"> <strong>Workflow orchestration</strong> coordinates tasks by dependencies and rules.</label>
+<label><input type="checkbox"> <strong>Lakeflow Jobs</strong> manages scheduling, dependencies, retries, notifications, and execution.</label>
+<label><input type="checkbox"> <strong>Declarative pipelines</strong> manage the internal dataset graph; jobs run them.</label>
+<label><input type="checkbox"> <strong>Task dependencies</strong> stop downstream work before upstream work completes.</label>
+<label><input type="checkbox"> <strong>Retries and timeouts</strong> add resilience, provided tasks are idempotent.</label>
+<label><input type="checkbox"> <strong>Job parameters and task values</strong> make workflows reusable and let tasks communicate.</label>
+<label><input type="checkbox"> <strong>Run repair and backfills</strong> support recovery and historical reprocessing.</label>
+<label><input type="checkbox"> <strong>ADF and the REST API</strong> connect Databricks to enterprise platforms.</label>
+<label><input type="checkbox"> <strong>Monitoring and reconciliation</strong> ensure both reliability and business correctness.</label>
+<label><input type="checkbox"> I built the daily job and passed the idempotency, failure, repair, and backfill tests.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch14-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch14-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 15!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Final project outcome</span><p>A daily workflow that runs Bronze ingestion, Silver cleansing, Gold aggregation, and validation in the right order, with retries, failure notifications, and a recovery strategy that never duplicates data.</p></div>
+
+<div class="next">
+<h3>Next chapter: Advanced Spark Optimization</h3>
+<p>Phase 6 begins. Chapter 15 is about making all of this fast: reading execution plans and the Spark UI, stage and task metrics, shuffles, broadcast vs sort-merge joins, join hints, data skew and Adaptive Query Execution, repartition vs coalesce, partition pruning, small-file problems, and memory management.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-13.html"><span>← Previous</span><strong>Chapter 13: Declarative Pipelines</strong></a>
+  <a class="pager-link" href="databricks-chapter-15.html"><span>Next →</span><strong>Chapter 15: Advanced Spark Optimization</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 5 · Chapter 14 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

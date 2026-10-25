@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 8: Read &amp; Write</title>
+<meta name="description" content="Databricks Tutorial — Chapter 8: Reading and Writing Data. File formats, readers, schemas, corrupt records, save modes, partitioning, data quality, incremental loads, Delta MERGE, and a daily CSV-to-Delta pipeline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 8 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s8-1">8.1 File Formats</a></li>
+    <li class="lvl2"><a href="#s8-1-1">Introduction</a></li>
+    <li class="lvl2"><a href="#s8-1-2">CSV</a></li>
+    <li class="lvl2"><a href="#s8-1-3">JSON</a></li>
+    <li class="lvl2"><a href="#s8-1-4">Parquet</a></li>
+    <li class="lvl2"><a href="#s8-1-5">Avro</a></li>
+    <li class="lvl2"><a href="#s8-1-6">ORC</a></li>
+    <li class="lvl2"><a href="#s8-1-7">Text files</a></li>
+    <li class="lvl2"><a href="#s8-1-8">Delta format</a></li>
+    <li class="lvl1"><a href="#s8-2">8.2 Reading Data</a></li>
+    <li class="lvl2"><a href="#s8-2-1">CSV files</a></li>
+    <li class="lvl2"><a href="#s8-2-2">JSON files</a></li>
+    <li class="lvl2"><a href="#s8-2-3">Parquet files</a></li>
+    <li class="lvl2"><a href="#s8-2-4">Delta tables</a></li>
+    <li class="lvl2"><a href="#s8-2-5">Schema inference</a></li>
+    <li class="lvl2"><a href="#s8-2-6">Explicit schemas</a></li>
+    <li class="lvl2"><a href="#s8-2-7">Corrupt records</a></li>
+    <li class="lvl2"><a href="#s8-2-8">Missing columns</a></li>
+    <li class="lvl1"><a href="#s8-3">8.3 Writing Data</a></li>
+    <li class="lvl2"><a href="#s8-3-1">Introduction</a></li>
+    <li class="lvl2"><a href="#s8-3-2">Append</a></li>
+    <li class="lvl2"><a href="#s8-3-3">Overwrite</a></li>
+    <li class="lvl2"><a href="#s8-3-4">Error-if-exists</a></li>
+    <li class="lvl2"><a href="#s8-3-5">Ignore</a></li>
+    <li class="lvl2"><a href="#s8-3-6">Save modes compared</a></li>
+    <li class="lvl2"><a href="#s8-3-7">Partitioned data</a></li>
+    <li class="lvl2"><a href="#s8-3-8">Saving as tables</a></li>
+    <li class="lvl2"><a href="#s8-3-9">Saving as files</a></li>
+    <li class="lvl2"><a href="#s8-3-10">Output file counts</a></li>
+    <li class="lvl1"><a href="#s8-4">8.4 Data Quality</a></li>
+    <li class="lvl2"><a href="#s8-4-1">Introduction</a></li>
+    <li class="lvl2"><a href="#s8-4-2">Duplicate detection</a></li>
+    <li class="lvl2"><a href="#s8-4-3">Null validation</a></li>
+    <li class="lvl2"><a href="#s8-4-4">Invalid data</a></li>
+    <li class="lvl2"><a href="#s8-4-5">Schema validation</a></li>
+    <li class="lvl2"><a href="#s8-4-6">Data type validation</a></li>
+    <li class="lvl2"><a href="#s8-4-7">Record counts</a></li>
+    <li class="lvl2"><a href="#s8-4-8">Rejecting bad records</a></li>
+    <li class="lvl2"><a href="#s8-4-9">Logging rejections</a></li>
+    <li class="lvl1"><a href="#s8-5">8.5 Incremental Processing</a></li>
+    <li class="lvl2"><a href="#s8-5-2">Full loads</a></li>
+    <li class="lvl2"><a href="#s8-5-3">Incremental loads</a></li>
+    <li class="lvl2"><a href="#s8-5-4">Watermarks</a></li>
+    <li class="lvl2"><a href="#s8-5-5">Timestamp extraction</a></li>
+    <li class="lvl2"><a href="#s8-5-6">Primary-key extraction</a></li>
+    <li class="lvl2"><a href="#s8-5-7">Change detection</a></li>
+    <li class="lvl2"><a href="#s8-5-8">Deduplication</a></li>
+    <li class="lvl2"><a href="#s8-5-9">Late-arriving data</a></li>
+    <li class="lvl2"><a href="#s8-5-10">Delta MERGE</a></li>
+    <li class="lvl1"><a href="#lab">Hands-on: Daily CSV → Delta</a></li>
+    <li class="lvl1"><a href="#best">Production Best Practices</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 3 · Chapter 8 · PySpark &amp; Data Transformation</span>
+  <h1>Reading and Writing Data</h1>
+  <p class="lead">File formats, readers and writers, save modes, partitioning, data-quality checks, and incremental loading: everything between "a file arrived" and "a trustworthy Delta table," finishing with a rerunnable daily ingestion pipeline.</p>
+  <p class="ref">Examples use PySpark on Databricks, with Delta Lake as the preferred format for managed data. Adapt paths and table names to your own workspace.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ul>
+    <li>Understand the differences between common storage formats.</li>
+    <li>Read CSV, JSON, Parquet, and Delta data with PySpark.</li>
+    <li>Apply schema inference and explicit schema definitions.</li>
+    <li>Handle malformed records, missing columns, and inconsistent data.</li>
+    <li>Write data with different save modes.</li>
+    <li>Control partitioning and output file counts.</li>
+    <li>Implement data-quality checks before loading data.</li>
+    <li>Understand full loads, incremental loads, and watermark-based processing.</li>
+    <li>Build a reusable ingestion pipeline for daily files.</li>
+  </ul></div>
+  <div class="chips">
+    <a class="chip" href="#s8-1"><span>8.1</span><strong>File Formats</strong></a>
+    <a class="chip" href="#s8-2"><span>8.2</span><strong>Reading Data</strong></a>
+    <a class="chip" href="#s8-3"><span>8.3</span><strong>Writing Data</strong></a>
+    <a class="chip" href="#s8-4"><span>8.4</span><strong>Data Quality</strong></a>
+    <a class="chip" href="#s8-5"><span>8.5</span><strong>Incremental Processing</strong></a>
+    <a class="chip" href="#lab"><span>Lab</span><strong>Daily CSV → Delta</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 8.1 ===================== -->
+<h2 id="s8-1"><span class="num">8.1</span>File Formats</h2>
+
+<h3 id="s8-1-1"><span class="num">8.1.1</span>Introduction to File Formats</h3>
+<p>A file format defines how data is structured and stored. Choosing the right one affects storage size, read and write performance, query speed, schema management, compression, engine compatibility, and support for incremental processing. A typical pattern: an application delivers daily CSV files, and a Databricks pipeline reads, validates, and transforms them, then stores the cleaned output as Delta.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Format</th><th>Storage type</th><th>Human-readable</th><th>Schema support</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td>CSV</td><td>Text-based</td><td>Yes</td><td>Limited</td><td>Data exchange and source files</td></tr>
+<tr><td>JSON</td><td>Text-based</td><td>Yes</td><td>Embedded structure</td><td>APIs and semi-structured data</td></tr>
+<tr><td>Parquet</td><td>Columnar binary</td><td>No</td><td>Yes</td><td>Analytics and data warehousing</td></tr>
+<tr><td>Avro</td><td>Row-oriented binary</td><td>No</td><td>Yes</td><td>Event streaming and data exchange</td></tr>
+<tr><td>ORC</td><td>Columnar binary</td><td>No</td><td>Yes</td><td>Analytical processing</td></tr>
+<tr><td>Text</td><td>Plain text</td><td>Yes</td><td>No tabular schema</td><td>Logs and unstructured data</td></tr>
+<tr><td>Delta</td><td>Parquet + transaction log</td><td>No</td><td>Yes</td><td>Reliable analytical pipelines</td></tr>
+</tbody></table></div>
+<h4>Row-based versus columnar storage</h4>
+<div class="grid-2">
+<div><h5>Row-based: records together</h5>
+<pre class="diagram">101,John,Hyderabad,50000
+102,David,Chennai,60000
+103,Smith,Bengaluru,55000</pre>
+<p>Good when applications read complete records. <strong>Avro</strong> is a common row-oriented format.</p></div>
+<div><h5>Columnar: values by column</h5>
+<pre class="diagram">CustomerID: 101, 102, 103
+Name:       John, David, Smith
+City:       Hyderabad, Chennai, Bengaluru
+Salary:     50000, 60000, 55000</pre>
+<p>A query needing only CustomerID and Salary can skip other columns. <strong>Parquet</strong> and <strong>ORC</strong> are columnar.</p></div>
+</div>
+<div class="callout"><span class="label">Important</span><p>Delta isn't just another encoding format. It's a <strong>table format</strong> that uses Parquet data files plus a transaction log to provide table-level capabilities.</p></div>
+
+<h3 id="s8-1-2"><span class="num">8.1.2</span>CSV</h3>
+<p>CSV (Comma-Separated Values) stores tabular data as text: one record per line, fields usually separated by commas.</p>
+<pre class="diagram">CustomerID,CustomerName,City,Age
+101,John,Hyderabad,35
+102,David,Chennai,40
+103,Smith,Bengaluru,29</pre>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Easy to understand.</li><li>Easy to generate and inspect.</li><li>Supported by almost every tool.</li><li>Good for exchanging data between applications.</li></ul></div>
+  <div class="card"><h4>Limitations</h4><ul><li>No reliable built-in data types; everything is text.</li><li>Type conversion is often needed.</li><li>Large CSVs are expensive to process.</li><li>Commas, quotes, and line breaks in fields need correct escaping.</li><li>Schema changes are hard to detect.</li></ul></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .format("csv")
+    .option("header", "true")        # first row = column names
+    .option("inferSchema", "true")   # infer data types
+    .option("mode", "FAILFAST")      # stop on a malformed record
+    .load("/Volumes/main/bronze/raw/customers.csv")
+)
+
+display(df)</code></pre></div>
+<p class="ref">Schema inference is convenient for exploration; explicit schemas are generally preferable in production ingestion.</p>
+
+<h3 id="s8-1-3"><span class="num">8.1.3</span>JSON</h3>
+<p>JSON (JavaScript Object Notation) is a text format used by REST APIs, applications, and event-producing systems. It supports nested objects and arrays.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">JSON · flat</span><pre class="code"><code>{
+  "CustomerID": 101,
+  "CustomerName": "John",
+  "City": "Hyderabad",
+  "Age": 35
+}</code></pre></div>
+<div class="code-wrap"><span class="lang">JSON · nested</span><pre class="code"><code>{
+  "CustomerID": 101,
+  "CustomerName": "John",
+  "Address": {
+    "City": "Hyderabad",
+    "State": "Telangana"
+  },
+  "Orders": [
+    {"OrderID": 1001, "Amount": 2500.50},
+    {"OrderID": 1002, "Amount": 1500.00}
+  ]
+}</code></pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .format("json")
+    .option("multiLine", "true")
+    .load("/Volumes/main/bronze/raw/customers.json")
+)
+
+display(df)</code></pre></div>
+<p>Use <code>multiLine=true</code> when each JSON document spans multiple lines. For one complete object per line, the default reader is usually right. Common uses: API ingestion, application events, nested business data, semi-structured sources, and logs.</p>
+
+<h3 id="s8-1-4"><span class="num">8.1.4</span>Parquet</h3>
+<p>Parquet is a columnar format built for analytics, with compression, efficient column access, and typed storage. Unlike CSV, it stores data types in its schema (e.g. CustomerID integer, CustomerName string, Salary decimal).</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Read</span><pre class="code"><code>df = spark.read.parquet(
+    "/Volumes/main/silver/customers/"
+)
+
+display(df)</code></pre></div>
+<div class="code-wrap"><span class="lang">Write</span><pre class="code"><code>(
+    df.write
+    .format("parquet")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers/")
+)</code></pre></div>
+</div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Efficient column-level reads.</li><li>Good compression.</li><li>Typed storage and nested data support.</li><li>Works with Spark and many engines.</li><li>Less I/O when selecting a subset of columns.</li></ul></div>
+  <div class="card"><h4>Use Parquet when</h4><ul><li>Storing large analytical datasets.</li><li>Building a curated data lake.</li><li>Processing structured data efficiently.</li><li>Sharing data between compatible engines.</li></ul></div>
+</div>
+<p class="ref">Parquet alone doesn't give Delta-style transactional guarantees for a table being modified concurrently.</p>
+
+<h3 id="s8-1-5"><span class="num">8.1.5</span>Avro</h3>
+<p>Avro is a row-oriented binary serialization format whose data follows a schema, usually defined in JSON. The schema specifies the record name, field names and types, nullable fields, and defaults.</p>
+<div class="code-wrap"><span class="lang">Avro schema</span><pre class="code"><code>{
+  "type": "record",
+  "name": "Customer",
+  "fields": [
+    {"name": "CustomerID", "type": "long"},
+    {"name": "CustomerName", "type": "string"},
+    {"name": "Age", "type": ["null", "int"], "default": null}
+  ]
+}</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Read</span><pre class="code"><code>df = (
+    spark.read
+    .format("avro")
+    .load("/Volumes/main/bronze/raw/customers_avro/")
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Write</span><pre class="code"><code>(
+    df.write
+    .format("avro")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers_avro/")
+)</code></pre></div>
+</div>
+<div class="callout"><span class="label">Considerations</span><ul><li>Confirm your Databricks runtime supports the Avro features you need.</li><li>Schema evolution depends on compatibility rules and how data is read.</li><li>Avro suits data exchange and event-oriented processing.</li><li>It doesn't provide Delta table transactions.</li></ul></div>
+
+<h3 id="s8-1-6"><span class="num">8.1.6</span>ORC</h3>
+<p>ORC (Optimized Row Columnar) is, despite its name, a <strong>columnar</strong> format for efficient analytical queries, compression, and column access, with typed schemas and support for predicate and column pruning.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Read</span><pre class="code"><code>df = spark.read.orc(
+    "/Volumes/main/bronze/raw/customers_orc/"
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Write</span><pre class="code"><code>(
+    df.write
+    .format("orc")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers_orc/")
+)</code></pre></div>
+</div>
+<p><strong>ORC versus Parquet:</strong> both are columnar and analytics-friendly; choose by ecosystem, interoperability, compression, and benchmarks. In many Databricks projects, Parquet is common for general file storage and Delta is preferred for managed tables needing transactions.</p>
+
+<h3 id="s8-1-7"><span class="num">8.1.7</span>Text Files</h3>
+<p>Text files hold unstructured or semi-structured content as plain text, such as application logs.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.text("/Volumes/main/bronze/logs/")
+
+display(df)
+
+# Spark names the single column "value"; rename it
+df = df.withColumnRenamed("value", "LogMessage")</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>value</th></tr></thead>
+<tbody><tr><td>Application started successfully</td></tr><tr><td>Customer 101 processed</td></tr><tr><td>Order 1001 failed validation</td></tr><tr><td>Pipeline completed</td></tr></tbody></table></div>
+<p class="ref">Use cases: logs, error messages, unstructured source data, text audit files. Extracting structured fields needs further parsing.</p>
+
+<h3 id="s8-1-8"><span class="num">8.1.8</span>Delta Format</h3>
+<p>Delta Lake adds a transactional table layer on top of Parquet files and is central to Databricks lakehouse architectures.</p>
+<div class="grid-2">
+<div><h5>Main components</h5>
+<p><strong>1. Parquet data files</strong> hold the records.</p>
+<p><strong>2. The transaction log</strong> (<code>_delta_log</code>) holds history and metadata that define the current table state. It enables atomic updates, consistent reads, schema enforcement, controlled schema evolution, updates and deletes, table history, and time travel (subject to retained data and logs).</p></div>
+<pre class="diagram">customers_delta/
+│
+├── part-00000-....snappy.parquet
+├── part-00001-....snappy.parquet
+│
+└── _delta_log/
+    ├── 00000000000000000000.json
+    ├── 00000000000000000001.json
+    └── ...</pre>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Read Delta by path
+df = spark.read.format("delta").load(
+    "/Volumes/main/silver/customers_delta/"
+)
+
+# Write Delta to a path
+(
+    df.write
+    .format("delta")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers_delta/")
+)
+
+# Save as a Delta table (catalog and schema must exist)
+(
+    df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.silver.customers")
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Parquet</th><th>Delta</th></tr></thead>
+<tbody>
+<tr><td>Columnar data storage</td><td>Yes</td><td>Yes, through Parquet</td></tr>
+<tr><td>Transaction log</td><td>No</td><td>Yes</td></tr>
+<tr><td>Atomic table transactions</td><td>Not inherently</td><td>Yes</td></tr>
+<tr><td>Updates and deletes</td><td>Need extra processing</td><td>Supported natively</td></tr>
+<tr><td>Schema enforcement</td><td>File-level schema</td><td>Table-level enforcement</td></tr>
+<tr><td>Time travel</td><td>No native history</td><td>Yes, while history and data are retained</td></tr>
+<tr><td>Best fit</td><td>Analytical files</td><td>Managed lakehouse tables</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<pre class="diagram">Source Files
+     |
+     v
+Bronze — Raw / Ingested Data
+     |
+     v
+Silver — Cleansed, Validated Delta
+     |
+     v
+Gold — Business-Ready Delta</pre>
+<div class="callout key" style="margin:0"><span class="label">Recommended practice</span><p>A common Databricks architecture, and a standard implementation of the medallion pattern.</p></div>
+</div>
+
+<!-- ===================== 8.2 ===================== -->
+<h2 id="s8-2"><span class="num">8.2</span>Reading Data</h2>
+
+<h3 id="s8-2-1"><span class="num">8.2.1</span>Reading CSV Files</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Basic syntax
+df = spark.read.csv(
+    "/Volumes/main/bronze/raw/customers.csv",
+    header=True,
+    inferSchema=True
+)
+
+# DataFrameReader API with options
+df = (
+    spark.read
+    .format("csv")
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .option("mode", "PERMISSIVE")
+    .option("encoding", "UTF-8")
+    .load("/Volumes/main/bronze/raw/customers.csv")
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Option</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>header</code></td><td>Uses the first row as column names</td></tr>
+<tr><td><code>inferSchema</code></td><td>Infers data types from the records</td></tr>
+<tr><td><code>sep</code></td><td>Field delimiter</td></tr>
+<tr><td><code>quote</code></td><td>Quotation character</td></tr>
+<tr><td><code>escape</code></td><td>Escape character</td></tr>
+<tr><td><code>encoding</code></td><td>Character encoding</td></tr>
+<tr><td><code>mode</code></td><td>Malformed-record handling</td></tr>
+<tr><td><code>nullValue</code></td><td>String that represents null</td></tr>
+<tr><td><code>emptyValue</code></td><td>Representation of empty values</td></tr>
+<tr><td><code>enforceSchema</code></td><td>Schema application and header validation</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Semicolon-delimited file
+df = (
+    spark.read
+    .option("header", "true")
+    .option("sep", ";")
+    .option("inferSchema", "true")
+    .csv("/Volumes/main/bronze/raw/customers.csv")
+)
+
+# Every file in a directory
+df = (
+    spark.read
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .csv("/Volumes/main/bronze/raw/daily_customers/")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p>Spark reads many files from a directory when schemas are compatible. If files have different columns or incompatible types, the combined schema may not be what you expect. Validate file schemas first when consistency matters.</p></div>
+
+<h3 id="s8-2-2"><span class="num">8.2.2</span>Reading JSON Files</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Basic reader
+df = spark.read.json("/Volumes/main/bronze/raw/customers.json")
+
+# With options
+df = (
+    spark.read
+    .format("json")
+    .option("multiLine", "true")
+    .option("mode", "PERMISSIVE")
+    .load("/Volumes/main/bronze/raw/customers.json")
+)</code></pre></div>
+<div class="grid-2">
+<div><h5>Line-delimited JSON (default reader)</h5>
+<pre class="diagram">{"CustomerID":101,"Name":"John"}
+{"CustomerID":102,"Name":"David"}
+{"CustomerID":103,"Name":"Smith"}</pre>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.json(
+    "/Volumes/main/bronze/raw/customers.json"
+)</code></pre></div></div>
+<div><h5>Multiline JSON array</h5>
+<pre class="diagram">[
+  {"CustomerID": 101, "Name": "John"},
+  {"CustomerID": 102, "Name": "David"}
+]</pre>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .option("multiLine", "true")
+    .json("/Volumes/main/bronze/raw/customers.json")
+)</code></pre></div></div>
+</div>
+<p class="ref"><code>multiLine</code> tells Spark to treat a whole multiline document as a unit; supported structures depend on the input layout and parsing rules.</p>
+
+<h3 id="s8-2-3"><span class="num">8.2.3</span>Reading Parquet Files</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/Volumes/main/silver/customers/")
+
+# Selected columns: column pruning reduces data read
+df = (
+    spark.read
+    .parquet("/Volumes/main/silver/customers/")
+    .select("CustomerID", "CustomerName", "City")
+)
+
+# Filter: Spark can sometimes push this down to the reader
+df = (
+    spark.read
+    .parquet("/Volumes/main/silver/customers/")
+    .filter("City = 'Hyderabad'")
+)</code></pre></div>
+
+<h3 id="s8-2-4"><span class="num">8.2.4</span>Reading Delta Tables</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># By path
+df = spark.read.format("delta").load(
+    "/Volumes/main/silver/customers_delta/"
+)
+
+# By table name
+df = spark.table("main.silver.customers")</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.silver.customers;
+
+-- Writes, updates, deletes (subject to retention)
+DESCRIBE HISTORY main.silver.customers;</code></pre></div>
+</div>
+<h4>Time travel</h4>
+<p>If the version and its data files are still retained, you can read an earlier version (here, version 3):</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .format("delta")
+    .option("versionAsOf", 3)
+    .load("/Volumes/main/silver/customers_delta/")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Not a backup</span><p>Time travel helps you investigate changes, compare versions, and support recovery, but it isn't a substitute for a backup strategy.</p></div>
+
+<h3 id="s8-2-5"><span class="num">8.2.5</span>Schema Inference</h3>
+<p>Schema inference lets Spark determine column types from the input.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .csv("/Volumes/main/bronze/raw/customers.csv")
+)
+
+df.printSchema()</code></pre></div>
+<pre class="diagram">root
+ |-- CustomerID: integer
+ |-- CustomerName: string
+ |-- Age: integer
+ |-- Salary: double</pre>
+</div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Less code.</li><li>Convenient for exploration.</li><li>Useful when the structure is unknown.</li></ul></div>
+  <div class="card"><h4>Disadvantages</h4><ul><li>Extra pass to inspect input.</li><li>More ingestion overhead.</li><li>Inconsistent types when values vary.</li><li>May not match the business schema.</li><li>Less predictable production pipelines.</li></ul></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">CustomerID,Salary
+101,50000
+102,60000
+103,UNKNOWN</pre>
+<div class="callout warn" style="margin:0"><span class="label">Potential issue</span><p>The <code>UNKNOWN</code> value complicates numeric inference; Salary becomes a string. Define how such values are interpreted instead of assuming every value is valid.</p></div>
+</div>
+
+<h3 id="s8-2-6"><span class="num">8.2.6</span>Explicit Schemas</h3>
+<p>An explicit schema defines names and types before reading, and is generally recommended for production.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    IntegerType,
+    StringType,
+    DecimalType
+)
+
+customer_schema = StructType([
+    StructField("CustomerID", IntegerType(), True),
+    StructField("CustomerName", StringType(), True),
+    StructField("City", StringType(), True),
+    StructField("Salary", DecimalType(12, 2), True)
+])
+
+df = (
+    spark.read
+    .format("csv")
+    .option("header", "true")
+    .schema(customer_schema)
+    .csv("/Volumes/main/bronze/raw/customers.csv")
+)</code></pre></div>
+<p><strong>Benefits:</strong> predictable types, less reliance on inference, control over the target model, easier validation, and consistency between runs.</p>
+<div class="callout warn"><span class="label">Important</span><p>An explicit schema doesn't automatically reject every invalid value. Depending on format, parser, and read mode, conversion failures can become nulls or malformed records. Validate important fields after reading.</p></div>
+
+<h3 id="s8-2-7"><span class="num">8.2.7</span>Handling Corrupt Records</h3>
+<p>Corrupt records are ones Spark can't parse against the expected format or schema: invalid CSV quoting, malformed JSON, wrong field structure, invalid data representations.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Mode</th><th>Behavior</th></tr></thead>
+<tbody>
+<tr><td><code>PERMISSIVE</code></td><td>Reads valid data and captures malformed records where supported</td></tr>
+<tr><td><code>DROPMALFORMED</code></td><td>Drops records identified as malformed</td></tr>
+<tr><td><code>FAILFAST</code></td><td>Throws an error on a malformed record</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python · capture malformed CSV records</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    IntegerType,
+    StringType
+)
+
+schema = StructType([
+    StructField("CustomerID", IntegerType(), True),
+    StructField("CustomerName", StringType(), True),
+    StructField("_corrupt_record", StringType(), True)
+])
+
+df = (
+    spark.read
+    .format("csv")
+    .schema(schema)
+    .option("header", "true")
+    .option("mode", "PERMISSIVE")
+    .option("columnNameOfCorruptRecord", "_corrupt_record")
+    .csv("/Volumes/main/bronze/raw/customers.csv")
+)</code></pre></div>
+<p class="ref">When capturing malformed input this way, the corrupt-record column must be in the supplied schema. Rows that parse correctly get null in <code>_corrupt_record</code>; malformed rows keep their raw text there.</p>
+<div class="callout"><span class="label">Malformed ≠ business-invalid</span><p>Rows like <code>101,John</code> may parse perfectly even when the business requires a non-null email. That requirement must be checked separately with data-quality rules (Section 8.4).</p></div>
+
+<h3 id="s8-2-8"><span class="num">8.2.8</span>Handling Missing Columns</h3>
+<p>Missing columns occur when a source file lacks fields the target schema expects.</p>
+<div class="grid-2">
+<pre class="diagram">CustomerID,CustomerName,City
+101,John,Hyderabad</pre>
+<pre class="diagram">CustomerID,CustomerName,City,Email
+102,David,Chennai,david@example.com</pre>
+</div>
+<p>The target expects <code>Email</code>, but the first file doesn't have it.</p>
+<ol class="steps">
+  <li>Inspect the source header.</li>
+  <li>Compare it with the expected schema.</li>
+  <li>Identify missing and unexpected columns.</li>
+  <li>Apply the agreed schema-evolution policy.</li>
+  <li>Add missing optional columns as null if permitted.</li>
+  <li>Reject files that violate required schema rules.</li>
+</ol>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+# Add a missing optional column
+if "Email" not in df.columns:
+    df = df.withColumn("Email", F.lit(None).cast("string"))
+
+# Validate required columns
+required_columns = ["CustomerID", "CustomerName", "City"]
+
+missing_columns = [
+    column
+    for column in required_columns
+    if column not in df.columns
+]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns: {missing_columns}")</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p>When a folder holds CSV files with different headers, don't assume Spark aligns each file by column name. Validate individual file schemas before combining them.</p></div>
+
+<!-- ===================== 8.3 ===================== -->
+<h2 id="s8-3"><span class="num">8.3</span>Writing Data</h2>
+
+<h3 id="s8-3-1"><span class="num">8.3.1</span>Introduction to Writing Data</h3>
+<p>Writing saves a DataFrame to a destination: Parquet, Delta, JSON, CSV, Avro, or ORC files, or catalog tables.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+    .format("delta")    # output format
+    .mode("append")     # behavior if the destination exists
+    .save("/Volumes/main/silver/customers_delta/")   # target path
+)</code></pre></div>
+
+<h3 id="s8-3-2"><span class="num">8.3.2</span>Append Mode</h3>
+<p>Append adds new records to an existing destination.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+    .format("delta")
+    .mode("append")
+    .save("/Volumes/main/silver/customers_delta/")
+)</code></pre></div>
+<div class="grid-2">
+<div><h5>Existing + incoming</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th></th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>existing</td></tr><tr><td>102</td><td>David</td><td>existing</td></tr><tr><td>103</td><td>Smith</td><td>incoming</td></tr><tr><td>104</td><td>Kumar</td><td>incoming</td></tr></tbody></table></div></div>
+<div><h5>After append</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td></tr><tr><td>102</td><td>David</td></tr><tr><td>103</td><td>Smith</td></tr><tr><td>104</td><td>Kumar</td></tr></tbody></table></div></div>
+</div>
+<p><strong>Common uses:</strong> daily ingestion, event data, incremental processing, newly received transactions.</p>
+<div class="callout warn"><span class="label">Risk</span><p>Append doesn't prevent duplicate business records. Process the same daily file twice and its records are appended twice. Reliable incremental pipelines use a unique key, batch ID, deduplication, or Delta <code>MERGE</code>.</p></div>
+
+<h3 id="s8-3-3"><span class="num">8.3.3</span>Overwrite Mode</h3>
+<p>Overwrite replaces the existing target data.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+    .format("delta")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers_delta/")
+)</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Common uses</h4><ul><li>Full refreshes.</li><li>Rebuilding a target table.</li><li>Reprocessing complete history.</li><li>Replacing data after a controlled transformation.</li></ul></div>
+  <div class="card"><h4>Risks</h4><ul><li>Existing data is replaced.</li><li>Large datasets need heavy processing.</li><li>Bad filtering yields an incomplete target.</li><li>Overwriting production affects downstream consumers.</li></ul></div>
+</div>
+<p class="ref">On Delta tables an overwrite is transactional, but the logical effect is still replacement. Validate source data and target scope first.</p>
+
+<h3 id="s8-3-4"><span class="num">8.3.4</span>Error-if-Exists Mode</h3>
+<p><code>error</code> / <code>errorifexists</code> fails when the destination already exists, which prevents accidental replacement. Useful for new immutable datasets and one-time exports.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+    .format("parquet")
+    .mode("errorifexists")
+    .save("/Volumes/main/silver/new_customers/")
+)</code></pre></div>
+
+<h3 id="s8-3-5"><span class="num">8.3.5</span>Ignore Mode</h3>
+<p><code>ignore</code> silently skips the write when the destination exists.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+    .format("parquet")
+    .mode("ignore")
+    .save("/Volumes/main/silver/customers_snapshot/")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Not an incremental mechanism</span><p>If the destination exists, incoming records are not merged; they're dropped. Use it only when skipping is the intended behavior.</p></div>
+
+<h3 id="s8-3-6"><span class="num">8.3.6</span>Comparison of Save Modes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Mode</th><th>If destination exists</th><th>Typical use</th></tr></thead>
+<tbody>
+<tr><td><code>append</code></td><td>Adds records</td><td>Incremental ingestion</td></tr>
+<tr><td><code>overwrite</code></td><td>Replaces existing data</td><td>Full refresh</td></tr>
+<tr><td><code>errorifexists</code></td><td>Raises an error</td><td>Prevent accidental replacement</td></tr>
+<tr><td><code>ignore</code></td><td>Skips the write</td><td>Create only if absent</td></tr>
+</tbody></table></div>
+<p class="ref">Behavior can vary by source and destination type; test your chosen mode with the target format and table configuration.</p>
+
+<h3 id="s8-3-7"><span class="num">8.3.7</span>Writing Partitioned Data</h3>
+<p>Partitioning groups data by selected column values. A transactions table (TransactionID, CustomerID, TransactionDate, Amount) can be partitioned by year and month:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+df = (
+    df
+    .withColumn("Year", F.year("TransactionDate"))
+    .withColumn("Month", F.month("TransactionDate"))
+)
+
+(
+    df.write
+    .format("parquet")
+    .mode("overwrite")
+    .partitionBy("Year", "Month")
+    .save("/Volumes/main/silver/transactions/")
+)</code></pre></div>
+<div class="grid-2">
+<pre class="diagram">transactions/
+│
+├── Year=2026/
+│   ├── Month=1/
+│   ├── Month=2/
+│   ├── Month=3/
+│   └── ...</pre>
+<div class="card"><h4>Benefits</h4><ul><li>May reduce data scanned.</li><li>Organizes data by common filters.</li><li>Can speed up suitable queries.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Avoid over-partitioning</span><p>Don't partition by high-cardinality columns like CustomerID, TransactionID, or order IDs. Too many partitions create many small directories and files and increase metadata overhead. Partition by common query filters and data volume. For Delta tables, liquid clustering (Chapter 9) is often a better choice.</p></div>
+
+<h3 id="s8-3-8"><span class="num">8.3.8</span>Saving as Tables</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Managed Delta table
+(
+    df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.silver.customers")
+)
+
+# Append to an existing table
+(
+    df.write
+    .format("delta")
+    .mode("append")
+    .saveAsTable("main.silver.customers")
+)
+
+# Read it back
+df = spark.table("main.silver.customers")</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT CustomerID, CustomerName, City
+FROM main.silver.customers;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Catalog</td><td>Organizes and governs data assets</td></tr>
+<tr><td>Schema</td><td>Groups related tables</td></tr>
+<tr><td>Table</td><td>Named data object with metadata</td></tr>
+<tr><td>Managed table</td><td>Storage lifecycle managed by the platform</td></tr>
+<tr><td>External table</td><td>Metadata points to data at a specified external location</td></tr>
+</tbody></table></div>
+
+<h3 id="s8-3-9"><span class="num">8.3.9</span>Saving as Files</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># CSV
+(
+    df.write
+    .format("csv")
+    .mode("overwrite")
+    .option("header", "true")
+    .save("/Volumes/main/silver/customers_csv/")
+)
+
+# JSON
+df.write.format("json").mode("overwrite").save("/Volumes/main/silver/customers_json/")
+
+# Parquet
+df.write.format("parquet").mode("overwrite").save("/Volumes/main/silver/customers_parquet/")
+
+# Delta
+df.write.format("delta").mode("overwrite").save("/Volumes/main/silver/customers_delta/")</code></pre></div>
+<div class="grid-2">
+<div class="callout key" style="margin:0"><span class="label">Important point</span><p>Spark writes a <strong>directory</strong> of one or more data files, not a single file with the exact name you passed to <code>save()</code>. File count and names depend on execution and partitioning.</p></div>
+<pre class="diagram">customers_parquet/
+    part-00000-....parquet
+    part-00001-....parquet</pre>
+</div>
+
+<h3 id="s8-3-10"><span class="num">8.3.10</span>Controlling Output File Counts</h3>
+<p>Each DataFrame partition can become a separate output file.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Check the partition count (not available on serverless compute)
+print(df.rdd.getNumPartitions())
+
+# Request eight partitions (shuffles data)
+df_repartitioned = df.repartition(8)
+
+(
+    df_repartitioned.write
+    .format("parquet")
+    .mode("overwrite")
+    .save("/Volumes/main/silver/customers/")
+)
+
+# Reduce partitions, usually without a full shuffle
+df_coalesced = df.coalesce(2)</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Use repartition() to</h4><p style="margin-bottom:0">redistribute data, increase parallelism, or balance the partition layout.</p></div>
+  <div class="card"><h4>Use coalesce() to</h4><p style="margin-bottom:0">reduce partitions while avoiding a full shuffle.</p></div>
+</div>
+<div class="callout warn"><span class="label">Important warning</span><p>Don't use <code>coalesce(1)</code> indiscriminately on large data; it concentrates work in one partition. And a single partition doesn't guarantee a single file when writing with <code>partitionBy()</code>. The actual file count can also differ from the requested partition count.</p></div>
+<div class="callout key"><span class="label">Best practice</span><p>Optimize output file sizes and parallelism rather than targeting an arbitrary file count.</p></div>
+
+<!-- ===================== 8.4 ===================== -->
+<h2 id="s8-4"><span class="num">8.4</span>Data Quality</h2>
+
+<h3 id="s8-4-1"><span class="num">8.4.1</span>Introduction to Data Quality</h3>
+<p>Data quality is whether incoming data meets defined technical and business requirements. A pipeline can succeed technically while producing wrong data, so execution status alone isn't enough.</p>
+<div class="grid-2">
+  <div class="card"><h4>Quality dimensions</h4><ul><li>Completeness.</li><li>Uniqueness.</li><li>Validity.</li><li>Consistency.</li><li>Accuracy.</li><li>Timeliness.</li></ul></div>
+  <div class="card"><h4>Example: order pipeline rules</h4><ul><li>OrderID is not null and is unique.</li><li>OrderDate is valid.</li><li>TotalAmount is non-negative.</li><li>Every order references a valid customer.</li><li>Record count is within an acceptable range.</li></ul></div>
+</div>
+
+<h3 id="s8-4-2"><span class="num">8.4.2</span>Duplicate Detection</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td></tr><tr><td>102</td><td>David</td></tr><tr><td>101</td><td>John</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+# Detect duplicate keys
+duplicate_keys = (
+    df.groupBy("CustomerID")
+    .count()
+    .filter(F.col("count") &gt; 1)
+)
+
+display(duplicate_keys)
+
+# Remove completely identical rows
+df_distinct = df.distinct()
+
+# Remove duplicates by key
+df_deduplicated = df.dropDuplicates(["CustomerID"])</code></pre></div>
+<div class="callout warn"><span class="label">Important distinction</span><p><code>distinct()</code> removes rows identical across all columns. <code>dropDuplicates(["CustomerID"])</code> keeps one row per customer but doesn't define <em>which</em> when other columns differ. For deterministic deduplication, apply a business rule:</p></div>
+<div class="code-wrap"><span class="lang">Python · keep the latest record</span><pre class="code"><code>from pyspark.sql import Window
+from pyspark.sql import functions as F
+
+window_spec = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("UpdatedAt").desc_nulls_last(),
+        F.col("IngestionTimestamp").desc_nulls_last()
+    )
+)
+
+df_deduplicated = (
+    df
+    .withColumn("row_num", F.row_number().over(window_spec))
+    .filter(F.col("row_num") == 1)
+    .drop("row_num")
+)</code></pre></div>
+<p class="ref">If both ordering columns tie, add another deterministic tie-breaker such as a source sequence number or unique ingestion ID.</p>
+
+<h3 id="s8-4-3"><span class="num">8.4.3</span>Null Validation</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+# Find nulls
+display(df.filter(F.col("CustomerID").isNull()))
+
+# Count nulls in one column
+display(
+    df.select(
+        F.count(F.when(F.col("CustomerID").isNull(), 1))
+         .alias("NullCustomerIDCount")
+    )
+)
+
+# Null counts for several columns
+required_columns = ["CustomerID", "CustomerName", "City"]
+
+null_counts = df.select([
+    F.count(F.when(F.col(c).isNull(), 1)).alias(c)
+    for c in required_columns
+])
+
+display(null_counts)
+
+# Split into valid and rejected
+valid_df = df.filter(
+    F.col("CustomerID").isNotNull()
+    &amp; F.col("CustomerName").isNotNull()
+)
+
+rejected_df = df.filter(
+    F.col("CustomerID").isNull()
+    | F.col("CustomerName").isNull()
+)</code></pre></div>
+<p class="ref">Write the valid and rejected DataFrames to separate destinations.</p>
+
+<h3 id="s8-4-4"><span class="num">8.4.4</span>Invalid Data Detection</h3>
+<p>Invalid data breaks a technical or business rule: negative prices, invalid emails, quantities ≤ 0, out-of-range dates, unsupported statuses.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Order amounts
+invalid_orders = df.filter(
+    F.col("TotalAmount").isNull()
+    | (F.col("TotalAmount") &lt; 0)
+)
+
+# Quantities
+invalid_items = df.filter(
+    F.col("Quantity").isNull()
+    | (F.col("Quantity") &lt;= 0)
+)
+
+# Status values
+allowed_statuses = ["NEW", "PROCESSING", "COMPLETED", "CANCELLED"]
+
+invalid_statuses = df.filter(
+    ~F.col("OrderStatus").isin(allowed_statuses)
+    | F.col("OrderStatus").isNull()
+)</code></pre></div>
+<div class="callout key"><span class="label">Good practice</span><p>Keep business validation rules separate from transformation logic so the pipeline is easier to maintain and rules can be tested independently.</p></div>
+
+<h3 id="s8-4-5"><span class="num">8.4.5</span>Schema Validation</h3>
+<p>Schema validation checks the source structure against the expected contract: required columns exist, unexpected columns follow policy, names and types match, and nullability complies.</p>
+<div class="code-wrap"><span class="lang">Python · missing and unexpected columns</span><pre class="code"><code>expected_columns = {"CustomerID", "CustomerName", "City"}
+
+actual_columns = set(df.columns)
+
+missing_columns = expected_columns - actual_columns
+unexpected_columns = actual_columns - expected_columns
+
+if missing_columns:
+    raise ValueError(f"Missing columns: {sorted(missing_columns)}")
+
+print("Unexpected columns:", sorted(unexpected_columns))</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · data types</span><pre class="code"><code>expected_types = {
+    "CustomerID": "int",
+    "CustomerName": "string",
+    "City": "string"
+}
+
+actual_types = {
+    field.name: field.dataType.simpleString()
+    for field in df.schema.fields
+}
+
+for column_name, expected_type in expected_types.items():
+    actual_type = actual_types.get(column_name)
+
+    if actual_type != expected_type:
+        raise ValueError(
+            f"{column_name}: expected {expected_type}, found {actual_type}"
+        )</code></pre></div>
+<p class="ref">Expected type strings must match Spark's representation: <code>bigint</code> (long) is not <code>int</code>. Validate the schema before writing to a curated production table.</p>
+
+<h3 id="s8-4-6"><span class="num">8.4.6</span>Data Type Validation</h3>
+<p>Check that values can be interpreted as the required types.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># try_cast returns null instead of raising an error
+df_typed = df.withColumn(
+    "TotalAmount",
+    F.expr("try_cast(TotalAmount AS DECIMAL(12,2))")
+)
+
+invalid_amounts = df_typed.filter(F.col("TotalAmount").isNull())</code></pre></div>
+<p class="ref">The last check also catches values that were null in the source; keep the raw value in a separate column if you need to report conversion failures separately.</p>
+<div class="card"><h4>Recommended approach</h4><ol class="steps">
+<li>Preserve the raw source value.</li>
+<li>Convert it to the expected type.</li>
+<li>Identify conversion failures.</li>
+<li>Reject or quarantine invalid records.</li>
+<li>Write valid records to the curated dataset.</li>
+<li>Record the number of failed conversions.</li>
+</ol></div>
+
+<h3 id="s8-4-7"><span class="num">8.4.7</span>Record Count Validation</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_count = source_df.count()
+valid_count = valid_df.count()
+rejected_count = rejected_df.count()
+
+assert source_count == (valid_count + rejected_count)</code></pre></div>
+<p class="ref">Valid only when every source record lands in exactly one of the two datasets. If duplicates are removed, track that count separately.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Count</th></tr></thead>
+<tbody>
+<tr><td>Source records</td><td>10,000</td></tr>
+<tr><td>Valid before deduplication</td><td>9,700</td></tr>
+<tr><td>Rejected records</td><td>300</td></tr>
+<tr><td>Duplicates removed</td><td>200</td></tr>
+<tr><td>Final output records</td><td>9,500</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Reconciliation</h4><p><code>10,000 = 9,700 + 300</code></p><p><code>9,500 = 9,700 − 200</code></p><p style="margin-bottom:0">This exposes data loss and unexpected processing behavior.</p></div>
+</div>
+<div class="callout"><span class="label">Performance consideration</span><p>Repeated <code>count()</code> calls may trigger several Spark jobs and reread data. For large data, persist an expensive intermediate DataFrame when you need multiple actions, then unpersist it.</p></div>
+
+<h3 id="s8-4-8"><span class="num">8.4.8</span>Rejecting Bad Records</h3>
+<p>Decide how invalid records are handled: fail the whole batch, reject only invalid records, quarantine them for investigation, or accept with warnings where rules permit.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_df = df.filter(
+    F.col("CustomerID").isNotNull()
+    &amp; F.col("CustomerName").isNotNull()
+)
+
+rejected_df = df.filter(
+    F.col("CustomerID").isNull()
+    | F.col("CustomerName").isNull()
+)
+
+# Valid records
+(
+    valid_df.write
+    .format("delta")
+    .mode("append")
+    .saveAsTable("main.silver.customers")
+)
+
+# Rejected records
+(
+    rejected_df.write
+    .format("delta")
+    .mode("append")
+    .saveAsTable("main.quarantine.rejected_customers")
+)</code></pre></div>
+<p class="ref">A real pipeline should also record the source file, ingestion timestamp, batch ID, and rejection reason. Assumes the target schemas exist and the job has permissions.</p>
+
+<h3 id="s8-4-9"><span class="num">8.4.9</span>Logging Rejected Records</h3>
+<p>Rejected records should be traceable.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>SourceFile</td><td>The original input file</td></tr>
+<tr><td>BatchID</td><td>The processing batch</td></tr>
+<tr><td>IngestionTimestamp</td><td>When the data was ingested</td></tr>
+<tr><td>RejectReason</td><td>Why the record failed</td></tr>
+<tr><td>RawRecord</td><td>The original source record, where available</td></tr>
+<tr><td>PipelineName</td><td>The pipeline</td></tr>
+<tr><td>SourceSystem</td><td>The upstream system</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+rejected_df = (
+    rejected_df
+    .withColumn(
+        "RejectReason",
+        F.when(F.col("CustomerID").isNull(), F.lit("CustomerID is null"))
+         .when(F.col("CustomerName").isNull(), F.lit("CustomerName is null"))
+         .otherwise(F.lit("Unknown validation error"))
+    )
+    .withColumn("IngestionTimestamp", F.current_timestamp())
+    .withColumn("BatchID", F.lit("CUSTOMER_BATCH_001"))
+)</code></pre></div>
+<p class="ref">For production, create a dedicated audit or quarantine table and define retention, access, and reprocessing policies.</p>
+
+<!-- ===================== 8.5 ===================== -->
+<h2 id="s8-5"><span class="num">8.5</span>Incremental Data Processing</h2>
+
+<h3 id="s8-5-1"><span class="num">8.5.1</span>Introduction</h3>
+<p>Incremental processing loads only new or changed records instead of reprocessing everything. If 20,000 of 10 million customer records change daily, a full refresh processes all 10 million; a good incremental pipeline processes the changes.</p>
+<div class="grid-2">
+  <div class="card"><h4>It can reduce</h4><ul><li>Processing time.</li><li>Compute consumption.</li><li>Source-system load.</li><li>Data movement.</li><li>End-to-end latency.</li></ul></div>
+  <div class="callout warn" style="margin:0"><span class="label">But it requires</span><p>Reliable change identification and recovery logic.</p></div>
+</div>
+
+<h3 id="s8-5-2"><span class="num">8.5.2</span>Full Loads</h3>
+<p>A full load reads the complete source and replaces the target.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_df = spark.read.csv(
+    "/Volumes/main/bronze/raw/customers.csv",
+    header=True,
+    inferSchema=True
+)
+
+(
+    source_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.silver.customers")
+)</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Simple to implement and reason about.</li><li>Reflects deletions when the source snapshot is complete.</li><li>Good for small datasets and initial loads.</li></ul></div>
+  <div class="card"><h4>Disadvantages</h4><ul><li>Reprocesses unchanged records.</li><li>Expensive for large datasets.</li><li>Longer processing time.</li><li>Replacement behavior needs careful control.</li></ul></div>
+</div>
+<p class="ref">Typical uses: initial loads, small reference tables, periodic full synchronization, rebuilding a target.</p>
+
+<h3 id="s8-5-3"><span class="num">8.5.3</span>Incremental Loads</h3>
+<p>Common approaches: watermark-based loading, timestamp extraction, increasing primary keys, Change Data Capture (CDC), source-system change tracking, and file-arrival-based ingestion. The right one depends on how the source records changes.</p>
+
+<h3 id="s8-5-4"><span class="num">8.5.4</span>Watermark-Based Loading</h3>
+<p>A watermark records the point up to which data has been successfully processed, e.g. <code>2026-10-24 00:00:00</code>. The next run extracts records modified after it.</p>
+<div class="code-wrap"><span class="lang">SQL · SQL Server source (illustrative)</span><pre class="code"><code>SELECT
+    CustomerID,
+    CustomerName,
+    ModifiedDate
+FROM dbo.Customers
+WHERE ModifiedDate &gt; @LastWatermark
+  AND ModifiedDate &lt;= @CurrentWatermark;</code></pre></div>
+<p class="ref"><code>@LastWatermark</code> and <code>@CurrentWatermark</code> are parameters the pipeline supplies.</p>
+<div class="grid-2">
+<div class="card"><h4>Watermark workflow</h4><ol>
+<li>Read the last committed watermark.</li>
+<li>Pick an upper watermark for this batch.</li>
+<li>Extract records in that interval.</li>
+<li>Validate and transform.</li>
+<li>Apply changes to the target.</li>
+<li>Reconcile the batch.</li>
+<li>Commit the new watermark <strong>only after success</strong>.</li></ol></div>
+<div><h5>Why an upper watermark?</h5>
+<pre class="diagram">Last watermark:    2026-10-24 00:00:00
+Current watermark: 2026-10-25 00:00:00</pre>
+<p>A bounded interval avoids a moving upper boundary during the run, which makes reconciliation much easier.</p></div>
+</div>
+<div class="callout warn"><span class="label">A timestamp watermark can miss records when</span><ul><li>Source timestamps are updated late or are unreliable.</li><li>Records arrive out of order.</li><li>Many records share timestamps and the boundary is wrong.</li><li>Records are physically deleted with no deletion marker.</li></ul><p>Many pipelines add a lookback window, overlapping intervals, or CDC to cover these risks.</p></div>
+
+<h3 id="s8-5-5"><span class="num">8.5.5</span>Timestamp-Based Extraction</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+last_watermark = "2026-10-24 00:00:00"
+
+incremental_df = source_df.filter(
+    F.col("ModifiedDate") &gt; F.to_timestamp(F.lit(last_watermark))
+)</code></pre></div>
+<p class="ref">Assumes <code>ModifiedDate</code> is a valid timestamp column.</p>
+<div class="callout"><span class="label">Why modification timestamps matter</span><p>A customer created on October 10 and updated on October 24 won't be extracted if you filter only on <code>CreatedDate</code>. For change detection, a reliable <strong>modification</strong> timestamp is usually the right choice.</p></div>
+<p><strong>Overlapping windows:</strong> you can deliberately reread a small interval (say, 15 minutes before the previous watermark) to catch late changes. The target must then be <strong>idempotent</strong>, so reprocessing a change doesn't create duplicates; Delta <code>MERGE</code> helps when the source has reliable keys and ordering rules.</p>
+
+<h3 id="s8-5-6"><span class="num">8.5.6</span>Primary-Key-Based Extraction</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    CustomerID,
+    CustomerName
+FROM dbo.Customers
+WHERE CustomerID &gt; @LastCustomerID
+ORDER BY CustomerID;</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Simple for append-only sources.</li><li>Works when keys increase monotonically.</li><li>Easy to implement.</li></ul></div>
+  <div class="card"><h4>Limitation</h4><p style="margin-bottom:0">It can't detect updates. If customer 101 changes from John to Jonathan, <code>CustomerID &gt; 102</code> won't capture it. Best for append-only data or where updates are captured separately.</p></div>
+</div>
+
+<h3 id="s8-5-7"><span class="num">8.5.7</span>Change Detection</h3>
+<p>Change detection classifies records as new, modified, or unchanged, using modification timestamps, CDC events, source change tracking, comparison with target records, or hash comparison of selected attributes.</p>
+<div class="code-wrap"><span class="lang">Python · record hash</span><pre class="code"><code>from pyspark.sql import functions as F
+
+df_hashed = df.withColumn(
+    "RecordHash",
+    F.sha2(
+        F.to_json(F.struct("CustomerName", "City", "Email")),
+        256
+    )
+)</code></pre></div>
+<div class="grid-2">
+<pre class="diagram">Source record:
+CustomerID = 101
+City       = Hyderabad
+RecordHash = AAA
+
+Target record:
+CustomerID = 101
+City       = Chennai
+RecordHash = BBB
+
+Hashes differ -&gt; update needed</pre>
+<div class="card"><h4>Considerations</h4><ul><li>Define how nulls are represented.</li><li>Use consistent field order and serialization.</li><li>Exclude fields that shouldn't trigger updates.</li><li>Hash collisions are theoretically possible.</li><li>A hash never replaces the business key.</li></ul></div>
+</div>
+
+<h3 id="s8-5-8"><span class="num">8.5.8</span>Deduplication in Incremental Loads</h3>
+<p>Incremental batches can contain duplicates from source retries, overlapping windows, replayed events, reprocessed batches, or duplicate files.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Fine only if any row per key is acceptable
+deduplicated_df = incremental_df.dropDuplicates(["CustomerID"])
+
+# Deterministic: keep the latest version
+from pyspark.sql import Window
+from pyspark.sql import functions as F
+
+window_spec = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("ModifiedDate").desc_nulls_last(),
+        F.col("IngestionTimestamp").desc_nulls_last()
+    )
+)
+
+deduplicated_df = (
+    incremental_df
+    .withColumn("row_num", F.row_number().over(window_spec))
+    .filter(F.col("row_num") == 1)
+    .drop("row_num")
+)</code></pre></div>
+<p class="ref">Add a deterministic tie-breaker if timestamps can be equal.</p>
+
+<h3 id="s8-5-9"><span class="num">8.5.9</span>Late-Arriving Data</h3>
+<p>Late-arriving data shows up after its expected processing time. An order created on October 20 that arrives on October 23 is missed by a pipeline that only processes event dates after October 22.</p>
+<div class="grid-2">
+  <div class="card"><h4>Common causes</h4><ul><li>Source-system delays.</li><li>Network failures.</li><li>Delayed file delivery.</li><li>Streaming delays.</li><li>Upstream retries.</li><li>Clock differences.</li><li>Backdated corrections.</li></ul></div>
+  <div class="card"><h4>Handling strategies</h4><ol><li>Capture ingestion timestamps.</li><li>Use lookback windows.</li><li>Use CDC.</li><li>Reprocess affected business dates.</li><li>Use idempotent writes.</li></ol></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Timestamp</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Event time</td><td>When the business event occurred</td></tr>
+<tr><td>Source modification time</td><td>When the source record last changed</td></tr>
+<tr><td>Ingestion time</td><td>When the platform received the record</td></tr>
+<tr><td>Processing time</td><td>When the pipeline processed it</td></tr>
+</tbody></table></div>
+<p class="ref">These serve different purposes and aren't interchangeable.</p>
+
+<h3 id="s8-5-10"><span class="num">8.5.10</span>Delta MERGE for Incremental Processing</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from delta.tables import DeltaTable
+
+target_table = "main.silver.customers"
+
+target = DeltaTable.forName(spark, target_table)
+
+(
+    target.alias("target")
+    .merge(
+        deduplicated_df.alias("source"),
+        "target.CustomerID = source.CustomerID"
+    )
+    .whenMatchedUpdateAll()
+    .whenNotMatchedInsertAll()
+    .execute()
+)</code></pre></div>
+<p>A matching customer is updated; a new customer is inserted.</p>
+<div class="callout warn"><span class="label">Important considerations</span><ul>
+<li>The source should have at most one applicable row per target key; duplicates cause ambiguous merges or failures.</li>
+<li>Source and target schemas must be compatible with the chosen operations.</li>
+<li>Deletes need extra logic or CDC information.</li>
+<li>Updating <em>all</em> columns may be wrong if some target columns are system-managed.</li></ul>
+<p>Define the business key, update rules, delete rules, and conflict resolution explicitly.</p></div>
+
+<!-- ===================== Lab ===================== -->
+<h2 id="lab">Hands-On Exercise: Daily CSV Ingestion to Delta</h2>
+<p class="section-intro">Build a reusable, rerunnable PySpark pipeline that reads daily CSV files, validates and types them, quarantines bad records, deduplicates, and merges into a Delta table with one current row per customer.</p>
+<div class="card"><h4>The pipeline will</h4><ol class="steps">
+<li>Read multiple daily CSV files and validate the required schema.</li>
+<li>Convert source fields into the expected types.</li>
+<li>Detect malformed and invalid records.</li>
+<li>Remove duplicate customer records.</li>
+<li>Write valid data to a Delta table and rejected records to a quarantine table.</li>
+<li>Record ingestion metrics.</li>
+<li>Support safe reruns of the same batch.</li>
+</ol></div>
+<p><strong>Scenario:</strong> an upstream application delivers daily customer files (<code>customers_20261023.csv</code>, <code>customers_20261024.csv</code>, <code>customers_20261025.csv</code>) with columns <code>CustomerID, CustomerName, City, Email, ModifiedDate</code>. The target table should hold one current record per customer.</p>
+
+<h4>Step 1: Define input and output locations</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_path = "/Volumes/main/bronze/raw/daily_customers/"
+
+target_table = "main.silver.customers"
+
+rejected_table = "main.quarantine.rejected_customers"</code></pre></div>
+<p class="ref">Assumes a Unity Catalog volume and the catalog, schemas, and permissions are set up. Replace these with your own paths and names. Use a fresh target table: if <code>main.silver.customers</code> already exists from earlier examples with a different schema, the merge will fail.</p>
+
+<h4>Optional: create sample files</h4>
+<p>No source files yet? This writes three small daily files to the volume. They deliberately include updates across days and three bad rows, so you can watch every part of the pipeline work.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import os
+
+sample_files = {
+    "customers_20261023.csv": [
+        "101,John,Hyderabad,john@example.com,2026-10-23 10:00:00",
+        "102,David,Chennai,david@example.com,2026-10-23 11:00:00",
+        "ABC,Bad Id,Pune,bad@example.com,2026-10-23 12:00:00",
+    ],
+    "customers_20261024.csv": [
+        "102,David,Bengaluru,david@example.com,2026-10-24 12:30:00",
+        "104,,Mumbai,blank@example.com,2026-10-24 09:00:00",
+        "105,Kumar,Delhi,kumar@example.com,not-a-date",
+    ],
+    "customers_20261025.csv": [
+        "103,Smith,Bengaluru,smith@example.com,2026-10-25 08:45:00",
+        "101,John,Hyderabad,john.new@example.com,2026-10-25 09:15:00",
+    ],
+}
+
+header = "CustomerID,CustomerName,City,Email,ModifiedDate"
+
+os.makedirs(source_path, exist_ok=True)
+
+for file_name, rows in sample_files.items():
+    with open(os.path.join(source_path, file_name), "w") as f:
+        f.write("\n".join([header] + rows) + "\n")</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Row</th><th>What it tests</th></tr></thead>
+<tbody>
+<tr><td>CustomerID <code>ABC</code></td><td>Invalid ID → rejected</td></tr>
+<tr><td>Customer 104, empty name</td><td>Missing name → rejected</td></tr>
+<tr><td>Customer 105, <code>not-a-date</code></td><td>Invalid timestamp → rejected</td></tr>
+<tr><td>Customer 102 on Oct 23 and Oct 24</td><td>Later version (Bengaluru) should win</td></tr>
+<tr><td>Customer 101 on Oct 23 and Oct 25</td><td>Later version (new email) should win</td></tr>
+</tbody></table></div>
+
+<h4>Step 2: Define the expected schema</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType
+)
+
+source_schema = StructType([
+    StructField("CustomerID", StringType(), True),
+    StructField("CustomerName", StringType(), True),
+    StructField("City", StringType(), True),
+    StructField("Email", StringType(), True),
+    StructField("ModifiedDate", StringType(), True)
+])</code></pre></div>
+<p class="ref">Everything is read as strings first, preserving raw values for explicit validation before type conversion.</p>
+
+<h4>Step 3: Read the daily CSV files</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>raw_df = (
+    spark.read
+    .format("csv")
+    .option("header", "true")
+    .option("mode", "PERMISSIVE")
+    .schema(source_schema)
+    .csv(source_path)
+)</code></pre></div>
+<p class="ref">This exercise assumes all files share the same header. In production, validate each file's header before combining files that might use different schema versions.</p>
+
+<h4>Step 4: Capture ingestion metadata</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+raw_df = (
+    raw_df
+    .withColumn("IngestionTimestamp", F.current_timestamp())
+    .withColumn("SourceFile", F.col("_metadata.file_path"))
+)</code></pre></div>
+<div class="callout"><span class="label">Why _metadata.file_path?</span><p>Older examples use <code>F.input_file_name()</code>, but it isn't supported on Unity Catalog shared or serverless compute (including Free Edition). The hidden <code>_metadata</code> column works everywhere file sources are read.</p></div>
+<p class="ref">For reproducible reruns, use a stable batch ID and source-file identity rather than relying only on the processing timestamp.</p>
+
+<h4>Step 5: Convert data types</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>typed_df = (
+    raw_df
+    .withColumn("CustomerID", F.expr("try_cast(CustomerID AS INT)"))
+    .withColumn("ModifiedDate", F.expr("try_cast(ModifiedDate AS TIMESTAMP)"))
+)</code></pre></div>
+<p class="ref">Keep the original source values in separate columns if you need to tell source nulls apart from conversion failures.</p>
+
+<h4>Step 6: Validate records</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>invalid_condition = (
+    F.col("CustomerID").isNull()
+    | F.col("CustomerName").isNull()
+    | (F.trim(F.col("CustomerName")) == "")
+    | F.col("ModifiedDate").isNull()
+)
+
+valid_candidates = typed_df.filter(~invalid_condition)
+
+rejected_df = (
+    typed_df
+    .filter(invalid_condition)
+    .withColumn(
+        "RejectReason",
+        F.when(F.col("CustomerID").isNull(),
+               F.lit("Missing or invalid CustomerID"))
+         .when(F.col("CustomerName").isNull()
+               | (F.trim(F.col("CustomerName")) == ""),
+               F.lit("Missing CustomerName"))
+         .when(F.col("ModifiedDate").isNull(),
+               F.lit("Missing or invalid ModifiedDate"))
+         .otherwise(F.lit("Validation failed"))
+    )
+)</code></pre></div>
+<p class="ref">This is technical validation. Add business rules such as email format or valid city values as needed.</p>
+
+<h4>Step 7: Deduplicate the batch</h4>
+<p>Keep the latest source modification for each customer.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import Window
+from pyspark.sql import functions as F
+
+window_spec = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("ModifiedDate").desc_nulls_last(),
+        F.col("SourceFile").desc()
+    )
+)
+
+deduplicated_df = (
+    valid_candidates
+    .withColumn("row_num", F.row_number().over(window_spec))
+    .filter(F.col("row_num") == 1)
+    .drop("row_num")
+)</code></pre></div>
+<p class="ref">In production, replace <code>SourceFile</code> as tie-breaker with a reliable source sequence or unique event ID.</p>
+
+<h4>Steps 8–9: Create the target on the first run, merge on later runs</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from delta.tables import DeltaTable
+
+if not spark.catalog.tableExists(target_table):
+    # First run: create the table from this batch
+    (
+        deduplicated_df.write
+        .format("delta")
+        .mode("overwrite")
+        .saveAsTable(target_table)
+    )
+else:
+    # Later runs: merge, never letting older data overwrite newer
+    target = DeltaTable.forName(spark, target_table)
+
+    (
+        target.alias("target")
+        .merge(
+            deduplicated_df.alias("source"),
+            "target.CustomerID = source.CustomerID"
+        )
+        .whenMatchedUpdateAll(
+            condition="source.ModifiedDate &gt; target.ModifiedDate"
+        )
+        .whenNotMatchedInsertAll()
+        .execute()
+    )</code></pre></div>
+<p>The update condition stops an older record from overwriting a newer one, as long as source timestamps are reliable. For equal timestamps, define an explicit conflict rule if competing versions are possible.</p>
+<p class="ref">The source text ran these as two separate <code>if</code> blocks, so the first run created the table and then immediately merged the same batch into it. That was harmless but wasted work; <code>if</code>/<code>else</code> does each only when needed. In production, define the target schema and table properties explicitly instead of letting the first batch decide them.</p>
+
+<h4>Step 10: Save rejected records</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>if not rejected_df.isEmpty():
+    (
+        rejected_df.write
+        .format("delta")
+        .mode("append")
+        .saveAsTable(rejected_table)
+    )</code></pre></div>
+<p class="ref">In production, add a stable batch ID and source-record ID so rejected records aren't logged again on every rerun.</p>
+
+<h4>Step 11: Validate the output</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>target_df = spark.table(target_table)
+
+target_count = target_df.count()
+
+duplicate_count = (
+    target_df
+    .groupBy("CustomerID")
+    .count()
+    .filter(F.col("count") &gt; 1)
+    .count()
+)
+
+print("Target record count:", target_count)
+print("Duplicate customer keys:", duplicate_count)
+
+if duplicate_count &gt; 0:
+    raise ValueError("Target contains duplicate customer keys")</code></pre></div>
+<p class="ref">Also check nulls, rejected records, expected counts, and business rules.</p>
+
+<h4>Step 12: Inspect the result</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>display(
+    spark.table(target_table)
+    .orderBy("CustomerID")
+)</code></pre></div>
+<h5>Expected result with the sample files</h5>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th><th>Email</th><th>ModifiedDate</th></tr></thead>
+<tbody>
+<tr><td>101</td><td>John</td><td>Hyderabad</td><td>john.new@example.com</td><td>2026-10-25 09:15:00</td></tr>
+<tr><td>102</td><td>David</td><td>Bengaluru</td><td>david@example.com</td><td>2026-10-24 12:30:00</td></tr>
+<tr><td>103</td><td>Smith</td><td>Bengaluru</td><td>smith@example.com</td><td>2026-10-25 08:45:00</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Count</th></tr></thead>
+<tbody>
+<tr><td>Source rows</td><td>8</td></tr>
+<tr><td>Valid before deduplication</td><td>5</td></tr>
+<tr><td>Rejected</td><td>3</td></tr>
+<tr><td>Duplicates removed</td><td>2</td></tr>
+<tr><td>Target rows</td><td>3</td></tr>
+</tbody></table></div>
+<div class="callout key" style="margin:0"><span class="label">Test the rerun</span><p>Run Steps 3–11 again with the same files. The target should still have exactly 3 rows and no duplicates, because the merge only updates when the source is newer. That's idempotency. (The quarantine table will get the 3 rejects again, which is why production pipelines add a batch ID.)</p></div>
+</div>
+<p class="ref">The table also carries <code>IngestionTimestamp</code> and <code>SourceFile</code> columns, not shown here.</p>
+
+<!-- ===================== Best practices ===================== -->
+<h2 id="best">Production Best Practices</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Practice</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>1. Use explicit schemas</td><td>Don't rely on inference for critical production pipelines.</td></tr>
+<tr><td>2. Preserve raw source data</td><td>Keep raw files or Bronze records for troubleshooting and reprocessing.</td></tr>
+<tr><td>3. Separate validation from transformation</td><td>Keep quality rules understandable and independently testable.</td></tr>
+<tr><td>4. Make ingestion idempotent</td><td>Reruns mustn't duplicate records or overwrite newer data with older.</td></tr>
+<tr><td>5. Track watermarks carefully</td><td>Advance a watermark only after its batch is committed successfully.</td></tr>
+<tr><td>6. Capture audit metrics</td><td>Batch ID; source file and record counts; valid, rejected, duplicate, inserted, and updated counts; status; start and end times.</td></tr>
+<tr><td>7. Use Delta for curated datasets</td><td>Transactional operations make analytical pipelines reliable.</td></tr>
+<tr><td>8. Avoid unnecessary small files</td><td>Tune partitioning and output sizes to workload and volume.</td></tr>
+<tr><td>9. Handle schema changes deliberately</td><td>Decide whether new columns are rejected, ignored, or added through controlled evolution.</td></tr>
+<tr><td>10. Test failure and recovery</td><td>Missing or malformed files, absent columns, duplicate keys, failed merges, reruns, late updates, unexpected duplicates in the target.</td></tr>
+</tbody></table></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Summary</h2>
+<p>Tick each skill once you've practiced it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch8-checklist">
+<label><input type="checkbox"> Compare CSV, JSON, Parquet, Avro, ORC, text, and Delta.</label>
+<label><input type="checkbox"> Read data using PySpark.</label>
+<label><input type="checkbox"> Define explicit schemas.</label>
+<label><input type="checkbox"> Handle malformed records and missing columns.</label>
+<label><input type="checkbox"> Write data using different save modes.</label>
+<label><input type="checkbox"> Partition data and manage output files.</label>
+<label><input type="checkbox"> Save DataFrames as catalog tables.</label>
+<label><input type="checkbox"> Apply data-quality checks.</label>
+<label><input type="checkbox"> Identify and quarantine invalid records.</label>
+<label><input type="checkbox"> Implement incremental ingestion with watermarks and timestamps.</label>
+<label><input type="checkbox"> Detect changes and deduplicate records.</label>
+<label><input type="checkbox"> Apply incremental updates with Delta MERGE.</label>
+<label><input type="checkbox"> Build a daily-file ingestion pipeline.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch8-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch8-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 9!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Key takeaway</span><p>A reliable Databricks pipeline does more than read a file and write a table. It validates input, preserves lineage, handles failures, prevents duplicate processing, and makes sure the final dataset meets its business requirements.</p></div>
+
+<div class="next">
+<h3>Next chapter: Delta Lake</h3>
+<p style="margin-bottom:0">Chapter 9 goes deep on Delta Lake: transaction logs, ACID transactions, MERGE, schema evolution, time travel, OPTIMIZE, VACUUM, liquid clustering, and Change Data Feed.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-7.html"><span>← Previous</span><strong>Chapter 7: PySpark Fundamentals</strong></a>
+  <a class="pager-link" href="databricks-chapter-9.html"><span>Next →</span><strong>Chapter 9: Delta Lake</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 3 · Chapter 8 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

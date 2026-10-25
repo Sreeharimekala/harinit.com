@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 24: End-to-End Project</title>
+<meta name="description" content="Capstone chapter of a Databricks learning path: a tested retail lakehouse with Bronze, Silver, Gold, SCD Type 2, point-in-time facts, a quality gate, Lakeflow job bundle, Power BI views, and recovery.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 24 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s24-1">24.1 Project Overview</a></li>
+    <li class="lvl1"><a href="#s24-2">24.2 Technology Stack</a></li>
+    <li class="lvl1"><a href="#s24-3">24.3 Source Datasets</a></li>
+    <li class="lvl1"><a href="#s24-4">24.4 Environment</a></li>
+    <li class="lvl1"><a href="#s24-5">24.5 Sample Data</a></li>
+    <li class="lvl1"><a href="#s24-6">24.6 Bronze Layer</a></li>
+    <li class="lvl1"><a href="#s24-7">24.7 Incremental Ingestion</a></li>
+    <li class="lvl1"><a href="#s24-8">24.8 Silver Layer</a></li>
+    <li class="lvl1"><a href="#s24-9">24.9 MERGE</a></li>
+    <li class="lvl1"><a href="#s24-10">24.10 SCD Type 2</a></li>
+    <li class="lvl1"><a href="#s24-11">24.11 Gold Layer</a></li>
+    <li class="lvl1"><a href="#s24-12">24.12 Aggregations</a></li>
+    <li class="lvl1"><a href="#s24-13">24.13 Quality &amp; Reconciliation</a></li>
+    <li class="lvl1"><a href="#s24-14">24.14 Monitoring</a></li>
+    <li class="lvl1"><a href="#s24-15">24.15 Orchestration</a></li>
+    <li class="lvl1"><a href="#s24-16">24.16 Performance</a></li>
+    <li class="lvl1"><a href="#s24-17">24.17 Security</a></li>
+    <li class="lvl1"><a href="#s24-18">24.18 Power BI</a></li>
+    <li class="lvl1"><a href="#s24-19">24.19 CI/CD</a></li>
+    <li class="lvl1"><a href="#s24-20">24.20 Recovery</a></li>
+    <li class="lvl1"><a href="#s24-21">24.21 Validation Checklist</a></li>
+    <li class="lvl1"><a href="#s24-22">24.22 Four-Week Plan</a></li>
+    <li class="lvl1"><a href="#s24-23">24.23 Deliverables</a></li>
+    <li class="lvl1"><a href="#summary">Course Complete</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 8 · Chapter 24 · Capstone Project</span>
+  <h1>Real-World End-to-End Data Engineering Project</h1>
+  <p class="lead">Build an enterprise retail data platform that combines the whole course: ingest six source datasets, process them through Bronze, Silver, and Gold, keep customer history with SCD Type 2, validate and reconcile every run, orchestrate with Lakeflow Jobs, monitor, secure with Unity Catalog, report in Power BI, and deploy with Git and bundles.</p>
+  <div class="callout key"><span class="label">The working project, tested and downloadable</span><p>The core of this chapter was built and run end to end: practice data in three batches → Bronze → Silver (PySpark on Spark 4) → SCD2 dimension, product dimension, point-in-time sales fact, and aggregates (the Gold SQL, run with DuckDB's MERGE because Delta isn't available outside Databricks) → quality gate. It was rerun to prove idempotency and given a corrupted run to prove the gate stops it. The job bundle passes the official bundle schema. Everything is in <strong>enterprise-retail-platform.zip</strong>, attached with this page. The outputs shown are real.</p></div>
+  <div class="chips">
+    <a class="chip" href="#s24-5"><span>24.5</span><strong>Data</strong></a>
+    <a class="chip" href="#s24-8"><span>24.8</span><strong>Silver</strong></a>
+    <a class="chip" href="#s24-10"><span>24.10</span><strong>SCD2</strong></a>
+    <a class="chip" href="#s24-11"><span>24.11</span><strong>Gold</strong></a>
+    <a class="chip" href="#s24-13"><span>24.13</span><strong>Quality</strong></a>
+    <a class="chip" href="#s24-15"><span>24.15</span><strong>Orchestration</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 24.1 ===================== -->
+<h2 id="s24-1"><span class="num">24.1</span>Project Overview</h2>
+<div class="grid-2">
+<div class="card"><h4>Business scenario</h4><p>A retail company runs customer, product, order, inventory, and payment systems. Data is scattered, reports are slow, and nobody can reconcile them with the sources. The platform must answer:</p><ol style="margin-bottom:0"><li>What are total sales, and are they rising?</li><li>Which products and customers drive revenue?</li><li>Which products are low on stock?</li><li>How have customer details changed?</li><li>Are pipelines running, and is the data complete and accurate?</li><li>What does processing cost?</li></ol></div>
+<div class="card"><h4>You will</h4><ul style="margin-bottom:0"><li>Build an end-to-end pipeline over six datasets.</li><li>Ingest incrementally into Bronze.</li><li>Clean and validate into Silver.</li><li>MERGE incrementally and keep SCD2 history.</li><li>Model Gold facts and dimensions.</li><li>Automate quality checks and reconciliation.</li><li>Orchestrate with Lakeflow Jobs; monitor failures and missed schedules.</li><li>Optimize, secure, report, and deploy.</li></ul></div>
+</div>
+<pre class="diagram">    Customers   Products   Orders   Order items   Payments   Inventory
+         \          |         |          |           |          /
+          +------------------ INGESTION (Auto Loader / extracts) +
+                                     |
+                       BRONZE  raw, appended, with metadata
+                                     |
+                       SILVER  cleaned, validated, latest per key
+                                     |
+                       GOLD    dim_customer (SCD2), dim_product, dim_date,
+                               fact_sales, daily_sales, inventory_summary
+                                     |
+                      +--------------+--------------+
+                      |                             |
+              Databricks SQL / Power BI        ML / AI apps (Chapter 23)
+
+  Cross-cutting: Unity Catalog | quality gate | monitoring | CI/CD | security | cost</pre>
+
+<!-- ===================== 24.2 ===================== -->
+<h2 id="s24-2"><span class="num">24.2</span>Technology Stack</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Technology</th><th>Chapter</th></tr></thead>
+<tbody>
+<tr><td>Processing</td><td>Azure Databricks, Python, PySpark</td><td>3, 7–10</td></tr>
+<tr><td>Storage</td><td>Delta Lake</td><td>5–6</td></tr>
+<tr><td>Governance</td><td>Unity Catalog</td><td>4, 19</td></tr>
+<tr><td>File ingestion</td><td>Auto Loader</td><td>12</td></tr>
+<tr><td>Orchestration</td><td>Lakeflow Jobs</td><td>14</td></tr>
+<tr><td>Modeling</td><td>Star schema, SCD2</td><td>17</td></tr>
+<tr><td>Data quality</td><td>Validation, reconciliation, quality gate</td><td>18</td></tr>
+<tr><td>Monitoring</td><td>Audit tables, system tables, alerts</td><td>20</td></tr>
+<tr><td>Deployment</td><td>Git, Asset Bundles, CI/CD</td><td>21</td></tr>
+<tr><td>Cost</td><td>Billing system tables</td><td>22</td></tr>
+<tr><td>Reporting</td><td>Databricks SQL, Power BI</td><td>17, 23</td></tr>
+</tbody></table></div>
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/" target="_blank" rel="noopener">Azure Databricks</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/data-governance/unity-catalog/" target="_blank" rel="noopener">Unity Catalog</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/jobs/" target="_blank" rel="noopener">Lakeflow Jobs</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/ingestion/cloud-object-storage/auto-loader/" target="_blank" rel="noopener">Auto Loader</a>.</p>
+
+<!-- ===================== 24.3 ===================== -->
+<h2 id="s24-3"><span class="num">24.3</span>Step 1: Design the Source Datasets</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Dataset</th><th>Key</th><th>Columns</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>customers</td><td><code>customer_id</code></td><td>customer_name, email, city, state, customer_segment, updated_at</td><td>Changes over time: SCD2</td></tr>
+<tr><td>products</td><td><code>product_id</code></td><td>product_name, category, unit_price, updated_at</td><td>Price changes</td></tr>
+<tr><td>orders</td><td><code>order_id</code></td><td>customer_id, order_date, order_status, updated_at</td><td>Status changes (PENDING → COMPLETED → CANCELLED)</td></tr>
+<tr><td>order_items</td><td><code>order_item_id</code></td><td>order_id, product_id, quantity, unit_price, discount_amount, updated_at</td><td><strong>Net line sales = quantity × unit_price − discount_amount</strong> (discount is per line)</td></tr>
+<tr><td>payments</td><td><code>payment_id</code></td><td>order_id, payment_date, method, status, amount, updated_at</td><td>Many per order: failures, partial payments, refunds</td></tr>
+<tr><td>inventory</td><td><code>inventory_event_id</code></td><td>product_id, store_id, event_timestamp, quantity_change, event_type</td><td>Signed movements; stock = sum of movements</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Payments vs order items: a fan-out trap</span><p>Joining order items to payments and summing sales multiplies amounts, since each item repeats for every payment. In the project data this naive join reports <strong>277,000.00</strong> when true sales are <strong>163,500.00</strong> (verified). Always aggregate payments to the order level first (24.13).</p></div>
+<p class="ref">For inventory, confirm whether the source sends movements, snapshots, or both; summing snapshots double-counts.</p>
+
+<!-- ===================== 24.4 ===================== -->
+<h2 id="s24-4"><span class="num">24.4</span>Step 2: Create the Databricks Environment</h2>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · sql/setup.sql</span><pre class="code"><code>-- Run once (needs CREATE CATALOG permission; on Free Edition use the
+-- "workspace" catalog instead and replace retail_dev throughout)
+CREATE CATALOG IF NOT EXISTS retail_dev;
+CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
+CREATE SCHEMA IF NOT EXISTS retail_dev.silver;
+CREATE SCHEMA IF NOT EXISTS retail_dev.gold;
+CREATE SCHEMA IF NOT EXISTS retail_dev.ops;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Bronze</td><td><code>retail_dev.bronze.customers_raw</code></td></tr>
+<tr><td>Silver</td><td><code>retail_dev.silver.customers</code></td></tr>
+<tr><td>Gold</td><td><code>retail_dev.gold.dim_customer</code></td></tr>
+<tr><td>Gold</td><td><code>retail_dev.gold.fact_sales</code></td></tr>
+<tr><td>Ops</td><td><code>retail_dev.ops.validation_audit</code></td></tr>
+</tbody></table></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">Landing volume / ADLS container
+retail-data/
+    incoming/
+        customers/  products/  orders/
+        order_items/ payments/ inventory/
+    archive/
+    quarantine/</pre>
+<div class="card"><h4>Storage and environments</h4><p style="margin-bottom:0">Use a Unity Catalog <strong>volume</strong> or an <strong>external location</strong> backed by a storage credential (Chapter 19), never account keys in notebooks. Use a catalog per environment (<code>retail_dev</code>, <code>retail_test</code>, <code>retail_prod</code>) bound to its workspace.</p></div>
+</div>
+
+<!-- ===================== 24.5 ===================== -->
+<h2 id="s24-5"><span class="num">24.5</span>Step 3: Generate Sample Data</h2>
+<p>The original generated each table once and <strong>overwrote</strong> Bronze with <code>current_timestamp()</code> as every record's <code>updated_at</code>. That can't exercise incremental loads, history, or late data, and the load-time timestamps break the SCD2 join later (24.10). This generator delivers data in <strong>three batches</strong> with realistic timestamps and <strong>appends</strong> to Bronze, exactly as real extracts arrive:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Batch</th><th>What happens</th><th>Tests</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>3 customers (one messy: <code>" John@Example.com "</code>, <code>bengaluru</code>, <code>premium</code>) + 1 with no ID; 3 products; orders O001, O002 completed, O003 pending; items; payments incl. a failed attempt; inventory</td><td>Cleaning, rejects, initial load</td></tr>
+<tr><td>2</td><td>C001 moves Hyderabad → Chennai; new C004; C002 re-sent with an old timestamp; chair price rises; O003 completes; O004 placed; O005 by unknown customer C999</td><td>SCD2, replay safety, status change, late-arriving customer</td></tr>
+<tr><td>3</td><td>O002 cancelled and refunded; stock returned</td><td>Fact deletion, refunds</td></tr>
+</tbody></table></div>
+<details class="q"><summary>Show src/sample_data.py</summary><div class="answer"><div class="code-wrap" style="margin:0"><span class="lang">Python · notebook</span><pre class="code"><code># Databricks notebook source
+# Generates source data in three batches and APPENDS it to Bronze, the way
+# real extracts arrive. Run with batch = 1, then 2, then 3.
+from datetime import date, datetime as dt
+from decimal import Decimal as D
+from pyspark.sql import functions as F
+
+BATCH = int(dbutils.widgets.get("batch")) if "dbutils" in globals() else BATCH         # noqa: F821
+BATCH_ID = dbutils.widgets.get("batch_id") if "dbutils" in globals() else BATCH_ID    # noqa: F821
+
+batches = {
+  1: {
+    "customers": [("C001", "Ravi Kumar", "ravi@example.com", "Hyderabad", "Telangana", "Premium", dt(2026, 9, 1, 10)),
+                  ("C002", "Priya Sharma", "priya@example.com", "Chennai", "Tamil Nadu", "Standard", dt(2026, 9, 2, 10)),
+                  ("C003", "John Mathew", " John@Example.com ", "bengaluru", "Karnataka", "premium", dt(2026, 9, 3, 10)),
+                  (None,   "Unknown", None, None, None, None, dt(2026, 9, 3, 11))],                    # invalid
+    "products":  [("P001", "Laptop", "Electronics", D("65000.00"), dt(2026, 9, 1)),
+                  ("P002", "Mobile", "Electronics", D("25000.00"), dt(2026, 9, 1)),
+                  ("P003", "Chair", "Furniture", D("5000.00"), dt(2026, 9, 1))],
+    "orders":    [("O001", "C001", date(2026, 10, 1), "COMPLETED", dt(2026, 10, 1, 12)),
+                  ("O002", "C002", date(2026, 10, 2), "COMPLETED", dt(2026, 10, 2, 12)),
+                  ("O003", "C001", date(2026, 10, 3), "PENDING",   dt(2026, 10, 3, 12))],
+    "order_items": [("OI001", "O001", "P001", 1, D("65000.00"), D("1000.00"), dt(2026, 10, 1, 12)),
+                    ("OI002", "O001", "P002", 2, D("25000.00"), D("500.00"),  dt(2026, 10, 1, 12)),
+                    ("OI003", "O002", "P003", 4, D("5000.00"),  D("0.00"),    dt(2026, 10, 2, 12)),
+                    ("OI004", "O003", "P003", 1, D("5000.00"),  D("0.00"),    dt(2026, 10, 3, 12))],
+    "payments":  [("PY001", "O001", dt(2026, 10, 1, 12), "CARD", "FAILED",  D("113500.00"), dt(2026, 10, 1, 12)),
+                  ("PY002", "O001", dt(2026, 10, 1, 13), "UPI",  "SUCCESS", D("113500.00"), dt(2026, 10, 1, 13)),
+                  ("PY003", "O002", dt(2026, 10, 2, 12), "CARD", "SUCCESS", D("20000.00"),  dt(2026, 10, 2, 12))],
+    "inventory": [("I001", "P001", "S001", dt(2026, 9, 1), 100, "RECEIPT"), ("I002", "P001", "S001", dt(2026, 10, 1), -1, "SALE"),
+                  ("I003", "P002", "S001", dt(2026, 9, 1), 50, "RECEIPT"),  ("I004", "P002", "S001", dt(2026, 10, 1), -2, "SALE"),
+                  ("I005", "P003", "S001", dt(2026, 9, 1), 20, "RECEIPT"),  ("I006", "P003", "S001", dt(2026, 10, 2), -4, "SALE")],
+  },
+  2: {
+    "customers": [("C001", "Ravi Kumar", "ravi@example.com", "Chennai", "Tamil Nadu", "Premium", dt(2026, 10, 5, 10)),   # moved
+                  ("C004", "Meera Iyer", "meera@example.com", "Kochi", "Kerala", "Standard", dt(2026, 10, 6, 10)),        # new
+                  ("C002", "Priya Sharma", "priya@example.com", "Chennai", "Tamil Nadu", "Standard", dt(2026, 9, 2, 10))], # replayed
+    "products":  [("P003", "Chair", "Furniture", D("5500.00"), dt(2026, 10, 6))],                                      # price change
+    "orders":    [("O003", "C001", date(2026, 10, 3), "COMPLETED", dt(2026, 10, 6, 9)),                                # now complete
+                  ("O004", "C001", date(2026, 10, 7), "COMPLETED", dt(2026, 10, 7, 12)),
+                  ("O005", "C999", date(2026, 10, 7), "COMPLETED", dt(2026, 10, 7, 13))],                              # unknown customer
+    "order_items": [("OI005", "O004", "P002", 1, D("25000.00"), D("0.00"), dt(2026, 10, 7, 12)),
+                    ("OI006", "O005", "P003", 1, D("5500.00"),  D("0.00"), dt(2026, 10, 7, 13))],
+    "payments":  [("PY004", "O003", dt(2026, 10, 6, 9), "UPI", "SUCCESS", D("5000.00"), dt(2026, 10, 6, 9)),
+                  ("PY005", "O004", dt(2026, 10, 7, 12), "UPI", "SUCCESS", D("25000.00"), dt(2026, 10, 7, 12))],
+    "inventory": [("I007", "P003", "S001", dt(2026, 10, 6), -1, "SALE"), ("I008", "P002", "S001", dt(2026, 10, 7), -1, "SALE"),
+                  ("I009", "P003", "S001", dt(2026, 10, 7), -1, "SALE")],
+  },
+  3: {
+    "orders":    [("O002", "C002", date(2026, 10, 2), "CANCELLED", dt(2026, 10, 9, 9))],                              # cancelled later
+    "payments":  [("PY006", "O002", dt(2026, 10, 9, 9), "CARD", "REFUND", D("-20000.00"), dt(2026, 10, 9, 9))],
+    "inventory": [("I010", "P003", "S001", dt(2026, 10, 9), 4, "RETURN")],
+  },
+}
+
+schemas = {
+  "customers":   "customer_id STRING, customer_name STRING, email STRING, city STRING, state STRING, customer_segment STRING, updated_at TIMESTAMP",
+  "products":    "product_id STRING, product_name STRING, category STRING, unit_price DECIMAL(12,2), updated_at TIMESTAMP",
+  "orders":      "order_id STRING, customer_id STRING, order_date DATE, order_status STRING, updated_at TIMESTAMP",
+  "order_items": "order_item_id STRING, order_id STRING, product_id STRING, quantity INT, unit_price DECIMAL(12,2), discount_amount DECIMAL(12,2), updated_at TIMESTAMP",
+  "payments":    "payment_id STRING, order_id STRING, payment_date TIMESTAMP, payment_method STRING, payment_status STRING, amount DECIMAL(12,2), updated_at TIMESTAMP",
+  "inventory":   "inventory_event_id STRING, product_id STRING, store_id STRING, event_timestamp TIMESTAMP, quantity_change INT, event_type STRING",
+}
+
+for name, rows in batches[BATCH].items():
+    (spark.createDataFrame(rows, schemas[name])
+          .withColumn("_source_system", F.lit("RETAIL_APP"))
+          .withColumn("_batch_id", F.lit(BATCH_ID))
+          .withColumn("_ingestion_timestamp", F.current_timestamp())
+          .write.mode("append")                       # Bronze keeps every delivery
+          .saveAsTable(f"retail_dev.bronze.{name}_raw"))
+    print(f"batch {BATCH}: {len(rows)} rows -&gt; bronze.{name}_raw")</code></pre></div></div></details>
+<p class="ref">In the job, <code>batch</code> and <code>batch_id</code> come from job parameters. Validate each dataset on its own before adding orchestration.</p>
+
+<!-- ===================== 24.6 ===================== -->
+<h2 id="s24-6"><span class="num">24.6</span>Step 4: Build the Bronze Layer</h2>
+<p>Bronze stores source data with minimal change: preserve values, capture ingestion metadata, support replay, keep source identifiers and file lineage. It must never silently drop records.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Metadata column</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>_source_file</code></td><td>Original file (<code>_metadata.file_path</code>)</td></tr>
+<tr><td><code>_ingestion_timestamp</code></td><td>When it was ingested; also the tie-breaker for equal <code>updated_at</code></td></tr>
+<tr><td><code>_source_system</code></td><td>Source application</td></tr>
+<tr><td><code>_batch_id</code></td><td>Which delivery (used to log rejects once)</td></tr>
+<tr><td><code>_rescued_data</code></td><td>Unexpected or unparseable fields</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python · Auto Loader for real files (Chapter 12 pattern)</span><pre class="code"><code>from pyspark.sql import functions as F
+
+base = "/Volumes/retail_dev/landing/retail_files"
+
+(spark.readStream.format("cloudFiles")
+    .option("cloudFiles.format", "csv")
+    .option("header", "true")
+    .option("cloudFiles.schemaLocation", f"{base}/_schemas/customers")
+    .option("cloudFiles.schemaEvolutionMode", "rescue")     # unexpected columns go to _rescued_data
+    .load(f"{base}/incoming/customers/")
+    .withColumn("_source_file", F.col("_metadata.file_path"))
+    .withColumn("_ingestion_timestamp", F.current_timestamp())
+    .withColumn("_source_system", F.lit("RETAIL_APP"))
+    .writeStream
+    .option("checkpointLocation", f"{base}/_checkpoints/customers")
+    .trigger(availableNow=True)                              # process what's there, then stop
+    .toTable("retail_dev.bronze.customers_raw"))</code></pre></div>
+<p class="ref">One stream and one checkpoint per source. Never delete a checkpoint between runs, or files are reprocessed. <code>availableNow</code> suits scheduled jobs and is the trigger serverless supports. Rescue mode keeps unexpected data but doesn't replace schema validation. For six small daily files, batch reads are fine too.</p>
+
+<!-- ===================== 24.7 ===================== -->
+<h2 id="s24-7"><span class="num">24.7</span>Step 5: Implement Incremental Ingestion</h2>
+<div class="grid-2">
+<div class="card"><h4>Files</h4><p style="margin-bottom:0">Auto Loader's checkpoint remembers which files were processed, so each run ingests only new files.</p></div>
+<div class="card"><h4>Databases</h4><p style="margin-bottom:0">Prefer CDC or source change tracking. A timestamp watermark is a fallback: updates can arrive late, timestamps can tie, and sources correct old rows. Define handling for deletes, late updates, and overlapping windows.</p></div>
+</div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.ops.ingestion_watermarks (
+    source_name               STRING,
+    last_successful_watermark TIMESTAMP,
+    updated_at                TIMESTAMP
+);</code></pre></div>
+<div class="card"><h4>Safe sequence</h4><ol style="margin-bottom:0"><li>Read the last committed watermark.</li><li>Extract <code>updated_at &gt; watermark − overlap</code> (e.g. 15 min) up to a fixed upper bound.</li><li>Append to Bronze.</li><li>Validate the batch.</li><li><strong>Only then</strong> commit the upper bound as the new watermark.</li></ol></div>
+</div>
+<p class="ref">The overlap re-reads a few already-loaded rows on purpose; that's harmless because Silver keeps the latest version per key. Advancing the watermark before data is persisted causes silent data loss (Chapter 18).</p>
+
+<!-- ===================== 24.8 ===================== -->
+<h2 id="s24-8"><span class="num">24.8</span>Step 6: Build the Silver Layer</h2>
+<p>Silver standardizes types and text, validates required fields and rules, logs rejects, and keeps <strong>the latest version of each business key</strong>. Rebuilding Silver from all of Bronze is deterministic, so rerunning it is always safe; at larger scale, process only new Bronze rows and MERGE (24.9).</p>
+<div class="code-wrap"><span class="lang">Python · src/silver.py</span><pre class="code"><code># Databricks notebook source
+# Rebuilds every Silver table from Bronze: clean, validate, and keep the latest
+# version of each business key. Deterministic, so it is safe to rerun.
+from pyspark.sql import Window, functions as F
+
+BATCH_ID = dbutils.widgets.get("batch_id") if "dbutils" in globals() else BATCH_ID  # noqa: F821
+
+
+def latest_per_key(df, keys):
+    """Newest source version wins; ingestion time breaks timestamp ties."""
+    w = Window.partitionBy(*keys).orderBy(F.col("updated_at").desc_nulls_last(),
+                                          F.col("_ingestion_timestamp").desc())
+    return df.withColumn("_rn", F.row_number().over(w)).filter("_rn = 1").drop("_rn")
+
+
+# ---------------------------------------------------------------- customers
+customers = (spark.table("retail_dev.bronze.customers_raw")
+    .withColumn("customer_id", F.upper(F.trim("customer_id")))
+    .withColumn("customer_name", F.trim("customer_name"))
+    .withColumn("email", F.lower(F.trim("email")))
+    .withColumn("city", F.initcap(F.trim("city")))
+    .withColumn("state", F.initcap(F.trim("state")))
+    .withColumn("customer_segment", F.upper(F.trim("customer_segment"))))
+
+reason = (F.when(F.col("customer_id").isNull() | (F.col("customer_id") == ""), "MISSING_CUSTOMER_ID")
+           .when(F.col("customer_name").isNull() | (F.col("customer_name") == ""), "MISSING_CUSTOMER_NAME"))
+customers = customers.withColumn("rejection_reason", reason)
+
+(customers.filter("rejection_reason IS NOT NULL")
+    .filter(F.col("_batch_id") == BATCH_ID)        # log each bad record once, in its own batch
+    .withColumn("rejection_timestamp", F.current_timestamp())
+    .write.mode("append").saveAsTable("retail_dev.ops.rejected_customers"))
+
+(latest_per_key(customers.filter("rejection_reason IS NULL").drop("rejection_reason"), ["customer_id"])
+    .select("customer_id", "customer_name", "email", "city", "state", "customer_segment", "updated_at")
+    .write.mode("overwrite").saveAsTable("retail_dev.silver.customers"))
+
+# ---------------------------------------------------------------- other entities
+simple = {
+    "products":    (["product_id"],        "product_id IS NOT NULL AND unit_price &gt;= 0"),
+    "orders":      (["order_id"],          "order_id IS NOT NULL AND customer_id IS NOT NULL"),
+    "order_items": (["order_item_id"],     "order_item_id IS NOT NULL AND quantity &gt; 0 AND discount_amount &gt;= 0"),
+    "payments":    (["payment_id"],        "payment_id IS NOT NULL AND order_id IS NOT NULL"),
+}
+for name, (keys, rule) in simple.items():
+    df = spark.table(f"retail_dev.bronze.{name}_raw").filter(rule)
+    (latest_per_key(df, keys).drop("_source_system", "_batch_id", "_ingestion_timestamp")
+        .write.mode("overwrite").saveAsTable(f"retail_dev.silver.{name}"))
+
+# Inventory events are immutable: just remove re-delivered duplicates
+(spark.table("retail_dev.bronze.inventory_raw")
+    .dropDuplicates(["inventory_event_id"])
+    .drop("_source_system", "_batch_id", "_ingestion_timestamp")
+    .write.mode("overwrite").saveAsTable("retail_dev.silver.inventory"))</code></pre></div>
+<div class="code-wrap"><span class="lang">Output after batch 3 (verified)</span><pre class="code"><code>silver.customers
+customer_id  email               city       customer_segment
+C001         ravi@example.com   Chennai    PREMIUM
+C002         priya@example.com  Chennai    STANDARD
+C003         john@example.com   Bengaluru  PREMIUM      (was " John@Example.com ", "bengaluru", "premium")
+C004         meera@example.com  Kochi      STANDARD
+
+ops.rejected_customers
+customer_id  customer_name  rejection_reason     _batch_id
+NULL         Unknown        MISSING_CUSTOMER_ID  B001</code></pre></div>
+<div class="callout"><span class="label">Fixes from testing</span><p><strong>Rejects were logged again on every run.</strong> Because Silver rebuilds from all of Bronze, the bad batch-1 record was re-logged in batches 2 and 3 (verified: 3 copies). Logging only rows whose <code>_batch_id</code> is the current batch records it once. <strong>Ties:</strong> the original's dedup ordered only by <code>updated_at</code>; ingestion time now breaks ties, so the re-sent C002 can't win. <strong>Normalization:</strong> IDs are upper-cased and state is title-cased too, so <code>c001</code> and <code>C001</code> are one customer.</p></div>
+<p class="ref">One reason column per row records the first failing rule; use the Chapter 18 framework if you need all violations. Validity rules per entity: products need a non-negative price, items a positive quantity and non-negative discount, orders a customer.</p>
+
+<!-- ===================== 24.9 ===================== -->
+<h2 id="s24-9"><span class="num">24.9</span>Step 7: Implement Delta Lake MERGE</h2>
+<p><code>MERGE INTO</code> updates matches and inserts new rows in one transaction. The product dimension (Type 1: overwrite changes) is a clean example:</p>
+<div class="code-wrap"><span class="lang">SQL · sql/03_dim_product.sql</span><pre class="code"><code>MERGE INTO retail_dev.gold.dim_product AS t
+USING retail_dev.silver.products AS s
+ON t.product_id = s.product_id
+WHEN MATCHED AND (   t.product_name       IS DISTINCT FROM s.product_name
+                  OR t.category           IS DISTINCT FROM s.category
+                  OR t.current_unit_price IS DISTINCT FROM s.unit_price)
+THEN UPDATE SET product_name = s.product_name, category = s.category,
+                current_unit_price = s.unit_price, updated_at = s.updated_at
+WHEN NOT MATCHED
+THEN INSERT (product_id, product_name, category, current_unit_price, updated_at)
+     VALUES (s.product_id, s.product_name, s.category, s.unit_price, s.updated_at);</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Rules for a safe MERGE</h4><ul style="margin-bottom:0"><li><strong>One source row per key</strong>: the original merged straight from <code>bronze.customers_raw</code>, which holds every delivery. With duplicates Delta fails with <code>DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE</code>. Merge from deduplicated Silver.</li><li>Update only when something changed (<code>IS DISTINCT FROM</code>, the null-safe comparison, equivalent to <code>NOT (a &lt;=&gt; b)</code>).</li><li>Decide how deletes arrive.</li><li>Make it safe to retry.</li></ul></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>dim_product after batch 2
+product_id  current_unit_price
+P001        65000.00
+P002        25000.00
+P003         5500.00     (was 5000.00)</code></pre></div>
+</div>
+
+<!-- ===================== 24.10 ===================== -->
+<h2 id="s24-10"><span class="num">24.10</span>Step 8: Implement SCD Type 2 for Customer History</h2>
+<p>When C001 moves from Hyderabad to Chennai, Type 1 would overwrite the city; Type 2 closes the old version and adds a new current one, so past sales stay with Hyderabad.</p>
+<div class="code-wrap"><span class="lang">SQL · sql/01_gold_tables.sql</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.gold.dim_customer (
+    customer_key      BIGINT GENERATED ALWAYS AS IDENTITY,   -- one per version
+    customer_id       STRING,                                 -- business key
+    customer_name     STRING,
+    email             STRING,
+    city              STRING,
+    state             STRING,
+    customer_segment  STRING,
+    effective_from    TIMESTAMP,
+    effective_to      TIMESTAMP,                              -- NULL = still current
+    is_current        BOOLEAN,
+    source_updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS retail_dev.gold.dim_product (
+    product_id         STRING,
+    product_name       STRING,
+    category           STRING,
+    current_unit_price DECIMAL(12,2),
+    updated_at         TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS retail_dev.gold.fact_sales (       -- grain: one order item
+    order_item_id   STRING,
+    order_id        STRING,
+    order_date      DATE,
+    customer_key    BIGINT,                                   -- version valid on order_date
+    product_id      STRING,
+    quantity        INT,
+    unit_price      DECIMAL(12,2),
+    discount_amount DECIMAL(12,2),
+    sales_amount    DECIMAL(14,2)
+);</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · sql/02_dim_customer_scd2.sql</span><pre class="code"><code>-- Step A: close the current version of customers whose tracked attributes changed.
+-- The timestamp guard stops an older, replayed record from overriding a newer version.
+MERGE INTO retail_dev.gold.dim_customer AS t
+USING retail_dev.silver.customers AS s
+ON t.customer_id = s.customer_id AND t.is_current = TRUE
+WHEN MATCHED
+  AND s.updated_at &gt; t.source_updated_at
+  AND (   t.customer_name    IS DISTINCT FROM s.customer_name
+       OR t.email            IS DISTINCT FROM s.email
+       OR t.city             IS DISTINCT FROM s.city
+       OR t.state            IS DISTINCT FROM s.state
+       OR t.customer_segment IS DISTINCT FROM s.customer_segment)
+THEN UPDATE SET is_current = FALSE, effective_to = s.updated_at;
+
+-- Step B: insert a current version for every customer that has none:
+-- brand-new customers and the ones just closed in step A.
+-- A customer's FIRST version is valid from 1900-01-01 so that orders placed
+-- before the customer record reached us still find a matching version.
+INSERT INTO retail_dev.gold.dim_customer
+    (customer_id, customer_name, email, city, state, customer_segment,
+     effective_from, effective_to, is_current, source_updated_at)
+SELECT s.customer_id, s.customer_name, s.email, s.city, s.state, s.customer_segment,
+       CASE WHEN known.customer_id IS NULL
+            THEN TIMESTAMP '1900-01-01 00:00:00'          -- first version ever
+            ELSE s.updated_at END,                         -- a change
+       CAST(NULL AS TIMESTAMP), TRUE, s.updated_at
+FROM retail_dev.silver.customers AS s
+LEFT JOIN (SELECT DISTINCT customer_id FROM retail_dev.gold.dim_customer) AS known
+       ON known.customer_id = s.customer_id
+WHERE NOT EXISTS (SELECT 1 FROM retail_dev.gold.dim_customer d
+                  WHERE d.customer_id = s.customer_id AND d.is_current = TRUE);</code></pre></div>
+<div class="code-wrap"><span class="lang">Output after batch 2 (verified)</span><pre class="code"><code>customer_key  customer_id  city       effective_from       effective_to         is_current
+1             C001         Hyderabad  1900-01-01 00:00:00  2026-10-05 10:00:00  false
+4             C001         Chennai    2026-10-05 10:00:00  NULL                 true
+2             C002         Chennai    1900-01-01 00:00:00  NULL                 true
+3             C003         Bengaluru  1900-01-01 00:00:00  NULL                 true
+5             C004         Kochi      1900-01-01 00:00:00  NULL                 true</code></pre></div>
+<div class="callout warn"><span class="label">The original's first versions started at load time</span><p>The original gave a new customer <code>effective_from = updated_at</code>, and its sample data set <code>updated_at</code> to the load time. Any order placed before the load then matches no version, so a point-in-time fact join silently drops it. Tested with one customer loaded today and an order from 1 October: <strong>0 fact rows</strong> with the original rule, <strong>1</strong> with the fix. A customer's first version now starts at <code>1900-01-01</code>. (Chapter 17 found the same bug.)</p></div>
+<div class="grid-2">
+<div class="card"><h4>Other improvements, all tested</h4><ul style="margin-bottom:0"><li><strong>Replay guard:</strong> step A only closes a version if the incoming record is <em>newer</em>. C002 re-sent with an old timestamp changed nothing.</li><li><strong>Simpler step B:</strong> insert wherever a customer has no current version (new customers and those closed in step A), instead of comparing every attribute again.</li><li><strong>Retry-safe:</strong> if step B fails after step A, rerunning inserts the missing versions. Running Gold twice more after batch 2 changed nothing (5 versions, 5 facts, 163,500.00 before and after).</li></ul></div>
+<div class="card"><h4>Still to handle in production</h4><ul style="margin-bottom:0"><li>Several changes for one customer in one batch (process them in order).</li><li>Late changes older than the current version.</li><li>Deleted or deactivated customers.</li><li>Equal timestamps (tie-breakers).</li><li>Concurrent writers.</li></ul><p style="margin:8px 0 0" class="ref">Lakeflow Declarative Pipelines' <code>AUTO CDC</code> (<code>STORED AS SCD TYPE 2</code>) handles ordering and late data for you once the pattern is understood.</p></div>
+</div>
+
+<!-- ===================== 24.11 ===================== -->
+<h2 id="s24-11"><span class="num">24.11</span>Step 9: Build the Gold Layer</h2>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · sql/00_dim_date.sql</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.dim_date AS
+SELECT d                                    AS date_key,
+       YEAR(d)                              AS calendar_year,
+       QUARTER(d)                           AS calendar_quarter,
+       MONTH(d)                             AS calendar_month,
+       DATE_FORMAT(d, 'MMMM')               AS month_name,
+       DAYOFMONTH(d)                        AS day_of_month,
+       DAYOFWEEK(d)                         AS day_of_week,         -- 1 = Sunday
+       DAYOFWEEK(d) IN (1, 7)               AS is_weekend
+FROM (SELECT EXPLODE(SEQUENCE(DATE '2020-01-01', DATE '2030-12-31', INTERVAL 1 DAY)) AS d)</code></pre></div>
+<div class="card"><h4>Date dimension</h4><p>One row per day, 2020–2030 (4,018 rows, verified on Spark). The original started at 2025, which can't hold earlier history; extend it to cover your oldest data.</p><p style="margin-bottom:0"><strong>Fact grain: one row per order item.</strong> The grain decides correct aggregation and joins.</p></div>
+</div>
+<p><strong>Business rule:</strong> sales are items of <code>COMPLETED</code> orders (others recognize revenue at shipment, invoice, or payment; document your choice). The fact MERGE finds, for each order, the customer version <strong>valid on the order date</strong>, and keeps the fact in sync as orders complete or are cancelled:</p>
+<div class="code-wrap"><span class="lang">SQL · sql/04_fact_sales.sql</span><pre class="code"><code>MERGE INTO retail_dev.gold.fact_sales AS t
+USING (
+    SELECT oi.order_item_id, oi.order_id, o.order_date, c.customer_key, oi.product_id,
+           oi.quantity, oi.unit_price, oi.discount_amount,
+           CAST(oi.quantity * oi.unit_price - oi.discount_amount AS DECIMAL(14,2)) AS sales_amount
+    FROM retail_dev.silver.order_items AS oi
+    JOIN retail_dev.silver.orders AS o
+      ON o.order_id = oi.order_id
+    JOIN retail_dev.gold.dim_customer AS c                      -- the version valid on the order date
+      ON  c.customer_id = o.customer_id
+      AND CAST(o.order_date AS TIMESTAMP) &gt;= c.effective_from
+      AND (c.effective_to IS NULL OR CAST(o.order_date AS TIMESTAMP) &lt; c.effective_to)
+    WHERE o.order_status = 'COMPLETED'                          -- business rule: sales = completed orders
+) AS s
+ON t.order_item_id = s.order_item_id
+WHEN MATCHED AND (   t.quantity        IS DISTINCT FROM s.quantity
+                  OR t.unit_price      IS DISTINCT FROM s.unit_price
+                  OR t.discount_amount IS DISTINCT FROM s.discount_amount
+                  OR t.customer_key    IS DISTINCT FROM s.customer_key)
+THEN UPDATE SET quantity = s.quantity, unit_price = s.unit_price,
+                discount_amount = s.discount_amount, sales_amount = s.sales_amount,
+                customer_key = s.customer_key
+WHEN NOT MATCHED
+THEN INSERT (order_item_id, order_id, order_date, customer_key, product_id,
+             quantity, unit_price, discount_amount, sales_amount)
+     VALUES (s.order_item_id, s.order_id, s.order_date, s.customer_key, s.product_id,
+             s.quantity, s.unit_price, s.discount_amount, s.sales_amount)
+WHEN NOT MATCHED BY SOURCE                                      -- e.g. order later cancelled
+THEN DELETE;</code></pre></div>
+<div class="code-wrap"><span class="lang">Output after batch 2 (verified)</span><pre class="code"><code>order_item_id  order_id  order_date  customer_key  customer_id  city       sales_amount
+OI001          O001      2026-10-01  1             C001         Hyderabad  64000.00
+OI002          O001      2026-10-01  1             C001         Hyderabad  49500.00
+OI003          O002      2026-10-02  2             C002         Chennai    20000.00
+OI004          O003      2026-10-03  1             C001         Hyderabad   5000.00   (completed later, placed before the move)
+OI005          O004      2026-10-07  4             C001         Chennai    25000.00   (after the move)
+
+After batch 3: OI003 removed (O002 cancelled) -&gt; 4 rows, 143,500.00</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Why point-in-time matters</h4><div class="table-wrap" style="margin:0"><table><thead><tr><th>City</th><th>At sale</th><th>Original (current)</th></tr></thead><tbody><tr><td>Hyderabad</td><td>118,500.00</td><td>0</td></tr><tr><td>Chennai</td><td>45,000.00</td><td>163,500.00</td></tr></tbody></table></div><p style="margin:8px 0 0">The original joined facts to the <em>current</em> customer version, rewriting history: every C001 sale moved to Chennai (verified).</p></div>
+<div class="card"><h4>What the MERGE handles</h4><ul style="margin-bottom:0"><li>New completed items: inserted.</li><li>O003 completing later: inserted on the next run.</li><li>Corrections: updated only when values differ.</li><li>O002 cancelled: <code>WHEN NOT MATCHED BY SOURCE</code> deletes it.</li><li>O005 (unknown customer): not inserted yet; picked up automatically when the customer arrives.</li></ul><p style="margin:8px 0 0" class="ref">On a large fact, scope the source and the delete clause to recent dates.</p></div>
+</div>
+
+<!-- ===================== 24.12 ===================== -->
+<h2 id="s24-12"><span class="num">24.12</span>Step 10: Inventory and Daily Sales Aggregations</h2>
+<div class="code-wrap"><span class="lang">SQL · sql/05_aggregates.sql</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.daily_sales AS
+SELECT order_date,
+       COUNT(DISTINCT order_id) AS total_orders,
+       SUM(quantity)            AS units_sold,
+       SUM(sales_amount)        AS total_sales
+FROM retail_dev.gold.fact_sales
+GROUP BY order_date;
+
+CREATE OR REPLACE TABLE retail_dev.gold.inventory_summary AS
+SELECT product_id, store_id,
+       SUM(quantity_change) AS current_stock,
+       MAX(event_timestamp) AS last_event_timestamp
+FROM retail_dev.silver.inventory
+GROUP BY product_id, store_id;</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Output after batch 3 (verified)</span><pre class="code"><code>daily_sales
+order_date  total_orders  units_sold  total_sales
+2026-10-01  1             3           113500.00
+2026-10-03  1             1             5000.00
+2026-10-07  1             1            25000.00
+
+inventory_summary
+product_id  store_id  current_stock
+P001        S001      99      (100 - 1)
+P002        S001      47      (50 - 2 - 1)
+P003        S001      18      (20 - 4 - 1 - 1 + 4 returned)</code></pre></div>
+<div class="card"><h4>Notes</h4><ul style="margin-bottom:0"><li>Both are full rebuilds: simple and always consistent with the fact. For very large tables, recompute only affected dates.</li><li>Stock = sum of movements only if history is complete from a known opening balance.</li><li>With snapshots, take the latest snapshot plus later movements.</li></ul></div>
+</div>
+
+<!-- ===================== 24.13 ===================== -->
+<h2 id="s24-13"><span class="num">24.13</span>Step 11: Data Quality and Reconciliation</h2>
+<p>A pipeline can succeed and still be wrong. Each check below returns a failure count; the reconciliation compares Silver to Gold.</p>
+<div class="code-wrap"><span class="lang">SQL · sql/06_quality_checks.sql</span><pre class="code"><code>-- One row per check (failures = 0 means PASS)
+SELECT 'SILVER_DUPLICATE_CUSTOMER_IDS' AS check_name, COUNT(*) AS failures
+FROM (SELECT customer_id FROM retail_dev.silver.customers GROUP BY customer_id HAVING COUNT(*) &gt; 1)
+UNION ALL
+SELECT 'ORDERS_WITHOUT_CUSTOMER', COUNT(*)
+FROM retail_dev.silver.orders AS o
+WHERE NOT EXISTS (SELECT 1 FROM retail_dev.silver.customers c WHERE c.customer_id = o.customer_id)
+UNION ALL
+SELECT 'ITEMS_WITHOUT_PRODUCT', COUNT(*)
+FROM retail_dev.silver.order_items AS oi
+WHERE NOT EXISTS (SELECT 1 FROM retail_dev.gold.dim_product p WHERE p.product_id = oi.product_id)
+UNION ALL
+SELECT 'CUSTOMERS_WITH_MULTIPLE_CURRENT_VERSIONS', COUNT(*)
+FROM (SELECT customer_id FROM retail_dev.gold.dim_customer WHERE is_current GROUP BY customer_id HAVING COUNT(*) &gt; 1)
+UNION ALL
+SELECT 'FACT_DUPLICATE_ORDER_ITEMS', COUNT(*)
+FROM (SELECT order_item_id FROM retail_dev.gold.fact_sales GROUP BY order_item_id HAVING COUNT(*) &gt; 1)
+UNION ALL
+SELECT 'NEGATIVE_STOCK', COUNT(*)
+FROM retail_dev.gold.inventory_summary WHERE current_stock &lt; 0;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · sql/07_reconciliation.sql</span><pre class="code"><code>-- Financial reconciliation: completed-order sales in Silver vs the fact table
+WITH expected AS (
+    SELECT SUM(oi.quantity * oi.unit_price - oi.discount_amount) AS amount
+    FROM retail_dev.silver.order_items AS oi
+    JOIN retail_dev.silver.orders AS o ON o.order_id = oi.order_id
+    WHERE o.order_status = 'COMPLETED'
+),
+actual AS (SELECT SUM(sales_amount) AS amount FROM retail_dev.gold.fact_sales)
+SELECT e.amount AS silver_sales, a.amount AS fact_sales, e.amount - a.amount AS difference
+FROM expected AS e CROSS JOIN actual AS a;
+
+-- Payment reconciliation: aggregate payments to the ORDER grain before comparing
+WITH paid AS (
+    SELECT order_id,
+           SUM(CASE WHEN payment_status IN ('SUCCESS', 'REFUND') THEN amount ELSE 0 END) AS net_paid
+    FROM retail_dev.silver.payments
+    GROUP BY order_id
+),
+sold AS (
+    SELECT order_id, SUM(sales_amount) AS sales
+    FROM retail_dev.gold.fact_sales
+    GROUP BY order_id
+)
+SELECT s.order_id, s.sales, COALESCE(p.net_paid, 0) AS net_paid,
+       s.sales - COALESCE(p.net_paid, 0) AS outstanding
+FROM sold AS s
+LEFT JOIN paid AS p ON p.order_id = s.order_id
+ORDER BY s.order_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">Output after batch 2 (verified)</span><pre class="code"><code>check_name                                failures
+SILVER_DUPLICATE_CUSTOMER_IDS             0
+ORDERS_WITHOUT_CUSTOMER                   1        (O005 -&gt; C999)
+ITEMS_WITHOUT_PRODUCT                     0
+CUSTOMERS_WITH_MULTIPLE_CURRENT_VERSIONS  0
+FACT_DUPLICATE_ORDER_ITEMS                0
+NEGATIVE_STOCK                            0
+
+silver_sales  fact_sales  difference
+169000.00     163500.00   5500.00        (exactly O005's line: 1 x 5500)
+
+order_id  sales      net_paid   outstanding
+O001      113500.00  113500.00  0.00     (the FAILED attempt is excluded)
+O002       20000.00   20000.00  0.00
+O003        5000.00    5000.00  0.00
+O004       25000.00   25000.00  0.00</code></pre></div>
+<p>Counts don't always have to match (Silver rejects rows; Gold aggregates), but every difference must be <strong>explained</strong>. The quality gate encodes that: it records every result, treats some checks as warnings, and fails the job only on critical problems or unexplained money:</p>
+<div class="code-wrap"><span class="lang">Python · src/quality_gate.py</span><pre class="code"><code># Databricks notebook source
+# Runs the quality and reconciliation SQL, records every result, and fails the
+# job (blocking publication) if a CRITICAL check fails. WARNING checks are
+# recorded and alerted on but don't stop the run.
+from datetime import datetime, timezone
+
+BATCH_ID = dbutils.widgets.get("batch_id") if "dbutils" in globals() else BATCH_ID   # noqa: F821
+SQL_DIR = "../sql" if "dbutils" in globals() else SQL_DIR                             # noqa: F821
+
+SEVERITY = {
+    "SILVER_DUPLICATE_CUSTOMER_IDS": "CRITICAL",
+    "ORDERS_WITHOUT_CUSTOMER": "WARNING",          # customers can arrive late; held back, not lost
+    "ITEMS_WITHOUT_PRODUCT": "WARNING",
+    "CUSTOMERS_WITH_MULTIPLE_CURRENT_VERSIONS": "CRITICAL",
+    "FACT_DUPLICATE_ORDER_ITEMS": "CRITICAL",
+    "NEGATIVE_STOCK": "WARNING",
+    "SALES_RECONCILIATION_UNEXPLAINED": "CRITICAL",
+}
+
+
+def statements(path):
+    text = open(path).read()
+    return [s for s in text.split(";") if any(l.strip() and not l.strip().startswith("--") for l in s.splitlines())]
+
+
+results = [(r.check_name, int(r.failures)) for r in spark.sql(statements(f"{SQL_DIR}/06_quality_checks.sql")[0]).collect()]
+
+# Reconciliation: any difference must be explained by orders held back for a missing customer
+recon = spark.sql(statements(f"{SQL_DIR}/07_reconciliation.sql")[0]).first()
+held_back = spark.sql("""
+    SELECT COALESCE(SUM(oi.quantity * oi.unit_price - oi.discount_amount), 0) AS amount
+    FROM retail_dev.silver.order_items oi
+    JOIN retail_dev.silver.orders o ON o.order_id = oi.order_id
+    WHERE o.order_status = 'COMPLETED'
+      AND NOT EXISTS (SELECT 1 FROM retail_dev.gold.dim_customer c WHERE c.customer_id = o.customer_id)
+""").first().amount
+unexplained = (recon.difference or 0) - held_back
+results.append(("SALES_RECONCILIATION_UNEXPLAINED", int(unexplained != 0)))
+
+now = datetime.now(timezone.utc)
+rows = [(BATCH_ID, name, SEVERITY.get(name, "CRITICAL"), failures,
+         "PASS" if failures == 0 else ("FAIL" if SEVERITY.get(name, "CRITICAL") == "CRITICAL" else "WARN"), now)
+        for name, failures in results]
+(spark.createDataFrame(rows, "batch_id STRING, check_name STRING, severity STRING, failures BIGINT, status STRING, checked_at TIMESTAMP")
+      .write.mode("append").saveAsTable("retail_dev.ops.validation_audit"))
+
+for r in rows:
+    print(f"{r[1]:&lt;42} {r[2]:&lt;8} failures={r[3]:&lt;3} {r[4]}")
+print(f"sales: silver={recon.silver_sales} fact={recon.fact_sales} "
+      f"held back for missing customers={held_back} unexplained={unexplained}")
+
+failed = [r[1] for r in rows if r[4] == "FAIL"]
+if failed:
+    raise RuntimeError(f"Critical quality checks failed for {BATCH_ID}: {failed}")</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Output: batch 3 (verified)</span><pre class="code"><code>SILVER_DUPLICATE_CUSTOMER_IDS     CRITICAL failures=0 PASS
+ORDERS_WITHOUT_CUSTOMER           WARNING  failures=1 WARN
+ITEMS_WITHOUT_PRODUCT             WARNING  failures=0 PASS
+CUSTOMERS_WITH_MULTIPLE_CURRENT.. CRITICAL failures=0 PASS
+FACT_DUPLICATE_ORDER_ITEMS        CRITICAL failures=0 PASS
+NEGATIVE_STOCK                    WARNING  failures=0 PASS
+SALES_RECONCILIATION_UNEXPLAINED  CRITICAL failures=0 PASS
+sales: silver=149000.00 fact=143500.00
+held back for missing customers=5500.00 unexplained=0.00</code></pre></div>
+<div class="code-wrap"><span class="lang">Output: a retried append duplicated a fact row (verified)</span><pre class="code"><code>FACT_DUPLICATE_ORDER_ITEMS        CRITICAL failures=1 FAIL
+SALES_RECONCILIATION_UNEXPLAINED  CRITICAL failures=1 FAIL
+sales: silver=149000.00 fact=207500.00
+held back for missing customers=5500.00 unexplained=-64000.00
+
+RuntimeError: Critical quality checks failed for B003-dup:
+  ['FACT_DUPLICATE_ORDER_ITEMS', 'SALES_RECONCILIATION_UNEXPLAINED']</code></pre></div>
+</div>
+<p class="ref">The orphan order is a <strong>warning</strong>, not a failure: customers can arrive after their orders, and the fact MERGE picks the order up automatically when they do. If it persists past an agreed time, escalate it. Some teams load such facts against an "unknown customer" member (key −1) instead; either way, document it.</p>
+
+<!-- ===================== 24.14 ===================== -->
+<h2 id="s24-14"><span class="num">24.14</span>Step 12: Build the Monitoring Framework</h2>
+<p>Reuse Chapter 20's tested framework instead of building a new one. Each task records RUNNING, then SUCCESS or FAILED with counts and a categorized error, and re-raises so the job fails correctly:</p>
+<div class="code-wrap"><span class="lang">Python · wrapping a task (Chapter 20)</span><pre class="code"><code>%run ../ops/monitoring        # execute_monitored_pipeline, classify_error, ...
+
+def build_silver():
+    exec_silver()                                         # the code in src/silver.py
+    return {"source_row_count": spark.table("retail_dev.bronze.orders_raw").count(),
+            "target_row_count": spark.table("retail_dev.silver.orders").count()}
+
+execute_monitored_pipeline(
+    spark, pipeline_name="retail_daily_load.build_silver",
+    run_id=dbutils.widgets.get("run_id"),                 # job parameter = {{job.run_id}}
+    batch_id=dbutils.widgets.get("batch_id"),
+    environment="DEV", pipeline_function=build_silver, sla_deadline=deadline)</code></pre></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Purpose</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Success rate</td><td>Reliability</td><td>Audit view</td></tr>
+<tr><td>Failure count</td><td>Recurring problems</td><td>Audit view</td></tr>
+<tr><td>Duration vs baseline</td><td>Degradation</td><td>Slow-run query</td></tr>
+<tr><td>Data freshness</td><td>Stale data</td><td>Max order date</td></tr>
+<tr><td>Reconciliation</td><td>Missing data</td><td>Quality gate</td></tr>
+<tr><td>Retries</td><td>Unstable dependencies</td><td>System tables</td></tr>
+<tr><td>Cost per run</td><td>Efficiency</td><td>Chapter 22</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Missed schedules: five cases</h4><p>The load must finish by 05:00 IST. Detect when it:</p><ol style="margin-bottom:0"><li>didn't start (MISSING),</li><li>is still running past the deadline (OVERDUE),</li><li>failed,</li><li>succeeded but Gold is stale,</li><li>succeeded but reconciliation failed.</li></ol><p style="margin:8px 0 0" class="ref">Cases 1–3: add <code>retail_daily_load</code> to Chapter 20's SLA registry (handles time zones). Case 4: a freshness check (below). Case 5: the quality gate.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · freshness check</span><pre class="code"><code>SELECT MAX(order_date)                           AS latest_order_date,
+       datediff(current_date(), MAX(order_date)) AS days_behind
+FROM retail_dev.gold.fact_sales;          -- alert if days_behind &amp;gt; 1</code></pre></div>
+<p class="ref">Alert on critical task failure, SLA breach, missing data, critical quality failure, repeated retries, and unexpected cost, via job notifications, SQL alerts, or Chapter 20's dispatcher. Azure Monitor or an incident tool can sit on top.</p>
+
+<!-- ===================== 24.15 ===================== -->
+<h2 id="s24-15"><span class="num">24.15</span>Step 13: Orchestrate with Lakeflow Jobs</h2>
+<div class="grid-2">
+<pre class="diagram">        ingest_bronze
+              |
+        build_silver
+         /        \
+ dim_customer   dim_product     (parallel)
+         \        /
+         fact_sales
+              |
+         aggregates
+              |
+        quality_gate  --FAIL--&gt; run fails, alert;
+              |                  reports keep last good data
+        (publish / refresh)</pre>
+<div class="card"><h4>Dependencies</h4><ul style="margin-bottom:0"><li>Silver waits for Bronze.</li><li>Dimensions wait for Silver, and run in parallel.</li><li>The fact waits for both dimensions.</li><li>Aggregates wait for the fact.</li><li>The quality gate is last; a downstream "publish" or Power BI refresh task depends on it, so bad data is never published.</li></ul></div>
+</div>
+<div class="code-wrap"><span class="lang">YAML · resources/retail_job.yml</span><pre class="code"><code>resources:
+  jobs:
+    retail_daily_load:
+      name: retail-daily-load-${bundle.target}
+      max_concurrent_runs: 1                   # never overlap two loads
+      timeout_seconds: 10800
+
+      schedule:
+        quartz_cron_expression: "0 15 1 * * ?"   # 01:15 every day
+        timezone_id: Asia/Kolkata
+        pause_status: UNPAUSED                   # development mode pauses it anyway
+
+      parameters:
+        - name: batch                            # practice data only (1, 2 or 3)
+          default: "1"
+        - name: batch_id
+          default: "{{job.start_time.iso_date}}"
+
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 9000                          # warn if the load runs past 2.5 hours
+      email_notifications:
+        on_failure: [ "${var.alert_email}" ]
+        on_duration_warning_threshold_exceeded: [ "${var.alert_email}" ]
+
+      tasks:
+        - task_key: ingest_bronze                # swap for Auto Loader ingestion (24.6) on real files
+          notebook_task:
+            notebook_path: ../src/sample_data.py
+
+        - task_key: build_silver
+          depends_on: [ { task_key: ingest_bronze } ]
+          notebook_task:
+            notebook_path: ../src/silver.py
+
+        - task_key: dim_customer
+          depends_on: [ { task_key: build_silver } ]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: { path: ../sql/02_dim_customer_scd2.sql }
+
+        - task_key: dim_product                  # runs in parallel with dim_customer
+          depends_on: [ { task_key: build_silver } ]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: { path: ../sql/03_dim_product.sql }
+
+        - task_key: fact_sales
+          depends_on: [ { task_key: dim_customer }, { task_key: dim_product } ]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: { path: ../sql/04_fact_sales.sql }
+
+        - task_key: aggregates
+          depends_on: [ { task_key: fact_sales } ]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: { path: ../sql/05_aggregates.sql }
+
+        - task_key: quality_gate                 # fails the run on CRITICAL issues
+          depends_on: [ { task_key: aggregates } ]
+          notebook_task:
+            notebook_path: ../src/quality_gate.py</code></pre></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Failure</th><th>Behavior</th></tr></thead>
+<tbody>
+<tr><td>Temporary network issue</td><td>Task retry, limited</td></tr>
+<tr><td>Source temporarily down</td><td>Retry with backoff</td></tr>
+<tr><td>Invalid mandatory field</td><td>Reject (Silver) or fail</td></tr>
+<tr><td>Duplicate merge keys</td><td>Fail and investigate</td></tr>
+<tr><td>Missing source file</td><td>Wait or alert per SLA</td></tr>
+<tr><td>Permission denied</td><td>Alert; never retry</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Text · daily timeline (illustrative)</span><pre class="code"><code>01:00  source files available
+01:15  job starts (schedule)
+01:30  Silver
+02:00  Gold
+02:30  quality gate
+05:00  SLA: reporting ready
+       (buffer for a retry or a fix)</code></pre></div>
+</div>
+<p class="ref">Every task here is idempotent (Silver rebuilds, MERGE, full-rebuild aggregates), so retries and repair runs are safe. The original warned that retrying a duplicating append makes things worse; this design avoids appends after Bronze. The file passes the official bundle schema (CLI v1.22.1); <code>max_concurrent_runs: 1</code> prevents overlapping loads.</p>
+
+<!-- ===================== 24.16 ===================== -->
+<h2 id="s24-16"><span class="num">24.16</span>Step 14: Optimize Performance</h2>
+<p>Measure first (Chapter 15). Then:</p>
+<div class="grid-2">
+<div class="card"><h4>Plans and joins</h4><ul style="margin-bottom:0"><li><code>explain("formatted")</code>: look for full scans, exchanges, and the join strategy.</li><li>Broadcast small dimensions: <code>sales.join(broadcast(products), "product_id")</code>, only if they're genuinely small. AQE often does it automatically.</li><li>Skew: find heavy keys (Chapter 20); prefer AQE skew handling; salt only specific cases.</li></ul></div>
+<div class="card"><h4>Layout and compute</h4><ul style="margin-bottom:0"><li>Liquid clustering on <code>fact_sales</code> by <code>order_date</code> (and <code>customer_key</code> if filtered on).</li><li>Predictive optimization for compaction and statistics (Chapter 23).</li><li>No partitioning by high-cardinality columns.</li><li>Compare compute options by cost per successful run, not speed alone (Chapter 22).</li></ul></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>ALTER TABLE retail_dev.gold.fact_sales CLUSTER BY (order_date);
+ALTER CATALOG retail_dev ENABLE PREDICTIVE OPTIMIZATION;</code></pre></div>
+
+<!-- ===================== 24.17 ===================== -->
+<h2 id="s24-17"><span class="num">24.17</span>Step 15: Secure with Unity Catalog</h2>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Role</th><th>Access</th></tr></thead>
+<tbody>
+<tr><td>Data engineers</td><td>Develop and run pipelines in <code>retail_dev</code></td></tr>
+<tr><td>Job service principal</td><td>Read Bronze/Silver, modify Gold, in its environment only</td></tr>
+<tr><td>Analysts</td><td>Read approved Gold views</td></tr>
+<tr><td>Power BI service identity</td><td>Read <code>v_sales</code> and aggregates only</td></tr>
+<tr><td>Platform admins</td><td>Platform configuration</td></tr>
+<tr><td>Auditors</td><td>Read <code>ops</code> audit tables</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · least privilege for reporting (Chapter 19)</span><pre class="code"><code>GRANT USE CATALOG ON CATALOG retail_prod TO `dbx-business-analysts`;
+GRANT USE SCHEMA  ON SCHEMA retail_prod.gold TO `dbx-business-analysts`;
+GRANT SELECT ON TABLE retail_prod.gold.v_sales     TO `dbx-business-analysts`;
+GRANT SELECT ON TABLE retail_prod.gold.daily_sales TO `dbx-business-analysts`;
+
+-- Emails are personal data: mask them for everyone outside the approved group
+ALTER TABLE retail_prod.gold.dim_customer
+  ALTER COLUMN email SET MASK retail_prod.security.mask_email;</code></pre></div>
+</div>
+<p class="ref">Separate catalogs per environment with workspace bindings; no hard-coded credentials (identity-based storage access, secret scopes only where needed); data minimization: <code>v_sales</code> exposes no email. Reporting users never get the Silver tables.</p>
+
+<!-- ===================== 24.18 ===================== -->
+<h2 id="s24-18"><span class="num">24.18</span>Step 16: Connect Power BI</h2>
+<p>Expose approved Gold views through a SQL warehouse; connect Power BI with the Azure Databricks connector (server hostname and HTTP path from the warehouse's Connection details), signing in with Entra ID or a service principal. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/partners/bi/power-bi" target="_blank" rel="noopener">Connect Power BI</a>.</p>
+<div class="code-wrap"><span class="lang">SQL · sql/08_reporting.sql</span><pre class="code"><code>-- One wide, governed view for Power BI: each sale with the customer as they were
+-- at the time of sale AND as they are now, plus product and calendar attributes
+CREATE OR REPLACE VIEW retail_dev.gold.v_sales AS
+SELECT f.order_item_id, f.order_id, f.order_date,
+       f.quantity, f.sales_amount,
+       c.customer_id,
+       c.city             AS customer_city_at_sale,
+       cur.city           AS customer_city_now,
+       c.customer_segment AS customer_segment_at_sale,
+       p.product_name, p.category
+FROM retail_dev.gold.fact_sales  AS f
+JOIN retail_dev.gold.dim_customer AS c   ON c.customer_key = f.customer_key
+JOIN retail_dev.gold.dim_customer AS cur ON cur.customer_id = c.customer_id AND cur.is_current = TRUE
+JOIN retail_dev.gold.dim_product  AS p   ON p.product_id = f.product_id;
+
+-- Executive overview (counts BUSINESS customers, not SCD2 versions)
+SELECT SUM(sales_amount)                                   AS total_sales,
+       COUNT(DISTINCT order_id)                            AS total_orders,
+       SUM(quantity)                                       AS units_sold,
+       COUNT(DISTINCT customer_id)                         AS purchasing_customers,
+       ROUND(SUM(sales_amount) / NULLIF(COUNT(DISTINCT order_id), 0), 2) AS average_order_value
+FROM retail_dev.gold.v_sales;</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Output after batch 3 (verified)</span><pre class="code"><code>total_sales  total_orders  units_sold  purchasing_customers  average_order_value
+143500.00    3             5           1                     47833.33
+
+Original, counting customer_key: 2   (two SCD2 versions of C001)
+
+v_sales by city
+customer_city_at_sale  customer_city_now  sales
+Chennai                Chennai             25000.00
+Hyderabad              Chennai            118500.00</code></pre></div>
+<div class="card"><h4>Why the view</h4><p>The original's executive query counted <code>DISTINCT customer_key</code>, which counts <em>versions</em>: C001 counted twice after moving. The view carries the business <code>customer_id</code> and gives report authors both "city at sale" and "city now" without needing to understand SCD2.</p><p style="margin-bottom:0" class="ref">Use Import or DirectQuery depending on size and freshness; let Power BI aggregate the view rather than pulling raw tables.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Page</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td>1 · Executive overview</td><td>Total sales, orders, units, average order value, purchasing customers, current inventory</td></tr>
+<tr><td>2 · Sales</td><td>Daily and monthly trend, by category, by store</td></tr>
+<tr><td>3 · Customers</td><td>By segment, top customers, by city at sale vs now</td></tr>
+<tr><td>4 · Inventory</td><td>Stock by product and store, low-stock list, recent movements</td></tr>
+<tr><td>5 · Pipeline health</td><td>Success rate, failures, duration, last success, freshness, quality results (<code>ops.validation_audit</code>)</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 24.19 ===================== -->
+<h2 id="s24-19"><span class="num">24.19</span>Step 17: Implement CI/CD</h2>
+<div class="grid-2">
+<pre class="diagram">enterprise-retail-platform/      (the attached zip)
+├── databricks.yml
+├── resources/
+│   └── retail_job.yml
+├── src/
+│   ├── sample_data.py
+│   ├── silver.py
+│   └── quality_gate.py
+├── sql/
+│   ├── setup.sql
+│   ├── 00_dim_date.sql ... 05_aggregates.sql
+│   ├── 06_quality_checks.sql
+│   ├── 07_reconciliation.sql
+│   └── 08_reporting.sql
+└── README.md
+
+Add from Chapter 21:
+├── tests/            pytest for transformations
+└── .github/workflows/ ci.yml, deploy.yml</pre>
+<div class="code-wrap"><span class="lang">YAML · databricks.yml</span><pre class="code"><code>bundle:
+  name: enterprise-retail-platform
+
+include:
+  - resources/*.yml
+
+variables:
+  warehouse_id:
+    description: "SQL warehouse for the Gold SQL files (on Free Edition, the Serverless Starter Warehouse)"
+  alert_email:
+    default: data-support@example.com
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-1111111111111111.11.azuredatabricks.net</code></pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code>databricks bundle validate -t dev --var="warehouse_id=&amp;lt;warehouse id&amp;gt;"
+databricks bundle deploy   -t dev --var="warehouse_id=&amp;lt;warehouse id&amp;gt;"
+databricks bundle run      -t dev retail_daily_load --params batch=1,batch_id=B001</code></pre></div>
+<p class="ref">The flow is Chapter 21's: pull request → tests + bundle validate → merge → deploy to test + smoke run → approval → production. To promote across environments, replace the hard-coded <code>retail_dev</code> in the SQL with a parameter (SQL file tasks accept parameters, used as <code>IDENTIFIER(:catalog || '.gold.fact_sales')</code>) and set it per target. The bundle files were schema-validated; deployment wasn't run here.</p>
+
+<!-- ===================== 24.20 ===================== -->
+<h2 id="s24-20"><span class="num">24.20</span>Step 18: Document Recovery and Rollback</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Scenario</th><th>Recovery</th><th>Why it works here</th></tr></thead>
+<tbody>
+<tr><td>Source file missing</td><td>Wait, then notify the source owner</td><td>SLA check flags MISSING</td></tr>
+<tr><td>Invalid schema</td><td>Quarantine via <code>_rescued_data</code>, investigate</td><td>Bronze keeps everything</td></tr>
+<tr><td>Duplicate business keys</td><td>Gate fails; fix the source</td><td>Silver dedups; gate checks</td></tr>
+<tr><td>Partial failure</td><td>Repair run from the failed task</td><td>Every task is idempotent (verified)</td></tr>
+<tr><td>Wrong Gold data</td><td>Fix code, rerun Silver → Gold</td><td>Gold is rebuildable from Silver, Silver from Bronze</td></tr>
+<tr><td>Accidental update</td><td><code>RESTORE TABLE … TO VERSION AS OF n</code></td><td>Delta history</td></tr>
+<tr><td>Failed deployment</td><td>Redeploy the last good tag</td><td>Chapter 21</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE HISTORY retail_dev.gold.fact_sales;
+SELECT * FROM retail_dev.gold.fact_sales VERSION AS OF 5;     -- inspect
+RESTORE TABLE retail_dev.gold.fact_sales TO VERSION AS OF 5;  -- roll back</code></pre></div>
+<p class="ref">Time travel isn't a backup: it's limited by log and file retention and <code>VACUUM</code>, and doesn't survive storage loss or table replacement. Define retention, backups, RPO/RTO, and rebuild procedures. Here, Bronze is the true safety net: keep its retention long enough to rebuild everything downstream.</p>
+
+<!-- ===================== 24.21 ===================== -->
+<h2 id="s24-21"><span class="num">24.21</span>Final Project Validation Checklist</h2>
+<p>Tick items as you complete them; ticks are saved in this browser. Items marked ✓ are demonstrated by the tested project.</p>
+<div class="card checklist" id="ch24-project-checklist">
+<p style="margin:0 0 6px"><strong>Ingestion</strong></p>
+<label><input type="checkbox"> <span>All six datasets ingest; initial and incremental loads work ✓</span></label>
+<label><input type="checkbox"> <span>Ingestion metadata and source files captured; schema changes rescued</span></label>
+<label><input type="checkbox"> <span>Reprocessing never loses data (watermark after persist)</span></label>
+<p style="margin:10px 0 6px"><strong>Bronze and Silver</strong></p>
+<label><input type="checkbox"> <span>Types standardized; invalid records captured once per batch ✓</span></label>
+<label><input type="checkbox"> <span>Deterministic dedup with tie-breaker; replays can't win ✓</span></label>
+<label><input type="checkbox"> <span>Late-arriving records handled; merges retry-safe ✓</span></label>
+<p style="margin:10px 0 6px"><strong>Gold</strong></p>
+<label><input type="checkbox"> <span>Fact grain documented; SCD2 history preserved ✓</span></label>
+<label><input type="checkbox"> <span>Sales correct; history uses the version valid at sale ✓</span></label>
+<label><input type="checkbox"> <span>Inventory matches source semantics; aggregates reconcile ✓</span></label>
+<p style="margin:10px 0 6px"><strong>Quality, orchestration, monitoring</strong></p>
+<label><input type="checkbox"> <span>Mandatory, duplicate, referential, financial checks recorded in audit tables ✓</span></label>
+<label><input type="checkbox"> <span>Job dependencies, retries, and notifications configured and tested</span></label>
+<label><input type="checkbox"> <span>Missed schedules and stale data detected</span></label>
+<p style="margin:10px 0 6px"><strong>Security, performance, delivery</strong></p>
+<label><input type="checkbox"> <span>UC permissions, environment separation, protected credentials, masked PII</span></label>
+<label><input type="checkbox"> <span>Plans reviewed; layout, compute, runtime and cost baselines documented</span></label>
+<label><input type="checkbox"> <span>Power BI connected; metrics reconcile; pipeline health visible</span></label>
+<label><input type="checkbox"> <span>Code in Git; bundle validated; tests before promotion; recovery documented</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+
+<!-- ===================== 24.22 ===================== -->
+<h2 id="s24-22"><span class="num">24.22</span>Suggested Four-Week Implementation Plan</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Week</th><th>Focus</th><th>Complete</th><th>Exit criterion</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Ingestion and Silver</td><td>Sample data (3 batches), Bronze, incremental ingestion, Silver, rejects</td><td>Rerunning ingestion creates no unexplained duplicates and loses nothing</td></tr>
+<tr><td>2</td><td>Modeling</td><td>Product and customer (SCD2) dimensions, date, fact, inventory, daily sales</td><td>Gold reconciles to the documented rules (the batch-2 numbers above)</td></tr>
+<tr><td>3</td><td>Reliability</td><td>Quality gate, audit tables, job, retries, notifications, SLA monitoring, permissions</td><td>You can trigger a failure, detect it, investigate, and recover safely</td></tr>
+<tr><td>4</td><td>Production readiness</td><td>Baselines, optimization, Power BI, Git, bundle, tests, recovery docs</td><td>Another engineer can deploy, operate, and troubleshoot it from your docs</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 24.23 ===================== -->
+<h2 id="s24-23"><span class="num">24.23</span>Final Deliverables</h2>
+<div class="grid-2">
+<div class="card"><h4>Your repository should contain</h4><ol style="margin-bottom:0"><li>Source data generation</li><li>Bronze ingestion</li><li>Silver transformation</li><li>Gold facts and dimensions</li><li>Incremental MERGE logic</li><li>SCD Type 2</li><li>Quality framework</li><li>Reconciliation and audit tables</li><li>Lakeflow job configuration</li><li>Monitoring and notifications</li><li>Unity Catalog security</li><li>Power BI dashboard</li><li>Git and CI/CD configuration</li><li>Automated tests</li><li>Architecture docs</li><li>Operations guide</li><li>Recovery procedures</li><li>Performance and cost assessment</li></ol></div>
+<div class="card"><h4>What makes it production-oriented</h4><p>Not that notebooks run, but that the platform:</p><ul style="margin-bottom:0"><li>processes new and changed data correctly,</li><li>recovers safely from failures,</li><li>preserves history,</li><li>detects incorrect or incomplete data,</li><li>meets reporting deadlines,</li><li>protects sensitive information,</li><li>scales within performance and cost limits,</li><li>deploys consistently,</li><li>can be run by someone other than its author.</li></ul><p style="margin:8px 0 0" class="ref">The zip already covers items 1–8 and part of 9; the rest are yours to add.</p></div>
+</div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Course Complete</h2>
+<div class="callout key"><span class="label">You've finished the Databricks learning path</span><p>Twenty-four chapters: from what a lakehouse is, through Spark, Delta, ingestion, modeling, quality, security, monitoring, DevOps, cost, and advanced topics, to a complete platform. You now have a portfolio project that shows <strong>end-to-end data engineering</strong>, not just familiarity with PySpark commands: reliable, testable, governed, observable, and ready to support real reporting.</p></div>
+<div class="grid-2">
+<div class="card"><h4>Next steps</h4><ol style="margin-bottom:0"><li>Run the zip on Free Edition: batch 1, 2, 3, and compare with the outputs above.</li><li>Swap the sample generator for Auto Loader on real files.</li><li>Add Chapter 21's tests and GitHub workflows.</li><li>Build the Power BI report and the pipeline-health page.</li><li>Pick your Chapter 23 specialization.</li><li>Consider the Databricks Certified Data Engineer Associate exam.</li></ol></div>
+<div class="card"><h4>Talking about it in interviews</h4><ul style="margin-bottom:0"><li>Why SCD2 first versions start at 1900-01-01, and what breaks otherwise.</li><li>Why facts join to the version valid at sale time.</li><li>How the quality gate distinguishes explained from unexplained differences.</li><li>Why every task is idempotent, and how you proved it.</li><li>How a payment fan-out nearly doubled sales.</li></ul></div>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch24-project-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch24-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — project complete!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-23.html"><span>← Previous</span><strong>Chapter 23: Advanced Topics</strong></a>
+  <a class="pager-link" href="databricks-chapter-1.html"><span>Back to start →</span><strong>Chapter 1: Introduction</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 8 · Chapter 24 of 24 · Course complete</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

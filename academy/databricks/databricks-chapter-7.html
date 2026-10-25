@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 7: PySpark</title>
+<meta name="description" content="Databricks Tutorial — Chapter 7: PySpark Fundamentals. DataFrames, schemas, operations, joins, aggregations, windows, UDFs, nested data, JSON, pivoting, and a retail transformation pipeline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 7 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s7-1">7.1 Introduction to PySpark</a></li>
+    <li class="lvl2"><a href="#s7-1-1">What is PySpark?</a></li>
+    <li class="lvl2"><a href="#s7-1-2">PySpark vs pandas</a></li>
+    <li class="lvl2"><a href="#s7-1-3">SparkSession</a></li>
+    <li class="lvl2"><a href="#s7-1-4">Spark DataFrames</a></li>
+    <li class="lvl2"><a href="#s7-1-5">From Python collections</a></li>
+    <li class="lvl2"><a href="#s7-1-6">Loading data</a></li>
+    <li class="lvl1"><a href="#s7-2">7.2 Schema Management</a></li>
+    <li class="lvl2"><a href="#s7-2-1">Explicit schemas</a></li>
+    <li class="lvl2"><a href="#s7-2-2">Data types</a></li>
+    <li class="lvl2"><a href="#s7-2-3">DataFrame with schema</a></li>
+    <li class="lvl2"><a href="#s7-2-4">Inference vs explicit</a></li>
+    <li class="lvl1"><a href="#s7-3">7.3 DataFrame Operations</a></li>
+    <li class="lvl2"><a href="#s7-3-1">select()</a></li>
+    <li class="lvl2"><a href="#s7-3-2">filter() / where()</a></li>
+    <li class="lvl2"><a href="#s7-3-3">withColumn()</a></li>
+    <li class="lvl2"><a href="#s7-3-4">withColumnRenamed()</a></li>
+    <li class="lvl2"><a href="#s7-3-5">drop()</a></li>
+    <li class="lvl2"><a href="#s7-3-6">distinct / dropDuplicates</a></li>
+    <li class="lvl2"><a href="#s7-3-7">orderBy()</a></li>
+    <li class="lvl2"><a href="#s7-3-8">groupBy()</a></li>
+    <li class="lvl2"><a href="#s7-3-9">agg()</a></li>
+    <li class="lvl2"><a href="#s7-3-10">union / unionByName</a></li>
+    <li class="lvl1"><a href="#s7-4">7.4 Joins and Aggregations</a></li>
+    <li class="lvl2"><a href="#s7-4-1">Inner join</a></li>
+    <li class="lvl2"><a href="#s7-4-2">Left join</a></li>
+    <li class="lvl2"><a href="#s7-4-3">Full outer join</a></li>
+    <li class="lvl2"><a href="#s7-4-4">Left anti join</a></li>
+    <li class="lvl2"><a href="#s7-4-5">Left semi join</a></li>
+    <li class="lvl2"><a href="#s7-4-6">Multiple-column joins</a></li>
+    <li class="lvl2"><a href="#s7-4-7">Aggregation functions</a></li>
+    <li class="lvl2"><a href="#s7-4-8">Conditional aggregations</a></li>
+    <li class="lvl2"><a href="#s7-4-9">Duplicate keys</a></li>
+    <li class="lvl2"><a href="#s7-4-10">Null handling</a></li>
+    <li class="lvl1"><a href="#s7-5">7.5 Advanced PySpark</a></li>
+    <li class="lvl2"><a href="#s7-5-1">Window functions</a></li>
+    <li class="lvl2"><a href="#s7-5-2">UDFs</a></li>
+    <li class="lvl2"><a href="#s7-5-3">Higher-order functions</a></li>
+    <li class="lvl2"><a href="#s7-5-4">Arrays and maps</a></li>
+    <li class="lvl2"><a href="#s7-5-5">Structs</a></li>
+    <li class="lvl2"><a href="#s7-5-6">explode()</a></li>
+    <li class="lvl2"><a href="#s7-5-7">Pivot</a></li>
+    <li class="lvl2"><a href="#s7-5-8">Unpivot</a></li>
+    <li class="lvl2"><a href="#s7-5-9">Complex JSON</a></li>
+    <li class="lvl1"><a href="#s7-6">7.6 Project: Retail Pipeline</a></li>
+    <li class="lvl2"><a href="#p-setup">Steps 1–5: Source data</a></li>
+    <li class="lvl2"><a href="#p-clean">Steps 6–9: Clean &amp; validate</a></li>
+    <li class="lvl2"><a href="#p-enrich">Steps 10–14: Enrich &amp; aggregate</a></li>
+    <li class="lvl2"><a href="#p-recon">Steps 15–16: Reconcile &amp; save</a></li>
+    <li class="lvl1"><a href="#s7-7">7.7 Performance Practices</a></li>
+    <li class="lvl1"><a href="#s7-8">7.8 Troubleshooting</a></li>
+    <li class="lvl1"><a href="#s7-9">7.9 Knowledge Check</a></li>
+    <li class="lvl1"><a href="#s7-10">7.10 Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 3 · Chapter 7 · PySpark &amp; Data Transformation</span>
+  <h1>PySpark Fundamentals</h1>
+  <p class="lead">Process real-world data with Python and Apache Spark: transform large datasets, join multiple sources, handle complex data structures, and build a practical retail transformation pipeline.</p>
+  <p>PySpark is one of the core technologies for scalable ETL and ELT pipelines in Databricks. Throughout this chapter, a retail company's customer, product, order, and order-item datasets are your running example; your job is to turn them into clean, reliable data ready for reporting and analytics.</p>
+  <div class="table-wrap"><table>
+  <thead><tr><th>Section</th><th>Topic</th><th>What you'll learn</th></tr></thead>
+  <tbody>
+  <tr><td><a href="#s7-1">7.1</a></td><td>Introduction to PySpark</td><td>SparkSession, DataFrames, Python collections, loading data</td></tr>
+  <tr><td><a href="#s7-2">7.2</a></td><td>Schema Management</td><td>Data types, explicit schemas, schema inference</td></tr>
+  <tr><td><a href="#s7-3">7.3</a></td><td>DataFrame Operations</td><td>Selecting, filtering, transforming, sorting, grouping, combining</td></tr>
+  <tr><td><a href="#s7-4">7.4</a></td><td>Joins and Aggregations</td><td>Joining datasets, duplicates and nulls, calculating metrics</td></tr>
+  <tr><td><a href="#s7-5">7.5</a></td><td>Advanced PySpark</td><td>Windows, UDFs, arrays, maps, structs, JSON, pivoting</td></tr>
+  <tr><td><a href="#s7-6">7.6</a></td><td>Hands-on project</td><td>End-to-end customer, product, order, and order-item pipeline</td></tr>
+  </tbody></table></div>
+</section>
+
+<!-- ===================== 7.1 ===================== -->
+<h2 id="s7-1"><span class="num">7.1</span>Introduction to PySpark</h2>
+
+<h3 id="s7-1-1"><span class="num">7.1.1</span>What is PySpark?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>PySpark is the Python API for Apache Spark. It lets you write Python code that Spark executes with its distributed processing engine, across multiple CPU cores or machines.</p></div>
+<p>Imagine 500 million sales records. With pandas you might write:</p>
+<div class="code-wrap"><span class="lang">Python · pandas</span><pre class="code"><code>import pandas as pd
+
+df = pd.read_csv("sales.csv")
+
+result = (
+    df[df["amount"] &gt; 1000]
+    .groupby("region")["amount"]
+    .sum()
+)
+
+print(result)</code></pre></div>
+<p>That works when the data and intermediate results fit in your Python process's memory. With PySpark:</p>
+<div class="code-wrap"><span class="lang">Python · PySpark</span><pre class="code"><code>from pyspark.sql import functions as F
+
+df = spark.read.csv(
+    "/data/sales.csv",
+    header=True,
+    inferSchema=True
+)
+
+result = (
+    df.filter(F.col("amount") &gt; 1000)
+      .groupBy("region")
+      .agg(F.sum("amount").alias("total_sales"))
+)
+
+result.show()</code></pre></div>
+<p>Spark can distribute this work across multiple executors, depending on compute resources and the execution plan.</p>
+<h4>How does PySpark work?</h4>
+<div class="grid-2">
+<pre class="diagram">  Your Python code
+         |
+         v
+  PySpark API
+  (builds a Spark plan)
+         |
+         v
+  Spark driver
+  (coordinates, splits
+   work into tasks)
+         |
+   +-----+-----+
+   |     |     |
+   v     v     v
+ Exec  Exec  Exec
+ (process partitions)
+   |     |     |
+   +-----+-----+
+         |
+         v
+ Results combined
+ or written out</pre>
+<ol class="steps">
+  <li>You write Python code.</li>
+  <li>PySpark builds a Spark execution plan.</li>
+  <li>The Spark driver coordinates the work.</li>
+  <li>Spark divides the work into tasks.</li>
+  <li>Executors process data partitions.</li>
+  <li>Spark combines the results or writes the output.</li>
+</ol>
+</div>
+<div class="callout"><span class="label">Important</span><p>PySpark doesn't mean Python itself distributes your code across machines. PySpark talks to Spark's execution engine, which manages the distributed processing.</p></div>
+<h4>Common use cases</h4>
+<p>Processing large CSV, JSON, and Parquet datasets; transforming Delta Lake tables; joining large datasets; cleaning and validating source data; building Bronze → Silver → Gold pipelines; reporting aggregations; streaming; and preparing data for machine learning. A typical Databricks pipeline reads customer data from Azure Data Lake Storage, cleans it with PySpark, and writes Delta tables.</p>
+
+<h3 id="s7-1-2"><span class="num">7.1.2</span>PySpark versus pandas</h3>
+<p>Both offer DataFrame APIs, but their execution models differ.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>pandas</th><th>PySpark</th></tr></thead>
+<tbody>
+<tr><td>Primary purpose</td><td>Data analysis and transformation</td><td>Distributed data processing</td></tr>
+<tr><td>Execution</td><td>Usually within one Python process</td><td>Spark execution engine</td></tr>
+<tr><td>Data distribution</td><td>Generally one machine's memory</td><td>Can distribute across executors</td></tr>
+<tr><td>Startup overhead</td><td>Low</td><td>Higher</td></tr>
+<tr><td>Small datasets</td><td>Often faster and simpler</td><td>May be unnecessary overhead</td></tr>
+<tr><td>Very large datasets</td><td>May run out of memory</td><td>Scales with available compute</td></tr>
+<tr><td>Lazy evaluation</td><td>Generally eager</td><td>Most transformations are lazy</td></tr>
+<tr><td>SQL optimization</td><td>pandas-specific execution</td><td>Spark SQL optimizer</td></tr>
+<tr><td>Databricks integration</td><td>Supported</td><td>Native</td></tr>
+<tr><td>Distributed joins/aggregations</td><td>Not native</td><td>Built in</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">pandas</span><pre class="code"><code>import pandas as pd
+
+data = {
+    "customer_id": [101, 102, 103],
+    "city": ["Hyderabad", "Bengaluru", "Chennai"],
+    "sales": [5000, 7000, 3000]
+}
+
+df = pd.DataFrame(data)
+
+result = df[df["sales"] &gt; 4000]
+
+print(result)</code></pre></div>
+<div class="code-wrap"><span class="lang">PySpark equivalent</span><pre class="code"><code>data = [
+    (101, "Hyderabad", 5000),
+    (102, "Bengaluru", 7000),
+    (103, "Chennai", 3000)
+]
+
+columns = ["customer_id", "city", "sales"]
+
+df = spark.createDataFrame(data, columns)
+
+result = df.filter(df.sales &gt; 4000)
+
+result.show()</code></pre></div>
+</div>
+<p>Both return customers with sales above 4,000. PySpark can distribute the operation when the DataFrame is backed by distributed data and multiple executors are available.</p>
+<div class="callout key"><span class="label">Practical rule</span><p>Use pandas for small, local datasets. Use PySpark when you need distributed execution, Databricks integration, or scalable processing.</p></div>
+
+<h3 id="s7-1-3"><span class="num">7.1.3</span>Creating a SparkSession</h3>
+<p><code>SparkSession</code> is the entry point for Spark DataFrames and Spark SQL. In Databricks notebooks, one named <code>spark</code> is available automatically.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.range(1, 6)
+
+df.show()</code></pre></div>
+<pre class="diagram">+---+
+| id|
++---+
+|  1|
+|  2|
+|  3|
+|  4|
+|  5|
++---+</pre>
+</div>
+<p><code>spark.range(1, 6)</code> creates IDs 1 through 5; the end value is exclusive.</p>
+<h4>Outside Databricks</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import SparkSession
+
+spark = (
+    SparkSession.builder
+    .appName("RetailDataEngineering")
+    .getOrCreate()
+)
+
+# Local learning environment: use all local CPU cores
+spark = (
+    SparkSession.builder
+    .appName("PySparkLearning")
+    .master("local[*]")
+    .getOrCreate()
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Part</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>SparkSession.builder</code></td><td>Starts the session configuration</td></tr>
+<tr><td><code>appName()</code></td><td>Assigns an application name</td></tr>
+<tr><td><code>master("local[*]")</code></td><td>Uses all CPU cores on the local machine</td></tr>
+<tr><td><code>getOrCreate()</code></td><td>Returns an existing session or creates one</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">In Databricks</span><p>Don't set <code>.master("local[*]")</code> inside a Databricks notebook. Databricks manages the compute environment for you.</p></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print(spark.version)                  # Spark version
+print(spark.sparkContext.appName)     # current application</code></pre></div>
+<p class="ref">The Spark UI, where available, shows jobs, stages, tasks, and execution details. On serverless compute, <code>spark.sparkContext</code> may not be accessible.</p>
+
+<h3 id="s7-1-4"><span class="num">7.1.4</span>Working with Spark DataFrames</h3>
+<p>A Spark DataFrame is a distributed collection of rows organized into named columns.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>customer_name</th><th>city</th><th>age</th></tr></thead>
+<tbody><tr><td>101</td><td>Ravi</td><td>Hyderabad</td><td>30</td></tr><tr><td>102</td><td>Priya</td><td>Bengaluru</td><td>28</td></tr><tr><td>103</td><td>Arjun</td><td>Chennai</td><td>35</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>data = [
+    (101, "Ravi", "Hyderabad", 30),
+    (102, "Priya", "Bengaluru", 28),
+    (103, "Arjun", "Chennai", 35)
+]
+
+columns = ["customer_id", "customer_name", "city", "age"]
+
+customers_df = spark.createDataFrame(data, columns)
+
+customers_df.show()          # plain text output
+display(customers_df)        # richer Databricks display
+customers_df.show(5)         # first five rows
+print(customers_df.columns)  # column names
+customers_df.printSchema()   # schema
+customers_df.count()         # 3 (an action: triggers computation)
+
+customers_df.select("customer_id", "customer_name").show()
+
+customers_df.filter(customers_df.age &gt;= 30).show()   # Ravi and Arjun</code></pre></div>
+<pre class="diagram">root
+ |-- customer_id: long (nullable = true)
+ |-- customer_name: string (nullable = true)
+ |-- city: string (nullable = true)
+ |-- age: long (nullable = true)</pre>
+<p class="ref">Python integers are inferred as Spark's <code>LongType</code> here.</p>
+
+<h3 id="s7-1-5"><span class="num">7.1.5</span>Creating DataFrames from Python collections</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">A · list of tuples</span><pre class="code"><code>data = [
+    (1, "Laptop", 55000),
+    (2, "Mobile", 25000),
+    (3, "Tablet", 18000)
+]
+
+df = spark.createDataFrame(
+    data,
+    ["product_id", "product_name", "price"]
+)
+
+df.show()</code></pre></div>
+<div class="code-wrap"><span class="lang">B · list of dictionaries</span><pre class="code"><code>data = [
+    {"customer_id": 101,
+     "name": "Ravi",
+     "city": "Hyderabad"},
+    {"customer_id": 102,
+     "name": "Priya",
+     "city": "Bengaluru"}
+]
+
+df = spark.createDataFrame(data)
+
+df.show()</code></pre></div>
+<div class="code-wrap"><span class="lang">C · Row</span><pre class="code"><code>from pyspark.sql import Row
+
+Customer = Row(
+    "customer_id",
+    "customer_name",
+    "city"
+)
+
+data = [
+    Customer(101, "Ravi", "Hyderabad"),
+    Customer(102, "Priya", "Bengaluru")
+]
+
+df = spark.createDataFrame(data)
+
+df.show()</code></pre></div>
+<div class="code-wrap"><span class="lang">D · generated sample data</span><pre class="code"><code># Ten rows: 1 to 10
+df = spark.range(1, 11)
+
+df.show()</code></pre></div>
+</div>
+<p class="ref">For reliable production pipelines, define the schema explicitly rather than relying on inference.</p>
+<div class="callout warn"><span class="label">Performance consideration</span><p><code>spark.createDataFrame()</code> is convenient for small local collections. Don't collect millions of records into a Python list and then build a DataFrame: the data lands in driver memory first and can cause memory problems.</p></div>
+
+<h3 id="s7-1-6"><span class="num">7.1.6</span>Loading data into DataFrames</h3>
+<p>In data engineering, data usually comes from storage rather than hand-built lists. Spark supports CSV, JSON, Parquet, ORC, Delta, and more.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># A. CSV (paths are examples; use your own locations)
+df = (
+    spark.read
+    .option("header", True)        # first row = column names
+    .option("inferSchema", True)   # attempt to infer types
+    .csv("/Volumes/main/retail/raw/customers.csv")
+)
+
+# B. JSON
+df = spark.read.json("/Volumes/main/retail/raw/customers.json")
+
+# C. Parquet
+df = spark.read.parquet("/Volumes/main/retail/raw/customers/")
+
+# D. Delta table (registered)
+df = spark.table("main.retail.silver_customers")
+
+# D. Delta table (by path)
+df = (
+    spark.read
+    .format("delta")
+    .load("/path/to/delta/table")
+)
+
+# E. Unity Catalog table
+df = spark.read.table("main.retail.silver_customers")
+
+# E. SQL query
+df = spark.sql("""
+    SELECT customer_id, customer_name, city
+    FROM main.retail.silver_customers
+    WHERE city = 'Hyderabad'
+""")</code></pre></div>
+<p>PySpark and Spark SQL are complementary: use whichever expresses the transformation most clearly.</p>
+<div class="callout"><span class="label">Section 7.1 recap</span><p>You now know what PySpark is, how it differs from pandas, what a SparkSession does, how to create and inspect DataFrames, and how to read CSV, JSON, Parquet, and Delta data.</p></div>
+
+<!-- ===================== 7.2 ===================== -->
+<h2 id="s7-2"><span class="num">7.2</span>Schema Management</h2>
+<p>A schema defines a dataset's structure: column names, data types, nullability, and nested structures. It's essential in production pipelines.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Type</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>order_id</td><td>Long</td><td>50001</td></tr>
+<tr><td>customer_id</td><td>Long</td><td>101</td></tr>
+<tr><td>order_date</td><td>Date</td><td>2026-10-20</td></tr>
+<tr><td>amount</td><td>Decimal</td><td>15999.50</td></tr>
+<tr><td>order_status</td><td>String</td><td>Completed</td></tr>
+</tbody></table></div>
+<p>Without schema management, data can be misread. A monetary amount read as a string makes calculations harder and error-prone.</p>
+
+<h3 id="s7-2-1"><span class="num">7.2.1</span>Defining an explicit schema</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    LongType,
+    DecimalType,
+    DateType,
+    TimestampType
+)
+
+customer_schema = StructType([
+    StructField("customer_id", LongType(), False),
+    StructField("customer_name", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("age", IntegerType(), True)
+])</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>StructType</h4><p style="margin-bottom:0">A schema made up of multiple fields: the whole table structure.</p></div>
+  <div class="card"><h4>StructField</h4><p>Defines one column:</p><p style="margin-bottom:0"><code>StructField("column_name", DataType(), nullable=True)</code></p></div>
+</div>
+<p><code>StructField("customer_id", LongType(), False)</code> defines a long-integer column named <code>customer_id</code> with <code>nullable=False</code>.</p>
+<div class="callout warn"><span class="label">Important</span><p><code>nullable=False</code> declares an expectation. It doesn't replace explicit data-quality validation, and it doesn't guarantee every source or transformation will reject nulls.</p></div>
+
+<h3 id="s7-2-2"><span class="num">7.2.2</span>Important PySpark data types</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>PySpark type</th><th>Purpose</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>StringType</td><td>Text: names, descriptions, codes</td><td>"Hyderabad"</td></tr>
+<tr><td>IntegerType</td><td>32-bit integer</td><td>100</td></tr>
+<tr><td>LongType</td><td>64-bit integer, including many identifiers</td><td>9876543210</td></tr>
+<tr><td>DecimalType</td><td>Fixed-precision decimal</td><td>15999.50</td></tr>
+<tr><td>DateType</td><td>Calendar date, no time</td><td>2026-10-25</td></tr>
+<tr><td>TimestampType</td><td>Date and time</td><td>2026-10-25 10:30:00</td></tr>
+<tr><td>BooleanType</td><td>True or false</td><td>True</td></tr>
+<tr><td>DoubleType</td><td>Floating-point number</td><td>125.75</td></tr>
+<tr><td>ArrayType</td><td>Collection of elements</td><td>["A", "B"]</td></tr>
+<tr><td>MapType</td><td>Key-value collection</td><td>{"color": "blue"}</td></tr>
+<tr><td>StructType</td><td>Nested record</td><td>{"city": "Hyderabad"}</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+  <div class="card"><h4>DecimalType(12, 2)</h4><p style="margin-bottom:0">Up to 12 total digits, 2 after the decimal point, e.g. <code>1234567890.12</code>. For currency and financial calculations, fixed-precision decimals are generally preferable to floating-point.</p></div>
+  <div class="card"><h4>TimestampType and time zones</h4><p style="margin-bottom:0">Be deliberate with timestamps from multiple systems. Sources may be UTC, local time, or timezone-free. Don't assume they share an interpretation.</p></div>
+</div>
+
+<h3 id="s7-2-3"><span class="num">7.2.3</span>Create a DataFrame using an explicit schema</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from datetime import date
+from decimal import Decimal
+
+customer_data = [
+    (101, "Ravi", "Hyderabad", 30),
+    (102, "Priya", "Bengaluru", 28),
+    (103, "Arjun", "Chennai", 35)
+]
+
+customer_schema = StructType([
+    StructField("customer_id", LongType(), False),
+    StructField("customer_name", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("age", IntegerType(), True)
+])
+
+customers_df = spark.createDataFrame(
+    customer_data,
+    schema=customer_schema
+)
+
+customers_df.printSchema()
+customers_df.show()</code></pre></div>
+<pre class="diagram">root
+ |-- customer_id: long (nullable = false)
+ |-- customer_name: string (nullable = true)
+ |-- city: string (nullable = true)
+ |-- age: integer (nullable = true)</pre>
+<p>Now an order dataset, with dates and decimals:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_schema = StructType([
+    StructField("order_id", LongType(), False),
+    StructField("customer_id", LongType(), False),
+    StructField("order_date", DateType(), True),
+    StructField("amount", DecimalType(12, 2), True),
+    StructField("order_status", StringType(), True)
+])
+
+order_data = [
+    (50001, 101, date(2026, 10, 20), Decimal("15999.50"), "Completed"),
+    (50002, 102, date(2026, 10, 21), Decimal("2500.00"), "Pending")
+]
+
+orders_df = spark.createDataFrame(
+    order_data,
+    schema=order_schema
+)
+
+orders_df.printSchema()
+orders_df.show()</code></pre></div>
+
+<h3 id="s7-2-4"><span class="num">7.2.4</span>Schema inference versus explicit schemas</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Schema inference</span><pre class="code"><code>df = (
+    spark.read
+    .option("header", True)
+    .option("inferSchema", True)
+    .csv("/path/to/customers.csv")
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Explicit schema</span><pre class="code"><code>df = (
+    spark.read
+    .option("header", True)
+    .schema(customer_schema)
+    .csv("/path/to/customers.csv")
+)</code></pre></div>
+<div class="card"><h4>Inference</h4><p><strong>Pros:</strong> convenient for exploration, less code, good for discovering unfamiliar data.</p><p style="margin-bottom:0"><strong>Cons:</strong> extra data inspection, unexpected types, behavior shifts when the source changes, less predictable in production.</p></div>
+<div class="card"><h4>Explicit</h4><p style="margin-bottom:0"><strong>Pros:</strong> expected types are explicit, more predictable, standardizes pipelines, no dependence on inference.</p></div>
+</div>
+<div class="callout warn"><span class="label">Note</span><p>An explicit schema doesn't make malformed input valid. Invalid values may fail conversion, become null under some parsing modes, or be handled per the reader's configured behavior.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Situation</th><th>Recommended approach</th></tr></thead>
+<tbody>
+<tr><td>Exploring a new dataset</td><td>Schema inference can be convenient</td></tr>
+<tr><td>Production ingestion</td><td>Prefer a defined schema</td></tr>
+<tr><td>Financial data</td><td>Use appropriate decimal precision</td></tr>
+<tr><td>Dates and timestamps</td><td>Define and validate formats</td></tr>
+<tr><td>Nested JSON</td><td>Define or carefully inspect the nested schema</td></tr>
+<tr><td>Frequently changing source</td><td>Combine schema controls with data-quality checks</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 7.3 ===================== -->
+<h2 id="s7-3"><span class="num">7.3</span>DataFrame Operations</h2>
+<p class="section-intro">The core of everyday PySpark development. Most transformations build a logical plan rather than immediately processing every row.</p>
+<div class="code-wrap"><span class="lang">Python · sample product data</span><pre class="code"><code>from pyspark.sql import functions as F
+
+products_data = [
+    (1, "Laptop", "Electronics", 55000.00, 10),
+    (2, "Mobile", "Electronics", 25000.00, 20),
+    (3, "Chair", "Furniture", 5000.00, 15),
+    (4, "Desk", "Furniture", 12000.00, 8),
+    (5, "Tablet", "Electronics", 18000.00, 12)
+]
+
+products_df = spark.createDataFrame(
+    products_data,
+    ["product_id", "product_name", "category", "price", "stock_quantity"]
+)</code></pre></div>
+
+<h3 id="s7-3-1"><span class="num">7.3.1</span>select()</h3>
+<p>Choose columns or calculate new expressions.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.select(
+    "product_id",
+    "product_name",
+    "price"
+).show()
+
+# Select and calculate (illustrative 18% tax)
+products_df.select(
+    "product_name",
+    (F.col("price") * 1.18).alias("price_with_tax")
+).show()</code></pre></div>
+<p class="ref">The actual tax rate depends on the product and applicable rules.</p>
+
+<h3 id="s7-3-2"><span class="num">7.3.2</span>filter() and where()</h3>
+<p>Both filter rows by a condition; they are equivalent.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.filter(F.col("price") &gt; 20000).show()
+products_df.where(F.col("price") &gt; 20000).show()
+
+# Multiple conditions: wrap each in parentheses
+products_df.filter(
+    (F.col("category") == "Electronics") &amp;
+    (F.col("price") &gt; 20000)
+).show()
+
+products_df.filter(
+    (F.col("category") == "Furniture") |
+    (F.col("price") &gt; 30000)
+).show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Operator</th><th>Meaning</th></tr></thead>
+<tbody><tr><td><code>&amp;</code></td><td>AND</td></tr><tr><td><code>|</code></td><td>OR</td></tr><tr><td><code>~</code></td><td>NOT</td></tr></tbody></table></div>
+
+<h3 id="s7-3-3"><span class="num">7.3.3</span>withColumn()</h3>
+<p>Add a column or replace an existing one.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># New column: unit price x stock quantity
+products_df = products_df.withColumn(
+    "stock_value",
+    F.col("price") * F.col("stock_quantity")
+)
+
+# Conditional column
+products_df = products_df.withColumn(
+    "price_category",
+    F.when(F.col("price") &gt;= 30000, "High")
+     .when(F.col("price") &gt;= 10000, "Medium")
+     .otherwise("Low")
+)
+
+# Change a column's type (customers_df from Section 7.2)
+customers_df = customers_df.withColumn(
+    "customer_id",
+    F.col("customer_id").cast("long")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Careful with casts</span><p>Invalid conversions may produce nulls or errors depending on the data type and Spark's evaluation mode.</p></div>
+<div class="callout key"><span class="label">Performance tip</span><p>Avoid long chains of many <code>withColumn()</code> calls when one <code>select()</code> can express the transformations more clearly.</p></div>
+
+<h3 id="s7-3-4"><span class="num">7.3.4</span>withColumnRenamed()</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>renamed_df = products_df.withColumnRenamed(
+    "product_name",
+    "product_description"
+)</code></pre></div>
+<p>This returns a <em>new</em> DataFrame; the original isn't modified in place. The result goes into a new variable here so <code>products_df</code> keeps its columns for the examples that follow.</p>
+
+<h3 id="s7-3-5"><span class="num">7.3.5</span>drop()</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>trimmed_df = products_df.drop("stock_quantity")
+
+trimmed_df = products_df.drop(
+    "stock_value",
+    "price_category"
+)</code></pre></div>
+<p class="ref">Confirm dropped columns aren't needed by downstream transformations.</p>
+
+<h3 id="s7-3-6"><span class="num">7.3.6</span>distinct() and dropDuplicates()</h3>
+<div class="grid-2">
+<div class="card"><h4>distinct()</h4><p>Removes duplicate rows across <strong>all</strong> columns.</p><div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df_distinct = products_df.distinct()</code></pre></div></div>
+<div class="card"><h4>dropDuplicates()</h4><p>Removes duplicates based on <strong>selected</strong> columns.</p><div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df_unique = products_df.dropDuplicates(
+    ["product_id"]
+)</code></pre></div></div>
+</div>
+<div class="callout warn"><span class="label">Important</span><p>If several records share a <code>product_id</code>, <code>dropDuplicates(["product_id"])</code> doesn't let you choose which one survives. When duplicates have different update timestamps, use a window function to keep the latest valid record deterministically (Section 7.5).</p></div>
+
+<h3 id="s7-3-7"><span class="num">7.3.7</span>orderBy()</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.orderBy(F.col("price").desc()).show()
+
+products_df.orderBy(F.col("price").asc()).show()
+
+products_df.orderBy(
+    F.col("category").asc(),
+    F.col("price").desc()
+).show()</code></pre></div>
+<p class="ref">On a large distributed DataFrame, a global sort can be expensive because Spark coordinates data across partitions.</p>
+
+<h3 id="s7-3-8"><span class="num">7.3.8</span>groupBy()</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.groupBy(
+    "category"
+).count().show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>category</th><th>count</th></tr></thead>
+<tbody><tr><td>Electronics</td><td>3</td></tr><tr><td>Furniture</td><td>2</td></tr></tbody></table></div>
+</div>
+<div class="code-wrap"><span class="lang">Python · total stock value per category</span><pre class="code"><code>products_df.groupBy("category").agg(
+    F.sum(
+        F.col("price") * F.col("stock_quantity")
+    ).alias("total_stock_value")
+).show()</code></pre></div>
+
+<h3 id="s7-3-9"><span class="num">7.3.9</span>agg()</h3>
+<p><code>agg()</code> computes multiple aggregates at once, with or without grouping.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.groupBy("category").agg(
+    F.count("*").alias("product_count"),
+    F.avg("price").alias("average_price"),
+    F.min("price").alias("minimum_price"),
+    F.max("price").alias("maximum_price"),
+    F.sum("stock_quantity").alias("total_stock")
+).show()
+
+# Without grouping: one row of overall metrics
+products_df.agg(
+    F.count("*").alias("total_products"),
+    F.avg("price").alias("average_price"),
+    F.sum("stock_quantity").alias("total_stock")
+).show()</code></pre></div>
+
+<h3 id="s7-3-10"><span class="num">7.3.10</span>union() and unionByName()</h3>
+<p>Both combine DataFrames vertically.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">union(): by position</span><pre class="code"><code>df1 = spark.createDataFrame(
+    [(101, "Ravi")],
+    ["customer_id", "customer_name"]
+)
+
+df2 = spark.createDataFrame(
+    [(102, "Priya")],
+    ["customer_id", "customer_name"]
+)
+
+combined = df1.union(df2)
+combined.show()</code></pre></div>
+<div class="code-wrap"><span class="lang">unionByName(): by name</span><pre class="code"><code>df1 = spark.createDataFrame(
+    [(101, "Ravi")],
+    ["customer_id", "customer_name"]
+)
+
+df2 = spark.createDataFrame(
+    [("Priya", 102)],
+    ["customer_name", "customer_id"]
+)
+
+combined = df1.unionByName(df2)
+combined.show()</code></pre></div>
+</div>
+<div class="callout warn"><span class="label">union() aligns by position</span><p>If columns are in a different order, <code>union()</code> may put values in the wrong columns, or fail when types don't match. <code>unionByName()</code> matches columns by name.</p></div>
+<div class="code-wrap"><span class="lang">Python · missing columns</span><pre class="code"><code>combined = df1.unionByName(
+    df2,
+    allowMissingColumns=True   # missing columns are filled with nulls
+)</code></pre></div>
+<p class="ref">Convenient when source schemas evolve, but it can also hide an unexpected schema change.</p>
+
+<!-- ===================== 7.4 ===================== -->
+<h2 id="s7-4"><span class="num">7.4</span>Joins and Aggregations</h2>
+<p class="section-intro">Joins are among the most important operations in data engineering.</p>
+<div class="grid-2">
+<div><h5>Customers</h5><div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>customer_name</th></tr></thead>
+<tbody><tr><td>101</td><td>Ravi</td></tr><tr><td>102</td><td>Priya</td></tr><tr><td>103</td><td>Arjun</td></tr></tbody></table></div></div>
+<div><h5>Orders</h5><div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr></thead>
+<tbody><tr><td>5001</td><td>101</td><td>5000</td></tr><tr><td>5002</td><td>101</td><td>3000</td></tr><tr><td>5003</td><td>102</td><td>7000</td></tr><tr><td>5004</td><td>104</td><td>2000</td></tr></tbody></table></div></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_df = spark.createDataFrame(
+    [(101, "Ravi"), (102, "Priya"), (103, "Arjun")],
+    ["customer_id", "customer_name"]
+)
+
+orders_df = spark.createDataFrame(
+    [
+        (5001, 101, 5000.00),
+        (5002, 101, 3000.00),
+        (5003, 102, 7000.00),
+        (5004, 104, 2000.00)
+    ],
+    ["order_id", "customer_id", "amount"]
+)</code></pre></div>
+
+<h3 id="s7-4-1"><span class="num">7.4.1</span>Inner join</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>inner_df = orders_df.join(
+    customers_df,
+    on="customer_id",
+    how="inner"
+)
+
+inner_df.show()</code></pre></div>
+<p>Returns orders for customers 101 and 102 only. Order 5004 is excluded (customer 104 doesn't exist), and customer 103 is absent (no orders). Use it when you only want records with matching keys on both sides: orders with valid customers, sales with matching products, transactions with matching accounts.</p>
+
+<h3 id="s7-4-2"><span class="num">7.4.2</span>Left join</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>left_df = orders_df.join(
+    customers_df,
+    on="customer_id",
+    how="left"
+)</code></pre></div>
+<p>Includes order 5004 with a null customer name. Use it to keep every record from the primary dataset even when a lookup is missing, which is common in ETL validation, where you keep all incoming orders while flagging those with invalid customers.</p>
+
+<h3 id="s7-4-3"><span class="num">7.4.3</span>Full outer join</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>full_df = orders_df.join(
+    customers_df,
+    on="customer_id",
+    how="full_outer"
+)</code></pre></div>
+<p>Keeps matching customers and orders, orders without customers, and customers without orders. Use it for reconciliation, for example finding records missing from either a source or target table.</p>
+
+<h3 id="s7-4-4"><span class="num">7.4.4</span>Left anti join</h3>
+<p>Returns left-side records with <strong>no</strong> matching key on the right.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>unmatched_orders = orders_df.join(
+    customers_df,
+    on="customer_id",
+    how="left_anti"
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr></thead>
+<tbody><tr><td>5004</td><td>104</td><td>2000</td></tr></tbody></table></div>
+</div>
+<p>Useful for finding invalid foreign keys, missing dimension records, unmatched source records, and records needing investigation.</p>
+<div class="code-wrap"><span class="lang">Python · data-quality pattern</span><pre class="code"><code>invalid_orders_df = orders_df.join(
+    customers_df.select("customer_id"),
+    on="customer_id",
+    how="left_anti"
+)</code></pre></div>
+
+<h3 id="s7-4-5"><span class="num">7.4.5</span>Left semi join</h3>
+<p>Returns left-side records that <strong>do</strong> have a match, without adding right-side columns: a distributed "exists" filter.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_orders = orders_df.join(
+    customers_df,
+    on="customer_id",
+    how="left_semi"
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Join</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Inner</td><td>Matching rows, potentially with columns from both sides</td></tr>
+<tr><td>Left semi</td><td>Matching rows from the left side only</td></tr>
+<tr><td>Left anti</td><td>Left-side rows with no matching right-side key</td></tr>
+</tbody></table></div>
+
+<h3 id="s7-4-6"><span class="num">7.4.6</span>Multiple-column joins</h3>
+<p>Sometimes one key isn't enough; for example, product prices that vary by currency. Join on several columns as a composite key:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result_df = order_items_df.join(
+    product_prices_df,
+    on=["product_id", "currency_code"],
+    how="inner"
+)
+
+# Explicit condition with aliases
+a = order_items_df.alias("a")
+b = product_prices_df.alias("b")
+
+result_df = a.join(
+    b,
+    (
+        (F.col("a.product_id") == F.col("b.product_id")) &amp;
+        (F.col("a.currency_code") == F.col("b.currency_code"))
+    ),
+    "left"
+)</code></pre></div>
+<p class="ref">Illustrative: assumes <code>order_items_df</code> and <code>product_prices_df</code> DataFrames that both have <code>product_id</code> and <code>currency_code</code> columns. Use aliases when column names overlap or the join condition is complex.</p>
+
+<h3 id="s7-4-7"><span class="num">7.4.7</span>Aggregation functions</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>count()</code></td><td>Count rows or non-null values, depending on expression</td></tr>
+<tr><td><code>sum()</code></td><td>Total</td></tr>
+<tr><td><code>avg()</code></td><td>Average</td></tr>
+<tr><td><code>min()</code> / <code>max()</code></td><td>Minimum / maximum</td></tr>
+<tr><td><code>countDistinct()</code></td><td>Count distinct non-null values</td></tr>
+<tr><td><code>first()</code></td><td>A first value, per execution semantics</td></tr>
+<tr><td><code>collect_list()</code></td><td>Values into an array, including duplicates</td></tr>
+<tr><td><code>collect_set()</code></td><td>Distinct values into an array</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_df.groupBy("customer_id").agg(
+    F.count("*").alias("order_count"),
+    F.sum("amount").alias("total_amount"),
+    F.avg("amount").alias("average_order_amount"),
+    F.min("amount").alias("minimum_order_amount"),
+    F.max("amount").alias("maximum_order_amount")
+).show()</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p><code>first()</code> and collection aggregations don't give a deterministic business ordering. For the latest or earliest record, use a defined ordering such as a window function.</p></div>
+
+<h3 id="s7-4-8"><span class="num">7.4.8</span>Conditional aggregations</h3>
+<p>Count completed and pending orders, and completed revenue, per customer:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_status_df = spark.createDataFrame(
+    [
+        (5001, 101, 5000.00, "Completed"),
+        (5002, 101, 3000.00, "Pending"),
+        (5003, 102, 7000.00, "Completed"),
+        (5004, 102, 2000.00, "Cancelled")
+    ],
+    ["order_id", "customer_id", "amount", "status"]
+)
+
+customer_metrics = orders_status_df.groupBy("customer_id").agg(
+    F.count("*").alias("total_orders"),
+
+    F.sum(
+        F.when(F.col("status") == "Completed", 1).otherwise(0)
+    ).alias("completed_orders"),
+
+    F.sum(
+        F.when(F.col("status") == "Pending", 1).otherwise(0)
+    ).alias("pending_orders"),
+
+    F.sum(
+        F.when(F.col("status") == "Completed", F.col("amount")).otherwise(0)
+    ).alias("completed_revenue")
+)
+
+customer_metrics.show()</code></pre></div>
+<p class="ref">Widely used for reporting and business KPIs.</p>
+
+<h3 id="s7-4-9"><span class="num">7.4.9</span>Handling duplicate keys</h3>
+<p>Duplicate keys are a frequent cause of incorrect aggregations.</p>
+<div class="grid-2">
+<div><h5>customers</h5><div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>customer_name</th></tr></thead>
+<tbody><tr><td>101</td><td>Ravi</td></tr><tr><td>101</td><td>Ravi Kumar</td></tr><tr><td>102</td><td>Priya</td></tr></tbody></table></div></div>
+<div><h5>orders</h5><div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr></thead>
+<tbody><tr><td>5001</td><td>101</td><td>1000</td></tr><tr><td>5002</td><td>101</td><td>2000</td></tr></tbody></table></div></div>
+</div>
+<div class="callout warn"><span class="label">Row multiplication</span><p>Joining on <code>customer_id</code> gives <strong>four</strong> rows for customer 101 (each order matches each customer record), so summing the join output gives 6,000 instead of 3,000.</p></div>
+<h4>Step 1: Identify duplicate keys</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>duplicate_customers = (
+    customers_df
+    .groupBy("customer_id")
+    .count()
+    .filter(F.col("count") &gt; 1)
+)
+
+duplicate_customers.show()</code></pre></div>
+<h4>Step 2: Determine the business rule</h4>
+<p>Don't drop duplicates without investigating. Possible rules: keep the most recently updated record, keep the authoritative source's record, reject conflicting duplicates, or aggregate them if they're legitimately separate events.</p>
+<h4>Step 3: Deduplicate deterministically</h4>
+<p>Assuming the customer records carry <code>updated_at</code> and <code>ingestion_timestamp</code> columns:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.window import Window
+
+w = Window.partitionBy("customer_id").orderBy(
+    F.col("updated_at").desc_nulls_last(),
+    F.col("ingestion_timestamp").desc_nulls_last()
+)
+
+customers_latest = (
+    customers_df
+    .withColumn("row_num", F.row_number().over(w))
+    .filter(F.col("row_num") == 1)
+    .drop("row_num")
+)</code></pre></div>
+<p class="ref">Include a reliable tie-breaker in the ordering if records can share timestamps.</p>
+
+<h3 id="s7-4-10"><span class="num">7.4.10</span>Null handling</h3>
+<p>Nulls are missing or unknown values, not zero or an empty string.</p>
+<p class="ref">Here <code>df</code> stands for any DataFrame with <code>customer_name</code>, <code>city</code>, and <code>age</code> columns.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Find nulls / non-nulls
+df.filter(F.col("customer_name").isNull()).show()
+df.filter(F.col("customer_name").isNotNull()).show()
+
+# Replace nulls per column
+df_filled = df.fillna({
+    "city": "Unknown",
+    "age": 0
+})
+
+# coalesce(): first non-null expression
+df = df.withColumn(
+    "display_city",
+    F.coalesce(F.col("city"), F.lit("Unknown"))
+)</code></pre></div>
+<div class="callout warn"><span class="label">Business meaning first</span><p>Only replace nulls in ways that make sense. A missing age replaced with 0 could be mistaken for a real value.</p></div>
+<h4>Nulls in joins</h4>
+<p>In ordinary equality joins, null keys don't match other null keys: rows with null <code>customer_id</code> on both sides won't join. For null-safe equality:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>F.col("a.customer_id").eqNullSafe(
+    F.col("b.customer_id")
+)</code></pre></div>
+<p class="ref">Use null-safe joins only when matching two missing keys is logically correct. In most customer and transaction joins, null keys should be investigated, not matched.</p>
+
+<!-- ===================== 7.5 ===================== -->
+<h2 id="s7-5"><span class="num">7.5</span>Advanced PySpark</h2>
+<p class="section-intro">Features you'll need for more complex production transformations.</p>
+
+<h3 id="s7-5-1"><span class="num">7.5.1</span>Window functions</h3>
+<p>Window functions calculate across related rows without collapsing them into one row per group: latest record per customer, ranking products, running totals, comparing with the previous row, finding duplicates.</p>
+<div class="code-wrap"><span class="lang">Python · rank orders by amount</span><pre class="code"><code>from pyspark.sql.window import Window
+
+orders_df = spark.createDataFrame(
+    [
+        (5001, 101, 5000.00),
+        (5002, 101, 3000.00),
+        (5003, 102, 7000.00),
+        (5004, 102, 2000.00)
+    ],
+    ["order_id", "customer_id", "amount"]
+)
+
+w = Window.partitionBy("customer_id").orderBy(F.col("amount").desc())
+
+ranked_df = orders_df.withColumn(
+    "order_rank",
+    F.row_number().over(w)
+)
+
+ranked_df.show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_id</th><th>amount</th><th>order_rank</th></tr></thead>
+<tbody><tr><td>5001</td><td>101</td><td>5000</td><td>1</td></tr><tr><td>5002</td><td>101</td><td>3000</td><td>2</td></tr><tr><td>5003</td><td>102</td><td>7000</td><td>1</td></tr><tr><td>5004</td><td>102</td><td>2000</td><td>2</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>row_number()</code></td><td>Unique sequential number</td></tr>
+<tr><td><code>rank()</code></td><td>Ranks with gaps after ties</td></tr>
+<tr><td><code>dense_rank()</code></td><td>Ranks without gaps</td></tr>
+<tr><td><code>lag()</code> / <code>lead()</code></td><td>Preceding / following row's value</td></tr>
+<tr><td><code>sum().over()</code> / <code>avg().over()</code></td><td>Windowed sum / average</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python · previous amount and running total</span><pre class="code"><code># Previous order amount (null for each customer's first order)
+w = Window.partitionBy("customer_id").orderBy("order_id")
+
+df = orders_df.withColumn(
+    "previous_amount",
+    F.lag("amount").over(w)
+)
+
+# Running total per customer
+w = (
+    Window.partitionBy("customer_id")
+    .orderBy("order_id")
+    .rowsBetween(Window.unboundedPreceding, Window.currentRow)
+)
+
+df = orders_df.withColumn(
+    "running_total",
+    F.sum("amount").over(w)
+)</code></pre></div>
+<div class="callout"><span class="label">Performance note</span><p>Window functions often make Spark repartition and sort data. Partition sensibly and avoid unnecessary windows over very large datasets.</p></div>
+
+<h3 id="s7-5-2"><span class="num">7.5.2</span>User-defined functions (UDFs)</h3>
+<p>A UDF applies custom Python logic to DataFrame values.</p>
+<div class="code-wrap"><span class="lang">Python · UDF version</span><pre class="code"><code>from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+def categorize_amount(amount):
+    if amount is None:
+        return "Unknown"
+    elif amount &gt;= 10000:
+        return "High"
+    elif amount &gt;= 5000:
+        return "Medium"
+    else:
+        return "Low"
+
+categorize_udf = udf(categorize_amount, StringType())
+
+df = orders_df.withColumn(
+    "amount_category",
+    categorize_udf(F.col("amount"))
+)</code></pre></div>
+<div class="callout warn"><span class="label">Why UDFs can be slower</span><p>Ordinary Python UDFs add serialization and Python execution overhead, and Spark can't optimize their internal logic the way it optimizes built-in expressions.</p></div>
+<div class="code-wrap"><span class="lang">Python · built-in version (preferred)</span><pre class="code"><code>df = orders_df.withColumn(
+    "amount_category",
+    F.when(F.col("amount").isNull(), "Unknown")
+     .when(F.col("amount") &gt;= 10000, "High")
+     .when(F.col("amount") &gt;= 5000, "Medium")
+     .otherwise("Low")
+)</code></pre></div>
+<p><strong>Use a UDF when</strong> the logic can't reasonably be expressed with built-in functions, you need specialized Python, and you've measured the performance impact and found it acceptable. Pandas UDFs process data in batches and can be faster for some workloads, but test them; they aren't automatically faster.</p>
+
+<h3 id="s7-5-3"><span class="num">7.5.3</span>Higher-order functions</h3>
+<p>Higher-order functions work on elements inside arrays or maps without exploding each element into its own row.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>array_df = spark.createDataFrame(
+    [
+        (1, [100, 200, 300]),
+        (2, [50, 75, 125])
+    ],
+    ["product_id", "prices"]
+)
+
+# 10% increase on every price
+result_df = array_df.withColumn(
+    "updated_prices",
+    F.transform("prices", lambda x: x * F.lit(1.10))
+)
+
+result_df.show(truncate=False)
+
+# Keep only prices greater than 100
+result_df = array_df.withColumn(
+    "expensive_prices",
+    F.filter("prices", lambda x: x &gt; 100)
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>transform()</code></td><td>Transform each array element</td></tr>
+<tr><td><code>filter()</code></td><td>Keep elements matching a condition</td></tr>
+<tr><td><code>exists()</code></td><td>Whether any element matches</td></tr>
+<tr><td><code>forall()</code></td><td>Whether all elements match</td></tr>
+<tr><td><code>aggregate()</code></td><td>Reduce elements into one result</td></tr>
+</tbody></table></div>
+<p class="ref">Especially useful for nested JSON data.</p>
+
+<h3 id="s7-5-4"><span class="num">7.5.4</span>Arrays and maps</h3>
+<p>An <strong>array</strong> stores multiple elements in one column, e.g. <code>["Laptop", "Mouse", "Keyboard"]</code>. A <strong>map</strong> stores key-value pairs, e.g. <code>{"color": "Black", "size": "Large"}</code>.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Arrays</span><pre class="code"><code>df = spark.createDataFrame(
+    [
+        (101, ["Laptop", "Mouse"]),
+        (102, ["Mobile", "Charger"])
+    ],
+    ["customer_id", "products"]
+)
+
+df = df.withColumn(
+    "product_count",
+    F.size("products")
+)
+
+# element_at() is 1-based
+df = df.withColumn(
+    "first_product",
+    F.element_at("products", 1)
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Maps</span><pre class="code"><code>map_df = spark.createDataFrame(
+    [
+        (1, {"color": "Black",
+             "size": "Large"}),
+        (2, {"color": "White",
+             "size": "Small"})
+    ],
+    ["product_id", "attributes"]
+)
+
+map_df = map_df.withColumn(
+    "color",
+    F.col("attributes").getItem("color")
+)</code></pre></div>
+</div>
+<p class="ref">Maps suit flexible attributes, but frequently queried business attributes are easier to govern as explicit columns.</p>
+
+<h3 id="s7-5-5"><span class="num">7.5.5</span>Structs</h3>
+<p>A struct is a nested record within a column, such as an address with city, state, and pincode.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>struct_df = spark.createDataFrame(
+    [
+        (101, "Hyderabad", "Telangana"),
+        (102, "Bengaluru", "Karnataka")
+    ],
+    ["customer_id", "city", "state"]
+)
+
+struct_df = struct_df.withColumn(
+    "address",
+    F.struct(F.col("city"), F.col("state"))
+)
+
+# Access a nested field
+struct_df.select(
+    "customer_id",
+    F.col("address.city").alias("city")
+).show()</code></pre></div>
+<p class="ref">Structs are common in nested JSON and semi-structured data.</p>
+
+<h3 id="s7-5-6"><span class="num">7.5.6</span>explode()</h3>
+<p><code>explode()</code> turns array elements into individual rows.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_array_df = spark.createDataFrame(
+    [
+        (5001, [1, 2, 3]),
+        (5002, [2, 4])
+    ],
+    ["order_id", "product_ids"]
+)
+
+exploded_df = orders_array_df.select(
+    "order_id",
+    F.explode("product_ids").alias("product_id")
+)
+
+exploded_df.show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>product_id</th></tr></thead>
+<tbody><tr><td>5001</td><td>1</td></tr><tr><td>5001</td><td>2</td></tr><tr><td>5001</td><td>3</td></tr><tr><td>5002</td><td>2</td></tr><tr><td>5002</td><td>4</td></tr></tbody></table></div>
+</div>
+<p class="ref">Use <code>explode_outer()</code> to keep rows whose array is null or empty; plain <code>explode()</code> drops them.</p>
+
+<h3 id="s7-5-7"><span class="num">7.5.7</span>Pivot</h3>
+<p>Pivot turns distinct values of one column into separate columns.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_df = spark.createDataFrame(
+    [
+        ("South", "Jan", 1000),
+        ("South", "Feb", 1200),
+        ("North", "Jan", 1500),
+        ("North", "Feb", 1800)
+    ],
+    ["region", "month", "sales"]
+)
+
+pivot_df = (
+    sales_df
+    .groupBy("region")
+    .pivot("month", ["Jan", "Feb"])
+    .agg(F.sum("sales"))
+)
+
+pivot_df.show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>region</th><th>Jan</th><th>Feb</th></tr></thead>
+<tbody><tr><td>North</td><td>1500</td><td>1800</td></tr><tr><td>South</td><td>1000</td><td>1200</td></tr></tbody></table></div>
+<p class="ref">Listing the expected pivot values saves Spark from discovering every distinct value and gives predictable output columns.</p>
+
+<h3 id="s7-5-8"><span class="num">7.5.8</span>Unpivot</h3>
+<p>Unpivot turns multiple columns into rows, here with Spark SQL's <code>stack()</code>:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>wide_df = spark.createDataFrame(
+    [
+        ("North", 1500, 1800),
+        ("South", 1000, 1200)
+    ],
+    ["region", "Jan", "Feb"]
+)
+
+unpivot_df = wide_df.selectExpr(
+    "region",
+    """
+    stack(
+        2,
+        'Jan', Jan,
+        'Feb', Feb
+    ) AS (month, sales)
+    """
+)
+
+unpivot_df.show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>region</th><th>month</th><th>sales</th></tr></thead>
+<tbody><tr><td>North</td><td>Jan</td><td>1500</td></tr><tr><td>North</td><td>Feb</td><td>1800</td></tr><tr><td>South</td><td>Jan</td><td>1000</td></tr><tr><td>South</td><td>Feb</td><td>1200</td></tr></tbody></table></div>
+<p class="ref">Values passed to <code>stack()</code> need compatible types in each output position. Unpivoting is handy for turning spreadsheet-style reports into normalized analytical data. Recent Spark versions also offer <code>DataFrame.unpivot()</code>.</p>
+
+<h3 id="s7-5-9"><span class="num">7.5.9</span>Complex JSON processing</h3>
+<p>Real-world APIs often return nested JSON: a top-level order ID, a nested customer object, and an array of items.</p>
+<div class="code-wrap"><span class="lang">JSON</span><pre class="code"><code>{
+  "order_id": 5001,
+  "customer": {
+    "customer_id": 101,
+    "name": "Ravi"
+  },
+  "items": [
+    { "product_id": 1, "quantity": 2, "price": 500 },
+    { "product_id": 2, "quantity": 1, "price": 1000 }
+  ]
+}</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>json_data = [
+    """
+    {
+      "order_id": 5001,
+      "customer": {"customer_id": 101, "name": "Ravi"},
+      "items": [
+        {"product_id": 1, "quantity": 2, "price": 500},
+        {"product_id": 2, "quantity": 1, "price": 1000}
+      ]
+    }
+    """
+]
+
+json_df = spark.read.json(
+    spark.sparkContext.parallelize(json_data)
+)
+
+json_df.printSchema()
+json_df.show(truncate=False)</code></pre></div>
+<div class="callout"><span class="label">On serverless compute</span><p><code>spark.sparkContext</code> isn't available on serverless (including Free Edition). Parse the strings with <code>from_json()</code> instead:</p></div>
+<div class="code-wrap"><span class="lang">Python · serverless-friendly alternative</span><pre class="code"><code>raw_df = spark.createDataFrame([(s,) for s in json_data], ["json_text"])
+
+json_schema = F.schema_of_json(F.lit(json_data[0]))
+
+json_df = (
+    raw_df
+    .select(F.from_json("json_text", json_schema).alias("data"))
+    .select("data.*")
+)</code></pre></div>
+<p>The schema has a nested <code>customer</code> struct and an <code>items</code> array. Now flatten it:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Nested customer fields
+customers_from_json = json_df.select(
+    "order_id",
+    F.col("customer.customer_id").alias("customer_id"),
+    F.col("customer.name").alias("customer_name")
+)
+
+# One row per item
+items_from_json = json_df.select(
+    "order_id",
+    F.explode("items").alias("item")
+)
+
+# Item-level attributes
+items_flat_df = items_from_json.select(
+    "order_id",
+    F.col("item.product_id").alias("product_id"),
+    F.col("item.quantity").alias("quantity"),
+    F.col("item.price").alias("unit_price")
+)
+
+# Line totals
+items_flat_df = items_flat_df.withColumn(
+    "line_total",
+    F.col("quantity") * F.col("unit_price")
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>product_id</th><th>quantity</th><th>unit_price</th><th>line_total</th></tr></thead>
+<tbody><tr><td>5001</td><td>1</td><td>2</td><td>500</td><td>1000</td></tr><tr><td>5001</td><td>2</td><td>1</td><td>1000</td><td>1000</td></tr></tbody></table></div>
+<div class="callout key"><span class="label">Production note</span><p>Read JSON files from storage with <code>spark.read.json(path)</code>. When a DataFrame holds one JSON string per row, <code>from_json()</code> with an explicit schema is often right. In production, define nested schemas explicitly and validate malformed records rather than relying entirely on inference.</p></div>
+
+<!-- ===================== 7.6 ===================== -->
+<h2 id="s7-6"><span class="num">7.6</span>Hands-on Project: Retail Data Transformation Pipeline</h2>
+<p class="section-intro">Build a PySpark pipeline over four datasets (customers, products, orders, and order items) using logic similar to a Bronze → Silver → Gold architecture.</p>
+<div class="card"><h4>The pipeline will</h4><ol class="steps">
+<li>Create source DataFrames with defined schemas.</li>
+<li>Clean customer and product records.</li>
+<li>Validate foreign keys.</li>
+<li>Join orders with customers and order items with products.</li>
+<li>Calculate order totals.</li>
+<li>Aggregate sales by customer and product.</li>
+<li>Prepare analytical outputs.</li>
+</ol></div>
+<h4>Project architecture</h4>
+<pre class="diagram">Customer Source ──&gt; Customer Cleaning ──&gt; Silver Customers ───┐
+                                                             │
+Product Source ───&gt; Product Cleaning ───&gt; Silver Products ───┤
+                                                             │
+Order Source ─────&gt; Order Validation ───&gt; Silver Orders ─────┤
+                                                             │
+Order Items ──────&gt; Item Validation ────&gt; Silver Order Items ┘
+                                                             │
+                                                             ▼
+                                                   Enriched Order Data
+                                                             │
+                                              ┌──────────────┴──────────────┐
+                                              ▼                             ▼
+                                       Customer Sales                Product Sales</pre>
+<p>You'll build an in-memory version first; the same transformations later adapt to Delta tables.</p>
+
+<h3 id="p-setup">Steps 1–5: Create the source data</h3>
+<h4>Step 1: Import the libraries</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    LongType,
+    StringType,
+    IntegerType,
+    DecimalType,
+    DateType
+)
+from pyspark.sql.window import Window
+
+from datetime import date
+from decimal import Decimal</code></pre></div>
+
+<h4>Step 2: Create the customer dataset</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_data = [
+    (101, "Ravi Kumar", "Hyderabad", "Active"),
+    (102, "Priya Sharma", "Bengaluru", "Active"),
+    (103, "Arjun Reddy", "Chennai", "Inactive"),
+    (104, "Sneha Rao", "Hyderabad", "Active"),
+    (105, "Kiran", None, "Active")
+]
+
+customers_schema = StructType([
+    StructField("customer_id", LongType(), False),
+    StructField("customer_name", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("status", StringType(), True)
+])
+
+customers_df = spark.createDataFrame(customers_data, customers_schema)
+
+customers_df.show()
+customers_df.printSchema()</code></pre></div>
+
+<h4>Step 3: Create the product dataset</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_data = [
+    (1, "Laptop", "Electronics", Decimal("55000.00")),
+    (2, "Mobile", "Electronics", Decimal("25000.00")),
+    (3, "Chair", "Furniture", Decimal("5000.00")),
+    (4, "Desk", "Furniture", Decimal("12000.00")),
+    (5, "Tablet", "Electronics", Decimal("18000.00"))
+]
+
+products_schema = StructType([
+    StructField("product_id", LongType(), False),
+    StructField("product_name", StringType(), True),
+    StructField("category", StringType(), True),
+    StructField("price", DecimalType(12, 2), True)
+])
+
+products_df = spark.createDataFrame(products_data, products_schema)</code></pre></div>
+
+<h4>Step 4: Create the order dataset</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_data = [
+    (5001, 101, date(2026, 10, 20), "Completed"),
+    (5002, 102, date(2026, 10, 21), "Completed"),
+    (5003, 103, date(2026, 10, 21), "Pending"),
+    (5004, 101, date(2026, 10, 22), "Completed"),
+    (5005, 999, date(2026, 10, 23), "Completed")
+]
+
+orders_schema = StructType([
+    StructField("order_id", LongType(), False),
+    StructField("customer_id", LongType(), False),
+    StructField("order_date", DateType(), True),
+    StructField("status", StringType(), True)
+])
+
+orders_df = spark.createDataFrame(orders_data, orders_schema)</code></pre></div>
+<div class="callout"><span class="label">Deliberate problem</span><p>Order 5005 references customer 999, who doesn't exist. You'll catch it in Step 8.</p></div>
+
+<h4>Step 5: Create the order-item dataset</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_items_data = [
+    (1, 5001, 1, 1, Decimal("55000.00")),
+    (2, 5001, 2, 2, Decimal("25000.00")),
+    (3, 5002, 3, 1, Decimal("5000.00")),
+    (4, 5002, 5, 2, Decimal("18000.00")),
+    (5, 5003, 4, 1, Decimal("12000.00")),
+    (6, 5004, 2, 1, Decimal("25000.00")),
+    (7, 5005, 1, 1, Decimal("55000.00"))
+]
+
+order_items_schema = StructType([
+    StructField("order_item_id", LongType(), False),
+    StructField("order_id", LongType(), False),
+    StructField("product_id", LongType(), False),
+    StructField("quantity", IntegerType(), True),
+    StructField("unit_price", DecimalType(12, 2), True)
+])
+
+order_items_df = spark.createDataFrame(order_items_data, order_items_schema)</code></pre></div>
+
+<h3 id="p-clean">Steps 6–9: Clean and validate</h3>
+<h4>Step 6: Clean the customer dataset</h4>
+<p>Trim spaces, normalize status, replace missing cities with "Unknown", and remove duplicate customer IDs (a simple demonstration rule).</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_clean_df = (
+    customers_df
+    .withColumn("customer_name", F.trim(F.col("customer_name")))
+    .withColumn(
+        "city",
+        F.coalesce(F.trim(F.col("city")), F.lit("Unknown"))
+    )
+    .withColumn("status", F.upper(F.trim(F.col("status"))))
+    .filter(F.col("customer_id").isNotNull())
+    .filter(
+        F.col("customer_name").isNotNull() &amp;
+        (F.col("customer_name") != "")
+    )
+    .dropDuplicates(["customer_id"])
+)
+
+customers_clean_df.show()</code></pre></div>
+<p class="ref">IDs are unique in this sample. With conflicting versions of a customer in production, use a defined rule (such as keeping the most recent valid record) instead of <code>dropDuplicates()</code>.</p>
+
+<h4>Step 7: Clean the product dataset</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_clean_df = (
+    products_df
+    .withColumn("product_name", F.trim(F.col("product_name")))
+    .withColumn("category", F.initcap(F.trim(F.col("category"))))
+    .filter(F.col("product_id").isNotNull())
+    .filter(F.col("product_name").isNotNull())
+    .filter(F.col("price").isNotNull())
+    .filter(F.col("price") &gt;= 0)
+    .dropDuplicates(["product_id"])
+)</code></pre></div>
+<p class="ref">A basic rule set. In production, also check conflicting duplicate products and required business constraints.</p>
+
+<h4>Step 8: Validate order customer keys</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>invalid_orders_df = orders_df.join(
+    customers_clean_df.select("customer_id"),
+    on="customer_id",
+    how="left_anti"
+)
+
+invalid_orders_df.show()</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>order_id</th><th>order_date</th><th>status</th></tr></thead>
+<tbody><tr><td>999</td><td>5005</td><td>2026-10-23</td><td>Completed</td></tr></tbody></table></div>
+<p class="ref">When you join with <code>on="customer_id"</code>, Spark places the join key first in the output.</p>
+<p>Keep invalid records in a separate DataFrame for investigation, and build the valid set:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_orders_df = orders_df.join(
+    customers_clean_df.select("customer_id"),
+    on="customer_id",
+    how="left_semi"
+)</code></pre></div>
+
+<h4>Step 9: Validate order-item keys</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Items whose order isn't valid
+invalid_order_items_df = order_items_df.join(
+    valid_orders_df.select("order_id"),
+    on="order_id",
+    how="left_anti"
+)
+
+# Items with missing products
+invalid_product_items_df = order_items_df.join(
+    products_clean_df.select("product_id"),
+    on="product_id",
+    how="left_anti"
+)
+
+# Invalid quantities and prices
+invalid_quantity_items_df = order_items_df.filter(
+    F.col("quantity").isNull() | (F.col("quantity") &lt;= 0)
+)
+
+invalid_price_items_df = order_items_df.filter(
+    F.col("unit_price").isNull() | (F.col("unit_price") &lt; 0)
+)</code></pre></div>
+<p>All items here have valid products, quantities, and prices. Order 5005's item is excluded only because its order references an invalid customer.</p>
+<div class="code-wrap"><span class="lang">Python · valid items</span><pre class="code"><code>valid_order_items_df = (
+    order_items_df
+    .join(valid_orders_df.select("order_id"), on="order_id", how="left_semi")
+    .join(products_clean_df.select("product_id"), on="product_id", how="left_semi")
+    .filter(F.col("quantity").isNotNull() &amp; (F.col("quantity") &gt; 0))
+    .filter(F.col("unit_price").isNotNull() &amp; (F.col("unit_price") &gt;= 0))
+)</code></pre></div>
+
+<h3 id="p-enrich">Steps 10–14: Enrich and aggregate</h3>
+<h4>Step 10: Calculate line totals</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_order_items_df = valid_order_items_df.withColumn(
+    "line_total",
+    (F.col("quantity") * F.col("unit_price")).cast(DecimalType(14, 2))
+)</code></pre></div>
+<p class="ref">Two mobiles at 25,000 each give a line total of 50,000.</p>
+
+<h4>Step 11: Enrich order items with product information</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_items_enriched_df = (
+    valid_order_items_df.alias("oi")
+    .join(products_clean_df.alias("p"), on="product_id", how="inner")
+    .select(
+        F.col("oi.order_item_id"),
+        F.col("oi.order_id"),
+        F.col("oi.product_id"),
+        F.col("p.product_name"),
+        F.col("p.category"),
+        F.col("oi.quantity"),
+        F.col("oi.unit_price"),
+        F.col("oi.line_total")
+    )
+)</code></pre></div>
+
+<h4>Step 12: Calculate order totals</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_totals_df = order_items_enriched_df.groupBy("order_id").agg(
+    F.sum("line_total").alias("order_total"),
+    F.sum("quantity").alias("total_quantity"),
+    F.count("*").alias("item_line_count")
+)
+
+orders_enriched_df = (
+    valid_orders_df.alias("o")
+    .join(customers_clean_df.alias("c"), on="customer_id", how="inner")
+    .join(order_totals_df.alias("t"), on="order_id", how="left")
+    .select(
+        "order_id",
+        "customer_id",
+        "customer_name",
+        "city",
+        F.col("o.order_date").alias("order_date"),
+        F.col("o.status").alias("order_status"),
+        "order_total",
+        "total_quantity",
+        "item_line_count"
+    )
+)
+
+orders_enriched_df.orderBy("order_id").show(truncate=False)</code></pre></div>
+<p>The aliases matter here: both orders and customers have a <code>status</code> column, so <code>o.status</code> picks the order's status unambiguously.</p>
+<h5>Expected order totals (worked out from the sample data)</h5>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_name</th><th>order_status</th><th>order_total</th><th>total_quantity</th><th>item_line_count</th></tr></thead>
+<tbody>
+<tr><td>5001</td><td>Ravi Kumar</td><td>Completed</td><td>105,000.00</td><td>3</td><td>2</td></tr>
+<tr><td>5002</td><td>Priya Sharma</td><td>Completed</td><td>41,000.00</td><td>3</td><td>2</td></tr>
+<tr><td>5003</td><td>Arjun Reddy</td><td>Pending</td><td>12,000.00</td><td>1</td><td>1</td></tr>
+<tr><td>5004</td><td>Ravi Kumar</td><td>Completed</td><td>25,000.00</td><td>1</td><td>1</td></tr>
+</tbody></table></div>
+
+<h4>Step 13: Calculate sales by customer</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customer_sales_df = (
+    orders_enriched_df
+    .groupBy("customer_id", "customer_name", "city")
+    .agg(
+        F.countDistinct("order_id").alias("total_orders"),
+        F.sum("order_total").alias("total_sales"),
+        F.avg("order_total").alias("average_order_value")
+    )
+    .orderBy(F.col("total_sales").desc())
+)
+
+customer_sales_df.show(truncate=False)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_name</th><th>city</th><th>total_orders</th><th>total_sales</th><th>average_order_value</th></tr></thead>
+<tbody>
+<tr><td>Ravi Kumar</td><td>Hyderabad</td><td>2</td><td>130,000.00</td><td>65,000.00</td></tr>
+<tr><td>Priya Sharma</td><td>Bengaluru</td><td>1</td><td>41,000.00</td><td>41,000.00</td></tr>
+<tr><td>Arjun Reddy</td><td>Chennai</td><td>1</td><td>12,000.00</td><td>12,000.00</td></tr>
+</tbody></table></div>
+<p class="ref">Expected values worked out by hand from the sample data; Spark may show extra decimal places. Note the pending order 5003 is included. Filter on <code>order_status</code> if your report should count completed orders only.</p>
+
+<h4>Step 14: Calculate sales by product</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>product_sales_df = (
+    order_items_enriched_df
+    .groupBy("product_id", "product_name", "category")
+    .agg(
+        F.sum("quantity").alias("units_sold"),
+        F.sum("line_total").alias("total_revenue"),
+        F.countDistinct("order_id").alias("orders_containing_product")
+    )
+    .orderBy(F.col("total_revenue").desc())
+)
+
+product_sales_df.show(truncate=False)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>product_name</th><th>category</th><th>units_sold</th><th>total_revenue</th><th>orders_containing_product</th></tr></thead>
+<tbody>
+<tr><td>Mobile</td><td>Electronics</td><td>3</td><td>75,000.00</td><td>2</td></tr>
+<tr><td>Laptop</td><td>Electronics</td><td>1</td><td>55,000.00</td><td>1</td></tr>
+<tr><td>Tablet</td><td>Electronics</td><td>2</td><td>36,000.00</td><td>1</td></tr>
+<tr><td>Desk</td><td>Furniture</td><td>1</td><td>12,000.00</td><td>1</td></tr>
+<tr><td>Chair</td><td>Furniture</td><td>1</td><td>5,000.00</td><td>1</td></tr>
+</tbody></table></div>
+
+<h3 id="p-recon">Steps 15–16: Reconcile and save</h3>
+<h4>Step 15: Perform reconciliation checks</h4>
+<p>Pipelines should validate results, not just produce output tables.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print("Source orders:", orders_df.count())          # 5
+print("Valid orders:", valid_orders_df.count())     # 4
+print("Invalid orders:", invalid_orders_df.count()) # 1
+# Source = Valid + Invalid  -&gt;  5 = 4 + 1
+
+# Duplicate customer IDs: expect no rows
+duplicate_customer_keys = (
+    customers_clean_df
+    .groupBy("customer_id")
+    .count()
+    .filter(F.col("count") &gt; 1)
+)
+duplicate_customer_keys.show()
+
+# Duplicate order-item IDs: expect no rows
+duplicate_item_ids = (
+    valid_order_items_df
+    .groupBy("order_item_id")
+    .count()
+    .filter(F.col("count") &gt; 1)
+)
+duplicate_item_ids.show()
+
+# Order totals should match line totals
+line_total_sum = order_items_enriched_df.agg(F.sum("line_total").alias("total"))
+order_total_sum = orders_enriched_df.agg(F.sum("order_total").alias("total"))
+
+line_total_sum.show()    # 183,000.00
+order_total_sum.show()   # 183,000.00</code></pre></div>
+
+<h4>Step 16: Save the results as Delta tables</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    customers_clean_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.silver_customers")
+)
+
+(
+    products_clean_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.silver_products")
+)
+
+(
+    valid_orders_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.silver_orders")
+)
+
+(
+    order_items_enriched_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.silver_order_items")
+)
+
+(
+    customer_sales_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.gold_customer_sales")
+)
+
+(
+    product_sales_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.retail.gold_product_sales")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Before running these commands</span><p>Make sure the <code>main.retail</code> catalog and schema exist, you can create or replace tables, and the target is meant for this exercise. <code>mode("overwrite")</code> replaces existing data and may affect table metadata. Use a development schema for learning.</p></div>
+<p class="ref">A production pipeline would use incremental processing, audit columns, error handling, and data-quality checks rather than blindly overwriting every table.</p>
+
+<!-- ===================== 7.7 ===================== -->
+<h2 id="s7-7"><span class="num">7.7</span>Important PySpark Performance Practices</h2>
+<div class="grid-2">
+  <div class="card"><h4>1. Prefer built-in functions</h4><p style="margin-bottom:0"><code>F.upper(F.col("customer_name"))</code> beats a Python UDF for simple string conversion.</p></div>
+  <div class="card"><h4>2. Select only required columns</h4><p style="margin-bottom:0"><code>df.select("customer_id", "customer_name", "city")</code>. Column pruning reduces data processed.</p></div>
+  <div class="card"><h4>3. Filter early when logically safe</h4><p style="margin-bottom:0"><code>customers_df.filter(F.col("status") == "ACTIVE")</code> reduces downstream work; Spark may push filters to the source.</p></div>
+  <div class="card"><h4>4. Avoid unnecessary actions</h4><p style="margin-bottom:0"><code>count()</code>, <code>show()</code>, and <code>collect()</code> each trigger computation. Never <code>collect()</code> large datasets.</p></div>
+  <div class="card"><h4>5. Broadcast small lookups when appropriate</h4><p style="margin-bottom:0"><code>large_df.join(F.broadcast(small_lookup_df), on="product_id", how="left")</code>. Check size, executor memory, and the plan first.</p></div>
+  <div class="card"><h4>6. Avoid unnecessary repartitioning</h4><p style="margin-bottom:0"><code>df.repartition(8)</code> may add a shuffle. Use it when the benefit justifies the cost.</p></div>
+  <div class="card"><h4>7. Inspect the execution plan</h4><p style="margin-bottom:0"><code>result_df.explain("formatted")</code> shows scans, exchanges, joins, and other operators.</p></div>
+  <div class="card"><h4>8. Cache only when reuse justifies it</h4><p style="margin-bottom:0"><code>df.cache()</code> for repeated use; <code>df.unpersist()</code> when done.</p></div>
+</div>
+
+<!-- ===================== 7.8 ===================== -->
+<h2 id="s7-8"><span class="num">7.8</span>Common PySpark Errors and Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Problem</th><th>Likely cause</th><th>Recommended approach</th></tr></thead>
+<tbody>
+<tr><td>Cannot infer schema</td><td>Empty or ambiguous input</td><td>Define an explicit schema</td></tr>
+<tr><td>Data type mismatch</td><td>Incompatible column types</td><td>Inspect schemas and cast carefully</td></tr>
+<tr><td>Unresolved column</td><td>Typo or incorrect alias</td><td>Check <code>df.columns</code> and join aliases</td></tr>
+<tr><td>Unexpected duplicate rows</td><td>Duplicate keys or one-to-many join</td><td>Validate key uniqueness and join cardinality</td></tr>
+<tr><td>Incorrect totals after join</td><td>Row multiplication from duplicate keys</td><td>Deduplicate by a business rule before joining</td></tr>
+<tr><td>Slow joins</td><td>Large shuffle, skew, unsuitable strategy</td><td>Inspect the physical plan and metrics</td></tr>
+<tr><td>Out-of-memory error</td><td>Too much collected or cached, poor partitioning</td><td>Avoid large <code>collect()</code>; review the plan</td></tr>
+<tr><td>Nulls after casting</td><td>Invalid source values</td><td>Validate and quarantine malformed records</td></tr>
+<tr><td>Incorrect union results</td><td><code>union()</code> aligns by position</td><td>Use <code>unionByName()</code></td></tr>
+<tr><td>Unexpected aggregation results</td><td>Nulls, duplicates, wrong grouping keys</td><td>Validate data and aggregation logic</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 7.9 ===================== -->
+<h2 id="s7-9"><span class="num">7.9</span>Knowledge Check</h2>
+<p>Try answering these before moving on.</p>
+<details class="q"><summary>1. What is PySpark? &nbsp;A) A Python web framework · B) The Python API for Apache Spark · C) A database management system · D) A file format</summary><div class="answer"><p><strong>Answer: B.</strong> PySpark is the Python API for Apache Spark (Section 7.1.1).</p></div></details>
+<details class="q" open><summary>Conceptual questions 2–10</summary>
+<ol start="2">
+<li>What is the primary difference between pandas and PySpark? Explain how their execution models differ and when you'd choose each.</li>
+<li>What is a SparkSession, and what role does it play in DataFrame operations?</li>
+<li>What is the difference between schema inference and an explicit schema? Why might production prefer an explicit schema?</li>
+<li>What is the difference between <code>distinct()</code> and <code>dropDuplicates(["customer_id"])</code>?</li>
+<li>What is the difference between <code>union()</code> and <code>unionByName()</code>?</li>
+<li>What is the difference between inner, left, left semi, and left anti joins?</li>
+<li>Why can duplicate keys cause incorrect aggregation results after a join?</li>
+<li>What is the difference between a window function and a <code>groupBy()</code> aggregation?</li>
+<li>Why should you generally prefer built-in Spark functions over Python UDFs?</li>
+</ol></details>
+<h3 id="exercises">Practical coding exercises</h3>
+<div class="card">
+<ol class="steps">
+<li>Create a DataFrame with five customers and filter customers from Hyderabad.</li>
+<li>Create an explicit schema for an order table with <code>order_id</code>, <code>customer_id</code>, <code>order_date</code>, and <code>amount</code>, using appropriate data types.</li>
+<li>Join orders with customers and identify orders that reference missing customer IDs.</li>
+<li>Calculate total sales and order count by customer.</li>
+<li>Use <code>row_number()</code> to keep the latest record for each customer based on <code>updated_at</code>.</li>
+<li>Transform a nested JSON order into a flat order-item DataFrame.</li>
+<li>Identify duplicate product IDs and explain how you'd decide which record to keep.</li>
+</ol>
+</div>
+
+<!-- ===================== 7.10 ===================== -->
+<h2 id="s7-10"><span class="num">7.10</span>Summary</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Topic</th><th>Skills acquired</th></tr></thead>
+<tbody>
+<tr><td>PySpark fundamentals</td><td>SparkSession, DataFrames, reading data</td></tr>
+<tr><td>Schema management</td><td>StructType, StructField, data types</td></tr>
+<tr><td>DataFrame operations</td><td>select, filter, withColumn, groupBy, union</td></tr>
+<tr><td>Joins</td><td>Inner, left, full outer, semi, anti</td></tr>
+<tr><td>Aggregations</td><td>Counts, totals, conditional metrics</td></tr>
+<tr><td>Data quality</td><td>Duplicate-key detection, null handling, key validation</td></tr>
+<tr><td>Window functions</td><td>Ranking, latest records, running totals</td></tr>
+<tr><td>UDFs</td><td>Custom Python logic and built-in alternatives</td></tr>
+<tr><td>Complex data</td><td>Arrays, maps, structs, explode, JSON</td></tr>
+<tr><td>Pivoting</td><td>Wide and long data transformations</td></tr>
+<tr><td>Project</td><td>Customer, product, order, and order-item pipeline</td></tr>
+<tr><td>Performance</td><td>Built-in functions, broadcast joins, caching, execution plans</td></tr>
+</tbody></table></div>
+
+<h3 id="checklist">What you should be able to do now</h3>
+<p>Tick each skill once you've practiced it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch7-checklist">
+<label><input type="checkbox"> Create and manipulate Spark DataFrames.</label>
+<label><input type="checkbox"> Define explicit schemas and use appropriate data types.</label>
+<label><input type="checkbox"> Read common file formats and Delta tables.</label>
+<label><input type="checkbox"> Transform datasets using PySpark functions.</label>
+<label><input type="checkbox"> Join multiple datasets without unintentionally multiplying records.</label>
+<label><input type="checkbox"> Calculate customer and product metrics.</label>
+<label><input type="checkbox"> Handle duplicate records and missing keys.</label>
+<label><input type="checkbox"> Flatten nested JSON data.</label>
+<label><input type="checkbox"> Build a basic retail data transformation pipeline.</label>
+<label><input type="checkbox"> Save transformed datasets as Delta tables in Databricks.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch7-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch7-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 8!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="next">
+<h3>Next chapter: Reading and Writing Data in Databricks</h3>
+<p style="margin-bottom:0">Chapter 8 builds on these fundamentals: CSV, JSON, Parquet, and Delta; file paths; managed and external tables; write modes; partitioned writes; schema evolution; and practical ingestion patterns.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-6.html"><span>← Previous</span><strong>Chapter 6: Apache Spark Fundamentals</strong></a>
+  <a class="pager-link" href="databricks-chapter-8.html"><span>Next →</span><strong>Chapter 8: Reading and Writing Data</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 3 · Chapter 7 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

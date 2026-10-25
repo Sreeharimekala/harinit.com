@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 22: Cost Optimization</title>
+<meta name="description" content="Chapter 22 of a Databricks learning path: DBUs and cost components, serverless vs classic, compute and query optimization, billing system tables, job-level cost, tagging and chargeback, budgets, and tested cost queries.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 22 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s22-1">22.1 Cost Fundamentals</a></li>
+    <li class="lvl2"><a href="#s22-1-1">Cost components</a></li>
+    <li class="lvl2"><a href="#s22-1-2">What is a DBU?</a></li>
+    <li class="lvl2"><a href="#s22-1-3">Cloud infrastructure</a></li>
+    <li class="lvl2"><a href="#s22-1-4">Serverless pricing</a></li>
+    <li class="lvl2"><a href="#s22-1-5">SQL warehouses</a></li>
+    <li class="lvl2"><a href="#s22-1-6">Storage &amp; network</a></li>
+    <li class="lvl1"><a href="#s22-2">22.2 Cost Optimization</a></li>
+    <li class="lvl2"><a href="#s22-2-1">Choosing compute</a></li>
+    <li class="lvl2"><a href="#s22-2-2">Scheduling</a></li>
+    <li class="lvl2"><a href="#s22-2-3">Termination &amp; autoscaling</a></li>
+    <li class="lvl2"><a href="#s22-2-5">Serverless vs classic</a></li>
+    <li class="lvl2"><a href="#s22-2-6">Query optimization</a></li>
+    <li class="lvl2"><a href="#s22-2-7">Reruns &amp; small files</a></li>
+    <li class="lvl1"><a href="#s22-3">22.3 Cost Monitoring</a></li>
+    <li class="lvl2"><a href="#s22-3-1">Billing system tables</a></li>
+    <li class="lvl2"><a href="#s22-3-2">Usage by SKU</a></li>
+    <li class="lvl2"><a href="#s22-3-3">Pricing usage</a></li>
+    <li class="lvl2"><a href="#s22-3-4">Job-level cost</a></li>
+    <li class="lvl2"><a href="#s22-3-5">Tags &amp; allocation</a></li>
+    <li class="lvl2"><a href="#s22-3-7">Budgets</a></li>
+    <li class="lvl2"><a href="#s22-3-8">Expensive workloads</a></li>
+    <li class="lvl1"><a href="#s22-4">22.4 Cost Governance</a></li>
+    <li class="lvl2"><a href="#s22-4-1">Dashboards</a></li>
+    <li class="lvl2"><a href="#s22-4-2">Chargeback &amp; attribution</a></li>
+    <li class="lvl2"><a href="#s22-4-4">Alerts &amp; recommendations</a></li>
+    <li class="lvl1"><a href="#s22-5">22.5 Hands-On Exercise</a></li>
+    <li class="lvl2"><a href="#s22-5-a">Part A: Sample table</a></li>
+    <li class="lvl2"><a href="#s22-5-b">Part B: System tables</a></li>
+    <li class="lvl1"><a href="#s22-6">22.6 Production Framework</a></li>
+    <li class="lvl1"><a href="#s22-7">22.7 Governance Checklist</a></li>
+    <li class="lvl1"><a href="#s22-8">22.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s22-9">22.9 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 7 · Chapter 22 · Security, Monitoring, and DevOps</span>
+  <h1>Databricks Cost Optimization</h1>
+  <p class="lead">Understand what you pay for, measure it from Databricks' own billing tables, attribute it to teams and workloads, and cut waste without breaking SLAs. Cost optimization isn't "use a smaller cluster": it's delivering the required processing <strong>within the SLA, reliably, at the lowest practical total cost</strong>.</p>
+  <div class="callout warn"><span class="label">The situation this chapter fixes</span><p>Fifty production jobs: some run five minutes, some two hours. A few interactive clusters sit idle overnight. Several SQL queries scan far more than they need. Without cost monitoring you pay for oversized compute, inefficient queries, repeated processing, and forgotten resources, and nobody can say which team or job is responsible.</p></div>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain DBUs and the components of Databricks cost.</li>
+    <li>Compare serverless and classic compute.</li>
+    <li>Optimize jobs, clusters, and SQL queries.</li>
+    <li>Price usage and attribute it to jobs and teams.</li>
+    <li>Find expensive and wasteful workloads.</li>
+    <li>Build cost dashboards, budgets, and alerts.</li>
+    <li>Recommend improvements backed by measurements.</li>
+  </ol></div>
+  <div class="callout"><span class="label">What was tested</span><p>Every cost query in 22.3 to 22.5 was run on Spark 4 against practice tables that use the real system-table column names (the generator is in 22.5, so you can run the same thing on Free Edition). The outputs shown are real results <em>from that invented data</em>. <strong>All prices and amounts in this chapter are illustrative, not actual Azure Databricks prices.</strong></p></div>
+  <div class="chips">
+    <a class="chip" href="#s22-1"><span>22.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s22-2"><span>22.2</span><strong>Optimization</strong></a>
+    <a class="chip" href="#s22-3"><span>22.3</span><strong>Monitoring</strong></a>
+    <a class="chip" href="#s22-4"><span>22.4</span><strong>Governance</strong></a>
+    <a class="chip" href="#s22-5"><span>22.5</span><strong>Exercise</strong></a>
+    <a class="chip" href="#s22-6"><span>22.6</span><strong>Framework</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 22.1 ===================== -->
+<h2 id="s22-1"><span class="num">22.1</span>Cost Fundamentals</h2>
+
+<h3 id="s22-1-1"><span class="num">22.1.1</span>Understanding Databricks Costs</h3>
+<div class="grid-2">
+<pre class="diagram">              Azure Databricks
+                    |
+         +----------+----------+
+         |                     |
+    Job compute          SQL warehouse
+         |                     |
+   Data processing        BI queries
+         |
+ Azure Data Lake Storage
+         |
+   Delta Lake tables</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>What drives it</th></tr></thead>
+<tbody>
+<tr><td>Databricks platform</td><td>DBUs consumed × DBU rate</td></tr>
+<tr><td>Cloud compute (classic)</td><td>VM hours, billed separately by Azure</td></tr>
+<tr><td>SQL warehouses</td><td>Size, running time, scaling, type</td></tr>
+<tr><td>Serverless</td><td>DBUs at a serverless rate that includes the compute</td></tr>
+<tr><td>Storage</td><td>Volume, redundancy, tier, retained versions</td></tr>
+<tr><td>Networking</td><td>Cross-region transfer, NAT, private endpoints</td></tr>
+<tr><td>Supporting services</td><td>Monitoring, Key Vault, orchestration</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">Billing differs between serverless and classic compute, and by region, tier, and contract. On Azure, DBUs are billed through your Azure invoice alongside the VMs, storage, and networking. Use the prices for your region and agreement: <a href="https://azure.microsoft.com/en-us/pricing/details/databricks/" target="_blank" rel="noopener">Azure Databricks pricing</a> · <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank" rel="noopener">pricing calculator</a>.</p>
+
+<h3 id="s22-1-2"><span class="num">22.1.2</span>What Is a DBU?</h3>
+<p>A <strong>DBU (Databricks Unit)</strong> is a normalized unit of Databricks platform consumption. It's not a VM hour: two one-hour workloads can consume different DBUs depending on node types, node count, Photon, and product (jobs, all-purpose, SQL, serverless).</p>
+<div class="grid-2">
+<div class="card"><h4>Worked example (illustrative)</h4><p>A job consumes 8 DBUs per hour and runs 2 hours:</p><p><strong>DBUs</strong> = 8 × 2 = <strong>16 DBUs</strong></p><p>At an illustrative ₹25 per DBU:</p><p style="margin-bottom:0"><strong>Platform cost</strong> = 16 × ₹25 = <strong>₹400</strong>, plus, on classic compute, the VMs underneath.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>DBU consumption</td><td>Quantity of platform usage</td></tr>
+<tr><td>DBU rate</td><td>Price per DBU for that SKU</td></tr>
+<tr><td>Cloud infrastructure</td><td>VMs, disks (classic compute)</td></tr>
+<tr><td>Total workload cost</td><td>Platform + infrastructure + storage + network + services</td></tr>
+</tbody></table></div>
+</div>
+<div class="callout key"><span class="label">Rate matters as much as quantity</span><p>The <strong>same workload</strong> costs different amounts on different SKUs. All-purpose (interactive) compute has a higher DBU rate than jobs compute, so a scheduled job on an interactive cluster pays more for identical work (22.5 finds exactly this). And fewer DBUs isn't automatically cheaper overall: a bigger cluster that finishes far sooner can cost less in total. Measure.</p></div>
+
+<h3 id="s22-1-3"><span class="num">22.1.3</span>Cloud Infrastructure Charges</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Component (illustrative, classic compute)</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>Databricks platform (DBUs)</td><td>₹400</td></tr>
+<tr><td>Underlying VMs</td><td>₹700</td></tr>
+<tr><td>Storage</td><td>₹50</td></tr>
+<tr><td>Data transfer</td><td>₹20</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>₹1,170</strong></td></tr>
+</tbody></table></div>
+<div class="card"><h4>Why it matters</h4><p>Here the VMs cost more than the DBUs, so optimizing DBUs alone misses most of the bill.</p><ul style="margin-bottom:0"><li>Less idle time cuts DBUs <em>and</em> VM hours.</li><li>Faster queries cut runtime.</li><li>Fewer intermediate copies cut storage and network.</li><li>A different compute model changes the cost structure.</li></ul></div>
+</div>
+<p class="ref">Classic clusters' VMs live in the workspace's managed resource group and carry Databricks' default tags plus your custom tags, which is how Azure Cost Management can split them by team (22.3.5).</p>
+
+<h3 id="s22-1-4"><span class="num">22.1.4</span>Serverless Pricing Concepts</h3>
+<p>With serverless, Databricks runs the compute: fast startup, automatic scaling, no clusters to configure, and <strong>one DBU rate that already includes the infrastructure</strong> (no separate VM line). Availability varies by region, workspace, and workload type.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Factor</th><th>Serverless</th><th>Classic compute</th></tr></thead>
+<tbody>
+<tr><td>Infrastructure</td><td>Managed by Databricks</td><td>You configure node types, sizes, pools</td></tr>
+<tr><td>Startup</td><td>Seconds, typically</td><td>Minutes (VM provisioning)</td></tr>
+<tr><td>Idle cost</td><td>Little or none between runs</td><td>Paid until termination</td></tr>
+<tr><td>Configuration control</td><td>Limited (no init scripts, fixed runtime)</td><td>Full control</td></tr>
+<tr><td>Billing</td><td>Serverless DBU rate (compute included)</td><td>DBU rate + VM charges</td></tr>
+<tr><td>Operational effort</td><td>Low</td><td>Higher</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Is serverless always cheaper? No.</span><p>A job that runs five minutes every hour on an always-on classic cluster pays for 55 idle minutes an hour; serverless avoids that. But a long, steady, well-sized batch job may be cheaper on classic job compute, and some workloads need configurations serverless doesn't offer. Compare <strong>measured cost per successful run</strong> for both before deciding. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/compute/serverless/" target="_blank" rel="noopener">Serverless compute</a>.</p></div>
+
+<h3 id="s22-1-5"><span class="num">22.1.5</span>SQL Warehouse Costs</h3>
+<p>Driven by size, running time, scaling (min/max clusters), concurrency, idle time, type (serverless, pro, classic), and query efficiency. A dashboard warehouse left on all day for users who only work business hours pays for every idle hour.</p>
+<div class="grid-2">
+<div class="card"><h4>Levers</h4><ul style="margin-bottom:0"><li><strong>Auto-stop:</strong> serverless warehouses start in seconds, so a short auto-stop (a few minutes) costs users little.</li><li><strong>Right-size</strong> using query history (queued vs running time).</li><li><strong>Scaling:</strong> raise max clusters for concurrency, not size.</li><li><strong>Optimize expensive queries</strong> (22.2.6).</li><li><strong>Fewer refreshes:</strong> don't refresh dashboards more often than data changes.</li></ul></div>
+<div class="card"><h4>Don't just pick the smallest</h4><p style="margin-bottom:0">An undersized warehouse runs queries longer and queues users. A larger one can cost less if it finishes enough faster, since you pay per second while it's running. Balance cost, latency, and concurrency, measured from <code>system.query.history</code> (Chapter 20). Docs: <a href="https://docs.databricks.com/aws/en/compute/sql-warehouse/" target="_blank" rel="noopener">SQL warehouses</a>.</p></div>
+</div>
+
+<h3 id="s22-1-6"><span class="num">22.1.6</span>Storage, Network, and Data Transfer</h3>
+<div class="grid-2">
+<div class="card"><h4>Storage</h4><p>Raw files, Bronze/Silver/Gold tables, temporary files, checkpoints, <strong>old Delta versions</strong>, logs, exports. A 100 GB daily intermediate kept for a year is 100 × 365 = <strong>36,500 GB (≈36.5 TB)</strong> of logical data, before compression and redundancy.</p><ul style="margin-bottom:0"><li>Don't persist unneeded intermediates.</li><li>Set retention; <code>VACUUM</code> removes unreferenced files after the retention period.</li><li>Compact small files when it measurably helps.</li><li>Cool or archive tiers for rarely read raw data.</li></ul></div>
+<div class="card"><h4>Network</h4><p>Cross-region reads and writes, exports, on-premises transfers, external APIs, and repeated copies between environments. Reading 2 TB from one region and writing it to another daily adds transfer charges and time, however efficient the Spark code.</p><ul style="margin-bottom:0"><li>Process data in its own region.</li><li>Avoid repeated full copies; share instead (Delta Sharing, Chapter 23).</li><li>Filter before exporting.</li><li>Question whether cross-region design is needed.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Never delete Delta files by hand</span><p>Removing files from storage directly corrupts tables. Use <code>VACUUM</code> (and understand it ends time travel to older versions, Chapter 6) or let <strong>predictive optimization</strong> manage it for Unity Catalog managed tables. Docs: <a href="https://docs.databricks.com/aws/en/delta/vacuum" target="_blank" rel="noopener">VACUUM</a>.</p></div>
+
+<!-- ===================== 22.2 ===================== -->
+<h2 id="s22-2"><span class="num">22.2</span>Cost Optimization</h2>
+
+<h3 id="s22-2-1"><span class="num">22.2.1</span>Selecting Appropriate Compute</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Job</th><th>Data</th><th>Workload</th><th>Starting point</th></tr></thead>
+<tbody>
+<tr><td>Customer dimension</td><td>500 MB</td><td>Moderate</td><td>Serverless job, or a small cluster</td></tr>
+<tr><td>Daily sales aggregation</td><td>200 GB</td><td>Large aggregation</td><td>Job cluster sized for the shuffle</td></tr>
+<tr><td>Historical backfill</td><td>3 TB</td><td>Large batch</td><td>Temporary larger job cluster, in batches</td></tr>
+</tbody></table></div>
+<div class="card"><h4>The optimization loop</h4><ol style="margin-bottom:0"><li>Establish a baseline.</li><li>Measure runtime and resource use.</li><li>Find the bottleneck (Chapter 20).</li><li>Test one change.</li><li>Measure again.</li><li>Compare cost <em>and</em> performance.</li><li>Keep the cheapest config that meets the SLA.</li></ol></div>
+</div>
+<div class="callout key"><span class="label">Cost per successful run</span><p><strong>Total workload cost ÷ successful runs.</strong> ₹1,200 over 10 successful runs = <strong>₹120</strong> per run. The total must <em>include failed attempts and retries</em>; they consumed compute but delivered nothing, which is exactly why they belong in the numerator. 22.3.4 computes this from real billing data.</p></div>
+
+<h3 id="s22-2-2"><span class="num">22.2.2</span>Job Scheduling</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Text · before</span><pre class="code"><code>Customer pipeline:
+  Runs every 15 minutes (96 runs/day)
+  Reads the full customer table
+  Rewrites the whole target
+Source changes once an hour.</code></pre></div>
+<div class="code-wrap"><span class="lang">Text · after</span><pre class="code"><code>Customer pipeline:
+  Runs when new files arrive
+  (file-arrival trigger, Chapter 14)
+  Processes only changed records
+  MERGEs into the target (Chapter 17)</code></pre></div>
+</div>
+<p>Align schedules with when source data actually arrives, use incremental processing, remove duplicate schedules, prevent pointless overlaps (max concurrent runs = 1), run heavy jobs in suitable windows, use event-driven triggers, and consolidate compatible small jobs into one multi-task job so they share compute.</p>
+<p class="ref">Switching full refresh to incremental is only safe once you've handled change detection, deletes, late-arriving data, and recovery (Chapters 12–13).</p>
+
+<h3 id="s22-2-3"><span class="num">22.2.3</span>Automatic Termination and Autoscaling</h3>
+<div class="grid-2">
+<div class="card"><h4>Auto-termination</h4><p>Stops an all-purpose cluster after N idle minutes. Finish at 4:00 PM with a 30-minute setting, and it stops at 4:30 instead of running all night.</p><p>Use it on development, interactive analysis, and ad hoc clusters; enforce it with a compute policy (Chapter 19).</p><p style="margin-bottom:0" class="ref"><strong>Job clusters</strong> already end when the job ends; the fix there is making sure jobs <em>use</em> job or serverless compute rather than a shared interactive cluster.</p></div>
+<div class="card"><h4>Autoscaling</h4><p>Adds and removes workers between a minimum and maximum (e.g. 2–8) as demand changes.</p><ul style="margin-bottom:0"><li>Keep minimums low for spiky jobs.</li><li>Check whether the job actually scales; a skewed stage won't use extra workers (Chapter 20).</li><li>Startup and scale-up take time, which matters for short jobs.</li><li>Test with representative data.</li></ul><p style="margin:8px 0 0" class="ref">Autoscaling doesn't fix an inefficient job; it just runs it on more machines.</p></div>
+</div>
+
+<h3 id="s22-2-5"><span class="num">22.2.4</span>Serverless Versus Classic: A Decision Table</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Workload</th><th>Starting point</th><th>Evaluate</th></tr></thead>
+<tbody>
+<tr><td>Short, frequent job</td><td>Serverless jobs</td><td>Startup overhead avoided vs serverless rate</td></tr>
+<tr><td>Long, steady batch job</td><td>Classic job cluster (or serverless)</td><td>Cost per run, throughput</td></tr>
+<tr><td>Interactive engineering</td><td>Serverless notebooks or all-purpose with auto-termination</td><td>Idle time</td></tr>
+<tr><td>SQL dashboards</td><td>Serverless SQL warehouse</td><td>Latency, concurrency, auto-stop</td></tr>
+<tr><td>Special runtime, libraries, networking</td><td>Classic with required config</td><td>Compatibility</td></tr>
+</tbody></table></div>
+
+<h3 id="s22-2-6"><span class="num">22.2.5</span>Query Optimization</h3>
+<p>Wasted compute comes from reading unneeded columns and rows, repeated full-table aggregations, inefficient joins, recomputing the same results, large shuffles, too many small files, and poor data layout. Chapter 15 covers the techniques; here's how to <em>check</em> what Spark actually reads.</p>
+<div class="code-wrap"><span class="lang">Python · filter and select early, then confirm in the plan</span><pre class="code"><code>from pyspark.sql import functions as F
+
+orders = (spark.read.table("retail_dev.bronze.orders")
+          .filter(F.col("order_status") == "COMPLETED")
+          .select("order_id", "customer_id", "order_date", "amount"))
+
+orders.explain("formatted")     # look at the Scan node</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified: 200,000-row Parquet table with a wide notes column)</span><pre class="code"><code>PushedFilters: [IsNotNull(order_status), EqualTo(order_status,COMPLETED)]
+ReadSchema: struct&amp;lt;order_id:int,customer_id:string,order_date:string,
+                   amount:double,order_status:string&amp;gt;</code></pre></div>
+<p class="ref">The 200-character <code>notes</code> column isn't read at all (column pruning), and the filter is pushed into the scan, so files and row groups that can't match are skipped. The original selected first and filtered on a column it had dropped; Spark still resolves that, but filtering before selecting is clearer and safer. On Delta, data skipping and liquid clustering (Chapter 15) multiply the effect.</p>
+<div class="grid-2">
+<div class="card"><h4>Counts cost compute</h4><p style="margin-bottom:0">Each <code>count()</code> scans data. Keep counts you need for reconciliation (Chapter 18) but compute several metrics in <strong>one</strong> aggregation rather than many separate actions, and don't count "just to print".</p></div>
+<div class="card"><h4>Find the expensive queries</h4><p style="margin-bottom:0">Rank by <code>total_duration_ms</code> and bytes read in <code>system.query.history</code> (Chapter 20), then open the query profile. A small number of queries usually account for most warehouse time.</p></div>
+</div>
+
+<h3 id="s22-2-7"><span class="num">22.2.6</span>Avoiding Unnecessary Reruns and File Operations</h3>
+<div class="grid-2">
+<div class="card"><h4>Reruns that waste compute</h4><ul><li>Rerunning the whole pipeline after only a downstream task failed.</li><li>Retrying permanent data-quality failures.</li><li>Reprocessing completed batches.</li><li>Duplicate schedules.</li><li>Rerunning because audit data is incomplete.</li><li>Rebuilding all history to fix one partition.</li></ul><p style="margin-bottom:0">If Extract → Bronze → Silver → Gold succeed and Report Refresh fails, use <strong>Repair run</strong> in Jobs to rerun only the failed task, provided upstream outputs are valid (idempotency, Chapter 18).</p></div>
+<div class="card"><h4>Too many small files</h4><p>10,000 tiny files mean more listing, planning, metadata, task scheduling, and storage transactions.</p><ul style="margin-bottom:0"><li>Avoid over-partitioning.</li><li>Optimized writes and auto compaction.</li><li><code>OPTIMIZE</code> (or predictive optimization) when it measurably helps.</li><li>Review streaming trigger intervals (Chapter 16).</li><li>Avoid repeated full overwrites.</li></ul><p style="margin:8px 0 0" class="ref">Very large files hurt parallelism too. Measure before and after.</p></div>
+</div>
+
+<!-- ===================== 22.3 ===================== -->
+<h2 id="s22-3"><span class="num">22.3</span>Cost Monitoring</h2>
+
+<h3 id="s22-3-1"><span class="num">22.3.1</span>Billing System Tables</h3>
+<p>Two system tables are the foundation of cost analysis (an admin enables the <code>system.billing</code> schema and grants access):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>One row per</th><th>Key columns</th></tr></thead>
+<tbody>
+<tr><td><code>system.billing.usage</code></td><td>Usage record (hourly or finer)</td><td><code>usage_date</code>, <code>sku_name</code>, <code>usage_unit</code>, <code>usage_quantity</code>, <code>custom_tags</code>, <code>usage_metadata</code> (job_id, job_run_id, job_name, cluster_id, warehouse_id…), <code>identity_metadata.run_as</code>, <code>billing_origin_product</code>, <code>product_features.is_serverless</code>, <code>record_type</code></td></tr>
+<tr><td><code>system.billing.list_prices</code></td><td>SKU price change</td><td><code>sku_name</code>, <code>price_start_time</code>, <code>price_end_time</code>, <code>currency_code</code>, <code>pricing.effective_list.default</code></td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="callout warn" style="margin:0"><span class="label">Billing corrections: sum, don't filter</span><p>When Databricks corrects a record it adds a <code>RETRACTION</code> (negative quantity) and a <code>RESTATEMENT</code>. <code>SUM(usage_quantity)</code> nets them out automatically. Filtering to <code>record_type = 'ORIGINAL'</code> double-counts. In the practice data, one corrected product-load record makes the job total <strong>35.64</strong> DBUs when summed correctly versus <strong>35.84</strong> with the filter (verified).</p></div>
+<div class="callout" style="margin:0"><span class="label">Usage is not the invoice</span><p>List price × usage is an <em>estimate</em>. Your bill reflects negotiated discounts, pre-purchased Databricks commit units, credits, currency (list prices are in USD), and separately billed VMs, storage, and network. Label estimates clearly and reconcile totals with Azure Cost Management. Data arrives with a delay of several hours.</p></div>
+</div>
+<p class="ref">Before writing queries, <code>DESCRIBE TABLE system.billing.usage</code> in your workspace. Docs: <a href="https://docs.databricks.com/aws/en/admin/system-tables/billing" target="_blank" rel="noopener">Billable usage table</a> · <a href="https://docs.databricks.com/aws/en/admin/system-tables/pricing" target="_blank" rel="noopener">Pricing table</a>.</p>
+
+<h3 id="s22-3-2"><span class="num">22.3.2</span>Compute Usage Analysis: Usage by SKU</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- DBUs by SKU over the last 30 days. Summing nets out billing corrections
+-- (RETRACTION rows are negative), so don't filter on record_type.
+SELECT sku_name,
+       usage_unit,
+       round(SUM(usage_quantity), 2) AS total_usage
+FROM system.billing.usage
+WHERE usage_date &gt;= date_sub(current_date(), 30)
+GROUP BY sku_name, usage_unit
+ORDER BY total_usage DESC</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified on the practice data)</span><pre class="code"><code>sku_name                         usage_unit  total_usage
+PREMIUM_JOBS_COMPUTE             DBU         623.90
+PREMIUM_ALL_PURPOSE_COMPUTE      DBU         540.00
+PREMIUM_SERVERLESS_SQL_COMPUTE   DBU         444.89
+PREMIUM_JOBS_SERVERLESS_COMPUTE  DBU         97.71</code></pre></div>
+<p class="ref">Group by <code>usage_unit</code> too: some products bill in other units (storage, tokens), and quantities in different units can't be added. And DBU totals across SKUs aren't comparable money: 540 all-purpose DBUs cost more than 540 jobs DBUs.</p>
+
+<h3 id="s22-3-3"><span class="num">22.3.3</span>Pricing the Usage</h3>
+<p>The original stopped at quantities. To estimate money, join each usage record to the list price that was in effect when it ran. Prices change, so the join must respect <code>price_start_time</code> and <code>price_end_time</code>. A view keeps every later query simple:</p>
+<div class="code-wrap"><span class="lang">SQL · one reusable view</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.cost_ops;
+
+-- Each usage record priced at the list price that was in force when it ended
+CREATE OR REPLACE VIEW retail_dev.cost_ops.usage_list_cost AS
+SELECT u.*,
+       u.usage_quantity * lp.pricing.effective_list.default AS list_cost,
+       lp.currency_code
+FROM system.billing.usage AS u
+LEFT JOIN system.billing.list_prices AS lp
+  ON  lp.sku_name   = u.sku_name
+  AND lp.cloud      = u.cloud
+  AND lp.usage_unit = u.usage_unit
+  AND u.usage_end_time &gt;= lp.price_start_time
+  AND (lp.price_end_time IS NULL OR u.usage_end_time &lt; lp.price_end_time);</code></pre></div>
+<p class="ref">The practice data includes a mid-month price change for jobs compute, and the view prices each day correctly. Always check for usage with <em>no</em> matching price (Finding 4 in 22.5) before trusting totals.</p>
+
+<h3 id="s22-3-4"><span class="num">22.3.4</span>Job-Level Consumption</h3>
+<p>Usage records for jobs carry <code>usage_metadata.job_id</code> and <code>job_run_id</code>, so job cost can be computed directly and joined to run history for <strong>cost per successful run</strong>:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- List-price cost per job, joined to run history for cost per successful run
+WITH job_cost AS (
+    SELECT usage_metadata.job_id                AS job_id,
+           max(usage_metadata.job_name)         AS job_name,
+           round(SUM(usage_quantity), 1)        AS dbus,
+           round(SUM(list_cost), 2)             AS list_cost_usd,
+           max(product_features.is_serverless)  AS serverless
+    FROM retail_dev.cost_ops.usage_list_cost
+    WHERE usage_metadata.job_id IS NOT NULL
+      AND usage_date &gt;= date_sub(current_date(), 30)
+    GROUP BY usage_metadata.job_id
+),
+job_runs AS (
+    SELECT job_id,
+           count(DISTINCT run_id)                                              AS runs,
+           count(DISTINCT CASE WHEN result_state = 'SUCCEEDED' THEN run_id END) AS successful_runs
+    FROM system.lakeflow.job_run_timeline
+    WHERE result_state IS NOT NULL                       -- final row of each run only
+      AND period_start_time &gt;= date_sub(current_date(), 30)
+    GROUP BY job_id
+)
+SELECT c.job_name, c.serverless, c.dbus, c.list_cost_usd, r.runs, r.successful_runs,
+       round(c.list_cost_usd / nullif(r.successful_runs, 0), 2) AS cost_per_successful_run
+FROM job_cost AS c
+LEFT JOIN job_runs AS r ON r.job_id = c.job_id
+ORDER BY c.list_cost_usd DESC</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified; USD at invented list prices)</span><pre class="code"><code>job_name           serverless  dbus   list_cost_usd  runs  successful_runs  cost_per_successful_run
+sales_aggregation  false       623.9  192.47         30    30               6.42
+customer_load      true        62.1   27.93          31    30               0.93
+product_load       true        35.6   16.04          30    30               0.53</code></pre></div>
+<div class="callout warn"><span class="label">Look what's missing</span><p><code>historical_backfill</code> doesn't appear. It ran on a shared <strong>all-purpose</strong> cluster, so its usage is billed to that cluster, not to the job. Jobs on shared interactive clusters are invisible to job-level cost and pay the higher all-purpose rate. That's why 22.5 searches for them explicitly. When exact attribution isn't possible, label the result an estimate and document the allocation method.</p></div>
+<p class="ref"><code>customer_load</code> had 31 runs but 30 successes: the failed attempt's cost is included, raising its cost per successful run, as it should.</p>
+
+<h3 id="s22-3-5"><span class="num">22.3.5</span>Resource Tagging and Cost Allocation</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Text · a tagging standard</span><pre class="code"><code>Environment = PROD
+Team        = DataEngineering
+Application = RetailDWH
+CostCenter  = CC100
+Owner       = DataPlatform</code></pre></div>
+<div class="card"><h4>Where tags come from</h4><ul style="margin-bottom:0"><li><strong>Classic compute:</strong> cluster custom tags (enforced by compute policies, Chapter 19); they also reach the Azure VMs.</li><li><strong>Jobs:</strong> job tags.</li><li><strong>SQL warehouses:</strong> warehouse tags.</li><li><strong>Serverless:</strong> <strong>budget (usage) policies</strong> attach tags to serverless usage.</li></ul><p style="margin:8px 0 0" class="ref">Not every usage type exposes every tag the same way; check <code>custom_tags</code> in your data.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · cost by cost centre, untagged spend visible</span><pre class="code"><code>-- Chargeback view: cost per cost centre, with untagged spend made visible
+SELECT coalesce(custom_tags['CostCenter'], 'UNTAGGED')   AS cost_center,
+       billing_origin_product                             AS product,
+       round(SUM(list_cost), 2)                           AS list_cost_usd,
+       round(100 * SUM(list_cost) / SUM(SUM(list_cost)) OVER (), 1) AS pct_of_total
+FROM retail_dev.cost_ops.usage_list_cost
+WHERE usage_date &gt;= date_sub(current_date(), 30)
+GROUP BY 1, 2
+ORDER BY list_cost_usd DESC</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>cost_center  product      list_cost_usd  pct_of_total
+CC200        SQL          311.42         36.9
+UNTAGGED     ALL_PURPOSE  297.00         35.2
+CC100        JOBS         236.44         28.0</code></pre></div>
+<p class="ref"><strong>35% of spend belongs to nobody.</strong> Untagged cost is the first governance gap to close: require tags through compute policies and budget policies, then chase the remainder.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Team</th><th>Environment</th><th>Workload</th><th>Cost centre</th></tr></thead>
+<tbody>
+<tr><td>Data Engineering</td><td>DEV</td><td>Customer ingestion</td><td>CC100</td></tr>
+<tr><td>Data Engineering</td><td>PROD</td><td>Customer ingestion</td><td>CC100</td></tr>
+<tr><td>Finance Analytics</td><td>PROD</td><td>Finance reporting</td><td>CC200</td></tr>
+<tr><td>Marketing Analytics</td><td>PROD</td><td>Campaign reporting</td><td>CC300</td></tr>
+</tbody></table></div>
+
+<h3 id="s22-3-7"><span class="num">22.3.6</span>Budget Controls</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Environment</th><th>Monthly budget (illustrative)</th></tr></thead>
+<tbody><tr><td>Development</td><td>₹100,000</td></tr><tr><td>Test</td><td>₹75,000</td></tr><tr><td>Production</td><td>₹500,000</td></tr><tr><td><strong>Total</strong></td><td><strong>₹675,000</strong></td></tr></tbody></table></div>
+<div class="card"><h4>Where budgets live</h4><ul style="margin-bottom:0"><li><strong>Databricks budgets</strong> (account console → Usage → Budgets): track Databricks spend, filtered by workspace or tags, with email alerts.</li><li><strong>Azure Cost Management budgets</strong>: cover the whole Azure bill (DBUs, VMs, storage, network) with alerts at e.g. 50 / 75 / 90 / 100%.</li></ul></div>
+</div>
+<p class="ref">Budget alerts <strong>notify; they don't stop workloads</strong>. If you need automatic action (e.g. stop dev clusters), build a separate, controlled process. Docs: <a href="https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets" target="_blank" rel="noopener">Azure budgets</a>.</p>
+
+<h3 id="s22-3-8"><span class="num">22.3.7</span>Identifying Expensive Workloads</h3>
+<p>Long runtime alone doesn't make a workload "expensive"; weigh cost against business value. Useful indicators:</p>
+<div class="grid-2">
+<div class="card"><ul style="margin-bottom:0"><li>Total consumption and cost.</li><li>Cost per successful run.</li><li>Cost per million records or per TB.</li><li>Runtime vs baseline (Chapter 20).</li><li>Failed-run and retry cost.</li><li>Idle cost.</li><li>SLA compliance.</li></ul></div>
+<div class="card"><h4>Cost per million records</h4><p><strong>(Total cost ÷ records) × 1,000,000</strong></p><p>₹600 to process 5 million records → (600 ÷ 5,000,000) × 1,000,000 = <strong>₹120 per million</strong>.</p><p style="margin-bottom:0" class="ref">Only compare workloads of similar complexity; record counts come from Chapter 20's audit table.</p></div>
+</div>
+
+<!-- ===================== 22.4 ===================== -->
+<h2 id="s22-4"><span class="num">22.4</span>Enterprise Cost Governance</h2>
+
+<h3 id="s22-4-1"><span class="num">22.4.1</span>Cost-Monitoring Dashboards</h3>
+<div class="grid-2">
+<div class="card"><h4>KPIs</h4><ol style="margin-bottom:0"><li>Total cost for the period.</li><li>Cost by workspace.</li><li>By environment.</li><li>By team / cost centre.</li><li>By workload.</li><li>Top 10 jobs.</li><li>Cost per successful run.</li><li>Failed-run cost.</li><li>Idle compute cost.</li><li>Budget utilization.</li><li>Month-over-month change.</li><li>Realized savings.</li></ol></div>
+<pre class="diagram">+-------------------+-------------------+------------------+
+| Month to date     | Budget used       | Untagged spend   |
+| ₹553,500          | 82% of ₹675,000   | 35%              |
++-------------------+-------------------+------------------+
+| Daily cost trend by product (stacked)                    |
++----------------------------------------------------------+
+| Top 10 jobs: cost, runs, cost per successful run         |
++----------------------------------------------------------+
+| Cost by cost centre and environment                      |
++----------------------------------------------------------+
+| Findings: jobs on all-purpose clusters, weekend          |
+| clusters, cost spikes (22.5)                             |
++----------------------------------------------------------+</pre>
+</div>
+<p class="ref">The original's mock-up showed ₹675,000 at 82% of budget, but its budgets also totalled ₹675,000 (which would be 100%); corrected above. Databricks also ships a ready-made <strong>usage dashboard</strong> in the account console; build your own in AI/BI dashboards or Power BI from the views here, and always label estimated versus billed figures.</p>
+
+<h3 id="s22-4-2"><span class="num">22.4.2</span>Chargeback and Workload Attribution</h3>
+<div class="grid-2">
+<div class="card"><h4>Chargeback</h4><p>Each department pays for what it uses: Finance for finance reporting, Marketing for campaign analysis, Data Engineering for shared ingestion.</p>
+<table><thead><tr><th>Team</th><th>Share</th><th>Of ₹100,000</th></tr></thead><tbody><tr><td>Finance</td><td>50%</td><td>₹50,000</td></tr><tr><td>Marketing</td><td>30%</td><td>₹30,000</td></tr><tr><td>Operations</td><td>20%</td><td>₹20,000</td></tr></tbody></table>
+<p style="margin:8px 0 0" class="ref">Use measured usage (tags, run_as, job IDs) where possible. For shared costs, document the proxy used (e.g. share of query time) so departments understand their charges.</p></div>
+<div class="card"><h4>Attribution approach</h4><ol style="margin-bottom:0"><li>Tag resources consistently.</li><li>Record job and run IDs (Chapter 20).</li><li>Collect usage records.</li><li>Map job, cluster, and warehouse IDs to workloads.</li><li>Map workloads to owners and cost centres.</li><li>Price with list prices (or your contract rates).</li><li>Reconcile totals with the Azure bill.</li></ol><p style="margin:8px 0 0" class="ref">Where data can't support exact attribution, don't invent precision; state the method and its limits.</p></div>
+</div>
+
+<h3 id="s22-4-4"><span class="num">22.4.3</span>Cost Alerts and Optimization Recommendations</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Text · a good cost alert</span><pre class="code"><code>[PROD] Cost threshold exceeded
+
+Workload:        pl_sales_aggregation
+Period:          current month
+Estimated cost:  ₹85,000   (list-price estimate)
+Expected:        ₹60,000
+Variance:        +41.7%
+Since:           18 Oct (daily cost 1.75x baseline)
+
+First action: compare recent runs' duration and
+input volume; check plans, compute config, and
+failed or repeated runs.</code></pre></div>
+<div class="card"><h4>Avoid noisy alerts</h4><p>Account for seasonality, backfills, month-end, data growth, planned migrations, and temporary tests. A planned historical backfill legitimately exceeds a daily baseline; mark it so it doesn't page anyone.</p><p style="margin-bottom:0" class="ref">Implement with a Databricks SQL alert on Finding 3 (22.5) or the Chapter 20 dispatcher.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Observation</th><th>Recommendation</th></tr></thead>
+<tbody>
+<tr><td>Idle or weekend all-purpose clusters</td><td>Auto-termination via policy; serverless notebooks</td></tr>
+<tr><td>Jobs on all-purpose clusters</td><td>Move to job or serverless compute</td></tr>
+<tr><td>Long runtime, low CPU</td><td>I/O waits, low parallelism, slow source</td></tr>
+<tr><td>High shuffle spill</td><td>Partitioning, joins, memory (Chapter 15)</td></tr>
+<tr><td>Frequent full refreshes</td><td>Incremental processing</td></tr>
+<tr><td>Repeated failed attempts</td><td>Fix permanent errors; classify retries (Chapter 20)</td></tr>
+<tr><td>Expensive SQL queries</td><td>Query profile, pruning, clustering</td></tr>
+<tr><td>Many small files</td><td>Optimized writes, OPTIMIZE, predictive optimization</td></tr>
+<tr><td>Large historical retention</td><td>Retention policy, VACUUM, archive tiers</td></tr>
+<tr><td>Large untagged spend</td><td>Mandatory tags via policies</td></tr>
+</tbody></table></div>
+<p class="ref">Validate every recommendation with a controlled measurement. More workers may be faster and dearer; the right change is the one that improves the business outcome within the SLA.</p>
+
+<!-- ===================== 22.5 ===================== -->
+<h2 id="s22-5"><span class="num">22.5</span>Hands-On Exercise: Analyze Job and Compute Usage</h2>
+<p class="section-intro">Part A is the original sample-table exercise (verified). Part B does the real thing: price the billing data, attribute it to jobs and teams, and let queries find waste.</p>
+
+<h3 id="s22-5-a"><span class="num">22.5.1</span>Part A: The Sample Cost Table</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Job</th><th>Env</th><th>Runs / month</th><th>Avg duration</th></tr></thead>
+<tbody><tr><td>Customer load</td><td>PROD</td><td>30</td><td>12 min</td></tr><tr><td>Product load</td><td>PROD</td><td>30</td><td>8 min</td></tr><tr><td>Sales aggregation</td><td>PROD</td><td>30</td><td>45 min</td></tr><tr><td>Historical backfill</td><td>PROD</td><td>2</td><td>4 hours</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · steps 1–5 (hypothetical estimates, not billing data)</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.cost_ops;
+
+CREATE TABLE IF NOT EXISTS retail_dev.cost_ops.job_cost_sample (
+    job_name STRING, environment STRING, execution_count INT,
+    average_duration_minutes DOUBLE, estimated_cost_per_run DOUBLE, monthly_cost DOUBLE
+);
+
+INSERT INTO retail_dev.cost_ops.job_cost_sample VALUES
+    ('customer_load',       'PROD', 30,  12,  120,  3600),
+    ('product_load',        'PROD', 30,   8,   75,  2250),
+    ('sales_aggregation',   'PROD', 30,  45,  480, 14400),
+    ('historical_backfill', 'PROD',  2, 240, 3500,  7000);
+
+-- Most expensive jobs, cost per run, cost per minute, share of total
+SELECT job_name,
+       monthly_cost,
+       round(monthly_cost / execution_count, 2)                                    AS cost_per_execution,
+       round(monthly_cost / nullif(execution_count * average_duration_minutes, 0), 2) AS cost_per_minute,
+       round(100 * monthly_cost / SUM(monthly_cost) OVER (), 1)                    AS pct_of_total
+FROM retail_dev.cost_ops.job_cost_sample
+ORDER BY monthly_cost DESC;</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>job_name             monthly_cost  cost_per_execution  cost_per_minute  pct_of_total
+sales_aggregation    14400.0       480.0               10.67            52.8
+historical_backfill   7000.0      3500.0               14.58            25.7
+customer_load         3600.0       120.0               10.0             13.2
+product_load          2250.0        75.0                9.38             8.3
+
+Total monthly estimated cost: 27,250</code></pre></div>
+<p class="ref">Sales aggregation is the largest monthly cost (53%); the backfill is the dearest per run and per minute, which may be justified for a necessary activity, but worth checking. Cost per minute is a rough ratio; compare similar workloads only. The total is an estimate, never an invoice.</p>
+<p><strong>Savings calculation:</strong> if optimizing sales aggregation brings its measured monthly cost from ₹14,400 to ₹10,800, savings are ₹3,600, a <strong>25%</strong> reduction (3,600 ÷ 14,400). Compare equivalent periods and account for changes in data volume, run frequency, and pricing.</p>
+
+<h3 id="s22-5-b"><span class="num">22.5.2</span>Part B: Find Waste in the Billing Data</h3>
+<p><strong>Practice data.</strong> If you can't read <code>system.billing</code> (e.g. on Free Edition), run this to create look-alike tables with the same column names, then in the queries replace the prefixes <code>system.billing.</code>, <code>system.lakeflow.</code>, and <code>system.compute.</code> with <code>retail_dev.cost_sim.</code> (the table names stay the same). It simulates 30 days of four jobs, a SQL warehouse, an untagged dev cluster, a billing correction, and a price change.</p>
+<details class="q"><summary>Show the practice-data generator (Python)</summary><div class="answer"><div class="code-wrap" style="margin:0"><span class="lang">Python · gen.py</span><pre class="code"><code># Practice data: small stand-ins for the billing, job and cluster system tables,
+# with the real column names, so the chapter's queries run without billing access
+# (e.g. on Free Edition). ALL QUANTITIES AND PRICES ARE INVENTED.
+SIM = "retail_dev.cost_sim"            # on Free Edition: "workspace.cost_sim"
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {SIM}")
+import random
+from datetime import date, datetime, timedelta
+from decimal import Decimal as D
+from pyspark.sql.types import *
+
+random.seed(7)
+usage_schema = StructType([
+    StructField("record_id", StringType()), StructField("workspace_id", StringType()),
+    StructField("sku_name", StringType()), StructField("cloud", StringType()),
+    StructField("usage_start_time", TimestampType()), StructField("usage_end_time", TimestampType()),
+    StructField("usage_date", DateType()), StructField("custom_tags", MapType(StringType(), StringType())),
+    StructField("usage_unit", StringType()), StructField("usage_quantity", DecimalType(38, 18)),
+    StructField("usage_metadata", StructType([StructField("job_id", StringType()), StructField("job_run_id", StringType()),
+        StructField("job_name", StringType()), StructField("cluster_id", StringType()), StructField("warehouse_id", StringType())])),
+    StructField("identity_metadata", StructType([StructField("run_as", StringType())])),
+    StructField("record_type", StringType()), StructField("billing_origin_product", StringType()),
+    StructField("product_features", StructType([StructField("is_serverless", BooleanType())])),
+])
+end = date(2026, 10, 24); days = [end - timedelta(d) for d in range(29, -1, -1)]
+rows, runs = [], []
+n = 0
+def rec(day, hour, hours, sku, qty, product, serverless, tags, job=None, run=None, jname=None, cluster=None, wh=None, rtype="ORIGINAL", who="sp-retail-prod"):
+    global n; n += 1
+    s = datetime(day.year, day.month, day.day, hour)
+    rows.append((f"r{n}", "ws-prod", sku, "AZURE", s, s + timedelta(hours=hours), day, tags, "DBU", D(str(qty)),
+                 (job, run, jname, cluster, wh), (who,), rtype, product, (serverless,)))
+CC100 = {"CostCenter": "CC100", "Team": "DataEngineering", "Environment": "PROD"}
+run_id = 9000
+for i, day in enumerate(days):
+    # customer_load: serverless job, ~2 DBU; on day 10 it failed once and was retried
+    attempts = ["FAILED", "SUCCEEDED"] if i == 10 else ["SUCCEEDED"]
+    for state in attempts:
+        run_id += 1; runs.append(("101", str(run_id), state, day))
+        rec(day, 2, 0.2, "PREMIUM_JOBS_SERVERLESS_COMPUTE", round(random.uniform(1.8, 2.2), 2), "JOBS", True, CC100, "101", str(run_id), "customer_load")
+    # product_load: serverless job, ~1.2 DBU
+    run_id += 1; runs.append(("102", str(run_id), "SUCCEEDED", day))
+    rec(day, 2, 0.15, "PREMIUM_JOBS_SERVERLESS_COMPUTE", round(random.uniform(1.0, 1.4), 2), "JOBS", True, CC100, "102", str(run_id), "product_load")
+    # sales_aggregation: classic job compute, ~18 DBU, jumps to ~30 in the last 7 days
+    run_id += 1; runs.append(("103", str(run_id), "SUCCEEDED", day))
+    rec(day, 3, 0.75, "PREMIUM_JOBS_COMPUTE", round(random.uniform(17, 19) if i &lt; 23 else random.uniform(29, 31), 2), "JOBS", False, CC100, "103", str(run_id), "sales_aggregation", cluster=f"job-cl-{run_id}")
+    # SQL warehouse for reporting: serverless SQL, ~15 DBU/day, Finance cost centre
+    rec(day, 9, 9, "PREMIUM_SERVERLESS_SQL_COMPUTE", round(random.uniform(14, 16), 2), "SQL", True,
+        {"CostCenter": "CC200", "Team": "FinanceAnalytics", "Environment": "PROD"}, wh="wh-finance")
+    # Untagged all-purpose dev cluster that runs every day, weekends included
+    rec(day, 0, 24, "PREMIUM_ALL_PURPOSE_COMPUTE", 10.0, "ALL_PURPOSE", False, {}, cluster="0905-dev-shared", who="someone@retail.com")
+# historical_backfill: run twice on an ALL-PURPOSE cluster (the expensive way to run a job)
+for day in (days[5], days[19]):
+    run_id += 1; runs.append(("104", str(run_id), "SUCCEEDED", day))
+    # billed to the all-purpose cluster, not to a job compute SKU
+    rec(day, 20, 4, "PREMIUM_ALL_PURPOSE_COMPUTE", 120.0, "ALL_PURPOSE", False, {}, cluster="0905-dev-shared", who="someone@retail.com")
+# A billing correction: one product_load record retracted and restated at a lower quantity
+orig = [r for r in rows if r[10][2] == "product_load"][3]
+rows.append(("r-retract",) + orig[1:9] + (-orig[9],) + orig[10:12] + ("RETRACTION",) + orig[13:])
+rows.append(("r-restate",) + orig[1:9] + (orig[9] - D("0.20"),) + orig[10:12] + ("RESTATEMENT",) + orig[13:])
+
+spark.createDataFrame(rows, usage_schema).write.mode("overwrite").saveAsTable(f"{SIM}.usage")
+
+price_schema = StructType([StructField("price_start_time", TimestampType()), StructField("price_end_time", TimestampType()),
+    StructField("sku_name", StringType()), StructField("cloud", StringType()), StructField("currency_code", StringType()),
+    StructField("usage_unit", StringType()),
+    StructField("pricing", StructType([StructField("default", DecimalType(38, 18)),
+        StructField("effective_list", StructType([StructField("default", DecimalType(38, 18))]))]))])
+p = lambda v: (D(v), (D(v),))
+t0, t1 = datetime(2025, 1, 1), datetime(2026, 10, 15)
+spark.createDataFrame([
+    (t0, None, "PREMIUM_JOBS_SERVERLESS_COMPUTE", "AZURE", "USD", "DBU", p("0.45")),
+    (t0, t1,   "PREMIUM_JOBS_COMPUTE",            "AZURE", "USD", "DBU", p("0.30")),
+    (t1, None, "PREMIUM_JOBS_COMPUTE",            "AZURE", "USD", "DBU", p("0.32")),   # price change mid-month
+    (t0, None, "PREMIUM_ALL_PURPOSE_COMPUTE",     "AZURE", "USD", "DBU", p("0.55")),
+    (t0, None, "PREMIUM_SERVERLESS_SQL_COMPUTE",  "AZURE", "USD", "DBU", p("0.70")),
+], price_schema).write.mode("overwrite").saveAsTable(f"{SIM}.list_prices")
+
+spark.createDataFrame([(j, r, s, datetime(d.year, d.month, d.day, 2), datetime(d.year, d.month, d.day, 3)) for j, r, s, d in runs],
+    "job_id STRING, run_id STRING, result_state STRING, period_start_time TIMESTAMP, period_end_time TIMESTAMP"
+).write.mode("overwrite").saveAsTable(f"{SIM}.job_run_timeline")
+tasks = [(r[0], r[1], "main", r[2], ["0905-dev-shared"] if r[0] == "104" else ([f"job-cl-{r[1]}"] if r[0] == "103" else []),
+          datetime(r[3].year, r[3].month, r[3].day, 2)) for r in runs]
+spark.createDataFrame(tasks, "job_id STRING, job_run_id STRING, task_key STRING, result_state STRING, compute_ids ARRAY&lt;STRING&gt;, period_start_time TIMESTAMP"
+).write.mode("overwrite").saveAsTable(f"{SIM}.job_task_run_timeline")
+spark.createDataFrame([("0905-dev-shared", "dev-shared", "UI", "someone@retail.com", datetime(2026, 1, 5))],
+    "cluster_id STRING, cluster_name STRING, cluster_source STRING, owned_by STRING, change_time TIMESTAMP"
+).write.mode("overwrite").saveAsTable(f"{SIM}.clusters")
+print("usage rows:", len(rows), "runs:", len(runs))</code></pre></div></div></details>
+<p>Run 22.3.2 to 22.3.5 (usage by SKU, the cost view, job cost, cost by tag), then these four findings queries:</p>
+<div class="code-wrap"><span class="lang">SQL · findings</span><pre class="code"><code>-- Finding 1: scheduled jobs running on all-purpose (interactive) clusters
+SELECT DISTINCT t.job_id, c.cluster_name, c.cluster_source, c.owned_by
+FROM system.lakeflow.job_task_run_timeline AS t
+JOIN system.compute.clusters AS c ON array_contains(t.compute_ids, c.cluster_id)
+WHERE c.cluster_source IN ('UI', 'API')                  -- created by hand, not by a job
+  AND t.period_start_time &gt;= date_sub(current_date(), 30);
+
+-- Finding 2: all-purpose clusters that bill on weekends (likely idle or forgotten)
+SELECT usage_metadata.cluster_id,
+       identity_metadata.run_as,
+       count(DISTINCT usage_date)        AS weekend_days_billed,
+       round(SUM(list_cost), 2)          AS weekend_cost_usd
+FROM retail_dev.cost_ops.usage_list_cost
+WHERE billing_origin_product = 'ALL_PURPOSE'
+  AND dayofweek(usage_date) IN (1, 7)                    -- Sunday, Saturday
+  AND usage_date &gt;= date_sub(current_date(), 30)
+GROUP BY 1, 2
+ORDER BY weekend_cost_usd DESC;
+
+-- Finding 3: jobs whose daily cost jumped (last 7 days vs the 21 before)
+WITH daily AS (
+    SELECT usage_metadata.job_name AS job_name, usage_date, SUM(list_cost) AS cost
+    FROM retail_dev.cost_ops.usage_list_cost
+    WHERE usage_metadata.job_id IS NOT NULL
+      AND usage_date &gt;= date_sub(current_date(), 28)
+    GROUP BY 1, 2
+)
+SELECT job_name,
+       round(avg(CASE WHEN usage_date &lt;  date_sub(current_date(), 7) THEN cost END), 2) AS baseline_daily_usd,
+       round(avg(CASE WHEN usage_date &gt;= date_sub(current_date(), 7) THEN cost END), 2) AS recent_daily_usd,
+       round(avg(CASE WHEN usage_date &gt;= date_sub(current_date(), 7) THEN cost END)
+           / avg(CASE WHEN usage_date &lt;  date_sub(current_date(), 7) THEN cost END), 2) AS ratio
+FROM daily
+GROUP BY job_name
+HAVING ratio &gt; 1.5
+ORDER BY ratio DESC;
+
+-- Finding 4: usage with no matching list price (check the join before trusting totals)
+SELECT sku_name, count(*) AS records
+FROM retail_dev.cost_ops.usage_list_cost
+WHERE list_cost IS NULL
+GROUP BY sku_name</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>Finding 1: jobs on all-purpose clusters
+job_id  cluster_name  cluster_source  owned_by
+104     dev-shared    UI              someone@retail.com      (historical_backfill)
+
+Finding 2: all-purpose clusters billing on weekends
+cluster_id       run_as              weekend_days_billed  weekend_cost_usd
+0905-dev-shared  someone@retail.com  9                    49.50
+
+Finding 3: cost spikes
+job_name           baseline_daily_usd  recent_daily_usd  ratio
+sales_aggregation  5.47                9.56              1.75
+
+Finding 4: usage with no list price
+(no rows: every record was priced)
+
+Total list-price estimate for the month: 844.86 USD</code></pre></div>
+<div class="callout key"><span class="label">Turning findings into recommendations</span>
+<ol style="margin-bottom:0">
+<li><strong>Move the backfill to job compute.</strong> Its 240 DBUs ran at the all-purpose rate (illustratively $132 vs $76.80 at the jobs rate for the same DBUs), and its cost was hidden in an untagged cluster. Expected saving ~40%; confirm by measuring the next run.</li>
+<li><strong>Put auto-termination on the dev cluster</strong> through a compute policy. It billed every day, weekends included: 300 DBUs (~$165) for the month. If used only on weekdays during working hours, most of that disappears.</li>
+<li><strong>Investigate sales aggregation.</strong> Its daily cost jumped 1.75× in the last week (only a small part from the price change). Use Chapter 20: compare duration and input volume, check for a full scan or skew.</li>
+<li><strong>Tag everything.</strong> 35% of spend was untagged, so no team owned it.</li>
+</ol></div>
+<p class="ref">The queries ran on Spark 4 against the practice tables; on a real workspace, check field names with <code>DESCRIBE</code> first. <code>cluster_source</code> values <code>UI</code> and <code>API</code> mean a cluster created by a person or script rather than by a job.</p>
+<div class="grid-2">
+<div class="card"><h4>Questions for sales aggregation</h4><ul style="margin-bottom:0"><li>Scanning all history every day?</li><li>Could it process only changed data?</li><li>Shuffle-heavy joins? Skew?</li><li>Recomputing the same aggregates?</li><li>Right compute configuration?</li></ul></div>
+<div class="card"><h4>Questions for the backfill and small loads</h4><ul style="margin-bottom:0"><li>Backfill: batched, resumable, minimal columns and partitions, scheduled off-peak?</li><li>Small loads: oversized compute? Running with no new data?</li><li>Unneeded full-table counts?</li><li>Would serverless remove idle time?</li></ul></div>
+</div>
+
+<!-- ===================== 22.6 ===================== -->
+<h2 id="s22-6"><span class="num">22.6</span>Recommended Production Cost-Monitoring Framework</h2>
+<div class="grid-2">
+<pre class="diagram">system.billing.usage  +  list_prices
+            |
+   usage_list_cost view (22.3.3)
+            |
+   +--------+-----------------+
+   |                          |
+Job run history         Resource metadata
+(system.lakeflow)       (system.compute, tags,
+   |                     Chapter 20 audit)
+   +--------+-----------------+
+            |
+      Cost attribution
+            |
+     +------+------+
+     |             |
+ Dashboard      Alerts (spikes,
+ (22.4.1)       budgets, findings)
+     |             |
+ Engineering   Workload owners</pre>
+<div class="card"><h4>Three sources, combined</h4><ol style="margin-bottom:0"><li><strong>Billing usage + prices:</strong> what was consumed and its estimated cost, by SKU, workspace, tag, job.</li><li><strong>Job run history:</strong> run counts, failures, retries, durations, for cost per successful run.</li><li><strong>Business metadata:</strong> owners, cost centres, environments, record counts (Chapter 20's audit table), SLAs.</li></ol><p style="margin:8px 0 0">This supports honest cost analysis without pretending every record maps perfectly to one job.</p></div>
+</div>
+
+<!-- ===================== 22.7 ===================== -->
+<h2 id="s22-7"><span class="num">22.7</span>Enterprise Cost Governance Checklist</h2>
+<div class="grid-2">
+<div class="card"><h4>Compute</h4><ul style="margin-bottom:0"><li>Review oversized configurations.</li><li>Find idle and weekend compute.</li><li>Enforce auto-termination via policy.</li><li>Check autoscaling actually helps.</li><li>No scheduled jobs on all-purpose clusters.</li><li>Compare serverless vs classic per workload.</li><li>Right-size warehouses; short auto-stop.</li></ul></div>
+<div class="card"><h4>Jobs</h4><ul style="margin-bottom:0"><li>Replace unnecessary full refreshes.</li><li>Track failed-run and retry cost.</li><li>Remove duplicate schedules.</li><li>Optimize expensive joins and aggregations.</li><li>Use Repair run for partial failures.</li><li>Measure cost per successful run.</li></ul></div>
+<div class="card"><h4>Storage and data movement</h4><ul style="margin-bottom:0"><li>Drop unnecessary intermediates.</li><li>Address small files when it helps.</li><li>Set retention and VACUUM policy.</li><li>Avoid cross-region transfers.</li><li>Verify compaction pays off.</li></ul></div>
+<div class="card"><h4>Monitoring and governance</h4><ul style="margin-bottom:0"><li>Enable billing system tables.</li><li>Price usage; label estimates.</li><li>Reconcile with the Azure bill.</li><li>Tagging standard, enforced.</li><li>Budgets and cost alerts.</li><li>Named owner per workload.</li><li>Monthly review; track realized savings.</li></ul></div>
+</div>
+
+<!-- ===================== 22.8 ===================== -->
+<h2 id="s22-8"><span class="num">22.8</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. What is a DBU?</summary><div class="answer">A Databricks Unit: a normalized measure of platform consumption, not a VM hour. Consumption depends on compute size, type, and features; the price per DBU depends on the SKU, tier, region, and contract.</div></details>
+<details class="q"><summary>Q2. What makes up Azure Databricks cost?</summary><div class="answer">DBUs, plus (for classic compute) Azure VMs and disks, storage, networking, and supporting services. Serverless DBU rates include the compute.</div></details>
+<details class="q"><summary>Q3. Is serverless always cheaper?</summary><div class="answer">No. It removes idle time and startup overhead, which helps short or bursty work; long steady jobs may be cheaper on classic job compute. Compare measured cost per successful run.</div></details>
+<details class="q"><summary>Q4. Why are jobs on all-purpose clusters a cost problem?</summary><div class="answer">All-purpose compute has a higher DBU rate than jobs compute, the cluster often stays up, and the job's cost is hidden in the shared cluster's usage instead of being attributed to the job.</div></details>
+<details class="q"><summary>Q5. How do you estimate cost from system tables?</summary><div class="answer">Join system.billing.usage to system.billing.list_prices on SKU, cloud, and unit where the usage time falls within the price's validity window, and multiply quantity by the effective list price. Label it a list-price estimate.</div></details>
+<details class="q"><summary>Q6. How do you handle billing corrections?</summary><div class="answer">Sum usage_quantity across all record types; retractions are negative and restatements replace them. Filtering to ORIGINAL double-counts.</div></details>
+<details class="q"><summary>Q7. How do you identify an expensive job?</summary><div class="answer">Cost per job from usage_metadata.job_id, joined to run history for cost per successful run; compare against baseline, data volume, failures, and value, and look for jobs hidden on shared clusters.</div></details>
+<details class="q"><summary>Q8. Reducing cost without hurting SLAs?</summary><div class="answer">Find the biggest drivers, then fix waste first (idle compute, wrong SKU, reruns, full refreshes, inefficient queries), right-size, and verify each change against runtime and SLA.</div></details>
+<details class="q"><summary>Q9. DBU consumption vs total workload cost?</summary><div class="answer">DBUs measure platform usage only; total cost adds infrastructure, storage, network, and services depending on the compute model.</div></details>
+<details class="q"><summary>Q10. Allocating cost to departments?</summary><div class="answer">Consistent tags (enforced by compute and budget policies), job and run_as metadata, mapping to cost centres, and a documented proxy for shared costs, separating attributed from allocated amounts.</div></details>
+<details class="q"><summary>Q11. Purpose of auto-termination?</summary><div class="answer">Stops idle all-purpose clusters after a set time so they don't bill overnight or at weekends.</div></details>
+<details class="q"><summary>Q12. How do unnecessary reruns increase cost?</summary><div class="answer">They repeat reads, transformations, and writes. Repair runs, idempotent tasks, and not retrying permanent errors prevent the waste.</div></details>
+<details class="q"><summary>Q13. Good cost KPIs?</summary><div class="answer">Cost per successful run, cost per million records or per TB, failed-run cost, untagged share, budget utilization, and month-over-month change, measured consistently.</div></details>
+<details class="q"><summary>Q14. Why might your cost report not match the invoice?</summary><div class="answer">List prices exclude discounts, commitments, and credits; currency differs; VMs, storage, and network are billed separately; and usage data arrives with a delay.</div></details>
+<details class="q"><summary>Q15. How do you attribute serverless cost to teams?</summary><div class="answer">With budget (usage) policies that tag serverless usage, plus job and warehouse identifiers in usage_metadata.</div></details>
+
+<!-- ===================== 22.9 ===================== -->
+<h2 id="s22-9"><span class="num">22.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Cost fundamentals, DBUs</td><td>Break one workload into its cost components</td></tr>
+<tr><td>2</td><td>Compute optimization</td><td>Compare two configurations by cost per run</td></tr>
+<tr><td>3</td><td>Job and query optimization</td><td>Check pruning and pushdown with <code>explain</code></td></tr>
+<tr><td>4</td><td>Billing system tables</td><td>Usage by SKU; build the priced view</td></tr>
+<tr><td>5</td><td>Attribution</td><td>Job cost and cost by cost centre</td></tr>
+<tr><td>6</td><td>Budgets and alerts</td><td>Budget plus a spike alert</td></tr>
+<tr><td>7</td><td>End-to-end</td><td>Run the four findings; write recommendations with savings</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://azure.microsoft.com/en-us/pricing/details/databricks/" target="_blank" rel="noopener">Azure Databricks pricing</a> · <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank" rel="noopener">Pricing calculator</a></li>
+<li><a href="https://docs.databricks.com/aws/en/admin/system-tables/billing" target="_blank" rel="noopener">Billable usage system table</a></li>
+<li><a href="https://docs.databricks.com/aws/en/admin/system-tables/pricing" target="_blank" rel="noopener">Pricing system table</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/compute/serverless/" target="_blank" rel="noopener">Serverless compute</a></li>
+<li><a href="https://docs.databricks.com/aws/en/compute/sql-warehouse/" target="_blank" rel="noopener">SQL warehouses</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets" target="_blank" rel="noopener">Azure Cost Management budgets</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/vacuum" target="_blank" rel="noopener">Delta Lake VACUUM</a></li>
+</ul></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch22-checklist">
+<label><input type="checkbox"> <span><strong>DBUs</strong> measure platform consumption; the rate depends on the SKU.</span></label>
+<label><input type="checkbox"> <span><strong>Total cost</strong> adds infrastructure, storage, network, and services.</span></label>
+<label><input type="checkbox"> <span><strong>Compute choice</strong> balances cost, performance, and SLA.</span></label>
+<label><input type="checkbox"> <span><strong>Serverless vs classic</strong> differ in billing, control, and idle cost.</span></label>
+<label><input type="checkbox"> <span><strong>Auto-termination and autoscaling</strong> cut idle and excess capacity.</span></label>
+<label><input type="checkbox"> <span><strong>Query optimization</strong> reduces what is read and shuffled.</span></label>
+<label><input type="checkbox"> <span><strong>Incremental processing and repair runs</strong> avoid reruns.</span></label>
+<label><input type="checkbox"> <span><strong>Billing tables + list prices</strong> give estimated cost per job and team.</span></label>
+<label><input type="checkbox"> <span><strong>Tags and policies</strong> make cost attributable.</span></label>
+<label><input type="checkbox"> <span><strong>Budgets, alerts, and dashboards</strong> make spend visible and actionable.</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch22-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch22-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 23!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="callout key"><span class="label">Production recommendation</span><p>Start with your <strong>top 10 workloads by consumption</strong>. For each, measure duration, failures and retries, data volume, and cost per successful run. Fix the biggest realistic savings first, then confirm data quality, reliability, and SLAs are unchanged.</p></div>
+
+<div class="next">
+<h3>Next chapter: Advanced Databricks Topics</h3>
+<p>Phase 8 begins. Chapter 23 surveys what to learn once you're comfortable building pipelines: machine learning with MLflow, generative AI (vector search, RAG, agents, model serving), Delta Sharing and Apache Iceberg interoperability, and platform capabilities like Photon, predictive optimization, Lakehouse Federation, AI/BI dashboards, and Databricks Assistant.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-21.html"><span>← Previous</span><strong>Chapter 21: DevOps &amp; CI/CD</strong></a>
+  <a class="pager-link" href="databricks-chapter-23.html"><span>Next →</span><strong>Chapter 23: Advanced Topics</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 7 · Chapter 22 of 24</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

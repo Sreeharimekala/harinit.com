@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 4: SQL</title>
+<meta name="description" content="Databricks Tutorial — Chapter 4: SQL for Databricks. Fundamentals, functions, joins, window functions, MERGE INTO, Databricks SQL, and 50 practice problems with answers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 4 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s4-1">4.1 SQL Fundamentals</a></li>
+    <li class="lvl2"><a href="#s4-1-2">SELECT</a></li>
+    <li class="lvl2"><a href="#s4-1-3">DISTINCT</a></li>
+    <li class="lvl2"><a href="#s4-1-4">WHERE</a></li>
+    <li class="lvl2"><a href="#s4-1-5">ORDER BY</a></li>
+    <li class="lvl2"><a href="#s4-1-6">GROUP BY</a></li>
+    <li class="lvl2"><a href="#s4-1-7">HAVING</a></li>
+    <li class="lvl2"><a href="#s4-1-8">LIMIT</a></li>
+    <li class="lvl2"><a href="#s4-1-9">Aliases</a></li>
+    <li class="lvl2"><a href="#s4-1-10">NULL handling</a></li>
+    <li class="lvl1"><a href="#s4-2">4.2 SQL Functions</a></li>
+    <li class="lvl2"><a href="#s4-2-1">String functions</a></li>
+    <li class="lvl2"><a href="#s4-2-2">Numeric functions</a></li>
+    <li class="lvl2"><a href="#s4-2-3">Date and time</a></li>
+    <li class="lvl2"><a href="#s4-2-4">Aggregate functions</a></li>
+    <li class="lvl2"><a href="#s4-2-5">CASE</a></li>
+    <li class="lvl2"><a href="#s4-2-6">COALESCE</a></li>
+    <li class="lvl2"><a href="#s4-2-7">NULLIF</a></li>
+    <li class="lvl2"><a href="#s4-2-8">CAST and TRY_CAST</a></li>
+    <li class="lvl1"><a href="#s4-3">4.3 SQL Joins</a></li>
+    <li class="lvl2"><a href="#s4-3-1">Example tables</a></li>
+    <li class="lvl2"><a href="#s4-3-2">INNER JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-3">LEFT JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-4">RIGHT JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-5">FULL OUTER JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-6">CROSS JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-7">SELF JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-8">LEFT SEMI JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-9">LEFT ANTI JOIN</a></li>
+    <li class="lvl2"><a href="#s4-3-10">Duplicates after joins</a></li>
+    <li class="lvl1"><a href="#s4-4">4.4 Advanced SQL</a></li>
+    <li class="lvl2"><a href="#s4-4-1">CTEs</a></li>
+    <li class="lvl2"><a href="#s4-4-2">Subqueries</a></li>
+    <li class="lvl2"><a href="#s4-4-3">Recursive alternatives</a></li>
+    <li class="lvl2"><a href="#s4-4-4">Window functions</a></li>
+    <li class="lvl2"><a href="#s4-4-5">ROW_NUMBER</a></li>
+    <li class="lvl2"><a href="#s4-4-6">RANK / DENSE_RANK</a></li>
+    <li class="lvl2"><a href="#s4-4-7">LAG and LEAD</a></li>
+    <li class="lvl2"><a href="#s4-4-8">Running totals</a></li>
+    <li class="lvl2"><a href="#s4-4-9">Ranking &amp; deduplication</a></li>
+    <li class="lvl2"><a href="#s4-4-10">PIVOT / UNPIVOT</a></li>
+    <li class="lvl2"><a href="#s4-4-11">Set operations</a></li>
+    <li class="lvl2"><a href="#s4-4-12">MERGE INTO</a></li>
+    <li class="lvl1"><a href="#s4-5">4.5 Databricks SQL</a></li>
+    <li class="lvl2"><a href="#s4-5-1">What is Databricks SQL?</a></li>
+    <li class="lvl2"><a href="#s4-5-2">SQL warehouses</a></li>
+    <li class="lvl2"><a href="#s4-5-3">Catalogs, schemas, tables</a></li>
+    <li class="lvl2"><a href="#s4-5-4">Creating schemas &amp; tables</a></li>
+    <li class="lvl2"><a href="#s4-5-5">Views</a></li>
+    <li class="lvl2"><a href="#s4-5-6">Temporary views</a></li>
+    <li class="lvl2"><a href="#s4-5-7">Scripting &amp; procedures</a></li>
+    <li class="lvl2"><a href="#s4-5-8">Execution plans</a></li>
+    <li class="lvl2"><a href="#s4-5-9">Query history</a></li>
+    <li class="lvl2"><a href="#s4-5-10">Query optimization</a></li>
+    <li class="lvl1"><a href="#project">Project: Employee Database</a></li>
+    <li class="lvl2"><a href="#setup">Setup (Steps 1–6)</a></li>
+    <li class="lvl2"><a href="#lvl1">Problems 1–10</a></li>
+    <li class="lvl2"><a href="#lvl2">Problems 11–20</a></li>
+    <li class="lvl2"><a href="#lvl3">Problems 21–30</a></li>
+    <li class="lvl2"><a href="#lvl4">Problems 31–40</a></li>
+    <li class="lvl2"><a href="#lvl5">Problems 41–50</a></li>
+    <li class="lvl2"><a href="#challenge">Final challenge</a></li>
+    <li class="lvl1"><a href="#takeaways">Key takeaways</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 2 · Chapter 4 · Prerequisites</span>
+  <h1>SQL for Databricks</h1>
+  <p class="lead">From SELECT to MERGE INTO: the SQL skills a data engineer uses every day, with the differences that matter in Databricks SQL, and 50 practice problems on an employee database you build yourself.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ul>
+    <li>Write SQL to retrieve, filter, sort, and aggregate data.</li>
+    <li>Use built-in functions for strings, numbers, dates, and NULL values.</li>
+    <li>Use every major join type and prevent duplicate records.</li>
+    <li>Use CTEs, subqueries, and window functions for complex analysis.</li>
+    <li>Rank employees, calculate running totals, find duplicates, and retrieve previous or next records.</li>
+    <li>Create schemas, tables, views, and temporary views in Databricks.</li>
+    <li>Understand MERGE INTO, query execution plans, and SQL optimization.</li>
+    <li>Build an employee database and solve 50 practical SQL problems.</li>
+  </ul></div>
+  <p class="ref">If you've worked with SQL Server or Azure Synapse Analytics, most concepts will be familiar; this chapter highlights where Databricks SQL differs.</p>
+  <div class="chips">
+    <a class="chip" href="#s4-1"><span>4.1</span><strong>SQL Fundamentals</strong></a>
+    <a class="chip" href="#s4-2"><span>4.2</span><strong>SQL Functions</strong></a>
+    <a class="chip" href="#s4-3"><span>4.3</span><strong>Joins</strong></a>
+    <a class="chip" href="#s4-4"><span>4.4</span><strong>Advanced SQL</strong></a>
+    <a class="chip" href="#s4-5"><span>4.5</span><strong>Databricks SQL</strong></a>
+    <a class="chip" href="#project"><span>Project</span><strong>50 SQL Problems</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 4.1 ===================== -->
+<h2 id="s4-1"><span class="num">4.1</span>SQL Fundamentals</h2>
+
+<h3 id="s4-1-1"><span class="num">4.1.1</span>What is SQL?</h3>
+<p>SQL (Structured Query Language) is used to retrieve, insert, update, delete, and analyze data stored in relational tables. Consider this employee table:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>department</th><th>salary</th><th>city</th></tr></thead>
+<tbody>
+<tr><td>101</td><td>Rahul</td><td>IT</td><td>80000</td><td>Hyderabad</td></tr>
+<tr><td>102</td><td>Priya</td><td>Finance</td><td>65000</td><td>Chennai</td></tr>
+<tr><td>103</td><td>Arjun</td><td>IT</td><td>90000</td><td>Bengaluru</td></tr>
+<tr><td>104</td><td>Sneha</td><td>HR</td><td>55000</td><td>Hyderabad</td></tr>
+<tr><td>105</td><td>Kiran</td><td>Finance</td><td>70000</td><td>Chennai</td></tr>
+</tbody></table></div>
+<p>SQL can answer questions such as: Which employees work in IT? Who earns more than ₹70,000? What is the average salary per department? Which department spends most on salaries? Which employees have duplicate records?</p>
+
+<h3 id="s4-1-2"><span class="num">4.1.2</span>SELECT — Retrieve data</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Syntax
+SELECT column1, column2
+FROM table_name;
+
+-- Three specific columns
+SELECT employee_id, employee_name, salary
+FROM employees;
+
+-- All columns
+SELECT *
+FROM employees;</code></pre></div>
+<div class="callout key"><span class="label">Best practice</span><p>Avoid <code>SELECT *</code> in production pipelines when you know which columns you need. Unnecessary columns increase data processing and transfer. Prefer, for example, <code>SELECT employee_id, employee_name, department FROM employees;</code> when downstream only needs those three.</p></div>
+<div class="callout"><span class="label">Important distinction</span><p><code>SELECT</code> describes which columns appear in the result. The optimizer decides how to execute the query; the physical execution order is not necessarily the written order.</p></div>
+
+<h3 id="s4-1-3"><span class="num">4.1.3</span>DISTINCT — Remove duplicate values</h3>
+<p><code>DISTINCT</code> returns unique combinations of the selected columns.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT DISTINCT department
+FROM employees;
+-- IT, Finance, HR
+
+-- Unique department + city combinations
+SELECT DISTINCT department, city
+FROM employees;</code></pre></div>
+<p>The second query removes duplicate <em>combinations</em> of department and city, not duplicates from each column independently. If a table holds 100,000 employees in five departments, <code>SELECT DISTINCT department</code> returns those five.</p>
+<div class="callout warn"><span class="label">Important</span><p><code>DISTINCT</code> removes duplicate result rows. It does not decide which record is the correct business record when multiple records exist for the same employee.</p></div>
+
+<h3 id="s4-1-4"><span class="num">4.1.4</span>WHERE — Filter records</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM employees
+WHERE department = 'IT';
+
+SELECT employee_name, salary
+FROM employees
+WHERE salary &gt; 70000;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Operator</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>=</code></td><td>Equal to</td></tr>
+<tr><td><code>&lt;&gt;</code></td><td>Not equal to</td></tr>
+<tr><td><code>&gt;</code> / <code>&lt;</code></td><td>Greater than / less than</td></tr>
+<tr><td><code>&gt;=</code> / <code>&lt;=</code></td><td>Greater / less than or equal to</td></tr>
+<tr><td><code>BETWEEN</code></td><td>Within a range, inclusive</td></tr>
+<tr><td><code>IN</code></td><td>Matches any listed value</td></tr>
+<tr><td><code>LIKE</code></td><td>Matches a pattern</td></tr>
+<tr><td><code>IS NULL</code> / <code>IS NOT NULL</code></td><td>Value is / is not NULL</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Employees in IT or Finance
+SELECT * FROM employees
+WHERE department IN ('IT', 'Finance');
+
+-- Employees earning between 60000 and 90000
+SELECT * FROM employees
+WHERE salary BETWEEN 60000 AND 90000;
+
+-- Names beginning with R
+SELECT * FROM employees
+WHERE employee_name LIKE 'R%';
+
+-- Names containing "ar"
+SELECT * FROM employees
+WHERE employee_name LIKE '%ar%';</code></pre></div>
+<h4>Combine conditions</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT * FROM employees
+WHERE department = 'IT'
+  AND salary &gt; 80000;
+
+SELECT * FROM employees
+WHERE department = 'IT'
+   OR department = 'Finance';
+
+-- Use parentheses when mixing AND and OR
+SELECT * FROM employees
+WHERE department = 'IT'
+  AND (city = 'Hyderabad' OR city = 'Bengaluru');</code></pre></div>
+
+<h3 id="s4-1-5"><span class="num">4.1.5</span>ORDER BY — Sort records</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Ascending (the default)
+SELECT employee_name, salary
+FROM employees
+ORDER BY salary ASC;
+
+-- Descending
+SELECT employee_name, salary
+FROM employees
+ORDER BY salary DESC;
+
+-- Departments alphabetically, then highest salary first
+SELECT employee_name, department, salary
+FROM employees
+ORDER BY department ASC, salary DESC;</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p>Without <code>ORDER BY</code>, SQL does not guarantee the order of returned rows.</p></div>
+
+<h3 id="s4-1-6"><span class="num">4.1.6</span>GROUP BY — Aggregate records</h3>
+<p><code>GROUP BY</code> groups rows with the same values in the specified columns, usually with aggregate functions.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT department, COUNT(*) AS employee_count
+FROM employees
+GROUP BY department;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>department</th><th>employee_count</th></tr></thead>
+<tbody><tr><td>IT</td><td>2</td></tr><tr><td>Finance</td><td>2</td></tr><tr><td>HR</td><td>1</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Average salary by department
+SELECT department, AVG(salary) AS average_salary
+FROM employees
+GROUP BY department;
+
+-- Total salary expenditure
+SELECT department, SUM(salary) AS total_salary
+FROM employees
+GROUP BY department;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>COUNT(*)</code></td><td>Counts rows</td></tr>
+<tr><td><code>COUNT(column)</code></td><td>Counts non-NULL values in a column</td></tr>
+<tr><td><code>COUNT(DISTINCT column)</code></td><td>Counts distinct non-NULL values</td></tr>
+<tr><td><code>SUM(column)</code></td><td>Calculates a sum</td></tr>
+<tr><td><code>AVG(column)</code></td><td>Calculates an average</td></tr>
+<tr><td><code>MIN(column)</code> / <code>MAX(column)</code></td><td>Finds the minimum / maximum</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department,
+    COUNT(*) AS total_rows,
+    COUNT(salary) AS employees_with_salary,
+    COUNT(DISTINCT city) AS distinct_cities,
+    MIN(salary) AS minimum_salary,
+    MAX(salary) AS maximum_salary
+FROM employees
+GROUP BY department;</code></pre></div>
+<p class="ref"><code>COUNT(*)</code> and <code>COUNT(salary)</code> differ when salary contains NULLs.</p>
+
+<h3 id="s4-1-7"><span class="num">4.1.7</span>HAVING — Filter aggregated results</h3>
+<p><code>WHERE</code> filters rows <strong>before</strong> aggregation; <code>HAVING</code> filters groups <strong>after</strong> aggregation.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Departments with more than five employees
+SELECT department, COUNT(*) AS employee_count
+FROM employees
+GROUP BY department
+HAVING COUNT(*) &gt; 5;
+
+-- Departments with average salary above 70,000
+SELECT department, AVG(salary) AS average_salary
+FROM employees
+GROUP BY department
+HAVING AVG(salary) &gt; 70000;
+
+-- Both WHERE and HAVING
+SELECT department, AVG(salary) AS average_salary
+FROM employees
+WHERE city = 'Hyderabad'
+GROUP BY department
+HAVING AVG(salary) &gt; 60000;</code></pre></div>
+<p>The last query filters to Hyderabad employees, groups them by department, calculates each department's average salary, and returns only departments averaging above ₹60,000.</p>
+
+<h3 id="s4-1-8"><span class="num">4.1.8</span>LIMIT — Restrict the result size</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM employees
+LIMIT 10;
+
+-- Five highest-paid employees
+SELECT employee_name, salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 5;</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p>Use an appropriate <code>ORDER BY</code> for a meaningful top-N result. Without ordering, <code>LIMIT 5</code> does not guarantee the five highest-paid employees.</p></div>
+
+<h3 id="s4-1-9"><span class="num">4.1.9</span>Aliases — Rename columns and tables</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Column aliases
+SELECT
+    employee_name AS name,
+    salary AS monthly_salary
+FROM employees;
+
+-- Table alias
+SELECT e.employee_name, e.salary
+FROM employees AS e;
+
+-- Aliases in a join
+SELECT e.employee_name, d.department_name
+FROM employees AS e
+INNER JOIN departments AS d
+    ON e.department_id = d.department_id;
+
+-- Alias for a calculated value
+SELECT employee_name, salary * 12 AS annual_salary
+FROM employees;</code></pre></div>
+
+<h3 id="s4-1-10"><span class="num">4.1.10</span>NULL handling</h3>
+<p><code>NULL</code> represents missing, unknown, or unavailable data. It is not zero and not an empty string.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>salary</th><th>manager_id</th></tr></thead>
+<tbody><tr><td>101</td><td>Rahul</td><td>80000</td><td>NULL</td></tr><tr><td>102</td><td>Priya</td><td>65000</td><td>101</td></tr><tr><td>103</td><td>Arjun</td><td>NULL</td><td>101</td></tr></tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">✓ Correct</span><pre class="code"><code>SELECT *
+FROM employees
+WHERE salary IS NULL;</code></pre></div>
+<div class="code-wrap"><span class="lang">✗ Incorrect</span><pre class="code"><code>SELECT *
+FROM employees
+WHERE salary = NULL;</code></pre></div>
+</div>
+<p>Comparisons involving NULL generally produce an unknown result rather than TRUE or FALSE.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Non-NULL values
+SELECT * FROM employees
+WHERE salary IS NOT NULL;
+
+-- Replace NULL with a default
+SELECT employee_name, COALESCE(salary, 0) AS salary
+FROM employees;</code></pre></div>
+<div class="callout warn"><span class="label">Business decision</span><p>Replacing NULL with zero can wrongly imply the employee earns nothing, rather than that salary information is missing.</p></div>
+<h4>NULL and aggregate functions</h4>
+<p>With salaries A = 50000, B = 60000, C = NULL:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    COUNT(*) AS total_rows,        -- 3
+    COUNT(salary) AS salary_count, -- 2
+    AVG(salary) AS average_salary  -- 55000
+FROM employees;</code></pre></div>
+<div class="callout key"><span class="label">Remember</span><p><code>AVG</code> ignores NULL values. It does not treat them as zero.</p></div>
+<div class="callout"><span class="label">Section 4.1 summary</span><p><code>SELECT</code> retrieves columns · <code>DISTINCT</code> removes duplicate result rows · <code>WHERE</code> filters rows · <code>GROUP BY</code> groups for aggregation · <code>HAVING</code> filters groups · <code>ORDER BY</code> sorts · <code>LIMIT</code> restricts row count · <code>IS NULL</code> and <code>COALESCE</code> handle missing values.</p></div>
+
+<!-- ===================== 4.2 ===================== -->
+<h2 id="s4-2"><span class="num">4.2</span>SQL Functions</h2>
+<p class="section-intro">Functions transform, calculate, and analyze values without writing a full program. Databricks SQL has a broad library; these are the ones most useful in data engineering.</p>
+
+<h3 id="s4-2-1"><span class="num">4.2.1</span>String functions</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_name</th><th>email</th><th>department</th></tr></thead>
+<tbody><tr><td>Rahul Sharma</td><td>Rahul@Example.com</td><td>IT</td></tr><tr><td>Priya Reddy</td><td>Priya@Example.com</td><td>Finance</td></tr><tr><td>Arjun Kumar</td><td>Arjun@Example.com</td><td>IT</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- UPPER / LOWER: normalize text
+SELECT
+    UPPER(employee_name) AS uppercase_name,
+    LOWER(email) AS lowercase_email
+FROM employees;
+
+-- TRIM: ' Rahul Sharma ' becomes 'Rahul Sharma'
+SELECT TRIM(employee_name) AS cleaned_name
+FROM employees;
+
+-- LENGTH
+SELECT employee_name, LENGTH(employee_name) AS name_length
+FROM employees;
+
+-- SUBSTRING: extraction starts at position 1
+SELECT SUBSTRING(employee_name, 1, 5) AS first_five_characters
+FROM employees;
+
+-- CONCAT
+SELECT CONCAT(employee_name, ' - ', department) AS employee_details
+FROM employees;
+
+-- REPLACE
+SELECT REPLACE(email, 'Example.com', 'Company.com') AS updated_email
+FROM employees;
+
+-- SPLIT: string to array by delimiter
+SELECT email, SPLIT(email, '@') AS email_parts
+FROM employees;
+
+-- REGEXP_REPLACE: keep digits only
+SELECT REGEXP_REPLACE(phone_number, '[^0-9]', '') AS cleaned_phone
+FROM employees;</code></pre></div>
+<div class="callout"><span class="label">Data engineering example</span><p>A source system sends phone numbers as <code>+91-98765 43210</code> but the destination expects digits only. String functions standardize the format during ingestion or transformation.</p></div>
+
+<h3 id="s4-2-2"><span class="num">4.2.2</span>Numeric functions</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT ROUND(1234.567, 2) AS rounded_value;   -- 1234.57
+
+SELECT
+    CEIL(10.2) AS ceiling_value,   -- 11
+    FLOOR(10.8) AS floor_value;    -- 10
+
+SELECT ABS(-150) AS absolute_value;   -- 150
+
+SELECT MOD(17, 5) AS remainder;       -- 2
+
+-- Annual salary
+SELECT
+    employee_name,
+    salary AS monthly_salary,
+    salary * 12 AS annual_salary
+FROM employees;</code></pre></div>
+
+<h3 id="s4-2-3"><span class="num">4.2.3</span>Date and time functions</h3>
+<p>Date functions are essential for ETL pipelines, incremental loads, reporting, and historical analysis. Databricks SQL supports <code>CURRENT_DATE()</code>, <code>CURRENT_TIMESTAMP()</code>, <code>YEAR()</code>, <code>MONTH()</code>, <code>DAY()</code>, <code>DATE_ADD()</code>, <code>DATE_SUB()</code>, <code>DATEDIFF()</code>, <code>ADD_MONTHS()</code>, <code>DATE_TRUNC()</code>, <code>TO_DATE()</code>, <code>TO_TIMESTAMP()</code>, and <code>DATE_FORMAT()</code>, among others.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT CURRENT_DATE() AS today;
+SELECT CURRENT_TIMESTAMP() AS current_timestamp;
+
+-- Extract year and month
+SELECT
+    employee_name,
+    YEAR(joining_date) AS joining_year,
+    MONTH(joining_date) AS joining_month
+FROM employees;
+
+-- Days since joining (argument order: end_date, start_date)
+SELECT
+    employee_name,
+    joining_date,
+    DATEDIFF(CURRENT_DATE(), joining_date) AS days_since_joining
+FROM employees;
+
+-- Add or subtract days
+SELECT DATE_ADD(CURRENT_DATE(), 7) AS date_after_seven_days;
+SELECT DATE_SUB(CURRENT_DATE(), 30) AS date_thirty_days_ago;
+
+-- Add months
+SELECT ADD_MONTHS(CURRENT_DATE(), 3) AS date_after_three_months;
+
+-- Start of the month (useful for monthly reporting)
+SELECT DATE_TRUNC('MONTH', CURRENT_TIMESTAMP()) AS month_start;
+
+-- Text to date
+SELECT TO_DATE('2026-10-25', 'yyyy-MM-dd') AS parsed_date;
+
+-- Format a date, e.g. 2026-10
+SELECT DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM') AS year_month;</code></pre></div>
+<h4>Practical ETL example: incremental loading</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM source_employees
+WHERE last_modified_date &gt;= DATE_SUB(CURRENT_DATE(), 1);</code></pre></div>
+<p>This retrieves records modified since the previous calendar day.</p>
+<div class="callout warn"><span class="label">Not a complete strategy</span><p>In production, a timestamp watermark or source change tracking is more reliable than filtering on the current date. Also consider time zones, late-arriving changes, and the last successful pipeline run.</p></div>
+
+<h3 id="s4-2-4"><span class="num">4.2.4</span>Aggregate functions</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department,
+    COUNT(*) AS employee_count,
+    SUM(salary) AS total_salary,
+    AVG(salary) AS average_salary,
+    MIN(salary) AS minimum_salary,
+    MAX(salary) AS maximum_salary
+FROM employees
+GROUP BY department;</code></pre></div>
+<h4>Conditional aggregation</h4>
+<p>Count employees per department earning more than ₹70,000:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department,
+    SUM(CASE WHEN salary &gt; 70000 THEN 1 ELSE 0 END)
+        AS high_salary_employees
+FROM employees
+GROUP BY department;</code></pre></div>
+<p>The same technique powers reporting tables, such as a daily pipeline-monitoring summary of total, successful, and failed runs:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    CAST(start_time AS DATE) AS run_date,
+    COUNT(*) AS total_runs,
+    SUM(CASE WHEN status = 'Succeeded' THEN 1 ELSE 0 END)
+        AS successful_runs,
+    SUM(CASE WHEN status = 'Failed' THEN 1 ELSE 0 END)
+        AS failed_runs
+FROM pipeline_runs
+GROUP BY CAST(start_time AS DATE);</code></pre></div>
+<p class="ref">This pattern is the basis for a data engineering monitoring dashboard (Chapter 20).</p>
+
+<h3 id="s4-2-5"><span class="num">4.2.5</span>Conditional functions and CASE</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    salary,
+    CASE
+        WHEN salary &gt;= 100000 THEN 'High'
+        WHEN salary &gt;= 70000 THEN 'Medium'
+        WHEN salary IS NULL THEN 'Unknown'
+        ELSE 'Low'
+    END AS salary_category
+FROM employees;</code></pre></div>
+<p>Order matters: SQL returns the result of the <strong>first</strong> matching condition.</p>
+<div class="code-wrap"><span class="lang">SQL · tenure</span><pre class="code"><code>SELECT
+    employee_name,
+    joining_date,
+    CASE
+        WHEN joining_date IS NULL THEN 'Unknown'
+        WHEN DATEDIFF(CURRENT_DATE(), joining_date) &gt;= 3650
+            THEN '10+ years'
+        WHEN DATEDIFF(CURRENT_DATE(), joining_date) &gt;= 1825
+            THEN '5-10 years'
+        ELSE 'Less than 5 years'
+    END AS tenure_category
+FROM employees;</code></pre></div>
+<p class="ref">Simplified; production tenure rules should specify calendar years or exact day counts.</p>
+
+<h3 id="s4-2-6"><span class="num">4.2.6</span>COALESCE</h3>
+<p><code>COALESCE</code> returns the first non-NULL expression.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    COALESCE(email, alternate_email, 'No email') AS contact_email
+FROM employees;</code></pre></div>
+<p>If <code>email</code> isn't NULL, return it; otherwise <code>alternate_email</code> if not NULL; otherwise <code>'No email'</code>. Especially useful when combining data from multiple source systems.</p>
+
+<h3 id="s4-2-7"><span class="num">4.2.7</span>NULLIF</h3>
+<p><code>NULLIF(a, b)</code> returns NULL if <code>a = b</code>; otherwise it returns <code>a</code>. <code>SELECT NULLIF(100, 100)</code> returns NULL.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    revenue / NULLIF(units_sold, 0) AS revenue_per_unit
+FROM sales;</code></pre></div>
+<p>When <code>units_sold = 0</code>, the divisor becomes NULL, preventing division by zero and producing NULL instead of a misleading number.</p>
+
+<h3 id="s4-2-8"><span class="num">4.2.8</span>CAST and TRY_CAST</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT CAST('123' AS INT) AS employee_number;          -- 123
+SELECT CAST('2026-10-25' AS DATE) AS converted_date;
+
+-- TRY_CAST returns NULL instead of raising an error
+SELECT
+    TRY_CAST('123' AS INT) AS valid_number,    -- 123
+    TRY_CAST('ABC' AS INT) AS invalid_number;  -- NULL</code></pre></div>
+<h4>Real-world example: salary stored as text</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>salary_text</th></tr></thead>
+<tbody><tr><td>101</td><td>80000</td></tr><tr><td>102</td><td>65000</td></tr><tr><td>103</td><td>UNKNOWN</td></tr><tr><td>104</td><td>NULL</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    salary_text,
+    TRY_CAST(salary_text AS DECIMAL(12, 2)) AS salary
+FROM source_employee_data;</code></pre></div>
+<div class="callout warn"><span class="label">Don't fail silently</span><p>In production, monitor how many rows fail conversion and decide whether to quarantine, reject, or apply a documented correction:</p></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT COUNT(*) AS invalid_salary_records
+FROM source_employee_data
+WHERE salary_text IS NOT NULL
+  AND TRY_CAST(salary_text AS DECIMAL(12, 2)) IS NULL;</code></pre></div>
+<div class="callout"><span class="label">Section 4.2 summary</span><p>You can now clean strings, do numeric calculations, compute date differences, aggregate data, implement rules with <code>CASE</code>, replace missing values with <code>COALESCE</code>, prevent division by zero with <code>NULLIF</code>, and convert types with <code>CAST</code> and <code>TRY_CAST</code>.</p></div>
+
+<!-- ===================== 4.3 ===================== -->
+<h2 id="s4-3"><span class="num">4.3</span>SQL Joins</h2>
+<p class="section-intro">Joins combine rows from multiple tables. This is one of the most important data engineering skills, because source data is usually spread across tables.</p>
+
+<h3 id="s4-3-1"><span class="num">4.3.1</span>Two example tables</h3>
+<div class="grid-2">
+<div><h5>Employees</h5><div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>department_id</th><th>manager_id</th></tr></thead>
+<tbody>
+<tr><td>101</td><td>Rahul</td><td>10</td><td>NULL</td></tr>
+<tr><td>102</td><td>Priya</td><td>20</td><td>101</td></tr>
+<tr><td>103</td><td>Arjun</td><td>10</td><td>101</td></tr>
+<tr><td>104</td><td>Sneha</td><td>30</td><td>102</td></tr>
+<tr><td>105</td><td>Kiran</td><td>NULL</td><td>101</td></tr>
+</tbody></table></div></div>
+<div><h5>Departments</h5><div class="table-wrap"><table>
+<thead><tr><th>department_id</th><th>department_name</th></tr></thead>
+<tbody><tr><td>10</td><td>IT</td></tr><tr><td>20</td><td>Finance</td></tr><tr><td>40</td><td>Marketing</td></tr></tbody></table></div></div>
+</div>
+<div class="callout"><span class="label">Notice</span><ul><li>Department 30 exists in Employees but not in Departments.</li><li>Department 40 exists in Departments but has no employees.</li><li>Kiran has no department assigned.</li></ul></div>
+
+<h3 id="s4-3-2"><span class="num">4.3.2</span>INNER JOIN</h3>
+<p>Returns rows that match in both tables.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    d.department_name
+FROM employees AS e
+INNER JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>department_name</th></tr></thead>
+<tbody><tr><td>101</td><td>Rahul</td><td>IT</td></tr><tr><td>102</td><td>Priya</td><td>Finance</td></tr><tr><td>103</td><td>Arjun</td><td>IT</td></tr></tbody></table></div>
+<p>Sneha is excluded because department 30 doesn't exist in Departments; Kiran because his department is NULL. Use an inner join when you need only matching records, for example transactions with a valid customer.</p>
+
+<h3 id="s4-3-3"><span class="num">4.3.3</span>LEFT JOIN</h3>
+<p>Returns every row from the left table plus matching rows from the right; unmatched right-side columns are NULL.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    d.department_name
+FROM employees AS e
+LEFT JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>department_name</th></tr></thead>
+<tbody><tr><td>101</td><td>Rahul</td><td>IT</td></tr><tr><td>102</td><td>Priya</td><td>Finance</td></tr><tr><td>103</td><td>Arjun</td><td>IT</td></tr><tr><td>104</td><td>Sneha</td><td>NULL</td></tr><tr><td>105</td><td>Kiran</td><td>NULL</td></tr></tbody></table></div>
+<h4>Practical use: find missing reference data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    e.department_id
+FROM employees AS e
+LEFT JOIN departments AS d
+    ON e.department_id = d.department_id
+WHERE d.department_id IS NULL;</code></pre></div>
+<p>This returns Sneha and Kiran, but they are <strong>different data-quality problems</strong>: Kiran's department is NULL in the source, while Sneha's department ID doesn't match any department.</p>
+
+<h3 id="s4-3-4"><span class="num">4.3.4</span>RIGHT JOIN</h3>
+<p>Returns every row from the right table plus matching rows from the left. This includes Marketing even though no employee belongs to it.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_name,
+    d.department_id,
+    d.department_name
+FROM employees AS e
+RIGHT JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<p class="ref">Many developers rewrite a RIGHT JOIN as a LEFT JOIN by swapping table order, since the intent is often easier to read.</p>
+
+<h3 id="s4-3-5"><span class="num">4.3.5</span>FULL OUTER JOIN</h3>
+<p>Returns matching rows plus unmatched rows from both sides.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_name,
+    e.department_id AS employee_department_id,
+    d.department_id AS reference_department_id,
+    d.department_name
+FROM employees AS e
+FULL OUTER JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<p>Full outer joins are useful for <strong>reconciliation</strong> between systems:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    COALESCE(s.employee_id, t.employee_id) AS employee_id,
+    s.employee_name AS source_name,
+    t.employee_name AS target_name
+FROM source_employees AS s
+FULL OUTER JOIN target_employees AS t
+    ON s.employee_id = t.employee_id;</code></pre></div>
+<p>This identifies records only in the source, only in the target, or in both. For accurate reconciliation, also compare column values and handle NULLs explicitly.</p>
+
+<h3 id="s4-3-6"><span class="num">4.3.6</span>CROSS JOIN</h3>
+<p>Returns every combination of rows: 5 rows × 3 rows = 15 rows.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_name,
+    d.department_name
+FROM employees AS e
+CROSS JOIN departments AS d;</code></pre></div>
+<p>Useful for generating combinations of dates and product IDs, departments and reporting months, or products and price scenarios.</p>
+<div class="callout warn"><span class="label">Be careful</span><p>A cross join can produce a very large result.</p></div>
+
+<h3 id="s4-3-7"><span class="num">4.3.7</span>SELF JOIN</h3>
+<p>Joins a table to itself, which is useful for employee–manager relationships.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_name AS employee_name,
+    m.employee_name AS manager_name
+FROM employees AS e
+LEFT JOIN employees AS m
+    ON e.manager_id = m.employee_id;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_name</th><th>manager_name</th></tr></thead>
+<tbody><tr><td>Rahul</td><td>NULL</td></tr><tr><td>Priya</td><td>Rahul</td></tr><tr><td>Arjun</td><td>Rahul</td></tr><tr><td>Sneha</td><td>Priya</td></tr><tr><td>Kiran</td><td>Rahul</td></tr></tbody></table></div>
+<p class="ref">The aliases <code>e</code> and <code>m</code> are two logical roles played by the same table.</p>
+
+<h3 id="s4-3-8"><span class="num">4.3.8</span>LEFT SEMI JOIN</h3>
+<p>Returns left-table rows that have a match in the right table, with only left-side columns. Think of it as an existence test.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM employees AS e
+LEFT SEMI JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">Equivalent</span><pre class="code"><code>SELECT e.*
+FROM employees AS e
+WHERE EXISTS (
+    SELECT 1
+    FROM departments AS d
+    WHERE d.department_id = e.department_id
+);</code></pre></div>
+</div>
+<p class="ref">A semi join does not multiply employee rows when multiple right-side rows match.</p>
+
+<h3 id="s4-3-9"><span class="num">4.3.9</span>LEFT ANTI JOIN</h3>
+<p>Returns left-table rows with <strong>no</strong> matching row in the right table.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM employees AS e
+LEFT ANTI JOIN departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">Equivalent</span><pre class="code"><code>SELECT e.*
+FROM employees AS e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM departments AS d
+    WHERE d.department_id = e.department_id
+);</code></pre></div>
+</div>
+<h4>Common data engineering use cases</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Join pattern</th></tr></thead>
+<tbody>
+<tr><td>Find valid matching records</td><td>INNER JOIN</td></tr>
+<tr><td>Preserve every source record</td><td>LEFT JOIN</td></tr>
+<tr><td>Source records missing from the target</td><td>LEFT ANTI JOIN</td></tr>
+<tr><td>Target records missing from the source</td><td>Reverse LEFT ANTI JOIN or FULL OUTER JOIN</td></tr>
+<tr><td>Test whether a related record exists</td><td>LEFT SEMI JOIN or EXISTS</td></tr>
+<tr><td>Compare two datasets</td><td>FULL OUTER JOIN</td></tr>
+</tbody></table></div>
+
+<h3 id="s4-3-10"><span class="num">4.3.10</span>Handling duplicate records after joins</h3>
+<p class="section-intro">A critical topic.</p>
+<div class="grid-2">
+<div><h5>employees</h5><div class="table-wrap"><table><thead><tr><th>employee_id</th><th>employee_name</th></tr></thead><tbody><tr><td>101</td><td>Rahul</td></tr><tr><td>102</td><td>Priya</td></tr></tbody></table></div></div>
+<div><h5>employee_addresses</h5><div class="table-wrap"><table><thead><tr><th>employee_id</th><th>address</th></tr></thead><tbody><tr><td>101</td><td>Hyderabad</td></tr><tr><td>101</td><td>Bengaluru</td></tr><tr><td>102</td><td>Chennai</td></tr></tbody></table></div></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    a.address
+FROM employees AS e
+LEFT JOIN employee_addresses AS a
+    ON e.employee_id = a.employee_id;</code></pre></div>
+<p>Rahul appears twice because two address records match employee 101. The join isn't wrong: it reflects the one-to-many relationship. The right fix depends on the business requirement.</p>
+<h4>Solution 1: Select the latest address</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_addresses AS (
+    SELECT
+        employee_id,
+        address,
+        updated_at,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY updated_at DESC
+        ) AS rn
+    FROM employee_addresses
+)
+SELECT
+    e.employee_id,
+    e.employee_name,
+    a.address
+FROM employees AS e
+LEFT JOIN ranked_addresses AS a
+    ON e.employee_id = a.employee_id
+   AND a.rn = 1;</code></pre></div>
+<p class="ref">If two addresses share the same <code>updated_at</code>, add a stable tie-breaker such as a unique address record ID.</p>
+<h4>Solution 2: Use EXISTS</h4>
+<p>If you only need employees who <em>have</em> an address:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM employees AS e
+WHERE EXISTS (
+    SELECT 1
+    FROM employee_addresses AS a
+    WHERE a.employee_id = e.employee_id
+);</code></pre></div>
+<h4>Solution 3: Aggregate the child table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    COUNT(*) AS address_count
+FROM employee_addresses
+GROUP BY employee_id;
+-- then join this aggregated result to employees</code></pre></div>
+<h4>Solution 4: Investigate the data quality</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    COUNT(*) AS record_count
+FROM employee_addresses
+GROUP BY employee_id
+HAVING COUNT(*) &gt; 1;</code></pre></div>
+<p>If multiple records are legitimate, don't delete them just to force a one-to-one join.</p>
+<div class="callout key"><span class="label">Production rule</span><p>Before joining two tables, understand their <strong>grain</strong>: the meaning and uniqueness of one row in each table.</p></div>
+
+<!-- ===================== 4.4 ===================== -->
+<h2 id="s4-4"><span class="num">4.4</span>Advanced SQL</h2>
+<p class="section-intro">Multi-step transformations, historical analysis, ranking, and deduplication, all in SQL.</p>
+
+<h3 id="s4-4-1"><span class="num">4.4.1</span>Common Table Expressions (CTEs)</h3>
+<p>A CTE is a named query defined with <code>WITH</code>, which breaks complex SQL into readable steps.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH department_salary AS (
+    SELECT
+        department,
+        AVG(salary) AS average_salary
+    FROM employees
+    GROUP BY department
+)
+SELECT department, average_salary
+FROM department_salary
+WHERE average_salary &gt; 70000;</code></pre></div>
+<h4>Multiple CTEs</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH employee_data AS (
+    SELECT employee_id, employee_name, department, salary
+    FROM employees
+    WHERE salary IS NOT NULL
+),
+department_summary AS (
+    SELECT
+        department,
+        COUNT(*) AS employee_count,
+        AVG(salary) AS average_salary
+    FROM employee_data
+    GROUP BY department
+)
+SELECT *
+FROM department_summary
+ORDER BY average_salary DESC;</code></pre></div>
+<div class="callout"><span class="label">Important</span><p>A CTE improves organization but is not automatically a physically materialized table. The optimizer may inline or transform it.</p></div>
+
+<h3 id="s4-4-2"><span class="num">4.4.2</span>Subqueries</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Employees earning above the overall average
+SELECT employee_id, employee_name, salary
+FROM employees
+WHERE salary &gt; (
+    SELECT AVG(salary)
+    FROM employees
+);
+
+-- IN subquery: departments with budget above 1,000,000
+SELECT *
+FROM employees
+WHERE department_id IN (
+    SELECT department_id
+    FROM departments
+    WHERE budget &gt; 1000000
+);</code></pre></div>
+<h4>Correlated subquery</h4>
+<p>Employees earning more than their <em>own</em> department's average; the inner query refers to the outer row's department:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.employee_id, e.employee_name, e.department_id, e.salary
+FROM employees AS e
+WHERE e.salary &gt; (
+    SELECT AVG(e2.salary)
+    FROM employees AS e2
+    WHERE e2.department_id = e.department_id
+);</code></pre></div>
+<p>A window function often expresses this more clearly:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH employee_salary AS (
+    SELECT
+        employee_id,
+        employee_name,
+        department_id,
+        salary,
+        AVG(salary) OVER (
+            PARTITION BY department_id
+        ) AS department_average
+    FROM employees
+)
+SELECT *
+FROM employee_salary
+WHERE salary &gt; department_average;</code></pre></div>
+
+<h3 id="s4-4-3"><span class="num">4.4.3</span>Recursive-query alternatives</h3>
+<p>Recursive CTE support differs across SQL engines and versions; check the runtime and documentation available in your workspace. Many hierarchy problems have alternatives.</p>
+<div class="code-wrap"><span class="lang">SQL · one level</span><pre class="code"><code>SELECT
+    e.employee_name,
+    m.employee_name AS manager_name
+FROM employees AS e
+LEFT JOIN employees AS m
+    ON e.manager_id = m.employee_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · fixed depth</span><pre class="code"><code>SELECT
+    e.employee_name AS employee,
+    m.employee_name AS manager,
+    gm.employee_name AS grand_manager
+FROM employees AS e
+LEFT JOIN employees AS m
+    ON e.manager_id = m.employee_id
+LEFT JOIN employees AS gm
+    ON m.manager_id = gm.employee_id;</code></pre></div>
+<p>This handles two management levels. For arbitrary-depth hierarchies, consider iterative processing in PySpark, a precomputed hierarchy (closure) table, or a supported recursive-query feature where available.</p>
+
+<h3 id="s4-4-4"><span class="num">4.4.4</span>Window functions</h3>
+<p>Window functions calculate across related rows <strong>without collapsing</strong> them into one row per group.</p>
+<div class="grid-2">
+<div><h5>GROUP BY: one row per department</h5>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department_id,
+    AVG(salary) AS average_salary
+FROM employees
+GROUP BY department_id;</code></pre></div></div>
+<div><h5>Window: keeps every employee row</h5>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id, employee_name,
+    department_id, salary,
+    AVG(salary) OVER (
+        PARTITION BY department_id
+    ) AS department_average_salary
+FROM employees;</code></pre></div></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>PARTITION BY</td><td>Defines groups within which the function operates</td></tr>
+<tr><td>ORDER BY</td><td>Defines row ordering within each partition</td></tr>
+<tr><td>Window frame</td><td>Defines which rows are included relative to the current row</td></tr>
+</tbody></table></div>
+
+<h3 id="s4-4-5"><span class="num">4.4.5</span>ROW_NUMBER</h3>
+<p>Assigns a sequential number to rows within each partition.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    department_id,
+    salary,
+    ROW_NUMBER() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC, employee_id
+    ) AS row_num
+FROM employees;</code></pre></div>
+<p>The highest-paid employee per department gets 1. Adding <code>employee_id</code> breaks salary ties deterministically.</p>
+<div class="code-wrap"><span class="lang">SQL · highest-paid per department</span><pre class="code"><code>WITH ranked_employees AS (
+    SELECT
+        employee_id, employee_name, department_id, salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id
+            ORDER BY salary DESC, employee_id
+        ) AS rn
+    FROM employees
+)
+SELECT *
+FROM ranked_employees
+WHERE rn = 1;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · keep latest version</span><pre class="code"><code>WITH ranked_employees AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY updated_at DESC, source_record_id DESC
+        ) AS rn
+    FROM source_employees
+)
+SELECT *
+FROM ranked_employees
+WHERE rn = 1;</code></pre></div>
+<p class="ref">Assumes <code>source_record_id</code> is a stable tie-breaker; without one, a tied latest timestamp gives a nondeterministic pick.</p>
+<div class="callout key"><span class="label">Important</span><p>Use a business key such as <code>employee_id</code> for business-level deduplication. Don't partition by every column unless you specifically want to remove exact duplicates.</p></div>
+
+<h3 id="s4-4-6"><span class="num">4.4.6</span>RANK and DENSE_RANK</h3>
+<p>Salaries: Rahul 100000, Priya 90000, Arjun 90000, Sneha 80000.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · RANK</span><pre class="code"><code>SELECT
+    employee_name, salary,
+    RANK() OVER (
+        ORDER BY salary DESC
+    ) AS salary_rank
+FROM employees;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · DENSE_RANK</span><pre class="code"><code>SELECT
+    employee_name, salary,
+    DENSE_RANK() OVER (
+        ORDER BY salary DESC
+    ) AS salary_rank
+FROM employees;</code></pre></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Employee</th><th>Salary</th><th>RANK</th><th>DENSE_RANK</th></tr></thead>
+<tbody>
+<tr><td>Rahul</td><td>100000</td><td>1</td><td>1</td></tr>
+<tr><td>Priya</td><td>90000</td><td>2</td><td>2</td></tr>
+<tr><td>Arjun</td><td>90000</td><td>2</td><td>2</td></tr>
+<tr><td>Sneha</td><td>80000</td><td>4</td><td>3</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Function</th><th>Behavior</th></tr></thead>
+<tbody>
+<tr><td>ROW_NUMBER()</td><td>Always assigns a different number</td></tr>
+<tr><td>RANK()</td><td>Ties share a rank; later ranks have gaps</td></tr>
+<tr><td>DENSE_RANK()</td><td>Ties share a rank; no gaps</td></tr>
+</tbody></table></div>
+<p>For the top three <em>distinct salary levels</em>, use <code>DENSE_RANK()</code>. For exactly one record per employee, use <code>ROW_NUMBER()</code> with deterministic ordering.</p>
+
+<h3 id="s4-4-7"><span class="num">4.4.7</span>LAG and LEAD</h3>
+<p><code>LAG()</code> retrieves a value from a preceding row; <code>LEAD()</code> from a following row.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>month</th><th>sales</th></tr></thead>
+<tbody><tr><td>January</td><td>100000</td></tr><tr><td>February</td><td>120000</td></tr><tr><td>March</td><td>90000</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    month,
+    sales,
+    LAG(sales) OVER (
+        ORDER BY month_date
+    ) AS previous_month_sales   -- NULL for January
+FROM monthly_sales;
+
+-- Month-over-month change
+SELECT
+    month_date,
+    sales,
+    LAG(sales) OVER (ORDER BY month_date) AS previous_sales,
+    sales - LAG(sales) OVER (ORDER BY month_date) AS sales_change
+FROM monthly_sales;
+
+-- LEAD: compare with the next salary record
+SELECT
+    employee_id,
+    effective_date,
+    salary,
+    LEAD(salary) OVER (
+        PARTITION BY employee_id
+        ORDER BY effective_date
+    ) AS next_salary
+FROM employee_salary_history;</code></pre></div>
+<div class="callout warn"><span class="label">Important</span><p>Make sure the ordering column reflects the true chronological sequence. If two records share a date, add a stable secondary ordering column.</p></div>
+
+<h3 id="s4-4-8"><span class="num">4.4.8</span>Running totals</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    transaction_date,
+    transaction_id,
+    amount,
+    SUM(amount) OVER (
+        ORDER BY transaction_date, transaction_id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total
+FROM transactions;
+
+-- Running total by department
+SELECT
+    employee_id,
+    employee_name,
+    department_id,
+    salary,
+    SUM(salary) OVER (
+        PARTITION BY department_id
+        ORDER BY salary, employee_id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS department_running_salary
+FROM employees;</code></pre></div>
+<div class="callout"><span class="label">Why specify ROWS?</span><p>An explicit frame (<code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>) makes the row-by-row cumulative intent clear. Default frames can behave differently when ordering values contain ties.</p></div>
+
+<h3 id="s4-4-9"><span class="num">4.4.9</span>Ranking and deduplication</h3>
+<p>A common requirement: keep the latest record for every business key.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_id</th><th>employee_name</th><th>salary</th><th>updated_at</th></tr></thead>
+<tbody>
+<tr><td>101</td><td>Rahul</td><td>70000</td><td>2026-10-01</td></tr>
+<tr><td>101</td><td>Rahul</td><td>75000</td><td>2026-10-10</td></tr>
+<tr><td>102</td><td>Priya</td><td>65000</td><td>2026-10-05</td></tr>
+<tr><td>102</td><td>Priya</td><td>68000</td><td>2026-10-12</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_source AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY updated_at DESC
+        ) AS rn
+    FROM source_employees
+)
+SELECT employee_id, employee_name, salary, updated_at
+FROM ranked_source
+WHERE rn = 1;</code></pre></div>
+<p>This returns Rahul at ₹75,000 and Priya at ₹68,000. In production, add a deterministic tie-breaker.</p>
+<div class="grid-2">
+<div class="card"><h4>Exact duplicates</h4><p>All selected column values are identical.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT DISTINCT *
+FROM source_employees;</code></pre></div></div>
+<div class="card"><h4>Business-key duplicates</h4><p>Rows share an identifier but differ elsewhere.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT employee_id, COUNT(*) AS record_count
+FROM source_employees
+GROUP BY employee_id
+HAVING COUNT(*) &gt; 1;</code></pre></div></div>
+</div>
+<p class="ref">These two situations require different handling.</p>
+
+<h3 id="s4-4-10"><span class="num">4.4.10</span>PIVOT and UNPIVOT</h3>
+<h4>PIVOT: rows to columns</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_name</th><th>quarter</th><th>sales</th></tr></thead>
+<tbody><tr><td>Rahul</td><td>Q1</td><td>100</td></tr><tr><td>Rahul</td><td>Q2</td><td>120</td></tr><tr><td>Priya</td><td>Q1</td><td>150</td></tr><tr><td>Priya</td><td>Q2</td><td>130</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM (
+    SELECT employee_name, quarter, sales
+    FROM quarterly_sales
+) AS source_data
+PIVOT (
+    SUM(sales)
+    FOR quarter IN ('Q1', 'Q2')
+);</code></pre></div>
+<p class="ref">The output has Q1 and Q2 columns; exact column naming depends on the engine's pivot rules, so verify in your workspace.</p>
+<h4>UNPIVOT: columns to rows</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>employee_name</th><th>Q1</th><th>Q2</th></tr></thead>
+<tbody><tr><td>Rahul</td><td>100</td><td>120</td></tr><tr><td>Priya</td><td>150</td><td>130</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM quarterly_sales_pivoted
+UNPIVOT (
+    sales FOR quarter IN (Q1, Q2)
+);</code></pre></div>
+<p>The result has one row per employee and quarter. UNPIVOT syntax can vary by runtime; if unavailable, use <code>UNION ALL</code>.</p>
+
+<h3 id="s4-4-11"><span class="num">4.4.11</span>Set operations</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- UNION ALL: combine, keep duplicates
+SELECT employee_id, employee_name FROM current_employees
+UNION ALL
+SELECT employee_id, employee_name FROM former_employees;
+
+-- UNION: combine, remove duplicate result rows
+SELECT employee_id, employee_name FROM current_employees
+UNION
+SELECT employee_id, employee_name FROM former_employees;
+
+-- INTERSECT: rows present in both
+SELECT employee_id FROM current_employees
+INTERSECT
+SELECT employee_id FROM payroll_employees;
+
+-- EXCEPT: rows in the first but not the second
+SELECT employee_id FROM current_employees
+EXCEPT
+SELECT employee_id FROM payroll_employees;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>UNION</th><th>UNION ALL</th></tr></thead>
+<tbody>
+<tr><td>Combines rows</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Removes duplicate result rows</td><td>Yes</td><td>No</td></tr>
+<tr><td>Extra duplicate-elimination work</td><td>Usually</td><td>No</td></tr>
+<tr><td>Preserves intentional duplicates</td><td>No</td><td>Yes</td></tr>
+</tbody></table></div>
+<p>In pipelines, <code>UNION ALL</code> is usually right when appending monthly or regional datasets where every record should be kept. Don't use <code>UNION</code> just to hide unexplained duplicates. Set operations require compatible column types.</p>
+
+<h3 id="s4-4-12"><span class="num">4.4.12</span>MERGE INTO</h3>
+<p><code>MERGE INTO</code> combines insert and update logic in one operation and is widely used with Delta tables for <strong>upserts</strong>: update when the key matches, insert when it doesn't.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.default.employee_target AS target
+USING main.default.employee_staging AS source
+ON target.employee_id = source.employee_id
+
+WHEN MATCHED THEN
+    UPDATE SET
+        target.employee_name = source.employee_name,
+        target.salary = source.salary,
+        target.updated_at = source.updated_at
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        employee_id,
+        employee_name,
+        salary,
+        updated_at
+    )
+    VALUES (
+        source.employee_id,
+        source.employee_name,
+        source.salary,
+        source.updated_at
+    );</code></pre></div>
+<ol class="steps">
+  <li>Databricks compares source and target on <code>employee_id</code>.</li>
+  <li>If a target record exists, it is updated.</li>
+  <li>If no target record exists, a new one is inserted.</li>
+</ol>
+<div class="callout warn"><span class="label">Common production issue</span><p>If staging has several rows for the same <code>employee_id</code>, multiple source rows matching one target row can cause a MERGE failure or ambiguous results. Deduplicate the source to at most one row per key first:</p></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_source AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY updated_at DESC, source_record_id DESC
+        ) AS rn
+    FROM main.default.employee_staging
+)
+SELECT *
+FROM ranked_source
+WHERE rn = 1;</code></pre></div>
+<p><strong>MERGE is useful for</strong> incremental loads, updating customer or employee dimensions, maintaining current-state tables, applying change data from upstream systems, and synchronizing source and target. It isn't a replacement for every INSERT or UPDATE.</p>
+
+<!-- ===================== 4.5 ===================== -->
+<h2 id="s4-5"><span class="num">4.5</span>Databricks SQL</h2>
+
+<h3 id="s4-5-1"><span class="num">4.5.1</span>What is Databricks SQL?</h3>
+<p>Databricks SQL is the SQL experience within Databricks for querying and analyzing lakehouse data. Use it to query tables, create tables and views, explore catalog objects, build analytical datasets, run queries on SQL warehouses, and analyze performance. It's based on Apache Spark SQL with Databricks-specific features.</p>
+<p class="ref">Coming from Azure Synapse, tables, views, queries, and plans feel familiar, but the architecture, supported syntax, storage formats, and execution behavior differ.</p>
+
+<h3 id="s4-5-2"><span class="num">4.5.2</span>SQL warehouses</h3>
+<p>A SQL warehouse is compute designed to run SQL queries and analytical workloads, used by the SQL editor, dashboards, BI integrations, and SQL analytics.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Workspace</td><td>Organizes notebooks, queries, jobs, and other resources</td></tr>
+<tr><td>SQL warehouse</td><td>Provides compute for SQL queries</td></tr>
+<tr><td>Catalog</td><td>Organizes and governs data objects</td></tr>
+<tr><td>Schema</td><td>Groups tables, views, and related objects</td></tr>
+<tr><td>Table</td><td>Stores structured data</td></tr>
+<tr><td>View</td><td>Defines a reusable query</td></tr>
+<tr><td>Notebook</td><td>Interactive code in SQL, Python, and more</td></tr>
+</tbody></table></div>
+<p class="ref">A SQL warehouse is not a database or a schema.</p>
+<h4>Create and use a SQL warehouse</h4>
+<ol class="steps">
+  <li>Open the SQL or Compute area of your workspace.</li>
+  <li>Locate the SQL warehouses page.</li>
+  <li>Select an existing warehouse, or create one if permitted.</li>
+  <li>Configure its settings per your workspace and organization.</li>
+  <li>Start it if required.</li>
+  <li>Select it as the compute for your SQL query.</li>
+</ol>
+<div class="callout warn"><span class="label">Cost note</span><p>Warehouses consume compute. Use suitable sizing and auto-stop settings, and don't leave unused compute running.</p></div>
+
+<h3 id="s4-5-3"><span class="num">4.5.3</span>Catalogs, schemas, and tables</h3>
+<p>Databricks uses a three-level namespace: <code>catalog.schema.table</code>. In <code>main.default.employees</code>, <code>main</code> is the catalog, <code>default</code> the schema, <code>employees</code> the table.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SHOW CATALOGS;
+
+SHOW SCHEMAS IN main;
+
+SHOW TABLES IN main.default;
+
+DESCRIBE TABLE main.default.employees;
+
+DESCRIBE DETAIL main.default.employees;</code></pre></div>
+<p class="ref">Available commands and metadata depend on object type and your permissions.</p>
+
+<h3 id="s4-5-4"><span class="num">4.5.4</span>Creating schemas and tables</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.hr;
+
+CREATE TABLE IF NOT EXISTS main.hr.employees (
+    employee_id INT,
+    employee_name STRING,
+    department STRING,
+    salary DECIMAL(12, 2),
+    joining_date DATE
+)
+USING DELTA;
+
+INSERT INTO main.hr.employees
+    (employee_id, employee_name, department, salary, joining_date)
+VALUES
+    (101, 'Rahul Sharma', 'IT', 80000.00, DATE '2022-01-15'),
+    (102, 'Priya Reddy', 'Finance', 65000.00, DATE '2023-03-20'),
+    (103, 'Arjun Kumar', 'IT', 90000.00, DATE '2021-07-10'),
+    (104, 'Sneha Rao', 'HR', 55000.00, DATE '2024-02-01');
+
+SELECT *
+FROM main.hr.employees
+ORDER BY employee_id;</code></pre></div>
+<p>This creates a Delta table; Delta Lake adds transaction-log-based management and reliability features.</p>
+<p class="ref">The catalog and schema must exist and you need the privileges. If <code>main</code> isn't available, use an approved catalog and schema.</p>
+
+<h3 id="s4-5-5"><span class="num">4.5.5</span>Views</h3>
+<p>A view is a saved query you can query like a table.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW main.hr.it_employees AS
+SELECT employee_id, employee_name, salary
+FROM main.hr.employees
+WHERE department = 'IT';
+
+SELECT *
+FROM main.hr.it_employees;</code></pre></div>
+<p><strong>Why use views?</strong> Simplify complex queries, reuse business logic, expose only selected columns, provide a reporting layer, and separate presentation logic from tables. A standard view stores the query definition, not a physical copy of results.</p>
+<div class="callout warn"><span class="label">Security warning</span><p>A view can limit what's exposed, but security must also be configured through privileges and any required row- or column-level controls.</p></div>
+
+<h3 id="s4-5-6"><span class="num">4.5.6</span>Temporary views</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW it_employee_view AS
+SELECT *
+FROM main.hr.employees
+WHERE department = 'IT';
+
+SELECT *
+FROM it_employee_view;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Temporary view</th><th>Permanent view</th></tr></thead>
+<tbody>
+<tr><td>Intended lifetime</td><td>Current session/notebook context</td><td>Persists until altered or dropped</td></tr>
+<tr><td>Saved in the catalog</td><td>No</td><td>Yes</td></tr>
+<tr><td>Useful for intermediate transformations</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Available beyond its scope</td><td>Generally no</td><td>Subject to permissions</td></tr>
+</tbody></table></div>
+<p class="ref">When working across notebooks, verify the session and execution context rather than assuming a temp view is globally accessible.</p>
+
+<h3 id="s4-5-7"><span class="num">4.5.7</span>SQL scripting and stored procedures</h3>
+<p>Databricks SQL supports SQL scripting with variables and control flow in supported contexts:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>BEGIN
+    DECLARE employee_count INT DEFAULT 0;
+
+    SET VAR employee_count = (
+        SELECT COUNT(*)
+        FROM main.hr.employees
+    );
+
+    SELECT employee_count AS total_employees;
+END;</code></pre></div>
+<p class="ref">Check this syntax against your SQL warehouse and runtime; scripting features vary.</p>
+<div class="callout warn"><span class="label">What about stored procedures?</span><p>Support differs from SQL Server and Synapse dedicated SQL pools. Don't assume T-SQL stored procedures can be copied directly into Databricks.</p></div>
+<p>For reusable logic, Databricks workloads may use SQL views, SQL functions where supported, SQL scripts, notebooks, jobs and task orchestration, Lakeflow pipelines, or external orchestration. Choose based on whether you need reusable SQL logic, procedural control flow, data transformation, or workflow orchestration.</p>
+
+<h3 id="s4-5-8"><span class="num">4.5.8</span>Query execution plans</h3>
+<p>An execution plan describes how the engine intends to run a query, helping you spot unnecessary scans, expensive joins, and large shuffles.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>EXPLAIN
+SELECT
+    department,
+    AVG(salary) AS average_salary
+FROM main.hr.employees
+GROUP BY department;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Operator</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Scan</td><td>Reads data from a source</td></tr>
+<tr><td>Filter</td><td>Removes rows that don't match a condition</td></tr>
+<tr><td>Project</td><td>Selects or calculates columns</td></tr>
+<tr><td>Hash aggregate</td><td>Aggregates using hashing</td></tr>
+<tr><td>Sort</td><td>Orders data</td></tr>
+<tr><td>Join</td><td>Combines datasets</td></tr>
+<tr><td>Exchange</td><td>Redistributes data between partitions or stages</td></tr>
+<tr><td>Broadcast</td><td>Sends a small dataset to tasks to facilitate a join</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Why Exchange matters</span><p>Grouping by department may require bringing rows with the same department together across workers. That redistribution is a <strong>shuffle</strong>, and it can involve heavy network, disk, and memory activity, which makes it a prime suspect in slow queries.</p></div>
+
+<h3 id="s4-5-9"><span class="num">4.5.9</span>Query history</h3>
+<p>Query history can show query text, start time and duration, status, user or principal, warehouse, errors, and execution details.</p>
+<h4>How to investigate a slow query</h4>
+<ol class="steps">
+  <li>Open Query History in your workspace.</li>
+  <li>Find the query by time, user, warehouse, or status.</li>
+  <li>Inspect the query text.</li>
+  <li>Check its duration and execution details.</li>
+  <li>Review the execution plan or query profile.</li>
+  <li>Decide whether the cause is scanning too much data, a large join, a shuffle, poor filtering, or insufficient compute.</li>
+</ol>
+
+<h3 id="s4-5-10"><span class="num">4.5.10</span>SQL query optimization</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Technique</th><th>Why it helps</th></tr></thead>
+<tbody>
+<tr><td>1. Select only the columns you need</td><td>Less data read and moved than <code>SELECT *</code></td></tr>
+<tr><td>2. Filter rows early</td><td>The optimizer may push filters down to the scan</td></tr>
+<tr><td>3. Avoid unnecessary DISTINCT</td><td>Distributed duplicate elimination is expensive; use it only when deduplication is actually required</td></tr>
+<tr><td>4. Reduce data before joining</td><td>Makes filtering explicit; validate actual performance, as the optimizer may already do this</td></tr>
+<tr><td>5. Check join cardinality</td><td>Unexpected duplicate keys inflate results and cost</td></tr>
+<tr><td>6. Use Delta Lake features appropriately</td><td>Compaction, data skipping, justified partitioning, liquid clustering, current statistics</td></tr>
+<tr><td>7. Choose appropriate compute</td><td>Size the warehouse to the measured workload</td></tr>
+<tr><td>8. Avoid repeated transformations</td><td>Consider a view, intermediate table, or pipeline stage, weighing storage and maintenance cost</td></tr>
+<tr><td>9. Use query profiles</td><td>Shows actual behavior: rows read and produced, stage time, shuffle, joins, skew, spill</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · example: reduce before joining</span><pre class="code"><code>WITH it_employees AS (
+    SELECT employee_id, employee_name, department_id
+    FROM main.hr.employees
+    WHERE department = 'IT'
+)
+SELECT
+    e.employee_name,
+    d.department_name
+FROM it_employees AS e
+LEFT JOIN main.hr.departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · example: check join cardinality</span><pre class="code"><code>SELECT employee_id, COUNT(*) AS record_count
+FROM main.hr.employees
+GROUP BY employee_id
+HAVING COUNT(*) &gt; 1;</code></pre></div>
+<div class="callout warn"><span class="label">Don't over-partition</span><p>Partitioning every table automatically can create many small files and unnecessary overhead.</p></div>
+<div class="callout key"><span class="label">The goal</span><p>Identify the expensive part of the query before changing the SQL.</p></div>
+
+<!-- ===================== Project ===================== -->
+<h2 id="project">Hands-on Project: Employee Database</h2>
+<p class="section-intro">Build a small employee management database with Delta tables (departments, employees, salary history, attendance), then solve 50 business questions covering joins, aggregations, window functions, deduplication, and data quality.</p>
+
+<h3 id="setup">Setup</h3>
+<h4>Step 1: Create the project schema</h4>
+<p>Run in the SQL editor or a SQL notebook attached to suitable compute. If you can't use <code>main</code>, substitute an authorized catalog.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.employee_sql_lab;</code></pre></div>
+
+<h4>Step 2: Create the Departments table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.departments (
+    department_id INT,
+    department_name STRING,
+    location STRING,
+    department_budget DECIMAL(14, 2)
+)
+USING DELTA;
+
+INSERT INTO main.employee_sql_lab.departments
+VALUES
+    (10, 'IT', 'Hyderabad', 5000000),
+    (20, 'Finance', 'Chennai', 3000000),
+    (30, 'HR', 'Bengaluru', 2000000),
+    (40, 'Marketing', 'Mumbai', 2500000),
+    (50, 'Operations', 'Hyderabad', 4000000);</code></pre></div>
+
+<h4>Step 3: Create the Employees table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.employees (
+    employee_id INT,
+    employee_name STRING,
+    email STRING,
+    department_id INT,
+    manager_id INT,
+    salary DECIMAL(12, 2),
+    joining_date DATE,
+    city STRING,
+    employment_status STRING
+)
+USING DELTA;
+
+INSERT INTO main.employee_sql_lab.employees
+VALUES
+    (101, 'Rahul Sharma', 'rahul@example.com', 10, NULL, 120000, DATE '2020-01-15', 'Hyderabad', 'Active'),
+    (102, 'Priya Reddy', 'priya@example.com', 20, 101, 95000, DATE '2021-03-10', 'Chennai', 'Active'),
+    (103, 'Arjun Kumar', 'arjun@example.com', 10, 101, 110000, DATE '2022-06-20', 'Bengaluru', 'Active'),
+    (104, 'Sneha Rao', 'sneha@example.com', 30, 102, 75000, DATE '2023-02-05', 'Hyderabad', 'Active'),
+    (105, 'Kiran Reddy', 'kiran@example.com', 20, 101, 85000, DATE '2022-09-12', 'Chennai', 'Active'),
+    (106, 'Meena Das', 'meena@example.com', 40, 103, 90000, DATE '2021-11-25', 'Mumbai', 'Active'),
+    (107, 'Vikram Singh', 'vikram@example.com', 10, 101, 130000, DATE '2019-07-01', 'Hyderabad', 'Active'),
+    (108, 'Anita Rao', 'anita@example.com', 30, 102, 70000, DATE '2024-01-10', 'Bengaluru', 'Active'),
+    (109, 'Suresh Babu', 'suresh@example.com', 50, 103, 80000, DATE '2020-08-18', 'Hyderabad', 'Active'),
+    (110, 'Divya Nair', 'divya@example.com', 20, 101, 105000, DATE '2018-05-22', 'Chennai', 'Active'),
+    (111, 'Ravi Teja', 'ravi@example.com', 10, 107, 95000, DATE '2023-04-15', 'Hyderabad', 'Active'),
+    (112, 'Pooja Menon', 'pooja@example.com', 40, 106, 88000, DATE '2022-12-01', 'Mumbai', 'Inactive'),
+    (113, 'Naveen Kumar', 'naveen@example.com', NULL, 101, 65000, DATE '2024-07-01', 'Pune', 'Active'),
+    (114, 'Lakshmi Devi', 'lakshmi@example.com', 50, 109, 72000, DATE '2021-06-14', 'Hyderabad', 'Active'),
+    (115, 'Manoj Verma', 'manoj@example.com', 10, 107, 110000, DATE '2020-03-30', 'Bengaluru', 'Active');</code></pre></div>
+
+<h4>Step 4: Verify the data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees
+ORDER BY employee_id;
+
+SELECT COUNT(*) AS employee_count
+FROM main.employee_sql_lab.employees;   -- expected: 15</code></pre></div>
+
+<h4>Step 5: Create the salary history table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.salary_history (
+    history_id INT,
+    employee_id INT,
+    salary DECIMAL(12, 2),
+    effective_date DATE
+)
+USING DELTA;
+
+INSERT INTO main.employee_sql_lab.salary_history
+VALUES
+    (1, 101, 100000, DATE '2020-01-15'),
+    (2, 101, 110000, DATE '2022-01-01'),
+    (3, 101, 120000, DATE '2024-01-01'),
+    (4, 102, 80000, DATE '2021-03-10'),
+    (5, 102, 95000, DATE '2024-04-01'),
+    (6, 103, 90000, DATE '2022-06-20'),
+    (7, 103, 110000, DATE '2025-01-01'),
+    (8, 104, 70000, DATE '2023-02-05'),
+    (9, 104, 75000, DATE '2025-02-01'),
+    (10, 107, 115000, DATE '2019-07-01'),
+    (11, 107, 130000, DATE '2023-07-01');</code></pre></div>
+
+<h4>Step 6: Create the attendance table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.attendance (
+    attendance_id INT,
+    employee_id INT,
+    attendance_date DATE,
+    status STRING
+)
+USING DELTA;
+
+INSERT INTO main.employee_sql_lab.attendance
+VALUES
+    (1, 101, DATE '2026-10-01', 'Present'),
+    (2, 101, DATE '2026-10-02', 'Present'),
+    (3, 101, DATE '2026-10-03', 'Absent'),
+    (4, 102, DATE '2026-10-01', 'Present'),
+    (5, 102, DATE '2026-10-02', 'Absent'),
+    (6, 103, DATE '2026-10-01', 'Present'),
+    (7, 103, DATE '2026-10-02', 'Present'),
+    (8, 104, DATE '2026-10-01', 'Absent'),
+    (9, 104, DATE '2026-10-02', 'Present'),
+    (10, 107, DATE '2026-10-01', 'Present'),
+    (11, 107, DATE '2026-10-02', 'Present');</code></pre></div>
+
+<h3 id="problems">50 SQL Practice Problems</h3>
+<div class="callout key"><span class="label">How to use this section</span><p>Each problem is a card. Write your own answer first, then click the card to reveal the solution. All examples use the tables in <code>main.employee_sql_lab</code>.</p></div>
+
+<h4 id="lvl1">Level 1: SQL fundamentals (1–10)</h4>
+<details class="q"><summary>1. Retrieve all employee records.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>2. Display only employee ID, employee name, salary, and city.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT employee_id, employee_name, salary, city
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>3. Find all employees earning more than ₹90,000.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees
+WHERE salary &gt; 90000;</code></pre></div></div></details>
+<details class="q"><summary>4. Find employees who work in the IT or Finance departments.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees
+WHERE department_id IN (10, 20);</code></pre></div></div></details>
+<details class="q"><summary>5. List all unique employee cities.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT DISTINCT city
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>6. Sort employees by salary from highest to lowest.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT employee_name, salary
+FROM main.employee_sql_lab.employees
+ORDER BY salary DESC;</code></pre></div></div></details>
+<details class="q"><summary>7. Find the five highest-paid employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT employee_id, employee_name, salary
+FROM main.employee_sql_lab.employees
+ORDER BY salary DESC, employee_id
+LIMIT 5;</code></pre></div></div></details>
+<details class="q"><summary>8. Count the total number of employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT COUNT(*) AS total_employees
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>9. Calculate the average salary across all employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT AVG(salary) AS average_salary
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>10. Find employees whose department ID is NULL.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees
+WHERE department_id IS NULL;</code></pre></div></div></details>
+
+<h4 id="lvl2">Level 2: Aggregations and functions (11–20)</h4>
+<details class="q"><summary>11. Count employees in each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department_id,
+    COUNT(*) AS employee_count
+FROM main.employee_sql_lab.employees
+GROUP BY department_id;</code></pre></div></div></details>
+<details class="q"><summary>12. Calculate the average salary by department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department_id,
+    AVG(salary) AS average_salary
+FROM main.employee_sql_lab.employees
+GROUP BY department_id;</code></pre></div></div></details>
+<details class="q"><summary>13. Find departments whose average salary is greater than ₹90,000.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department_id,
+    AVG(salary) AS average_salary
+FROM main.employee_sql_lab.employees
+GROUP BY department_id
+HAVING AVG(salary) &gt; 90000;</code></pre></div></div></details>
+<details class="q"><summary>14. Find the minimum and maximum salary in each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    department_id,
+    MIN(salary) AS minimum_salary,
+    MAX(salary) AS maximum_salary
+FROM main.employee_sql_lab.employees
+GROUP BY department_id;</code></pre></div></div></details>
+<details class="q"><summary>15. Calculate annual salary for every employee.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    salary,
+    salary * 12 AS annual_salary
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>16. Display employee names in uppercase.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    UPPER(employee_name) AS uppercase_name
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>17. Find employees who joined before January 1, 2022.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.employee_sql_lab.employees
+WHERE joining_date &lt; DATE '2022-01-01';</code></pre></div></div></details>
+<details class="q"><summary>18. Calculate the number of days each employee has been employed.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    DATEDIFF(CURRENT_DATE(), joining_date) AS days_employed
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>19. Categorize employees into salary groups: High (₹100,000+), Medium (₹75,000–₹99,999), Low (below ₹75,000).</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    salary,
+    CASE
+        WHEN salary &gt;= 100000 THEN 'High'
+        WHEN salary &gt;= 75000 THEN 'Medium'
+        ELSE 'Low'
+    END AS salary_category
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>20. Count Active and Inactive employees separately.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employment_status,
+    COUNT(*) AS employee_count
+FROM main.employee_sql_lab.employees
+GROUP BY employment_status;</code></pre></div></div></details>
+
+<h4 id="lvl3">Level 3: Joins (21–30)</h4>
+<details class="q"><summary>21. Display every employee with their department name.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    d.department_name
+FROM main.employee_sql_lab.employees AS e
+LEFT JOIN main.employee_sql_lab.departments AS d
+    ON e.department_id = d.department_id;</code></pre></div></div></details>
+<details class="q"><summary>22. Find employees whose department ID does not match a department record.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM main.employee_sql_lab.employees AS e
+LEFT ANTI JOIN main.employee_sql_lab.departments AS d
+    ON e.department_id = d.department_id;</code></pre></div>
+<p>This includes employees whose department is NULL as well as those with an unmatched department ID.</p></div></details>
+<details class="q"><summary>23. List all departments, including departments with no employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    d.department_id,
+    d.department_name,
+    e.employee_id,
+    e.employee_name
+FROM main.employee_sql_lab.departments AS d
+LEFT JOIN main.employee_sql_lab.employees AS e
+    ON d.department_id = e.department_id
+ORDER BY d.department_id, e.employee_id;</code></pre></div></div></details>
+<details class="q"><summary>24. Display each employee's name and their manager's name.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_name AS employee_name,
+    m.employee_name AS manager_name
+FROM main.employee_sql_lab.employees AS e
+LEFT JOIN main.employee_sql_lab.employees AS m
+    ON e.manager_id = m.employee_id;</code></pre></div></div></details>
+<details class="q"><summary>25. Find employees who work in Hyderabad and belong to the IT department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM main.employee_sql_lab.employees AS e
+INNER JOIN main.employee_sql_lab.departments AS d
+    ON e.department_id = d.department_id
+WHERE e.city = 'Hyderabad'
+  AND d.department_name = 'IT';</code></pre></div></div></details>
+<details class="q"><summary>26. Calculate the total salary expenditure for each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    d.department_name,
+    SUM(e.salary) AS total_salary
+FROM main.employee_sql_lab.departments AS d
+LEFT JOIN main.employee_sql_lab.employees AS e
+    ON d.department_id = e.department_id
+GROUP BY d.department_id, d.department_name;</code></pre></div>
+<p><code>SUM</code> returns NULL when there are no non-NULL salaries. To show zero instead, use <code>COALESCE(SUM(e.salary), 0)</code>.</p></div></details>
+<details class="q"><summary>27. Find departments that have no employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT d.*
+FROM main.employee_sql_lab.departments AS d
+LEFT ANTI JOIN main.employee_sql_lab.employees AS e
+    ON d.department_id = e.department_id;</code></pre></div></div></details>
+<details class="q"><summary>28. Find employees earning more than their department's average salary.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH employee_salary AS (
+    SELECT
+        employee_id,
+        employee_name,
+        department_id,
+        salary,
+        AVG(salary) OVER (
+            PARTITION BY department_id
+        ) AS department_average
+    FROM main.employee_sql_lab.employees
+)
+SELECT *
+FROM employee_salary
+WHERE salary &gt; department_average;</code></pre></div></div></details>
+<details class="q"><summary>29. Count attendance records for each employee, including employees with none.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    e.employee_id,
+    e.employee_name,
+    COUNT(a.attendance_id) AS attendance_records
+FROM main.employee_sql_lab.employees AS e
+LEFT JOIN main.employee_sql_lab.attendance AS a
+    ON e.employee_id = a.employee_id
+GROUP BY e.employee_id, e.employee_name;</code></pre></div>
+<p>Use <code>COUNT(a.attendance_id)</code>, not <code>COUNT(*)</code>: <code>COUNT(*)</code> would count the NULL-extended row the left join produces for an employee with no attendance.</p></div></details>
+<details class="q"><summary>30. Find employees who have no attendance records.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT e.*
+FROM main.employee_sql_lab.employees AS e
+LEFT ANTI JOIN main.employee_sql_lab.attendance AS a
+    ON e.employee_id = a.employee_id;</code></pre></div></div></details>
+
+<h4 id="lvl4">Level 4: Window functions (31–40)</h4>
+<details class="q"><summary>31. Assign a row number to employees ordered by salary, highest first.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    salary,
+    ROW_NUMBER() OVER (
+        ORDER BY salary DESC, employee_id
+    ) AS row_num
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>32. Rank employees by salary using RANK().</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    salary,
+    RANK() OVER (
+        ORDER BY salary DESC
+    ) AS salary_rank
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>33. Rank employees by salary using DENSE_RANK().</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_name,
+    salary,
+    DENSE_RANK() OVER (
+        ORDER BY salary DESC
+    ) AS salary_rank
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>34. Find the highest-paid employee in each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_employees AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id
+            ORDER BY salary DESC, employee_id
+        ) AS rn
+    FROM main.employee_sql_lab.employees
+    WHERE department_id IS NOT NULL
+)
+SELECT *
+FROM ranked_employees
+WHERE rn = 1;</code></pre></div></div></details>
+<details class="q"><summary>35. Find the second-highest-paid employee in each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_employees AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id
+            ORDER BY salary DESC, employee_id
+        ) AS rn
+    FROM main.employee_sql_lab.employees
+    WHERE department_id IS NOT NULL
+)
+SELECT *
+FROM ranked_employees
+WHERE rn = 2;</code></pre></div>
+<p>This returns the second employee by ordered position. For the second-highest <em>distinct salary</em>, use <code>DENSE_RANK()</code>.</p></div></details>
+<details class="q"><summary>36. Retrieve the top three employees in each department.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_employees AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id
+            ORDER BY salary DESC, employee_id
+        ) AS rn
+    FROM main.employee_sql_lab.employees
+    WHERE department_id IS NOT NULL
+)
+SELECT *
+FROM ranked_employees
+WHERE rn &lt;= 3;</code></pre></div>
+<p>Returns up to three employees per department.</p></div></details>
+<details class="q"><summary>37. Display each employee's salary alongside the department's average salary.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    department_id,
+    salary,
+    AVG(salary) OVER (
+        PARTITION BY department_id
+    ) AS department_average
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>38. Calculate a running total of salary ordered by employee ID.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    salary,
+    SUM(salary) OVER (
+        ORDER BY employee_id
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_salary_total
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>39. Compare each employee's salary with the previous employee's using LAG().</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    salary,
+    LAG(salary) OVER (
+        ORDER BY employee_id
+    ) AS previous_salary,
+    salary - LAG(salary) OVER (
+        ORDER BY employee_id
+    ) AS salary_difference
+FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
+<details class="q"><summary>40. Use salary history to show each employee's previous salary and salary change.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH salary_comparison AS (
+    SELECT
+        employee_id,
+        salary,
+        effective_date,
+        LAG(salary) OVER (
+            PARTITION BY employee_id
+            ORDER BY effective_date, history_id
+        ) AS previous_salary
+    FROM main.employee_sql_lab.salary_history
+)
+SELECT
+    employee_id,
+    effective_date,
+    salary,
+    previous_salary,
+    salary - previous_salary AS salary_change
+FROM salary_comparison
+ORDER BY employee_id, effective_date;</code></pre></div></div></details>
+
+<h4 id="lvl5">Level 5: Advanced SQL and data engineering (41–50)</h4>
+<details class="q"><summary>41. Find the latest salary record for each employee using ROW_NUMBER().</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_history AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY effective_date DESC, history_id DESC
+        ) AS rn
+    FROM main.employee_sql_lab.salary_history
+)
+SELECT *
+FROM ranked_history
+WHERE rn = 1;</code></pre></div></div></details>
+<details class="q"><summary>42. Identify employee IDs with duplicate records in a hypothetical source table.</summary><div class="answer">
+<p>Imagine a separate table, <code>source_employees</code>, holding incoming records:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    COUNT(*) AS record_count
+FROM source_employees
+GROUP BY employee_id
+HAVING COUNT(*) &gt; 1;</code></pre></div></div></details>
+<details class="q"><summary>43. Use a CTE to find departments whose total salary exceeds ₹200,000.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH department_salary AS (
+    SELECT
+        department_id,
+        SUM(salary) AS total_salary
+    FROM main.employee_sql_lab.employees
+    GROUP BY department_id
+)
+SELECT *
+FROM department_salary
+WHERE total_salary &gt; 200000;</code></pre></div></div></details>
+<details class="q"><summary>44. Find employees who earn more than the overall company average salary.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    employee_name,
+    salary
+FROM main.employee_sql_lab.employees
+WHERE salary &gt; (
+    SELECT AVG(salary)
+    FROM main.employee_sql_lab.employees
+);</code></pre></div></div></details>
+<details class="q"><summary>45. Create a permanent view containing only Active employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW main.employee_sql_lab.active_employees AS
+SELECT *
+FROM main.employee_sql_lab.employees
+WHERE employment_status = 'Active';
+
+SELECT *
+FROM main.employee_sql_lab.active_employees;</code></pre></div></div></details>
+<details class="q"><summary>46. Create a temporary view containing IT employees.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW it_employees AS
+SELECT *
+FROM main.employee_sql_lab.employees
+WHERE department_id = 10;
+
+SELECT *
+FROM it_employees;</code></pre></div></div></details>
+<details class="q"><summary>47. Use UNION ALL to combine two employee datasets while preserving duplicate rows.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT employee_id, employee_name
+FROM main.employee_sql_lab.employees
+WHERE department_id = 10
+
+UNION ALL
+
+SELECT employee_id, employee_name
+FROM main.employee_sql_lab.employees
+WHERE department_id = 20;</code></pre></div>
+<p>Preserves duplicates if the same row appears in both results.</p></div></details>
+<details class="q"><summary>48. Pivot attendance statuses into columns: Present and Absent counts per employee.</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM (
+    SELECT
+        employee_id,
+        status
+    FROM main.employee_sql_lab.attendance
+) AS attendance_source
+PIVOT (
+    COUNT(*) FOR status IN ('Present', 'Absent')
+);</code></pre></div>
+<p>Check the generated column names in your workspace. Conditional aggregation is often easier to customize:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    employee_id,
+    SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END)
+        AS present_count,
+    SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END)
+        AS absent_count
+FROM main.employee_sql_lab.attendance
+GROUP BY employee_id;</code></pre></div></div></details>
+<details class="q"><summary>49. Write a MERGE INTO that updates existing employees and inserts new ones.</summary><div class="answer">
+<p>First create and fill a staging table:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.employee_staging (
+    employee_id INT,
+    employee_name STRING,
+    email STRING,
+    department_id INT,
+    manager_id INT,
+    salary DECIMAL(12, 2),
+    joining_date DATE,
+    city STRING,
+    employment_status STRING
+)
+USING DELTA;
+
+INSERT INTO main.employee_sql_lab.employee_staging
+VALUES
+    (101, 'Rahul Sharma', 'rahul@example.com', 10, NULL, 125000, DATE '2020-01-15', 'Hyderabad', 'Active'),
+    (116, 'Akhil Rao', 'akhil@example.com', 20, 101, 82000, DATE '2026-10-01', 'Chennai', 'Active');</code></pre></div>
+<p>Then merge:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.employee_sql_lab.employees AS target
+USING main.employee_sql_lab.employee_staging AS source
+ON target.employee_id = source.employee_id
+
+WHEN MATCHED THEN
+    UPDATE SET
+        target.employee_name = source.employee_name,
+        target.email = source.email,
+        target.department_id = source.department_id,
+        target.manager_id = source.manager_id,
+        target.salary = source.salary,
+        target.joining_date = source.joining_date,
+        target.city = source.city,
+        target.employment_status = source.employment_status
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        employee_id, employee_name, email, department_id,
+        manager_id, salary, joining_date, city, employment_status
+    )
+    VALUES (
+        source.employee_id, source.employee_name, source.email,
+        source.department_id, source.manager_id, source.salary,
+        source.joining_date, source.city, source.employment_status
+    );
+
+-- Verify
+SELECT *
+FROM main.employee_sql_lab.employees
+WHERE employee_id IN (101, 116);</code></pre></div>
+<p><strong>Expected:</strong> employee 101 is updated to ₹125,000 and employee 116 is inserted. This assumes each ID appears at most once in staging; otherwise deduplicate and validate first.</p></div></details>
+<details class="q"><summary>50. Write a deduplication query that keeps the latest record per employee, using updated_at and a deterministic tie-breaker.</summary><div class="answer">
+<p>Assume an incoming table <code>source_employees</code> with <code>employee_id</code>, <code>employee_name</code>, <code>salary</code>, <code>updated_at</code>, and <code>source_record_id</code>:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_source AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY employee_id
+            ORDER BY updated_at DESC, source_record_id DESC
+        ) AS rn
+    FROM source_employees
+)
+SELECT
+    employee_id,
+    employee_name,
+    salary,
+    updated_at,
+    source_record_id
+FROM ranked_source
+WHERE rn = 1;</code></pre></div>
+<p>The tie-breaker must have meaningful, stable ordering. An arbitrary ID makes the result deterministic but not necessarily the correct business record.</p></div></details>
+
+<h3 id="challenge">Final Project Challenge: Mini Employee Analytics System</h3>
+<p>After the 50 problems, build these reports with your employee tables.</p>
+<div class="grid-2">
+  <div class="card"><h4>Report 1: Department salary dashboard</h4><ul><li>Department name.</li><li>Employee count.</li><li>Average, minimum, and maximum salary.</li><li>Total salary expenditure.</li><li>Number of active employees.</li></ul></div>
+  <div class="card"><h4>Report 2: Employee ranking</h4><p>For each department:</p><ul><li>Employee name and salary.</li><li>Department average salary.</li><li>Salary rank.</li><li>Difference from the department average.</li></ul></div>
+  <div class="card"><h4>Report 3: Data quality report</h4><ul><li>Employees without a valid department.</li><li>Duplicate employee IDs.</li><li>Missing email addresses.</li><li>Invalid or missing salaries.</li><li>Attendance referencing nonexistent employees.</li></ul></div>
+  <div class="card"><h4>Report 4: Incremental employee processing</h4><ol><li>Read incoming records into staging.</li><li>Validate employee IDs and data types.</li><li>Identify duplicate records.</li><li>Keep the latest valid version.</li><li>MERGE into the target table.</li><li>Report inserted, updated, rejected, and duplicate records.</li></ol></div>
+</div>
+<p>Example for Report 3, attendance records referencing nonexistent employees:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT a.*
+FROM main.employee_sql_lab.attendance AS a
+LEFT ANTI JOIN main.employee_sql_lab.employees AS e
+    ON a.employee_id = e.employee_id;</code></pre></div>
+<p>This challenge brings together SQL, data quality, incremental loading, and Delta Lake concepts.</p>
+
+<!-- ===================== Takeaways ===================== -->
+<h2 id="takeaways">Key Takeaways</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Topic</th><th>Skills to master</th></tr></thead>
+<tbody>
+<tr><td>SQL fundamentals</td><td>SELECT, WHERE, GROUP BY, HAVING, ORDER BY</td></tr>
+<tr><td>SQL functions</td><td>String, numeric, date, aggregate, and conditional functions</td></tr>
+<tr><td>NULL handling</td><td>IS NULL, COALESCE, NULLIF, TRY_CAST</td></tr>
+<tr><td>Joins</td><td>Inner, left, right, full, cross, self, semi, and anti joins</td></tr>
+<tr><td>Duplicate handling</td><td>Business keys, cardinality, ROW_NUMBER()</td></tr>
+<tr><td>Advanced SQL</td><td>CTEs, subqueries, window functions, set operations</td></tr>
+<tr><td>Analytics</td><td>Ranking, running totals, LAG(), LEAD()</td></tr>
+<tr><td>Data transformations</td><td>Pivoting, unpivoting, conditional aggregation</td></tr>
+<tr><td>Delta operations</td><td>MERGE INTO, inserts, and updates</td></tr>
+<tr><td>Databricks SQL</td><td>Warehouses, schemas, tables, views, query history</td></tr>
+<tr><td>Performance</td><td>Execution plans, shuffles, filtering, query profiles</td></tr>
+</tbody></table></div>
+<h4>Recommended learning sequence</h4>
+<p>Don't try to memorize all 50 answers. Instead:</p>
+<ol class="steps">
+  <li>Create the employee database.</li>
+  <li>Solve Problems 1–10 without looking at the answers.</li>
+  <li>Repeat for Problems 11–20.</li>
+  <li>Focus carefully on join cardinality and window functions.</li>
+  <li>Practice deduplication using realistic source data.</li>
+  <li>Complete the MERGE INTO exercise.</li>
+  <li>Build the final employee analytics system.</li>
+</ol>
+<div class="callout key"><span class="label">Most important for data engineering</span><p>Joins, window functions, incremental loading, deduplication, NULL handling, and MERGE INTO. These skills apply directly to production ETL pipelines and lakehouse development.</p></div>
+
+<div class="next">
+<h3>Next chapter: Python Fundamentals for Databricks</h3>
+<p style="margin-bottom:0">Chapter 5 covers variables, data types, conditions, loops, functions, collections, exception handling, modules, and file handling.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-3.html"><span>← Previous</span><strong>Chapter 3: Workspace and Environment Setup</strong></a>
+  <a class="pager-link" href="databricks-chapter-5.html"><span>Next →</span><strong>Chapter 5: Python Fundamentals</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 2 · Chapter 4 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

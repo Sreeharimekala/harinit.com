@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 1: Introduction</title>
+<meta name="description" content="Databricks Tutorial — Chapter 1: Introduction and Fundamentals. Databricks, Apache Spark, the lakehouse, use cases, and cloud platforms.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 1 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s1-1">1.1 Introduction to Databricks</a></li>
+    <li class="lvl2"><a href="#s1-1-1">What is Databricks?</a></li>
+    <li class="lvl2"><a href="#s1-1-2">History of Databricks</a></li>
+    <li class="lvl2"><a href="#s1-1-3">What is Apache Spark?</a></li>
+    <li class="lvl2"><a href="#s1-1-4">Databricks &amp; Spark</a></li>
+    <li class="lvl2"><a href="#s1-1-5">Why Databricks was developed</a></li>
+    <li class="lvl2"><a href="#s1-1-6">Problems Databricks solves</a></li>
+    <li class="lvl2"><a href="#s1-1-7">vs Traditional warehouses</a></li>
+    <li class="lvl2"><a href="#s1-1-8">vs Traditional Hadoop</a></li>
+    <li class="lvl2"><a href="#s1-1-9">vs Microsoft Fabric</a></li>
+    <li class="lvl2"><a href="#s1-1-10">vs Azure Synapse</a></li>
+    <li class="lvl1"><a href="#s1-2">1.2 Understanding the Lakehouse</a></li>
+    <li class="lvl2"><a href="#s1-2-1">What is a data lake?</a></li>
+    <li class="lvl2"><a href="#s1-2-2">What is a data warehouse?</a></li>
+    <li class="lvl2"><a href="#s1-2-3">What is a lakehouse?</a></li>
+    <li class="lvl2"><a href="#s1-2-4">Lakehouse architecture</a></li>
+    <li class="lvl2"><a href="#s1-2-5">Advantages</a></li>
+    <li class="lvl2"><a href="#s1-2-6">Lake vs Warehouse vs Lakehouse</a></li>
+    <li class="lvl2"><a href="#s1-2-7">Structured / semi / unstructured</a></li>
+    <li class="lvl1"><a href="#s1-3">1.3 Databricks Use Cases</a></li>
+    <li class="lvl2"><a href="#s1-3-1">Data engineering</a></li>
+    <li class="lvl2"><a href="#s1-3-2">ETL and ELT</a></li>
+    <li class="lvl2"><a href="#s1-3-3">Data warehousing</a></li>
+    <li class="lvl2"><a href="#s1-3-4">Business intelligence</a></li>
+    <li class="lvl2"><a href="#s1-3-5">Machine learning</a></li>
+    <li class="lvl2"><a href="#s1-3-6">Artificial intelligence</a></li>
+    <li class="lvl2"><a href="#s1-3-7">Real-time processing</a></li>
+    <li class="lvl2"><a href="#s1-3-8">Batch processing</a></li>
+    <li class="lvl2"><a href="#s1-3-9">Streaming analytics</a></li>
+    <li class="lvl1"><a href="#s1-4">1.4 Cloud Platforms</a></li>
+    <li class="lvl2"><a href="#s1-4-1">Azure Databricks</a></li>
+    <li class="lvl2"><a href="#s1-4-2">Databricks on AWS</a></li>
+    <li class="lvl2"><a href="#s1-4-3">Databricks on Google Cloud</a></li>
+    <li class="lvl2"><a href="#s1-4-4">Cloud differences</a></li>
+    <li class="lvl2"><a href="#s1-4-5">Cloud storage integration</a></li>
+    <li class="lvl2"><a href="#s1-4-6">Cloud networking</a></li>
+    <li class="lvl1"><a href="#summary">Summary &amp; practice</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 1 · Chapter 1 · Beginner → Data Engineer</span>
+  <h1>Introduction and Fundamentals</h1>
+  <p class="lead">What Databricks is, why companies use it, how the lakehouse works, and where Databricks runs. A retail company's data platform is the running example throughout, with comparisons to Azure Data Factory, Azure Synapse Analytics, Microsoft Fabric, and traditional data warehouses.</p>
+  <div class="chips">
+    <a class="chip" href="#s1-1"><span>1.1</span><strong>Introduction to Databricks</strong></a>
+    <a class="chip" href="#s1-2"><span>1.2</span><strong>Understanding the Lakehouse</strong></a>
+    <a class="chip" href="#s1-3"><span>1.3</span><strong>Databricks Use Cases</strong></a>
+    <a class="chip" href="#s1-4"><span>1.4</span><strong>Databricks Cloud Platforms</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 1.1 ===================== -->
+<h2 id="s1-1"><span class="num">1.1</span>Introduction to Databricks</h2>
+
+<h3 id="s1-1-1"><span class="num">1.1.1</span>What is Databricks?</h3>
+<div class="callout key"><span class="label">Simple definition</span>
+<p>Databricks is a cloud-based data and AI platform that allows organizations to store, process, transform, analyze, and use large amounts of data. It provides an environment where data engineers, data analysts, data scientists, and AI engineers can work with data.</p></div>
+
+<p>For example, imagine that a retail company operates 500 stores. Every day, it generates data from:</p>
+<ul><li>Customer transactions</li><li>Product sales</li><li>Inventory systems</li><li>Customer databases</li><li>Website activity</li><li>Payment systems</li></ul>
+<p>The company wants to combine all this data and answer questions such as:</p>
+<ul><li>What were yesterday's total sales?</li><li>Which products generated the highest revenue?</li><li>Which customers are likely to stop purchasing?</li><li>Which stores have low inventory?</li><li>Can we predict next month's sales?</li></ul>
+<p>Databricks helps build the data processing and analytics systems needed to answer these questions.</p>
+
+<h4>How does Databricks work?</h4>
+<pre class="diagram">        DATA SOURCES
+              |
+      +-------+--------+
+      |       |        |
+   SQL DB   CSV/JSON  APIs
+      |       |        |
+      +-------+--------+
+              |
+              v
+    +---------------------+
+    |   DATA INGESTION    |
+    |                     |
+    | JDBC / Auto Loader  |
+    | Lakeflow Connect    |
+    +---------------------+
+              |
+              v
+    +---------------------+
+    |     DATABRICKS      |
+    |                     |
+    |  Bronze Layer       |
+    |  Silver Layer       |
+    |  Gold Layer         |
+    |                     |
+    |  Spark + PySpark    |
+    |  Delta Lake         |
+    +---------------------+
+              |
+              v
+    +---------------------+
+    |   DATA CONSUMPTION  |
+    |                     |
+    |  Power BI           |
+    |  SQL Analytics      |
+    |  Machine Learning   |
+    +---------------------+</pre>
+
+<p><strong>What happens here?</strong></p>
+<ol class="steps">
+  <li>Data comes from different source systems.</li>
+  <li>The data is ingested into cloud storage or Databricks tables.</li>
+  <li>Databricks processes and transforms the data.</li>
+  <li>Cleaned data is organized into tables.</li>
+  <li>Business users access the results through Power BI, SQL, or other applications.</li>
+</ol>
+<div class="callout"><span class="label">Note</span><p>Databricks does not replace every component in this architecture. It integrates with source databases, cloud storage, reporting tools, and other services.</p></div>
+
+<h4>Important components of Databricks</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Purpose</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Apache Spark</td><td>Distributed data processing</td><td>Process 100 million sales records</td></tr>
+<tr><td>PySpark</td><td>Use Python to process data with Spark</td><td>Clean customer data</td></tr>
+<tr><td>Databricks SQL</td><td>Query and analyze data using SQL</td><td>Calculate monthly revenue</td></tr>
+<tr><td>Delta Lake</td><td>Store data with transaction and reliability features</td><td>Maintain reliable sales tables</td></tr>
+<tr><td>Unity Catalog</td><td>Govern data and control access</td><td>Restrict access to customer information</td></tr>
+<tr><td>Lakeflow</td><td>Build ingestion and data processing pipelines</td><td>Load and transform daily sales files</td></tr>
+<tr><td>Lakeflow Jobs</td><td>Schedule and orchestrate workloads</td><td>Run the daily sales pipeline</td></tr>
+<tr><td>Notebooks</td><td>Develop and execute code</td><td>Write SQL and PySpark transformations</td></tr>
+</tbody></table></div>
+<p>These components work together to support data engineering and analytics.</p>
+<p class="ref">Official reference: <a href="https://docs.databricks.com/" target="_blank" rel="noopener">Databricks Documentation</a></p>
+
+<h3 id="s1-1-2"><span class="num">1.1.2</span>History of Databricks</h3>
+<p>To understand why Databricks exists, we should first understand the problem that existed before it.</p>
+
+<div class="grid-2">
+  <div class="card"><h4>Stage 1: Traditional databases</h4>
+  <p>Initially, companies stored most of their business data in relational databases such as SQL Server, Oracle, MySQL, and PostgreSQL.</p>
+  <p>These work well for transactional applications and many reporting workloads. However, processing extremely large datasets, combining different types of data, and scaling distributed analytics can become expensive or difficult.</p></div>
+  <div class="card"><h4>Stage 2: Hadoop</h4>
+  <p>Apache Hadoop introduced an ecosystem for storing and processing large datasets across multiple computers:</p>
+  <ul><li><strong>HDFS:</strong> Distributed storage.</li><li><strong>MapReduce:</strong> Distributed batch processing.</li><li><strong>YARN:</strong> Resource management.</li></ul>
+  <p>Traditional MapReduce workloads could involve substantial disk I/O, and managing Hadoop clusters required considerable operational effort.</p></div>
+  <div class="card"><h4>Stage 3: Apache Spark</h4>
+  <p>Researchers at the University of California, Berkeley, developed Apache Spark to improve large-scale data processing.</p>
+  <p>Spark can perform many operations more efficiently than traditional MapReduce, particularly when data can be reused in memory. It provides APIs for SQL, Python, Scala, Java, and streaming workloads.</p></div>
+  <div class="card"><h4>Stage 4: Databricks</h4>
+  <p>In 2013, the creators of Apache Spark founded Databricks to make distributed data processing easier to use and manage.</p>
+  <p>Databricks developed a managed platform around Spark and expanded into data storage, governance, analytics, and AI. Today it is a data and AI platform rather than simply a hosted Spark cluster.</p></div>
+</div>
+
+<h4>Evolution at a glance</h4>
+<pre class="diagram">Traditional Databases
+         |
+         v
+Distributed Data Processing
+         |
+         v
+Apache Hadoop
+         |
+         v
+Apache Spark
+         |
+         v
+Databricks Platform
+         |
+         v
+Lakehouse + Data Engineering
+         + Analytics
+         + AI</pre>
+<div class="callout key"><span class="label">Key takeaway</span><p>Apache Spark is an important technology within Databricks, but Databricks provides many additional services around it.</p></div>
+
+<h3 id="s1-1-3"><span class="num">1.1.3</span>What is Apache Spark?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>Apache Spark is an open-source distributed data processing engine designed to process large datasets across multiple computers.</p></div>
+<p>Suppose you have a CSV file containing 100 million sales records, and you want to calculate the total sales for each product. If you process the entire file sequentially on one computer, the operation may take considerable time. Spark can distribute the work across multiple processing tasks:</p>
+<pre class="diagram">       100 Million Sales Records
+                   |
+                   v
+          Apache Spark Engine
+                   |
+       +-----------+-----------+
+       |           |           |
+       v           v           v
+    Task 1       Task 2       Task 3
+  33M records   33M records  34M records
+       |           |           |
+       v           v           v
+   Aggregate    Aggregate    Aggregate
+       |           |           |
+       +-----------+-----------+
+                   |
+                   v
+        Combine Partial Results
+                   |
+                   v
+        Total Sales by Product</pre>
+<p class="ref">This is a simplified illustration. Real Spark execution can involve many more partitions, tasks, and stages.</p>
+
+<h4>Why is Spark useful?</h4>
+<div class="grid-2">
+  <div class="card"><h4>1. Distributed processing</h4><p>Work can be divided across multiple computers.</p></div>
+  <div class="card"><h4>2. Parallel execution</h4><p>Independent tasks can execute simultaneously.</p></div>
+  <div class="card"><h4>3. Multiple interfaces</h4><p>Process data using SQL, Python, Scala, and Java.</p></div>
+  <div class="card"><h4>4. Large-scale transformations</h4><p>Joins, aggregations, sorting, filtering, and complex transformations.</p></div>
+  <div class="card"><h4>5. Batch and streaming</h4><p>Process stored datasets and continuously arriving data.</p></div>
+  <div class="card"><h4>6. Optimization</h4><p>Query planning and optimization improve execution efficiency.</p></div>
+</div>
+
+<h4>Important Spark concepts</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Driver</td><td>Coordinates application execution</td></tr>
+<tr><td>Executor</td><td>Executes tasks and processes data</td></tr>
+<tr><td>Job</td><td>A unit of work triggered by an action</td></tr>
+<tr><td>Stage</td><td>A group of tasks that can execute without crossing a shuffle boundary</td></tr>
+<tr><td>Task</td><td>A unit of work performed on a partition</td></tr>
+<tr><td>Partition</td><td>A logical division of a dataset</td></tr>
+<tr><td>Transformation</td><td>An operation that creates a new DataFrame or RDD</td></tr>
+<tr><td>Action</td><td>An operation that triggers execution and produces a result or external effect</td></tr>
+<tr><td>Shuffle</td><td>Redistribution of data between processing tasks</td></tr>
+</tbody></table></div>
+<p>You will study these concepts in detail in Chapter 6.</p>
+
+<h4>Example: Spark versus Python</h4>
+<p>Suppose you have a 5 GB CSV file. Using ordinary Python, you might read the file into a local data structure and process it on one machine. Using PySpark, you can distribute the processing across available Spark compute resources.</p>
+<div class="callout warn"><span class="label">Watch out</span><p>Spark is not automatically faster for every task. For small datasets, ordinary Python or pandas may be simpler and faster because Spark has execution overhead.</p></div>
+<div class="callout key"><span class="label">Important distinction</span><p>Spark is the processing engine. Databricks is the broader platform that helps you use Spark and other data capabilities.</p></div>
+<p class="ref">Official reference: <a href="https://spark.apache.org/docs/latest/" target="_blank" rel="noopener">Apache Spark Documentation</a></p>
+
+<h3 id="s1-1-4"><span class="num">1.1.4</span>Relationship Between Databricks and Apache Spark</h3>
+<p>This is one of the most important concepts for beginners. People often ask: <em>"If Apache Spark is available for free, why do companies pay for Databricks?"</em> The answer is that Spark and Databricks serve different purposes.</p>
+<div class="grid-2">
+  <div class="card"><h4>Apache Spark</h4><p>An open-source processing engine. You can download it and run it in a supported environment, but you may need to configure and manage the infrastructure, deployment, security, dependencies, monitoring, and scaling yourself.</p></div>
+  <div class="card"><h4>Databricks</h4><p>A managed platform that incorporates Spark along with:</p>
+  <ul><li>Managed compute options</li><li>Collaborative notebooks</li><li>Data governance</li><li>Delta Lake integration</li><li>Workflow orchestration</li><li>Data ingestion tools</li><li>SQL analytics</li><li>Monitoring and operational tools</li><li>AI and machine learning capabilities</li></ul></div>
+</div>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Apache Spark</th><th>Databricks</th></tr></thead>
+<tbody>
+<tr><td>Type</td><td>Open-source processing engine</td><td>Managed data and AI platform</td></tr>
+<tr><td>Distributed processing</td><td>Yes</td><td>Yes, through Spark and other platform capabilities</td></tr>
+<tr><td>SQL processing</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Python processing</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Infrastructure management</td><td>Depends on deployment</td><td>Managed options are available</td></tr>
+<tr><td>Collaborative notebooks</td><td>External tools can be integrated</td><td>Integrated notebook experience</td></tr>
+<tr><td>Data governance</td><td>Requires integration with other tools</td><td>Unity Catalog provides centralized governance</td></tr>
+<tr><td>Delta Lake</td><td>Can be used separately</td><td>Integrated into the platform</td></tr>
+<tr><td>Job orchestration</td><td>External orchestration may be required</td><td>Lakeflow Jobs</td></tr>
+<tr><td>SQL analytics</td><td>Requires an appropriate Spark deployment or additional services</td><td>Databricks SQL</td></tr>
+<tr><td>Cost</td><td>Open-source software is free; infrastructure still costs money</td><td>Platform and infrastructure costs depend on the deployment and usage</td></tr>
+</tbody></table></div>
+
+<div class="callout"><span class="label">Real-world analogy</span><p>Think of Apache Spark as an <strong>engine</strong>. Think of Databricks as a <strong>complete vehicle</strong> that includes the engine, controls, monitoring, and other integrated systems. The engine is important, but the complete vehicle makes it easier to perform the intended job. The analogy is not exact, but it helps you understand the relationship.</p></div>
+
+<h3 id="s1-1-5"><span class="num">1.1.5</span>Why Was Databricks Developed?</h3>
+<p>Databricks was created to make large-scale data processing more accessible and manageable. Several problems motivated platforms like it.</p>
+<div class="grid-2">
+  <div class="card"><h4>Problem 1: Managing distributed infrastructure</h4><p>Traditional environments required teams to install software, manage dependencies, configure compute, handle failures, scale infrastructure, and troubleshoot clusters. Managed platforms reduce much of this burden, although configuration and administration are still necessary.</p></div>
+  <div class="card"><h4>Problem 2: Processing large volumes</h4><p>Traditional databases can struggle with certain large-scale analytical workloads. Distributed processing divides a workload across multiple computers.</p></div>
+  <div class="card"><h4>Problem 3: Integrating data formats</h4><p>Companies receive data from SQL Server, Oracle, CSV, JSON, Parquet, APIs, application logs, and streaming events. A data platform needs to ingest and process all of them.</p></div>
+  <div class="card"><h4>Problem 4: Supporting multiple teams</h4><p>Data engineers often use SQL and Python, while data scientists use Python and ML libraries. Databricks provides a shared platform for several types of workloads.</p></div>
+  <div class="card"><h4>Problem 5: Maintaining reliable data</h4><p>Data lakes traditionally relied heavily on file formats and external metadata. Delta Lake introduces transaction management, schema enforcement, and other reliability capabilities.</p></div>
+  <div class="card"><h4>Problem 6: Building production pipelines</h4><p>Writing a transformation is only part of the job. Production also requires scheduling, dependency management, retries, monitoring, data quality checks, security, and deployment processes.</p></div>
+</div>
+<div class="callout key"><span class="label">Key takeaway</span><p>Databricks helps organizations build and operate data platforms without having to assemble every component independently.</p></div>
+
+<h3 id="s1-1-6"><span class="num">1.1.6</span>Problems Databricks Solves</h3>
+<p>Consider a company that has customer data in SQL Server, financial data in Oracle, sales files in Azure Data Lake Storage, application events in a streaming system, and reporting in Power BI. It needs to combine this information for analytics. Without a suitable data platform, it may need multiple disconnected processing systems. Databricks can provide a common processing and data management environment.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Business problem</th><th>How Databricks helps</th></tr></thead>
+<tbody>
+<tr><td>Large volumes of data</td><td>Distributed processing with Spark</td></tr>
+<tr><td>Multiple file formats</td><td>Supports numerous data formats</td></tr>
+<tr><td>Repeated data processing</td><td>Reusable SQL and PySpark transformations</td></tr>
+<tr><td>Incremental data loading</td><td>Delta Lake MERGE and supported incremental ingestion patterns</td></tr>
+<tr><td>Unreliable file-based data</td><td>Delta Lake transaction and schema capabilities</td></tr>
+<tr><td>Complex data pipelines</td><td>Lakeflow Jobs and declarative pipelines</td></tr>
+<tr><td>Slow transformations</td><td>Spark optimization and suitable compute</td></tr>
+<tr><td>Data access management</td><td>Unity Catalog</td></tr>
+<tr><td>Real-time processing</td><td>Structured Streaming and supported streaming integrations</td></tr>
+<tr><td>Reporting requirements</td><td>Databricks SQL and BI connectivity</td></tr>
+<tr><td>Production monitoring</td><td>Job, query, pipeline, and system monitoring capabilities</td></tr>
+<tr><td>Expensive workloads</td><td>Compute selection, workload optimization, and usage monitoring</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Remember</span><p>Databricks does not automatically solve every problem. Good pipeline design, correct data modeling, testing, monitoring, and cost management are still necessary.</p></div>
+
+<h3 id="s1-1-7"><span class="num">1.1.7</span>Traditional Data Warehouses versus Databricks</h3>
+<p>A traditional data warehouse is a system designed primarily for analytical queries and reporting, such as Microsoft SQL Server, Oracle Database, Teradata, and other enterprise data warehouse platforms. Databricks is a broader platform that supports data engineering, analytics, and AI workloads. The comparison depends on the particular warehouse and its architecture.</p>
+<p><strong>Example:</strong> a company has a SQL Server data warehouse containing 10 years of sales data. Now it wants to add website clickstream data, images, application logs, machine learning features, and real-time customer events. A traditional relational warehouse may support some of these, but additional infrastructure or services may be required. Databricks is designed to combine large-scale processing with lakehouse storage, SQL analytics, and AI capabilities.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Traditional data warehouse</th><th>Databricks</th></tr></thead>
+<tbody>
+<tr><td>Primary purpose</td><td>Analytical data storage and querying</td><td>Data engineering, analytics, and AI</td></tr>
+<tr><td>Data storage</td><td>Commonly managed warehouse storage</td><td>Commonly cloud object storage with managed table metadata and compute</td></tr>
+<tr><td>Structured data</td><td>Excellent support</td><td>Excellent support</td></tr>
+<tr><td>Semi-structured data</td><td>Depends on the warehouse</td><td>Broad support</td></tr>
+<tr><td>Unstructured data</td><td>Often requires additional integration</td><td>Can process supported unstructured data using connected storage and processing tools</td></tr>
+<tr><td>SQL</td><td>Core capability</td><td>Supported through Databricks SQL and Spark SQL</td></tr>
+<tr><td>Python processing</td><td>Depends on platform</td><td>Integrated PySpark and Python support</td></tr>
+<tr><td>Distributed processing</td><td>Depends on warehouse architecture</td><td>Core Spark capability</td></tr>
+<tr><td>Machine learning</td><td>Depends on the platform</td><td>Integrated machine learning and AI capabilities</td></tr>
+<tr><td>Scaling</td><td>Depends on the warehouse</td><td>Multiple managed and configurable compute options</td></tr>
+<tr><td>Transaction processing</td><td>Some databases support OLTP</td><td>Not primarily designed to replace an OLTP database</td></tr>
+<tr><td>Cost model</td><td>Depends on platform and licensing</td><td>Depends on compute, storage, and platform usage</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+  <div class="card"><h4>Choose a traditional warehouse when</h4><ul><li>Your existing warehouse meets your requirements.</li><li>Your workloads are predominantly SQL-based.</li><li>Your organization already has a mature warehouse environment.</li><li>Your performance, governance, and cost requirements are satisfied.</li></ul></div>
+  <div class="card"><h4>Consider Databricks when</h4><ul><li>You process very large datasets.</li><li>You need extensive Python-based transformation.</li><li>You need lakehouse architecture.</li><li>You combine data engineering and machine learning.</li><li>You need flexible processing of different data formats.</li></ul></div>
+</div>
+<p>In many organizations, both technologies coexist.</p>
+
+<h3 id="s1-1-8"><span class="num">1.1.8</span>Databricks versus Traditional Hadoop</h3>
+<p>Distinguish between Hadoop and the broader Hadoop ecosystem. Apache Hadoop includes technologies for distributed storage and resource management, while traditional Hadoop workloads commonly used MapReduce for batch processing. Databricks focuses on a managed data and AI platform built around Spark and related technologies.</p>
+<div class="grid-2">
+<div><h5>Traditional Hadoop</h5>
+<pre class="diagram">Data Sources
+     |
+     v
+HDFS Distributed Storage
+     |
+     v
+MapReduce / Hadoop Ecosystem
+     |
+     v
+Processed Data
+     |
+     v
+Reporting Systems</pre></div>
+<div><h5>Databricks Lakehouse</h5>
+<pre class="diagram">Data Sources
+     |
+     v
+Cloud Object Storage
+     |
+     v
+Databricks / Spark
+     |
+     v
+Delta Lake Tables
+     |
+     v
+SQL Analytics / Power BI / AI</pre></div>
+</div>
+<p class="ref">These diagrams illustrate common patterns, not the only possible architecture for either platform.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Traditional Hadoop</th><th>Databricks</th></tr></thead>
+<tbody>
+<tr><td>Core technologies</td><td>HDFS, MapReduce, YARN, and ecosystem tools</td><td>Spark, Delta Lake, Unity Catalog, and other platform services</td></tr>
+<tr><td>Infrastructure</td><td>Often requires cluster administration</td><td>Managed platform options</td></tr>
+<tr><td>Processing</td><td>MapReduce and other ecosystem engines</td><td>Spark and other supported execution capabilities</td></tr>
+<tr><td>Storage</td><td>Commonly HDFS</td><td>Commonly cloud object storage</td></tr>
+<tr><td>Data management</td><td>Depends on the selected ecosystem components</td><td>Integrated lakehouse capabilities</td></tr>
+<tr><td>Development</td><td>Often requires assembling tools</td><td>Integrated development and analytics experience</td></tr>
+<tr><td>Cloud scaling</td><td>Depends on deployment</td><td>Managed and configurable compute options</td></tr>
+<tr><td>Machine learning</td><td>Supported through ecosystem tools</td><td>Integrated data and AI capabilities</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Important clarification</span><p>Hadoop and Spark are not the same technology. Spark can run in Hadoop-related environments, and Hadoop ecosystems can use multiple processing engines. Databricks is not simply a newer name for Hadoop; it is a different platform approach.</p></div>
+
+<h3 id="s1-1-9"><span class="num">1.1.9</span>Databricks versus Microsoft Fabric</h3>
+<p>This comparison is particularly useful if you work with Azure data services and Power BI. Both support data engineering and analytics, but they have different platform designs and strengths.</p>
+<p><strong>Microsoft Fabric</strong> is an integrated analytics platform that combines data engineering, data integration, data warehousing, real-time analytics, data science, and Power BI. It includes OneLake, Data Factory, Data Engineering, Data Warehouse, Real-Time Intelligence, and Power BI.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Databricks</th><th>Microsoft Fabric</th></tr></thead>
+<tbody>
+<tr><td>Primary focus</td><td>Lakehouse data engineering, analytics, and AI</td><td>Integrated analytics and BI platform</td></tr>
+<tr><td>Spark</td><td>Core processing technology</td><td>Available through Fabric Spark experiences</td></tr>
+<tr><td>Storage</td><td>Commonly cloud object storage with Delta Lake</td><td>OneLake and supported storage integrations</td></tr>
+<tr><td>Data engineering</td><td>Spark, PySpark, Lakeflow, and other capabilities</td><td>Spark-based engineering and data integration experiences</td></tr>
+<tr><td>SQL analytics</td><td>Databricks SQL</td><td>Fabric Warehouse and other SQL experiences</td></tr>
+<tr><td>Data governance</td><td>Unity Catalog</td><td>Fabric governance and integration with Microsoft Purview</td></tr>
+<tr><td>Data integration</td><td>Lakeflow Connect and other methods</td><td>Data Factory pipelines, dataflows, and related capabilities</td></tr>
+<tr><td>BI integration</td><td>Power BI and other BI tools</td><td>Native Power BI integration</td></tr>
+<tr><td>Machine learning and AI</td><td>Strong data engineering and AI ecosystem</td><td>Integrated data science and AI capabilities</td></tr>
+<tr><td>Development experience</td><td>Databricks notebooks, SQL editor, and platform tools</td><td>Fabric workspaces, notebooks, pipelines, and Power BI</td></tr>
+<tr><td>Capacity and pricing</td><td>Depends on compute and platform usage</td><td>Depends on Fabric capacity and consumption models</td></tr>
+</tbody></table></div>
+<h4>Which is better?</h4>
+<p>There is no universal winner.</p>
+<div class="grid-2">
+  <div class="card"><h4>Databricks may fit when</h4><ul><li>You need extensive Spark and PySpark engineering.</li><li>You build complex lakehouse pipelines.</li><li>You need advanced data processing and AI workflows.</li><li>Your organization already uses Databricks.</li></ul></div>
+  <div class="card"><h4>Fabric may fit when</h4><ul><li>You want a closely integrated analytics and Power BI experience.</li><li>Reporting teams work extensively with Power BI.</li><li>You want to consolidate analytics workloads in Fabric.</li><li>Your organization prefers the Fabric workspace and capacity model.</li></ul></div>
+</div>
+<p>Both platforms can support enterprise-scale solutions. Some organizations use Databricks for data engineering and Fabric or Power BI for downstream reporting.</p>
+<p class="ref">Official references: <a href="https://www.databricks.com/" target="_blank" rel="noopener">Databricks</a> · <a href="https://learn.microsoft.com/en-us/fabric/" target="_blank" rel="noopener">Microsoft Fabric</a></p>
+
+<h3 id="s1-1-10"><span class="num">1.1.10</span>Databricks versus Azure Synapse Analytics</h3>
+<p>Azure Synapse Analytics is Microsoft's analytics service that integrates SQL analytics, Spark, data integration, and related capabilities. Databricks and Synapse overlap in several areas, but their architectures and development experiences differ.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Azure Synapse Analytics</th><th>Databricks</th></tr></thead>
+<tbody>
+<tr><td>Main purpose</td><td>Integrated analytics service</td><td>Data and AI platform</td></tr>
+<tr><td>SQL analytics</td><td>Dedicated and serverless SQL pools</td><td>Databricks SQL</td></tr>
+<tr><td>Spark</td><td>Synapse Spark pools</td><td>Databricks compute using Spark</td></tr>
+<tr><td>Data integration</td><td>Synapse pipelines</td><td>Lakeflow and other integration methods</td></tr>
+<tr><td>Data storage</td><td>Commonly ADLS Gen2 with SQL and Spark integrations</td><td>Commonly cloud object storage and Delta Lake</td></tr>
+<tr><td>Delta Lake</td><td>Support depends on the Synapse component and runtime</td><td>Central lakehouse storage technology</td></tr>
+<tr><td>Governance</td><td>Azure and supported Synapse security controls</td><td>Unity Catalog and platform security controls</td></tr>
+<tr><td>Notebook development</td><td>Synapse notebooks</td><td>Databricks notebooks</td></tr>
+<tr><td>Workflow orchestration</td><td>Synapse pipelines</td><td>Lakeflow Jobs and declarative pipelines</td></tr>
+<tr><td>Power BI integration</td><td>Supported</td><td>Supported</td></tr>
+<tr><td>AI and machine learning</td><td>Supported through integrated Azure services</td><td>Integrated data and AI capabilities</td></tr>
+<tr><td>Migration</td><td>Existing workloads may already be integrated with Azure</td><td>Requires assessing SQL, Spark, pipelines, security, and storage dependencies</td></tr>
+</tbody></table></div>
+<h4>Example</h4>
+<div class="grid-2">
+<div><h5>Current architecture</h5>
+<pre class="diagram">SQL Server
+    |
+    v
+Azure Data Factory
+    |
+    v
+Azure Data Lake Storage
+    |
+    v
+Azure Synapse Analytics
+    |
+    v
+Power BI</pre></div>
+<div><h5>Possible Databricks architecture</h5>
+<pre class="diagram">SQL Server
+    |
+    v
+ADF or another ingestion tool
+    |
+    v
+Azure Data Lake Storage
+    |
+    v
+Azure Databricks
+    |
+    +--> Bronze Delta Tables
+    |
+    +--> Silver Delta Tables
+    |
+    +--> Gold Delta Tables
+              |
+              v
+         Power BI</pre></div>
+</div>
+<p class="ref">This is one possible design, not a requirement. Databricks can also use its own ingestion and orchestration capabilities, and ADF can continue to orchestrate Databricks workloads.</p>
+<h4>Should you replace Synapse with Databricks?</h4>
+<p>Not automatically.</p>
+<div class="grid-2">
+  <div class="card"><h4>Consider Databricks if</h4><ul><li>Spark-based engineering is a major requirement.</li><li>You need extensive Python-based transformations.</li><li>You want to adopt a lakehouse architecture.</li><li>You need integrated data engineering and AI workflows.</li></ul></div>
+  <div class="card"><h4>Consider retaining Synapse if</h4><ul><li>Existing SQL workloads meet your requirements.</li><li>The current solution is stable and cost-effective.</li><li>Migration would introduce unnecessary complexity.</li><li>Your organization relies on Synapse-specific capabilities.</li></ul></div>
+</div>
+<div class="callout key"><span class="label">Practical advice</span><p>Learn how Databricks differs from Synapse before attempting to migrate an existing workload.</p></div>
+
+<!-- ===================== 1.2 ===================== -->
+<h2 id="s1-2"><span class="num">1.2</span>Understanding the Lakehouse</h2>
+<p class="section-intro">This section is essential because the lakehouse is a central architectural concept in Databricks. Before understanding the lakehouse, learn about data lakes and data warehouses.</p>
+
+<h3 id="s1-2-1"><span class="num">1.2.1</span>What Is a Data Lake?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A data lake is a storage environment that holds large amounts of data in its original or processed form, often using cloud object storage such as Azure Data Lake Storage Gen2, Amazon S3, or Google Cloud Storage.</p></div>
+<pre class="diagram">              DATA LAKE
+                  |
+       +----------+----------+
+       |          |          |
+       v          v          v
+      CSV        JSON      Parquet
+       |          |          |
+       v          v          v
+  Sales Data  API Data   Customer Data</pre>
+<p>It can also hold logs, images, audio, video, and other supported file formats. For example, a retail company might receive these files every day:</p>
+<pre class="diagram">/sales/2026/10/25/sales.csv
+/customers/2026/10/25/customers.json
+/inventory/2026/10/25/inventory.parquet
+/logs/2026/10/25/application.log</pre>
+<p>These files can be stored in a data lake, and processing engines such as Spark can clean and transform them.</p>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Supports many data formats.</li><li>Can store large volumes of data.</li><li>Separates storage from processing in common cloud architectures.</li><li>Supports raw and processed data.</li><li>Integrates with multiple analytics engines.</li></ul></div>
+  <div class="card"><h4>Limitations</h4><ul><li>File-level storage alone does not guarantee transactional consistency across table updates.</li><li>Data quality needs to be implemented.</li><li>Governance and access control must be configured.</li><li>Poorly organized files make discovery and processing difficult.</li><li>Small files and inefficient layouts can affect performance.</li></ul></div>
+</div>
+<p>These challenges helped motivate lakehouse architectures.</p>
+
+<h3 id="s1-2-2"><span class="num">1.2.2</span>What Is a Data Warehouse?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A data warehouse is a system designed to organize data for analytical queries, reporting, and business intelligence.</p></div>
+<p>For example, a company may maintain tables such as:</p>
+<pre class="diagram">DIM_CUSTOMER
+DIM_PRODUCT
+DIM_DATE
+FACT_SALES
+FACT_INVENTORY</pre>
+<p>A business analyst runs this query to identify products with the highest sales during the selected period:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    PRODUCT_ID,
+    SUM(SALES_AMOUNT) AS TOTAL_SALES
+FROM FACT_SALES
+WHERE SALES_DATE &gt;= '2026-10-01'
+GROUP BY PRODUCT_ID
+ORDER BY TOTAL_SALES DESC;</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Common characteristics</h4><ul><li>Structured tables.</li><li>SQL-based analytics.</li><li>Data modeling.</li><li>Aggregations and joins.</li><li>Reporting and BI integration.</li><li>Data governance and controlled access.</li></ul></div>
+  <div><h5>Typical architecture</h5>
+<pre class="diagram">Source Systems
+      |
+      v
+ETL / ELT
+      |
+      v
+Data Warehouse
+      |
+      v
+Fact and Dimension Tables
+      |
+      v
+Power BI / Reports</pre></div>
+</div>
+<p><strong>Advantages:</strong> organized analytical data, strong SQL capabilities, support for business reporting, consistent metrics, and governed access.</p>
+<p><strong>Limitations:</strong> these depend on the technology, but traditional implementations may require additional systems for large amounts of semi-structured data, unstructured data, or advanced machine learning workloads. A data warehouse is not inherently incapable of processing such data; many modern warehouses support these workloads.</p>
+
+<h3 id="s1-2-3"><span class="num">1.2.3</span>What Is a Data Lakehouse?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>A data lakehouse combines the flexible storage characteristics of a data lake with data management and analytical capabilities commonly associated with data warehouses. In a Databricks lakehouse, cloud object storage is commonly combined with Delta Lake tables and processing services.</p></div>
+<pre class="diagram">                DATA SOURCES
+                     |
+                     v
+          +---------------------+
+          |    CLOUD STORAGE    |
+          |                     |
+          | CSV / JSON / Files  |
+          +---------------------+
+                     |
+                     v
+          +---------------------+
+          |   BRONZE LAYER      |
+          |   Raw Data          |
+          +---------------------+
+                     |
+                     v
+          +---------------------+
+          |   SILVER LAYER      |
+          |   Clean Data        |
+          +---------------------+
+                     |
+                     v
+          +---------------------+
+          |    GOLD LAYER       |
+          | Business Data       |
+          +---------------------+
+                     |
+                     v
+          +---------------------+
+          | Analytics / BI / AI |
+          +---------------------+</pre>
+<p class="ref">The Bronze, Silver, and Gold layers are a common implementation pattern, not a mandatory requirement for every lakehouse.</p>
+<h4>What makes a lakehouse different?</h4>
+<div class="grid-2">
+  <div class="card"><h4>1. Flexible storage</h4><p>Store raw and curated data in cloud object storage.</p></div>
+  <div class="card"><h4>2. Reliable tables</h4><p>Delta Lake provides ACID transactions and other table-management features.</p></div>
+  <div class="card"><h4>3. Data processing</h4><p>Spark and related capabilities transform large datasets.</p></div>
+  <div class="card"><h4>4. SQL analytics</h4><p>Query curated data using Databricks SQL.</p></div>
+  <div class="card"><h4>5. Governance</h4><p>Unity Catalog manages access and helps discover data assets.</p></div>
+  <div class="card"><h4>6. BI and AI</h4><p>Connect data to Power BI and build ML or AI applications.</p></div>
+</div>
+<p><strong>Example:</strong> a company with 100 million sales records can store the raw records in a Bronze table, clean them in a Silver table, and create a Gold table with daily sales summaries. Business analysts query the Gold table, while data scientists use appropriate curated datasets for machine learning. Multiple workloads use the same underlying platform.</p>
+
+<h3 id="s1-2-4"><span class="num">1.2.4</span>Lakehouse Architecture</h3>
+<p>Let's explore a practical architecture layer by layer.</p>
+<h4>Layer 1: Source systems</h4>
+<p>SQL Server, Oracle, APIs, CSV files, JSON files, ERP systems, CRM systems, and streaming platforms.</p>
+<h4>Layer 2: Ingestion</h4>
+<p>Data is moved into the lakehouse using tools such as JDBC, Auto Loader, Lakeflow Connect, ADF, and supported streaming connectors.</p>
+<h4>Layer 3: Bronze</h4>
+<p>Raw or minimally processed data. The Bronze layer preserves source information so the data can be inspected and reprocessed when necessary.</p>
+<pre class="diagram">BRONZE_CUSTOMERS
+
+CUSTOMER_ID | CUSTOMER_NAME | CITY
+------------|---------------|----------
+101         | Ravi          | Hyderabad
+102         | Kumar         | Chennai
+102         | Kumar         | Chennai
+103         | NULL          | Bengaluru</pre>
+<h4>Layer 4: Silver</h4>
+<p>Cleaned and standardized data.</p>
+<pre class="diagram">SILVER_CUSTOMERS
+
+CUSTOMER_ID | CUSTOMER_NAME | CITY
+------------|---------------|----------
+101         | Ravi          | Hyderabad
+102         | Kumar         | Chennai</pre>
+<p>The transformation may remove duplicates, validate customer IDs, standardize values, handle invalid records, and apply business rules.</p>
+<div class="callout"><span class="label">Note</span><p>The example assumes the duplicate is genuinely redundant and that the record with a missing customer name is invalid. Real validation rules should be based on business requirements.</p></div>
+<h4>Layer 5: Gold</h4>
+<p>Business-ready datasets that support dashboards, reports, and other analytical applications.</p>
+<pre class="diagram">GOLD_DAILY_SALES
+
+SALES_DATE | TOTAL_ORDERS | TOTAL_REVENUE
+-----------|--------------|--------------
+2026-10-23 | 1500         | 250000
+2026-10-24 | 1750         | 290000
+2026-10-25 | 1900         | 320000</pre>
+<h4>Layer 6: Consumption</h4>
+<p>Users access the data through Databricks SQL, Power BI, machine learning pipelines, AI applications, and other supported tools.</p>
+<h4>Supporting components</h4>
+<p>A production lakehouse also needs Unity Catalog for governance, Lakeflow Jobs or another orchestrator for scheduling, data quality checks, monitoring and alerting, security controls, performance optimization, and cost management.</p>
+<div class="callout key"><span class="label">Important</span><p>Bronze, Silver, and Gold describe <strong>logical</strong> data layers. They do not necessarily mean that every layer must reside in a separate storage account or physical system.</p></div>
+
+<h3 id="s1-2-5"><span class="num">1.2.5</span>Advantages of the Lakehouse</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Advantage</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>1. Multiple workloads on one platform</td><td>Data engineering, analytics, and AI workloads can work with data in the same lakehouse architecture.</td></tr>
+<tr><td>2. Flexible data storage</td><td>Accommodates structured, semi-structured, and supported unstructured data.</td></tr>
+<tr><td>3. Reliable table operations</td><td>Delta Lake supports ACID transactions, schema enforcement, and table history.</td></tr>
+<tr><td>4. Incremental processing</td><td>Delta tables and appropriate ingestion patterns support efficient incremental processing.</td></tr>
+<tr><td>5. Reduced duplication</td><td>Workloads can share curated datasets instead of maintaining unnecessary copies. Copies may still be necessary for performance, regulatory, security, or architectural reasons.</td></tr>
+<tr><td>6. SQL and Python support</td><td>SQL for relational transformations and PySpark for more complex processing.</td></tr>
+<tr><td>7. Governance</td><td>Unity Catalog supports centralized data governance and access management.</td></tr>
+<tr><td>8. Scalability</td><td>Compute can be selected and scaled according to the workload, subject to configuration and service limits.</td></tr>
+<tr><td>9. Data science and AI</td><td>Curated lakehouse data can support machine learning and AI workloads.</td></tr>
+</tbody></table></div>
+
+<h3 id="s1-2-6"><span class="num">1.2.6</span>Data Lake versus Data Warehouse versus Lakehouse</h3>
+<p>This is a common interview question.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Data Lake</th><th>Data Warehouse</th><th>Lakehouse</th></tr></thead>
+<tbody>
+<tr><td>Main purpose</td><td>Store varied data</td><td>Analytical queries and reporting</td><td>Combine flexible storage with reliable data management and analytics</td></tr>
+<tr><td>Typical storage</td><td>Cloud object storage</td><td>Warehouse-managed or supported storage architectures</td><td>Commonly cloud object storage</td></tr>
+<tr><td>Data formats</td><td>Many file formats</td><td>Commonly structured tables</td><td>Many formats and managed table formats</td></tr>
+<tr><td>Data processing</td><td>Requires suitable processing tools</td><td>Warehouse engine and supported integrations</td><td>Spark and other integrated processing services</td></tr>
+<tr><td>SQL analytics</td><td>Requires a compatible query engine</td><td>Core capability</td><td>Supported</td></tr>
+<tr><td>Transaction management</td><td>Depends on the storage and table format</td><td>Depends on the warehouse</td><td>Delta Lake provides ACID transactions for supported operations</td></tr>
+<tr><td>Schema enforcement</td><td>Depends on the processing and storage tools</td><td>Commonly supported</td><td>Supported for Delta tables</td></tr>
+<tr><td>Machine learning</td><td>Supported through additional tools</td><td>Depends on the platform</td><td>Integrated into the broader platform</td></tr>
+<tr><td>Data governance</td><td>Must be configured</td><td>Supported by the platform</td><td>Unity Catalog and related controls</td></tr>
+<tr><td>Common use cases</td><td>Raw data storage and exploration</td><td>Business reporting and analytics</td><td>Data engineering, analytics, and AI</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Easy way to remember</span><ul>
+<li><strong>Data lake:</strong> Store different kinds of data.</li>
+<li><strong>Data warehouse:</strong> Organize data for analytics.</li>
+<li><strong>Lakehouse:</strong> Combine flexible storage with reliable tables and analytical processing.</li></ul></div>
+<p class="ref">This is a simplified distinction. Modern data lakes and warehouses can offer many of the same capabilities, so evaluate actual platform features rather than relying only on these labels.</p>
+
+<h3 id="s1-2-7"><span class="num">1.2.7</span>Structured, Semi-Structured, and Unstructured Data</h3>
+<p>Data engineers must understand these three categories.</p>
+<h4>A. Structured data</h4>
+<p>Follows a defined schema and is typically organized into rows and columns. Common sources: SQL Server, Oracle, PostgreSQL, relational tables, and structured CSV files.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>CUSTOMER_ID</th><th>CUSTOMER_NAME</th><th>CITY</th></tr></thead>
+<tbody><tr><td>101</td><td>Ravi</td><td>Hyderabad</td></tr><tr><td>102</td><td>Kumar</td><td>Chennai</td></tr><tr><td>103</td><td>Suresh</td><td>Bengaluru</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    CITY,
+    COUNT(*) AS CUSTOMER_COUNT
+FROM CUSTOMERS
+GROUP BY CITY;</code></pre></div>
+<h4>B. Semi-structured data</h4>
+<p>Has some organization but does not necessarily follow a fixed relational table structure. Common sources: JSON, XML, application events, API responses, and some log formats.</p>
+<div class="code-wrap"><span class="lang">JSON</span><pre class="code"><code>{
+  "customer_id": 101,
+  "customer_name": "Ravi",
+  "address": {
+    "city": "Hyderabad",
+    "country": "India"
+  },
+  "orders": [
+    {
+      "order_id": 5001,
+      "amount": 2500
+    },
+    {
+      "order_id": 5002,
+      "amount": 3500
+    }
+  ]
+}</code></pre></div>
+<p>Databricks can process nested fields and arrays using Spark SQL and PySpark.</p>
+<h4>C. Unstructured data</h4>
+<p>Does not naturally fit into a fixed row-and-column structure: images, audio recordings, video files, PDF documents, scanned documents, and free-form text. A company might store customer invoices as PDF files in cloud storage. The files can be stored in a lakehouse, but extracting meaningful information may require OCR, document processing, or AI tools.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Category</th><th>Example</th><th>Typical processing</th></tr></thead>
+<tbody>
+<tr><td>Structured</td><td>SQL table</td><td>SQL and DataFrame operations</td></tr>
+<tr><td>Semi-structured</td><td>JSON document</td><td>JSON parsing and schema handling</td></tr>
+<tr><td>Unstructured</td><td>PDF or image</td><td>Document processing, OCR, or AI</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Important</span><p>A data lakehouse can store all three categories, but the processing required to extract useful information differs.</p></div>
+
+<!-- ===================== 1.3 ===================== -->
+<h2 id="s1-3"><span class="num">1.3</span>Databricks Use Cases</h2>
+<p class="section-intro">Now let's understand where companies use Databricks.</p>
+
+<h3 id="s1-3-1"><span class="num">1.3.1</span>Data Engineering</h3>
+<p>Data engineering involves collecting, transforming, validating, and delivering data for analytics and other applications.</p>
+<div class="grid-2">
+<pre class="diagram">SQL Server
+    |
+    v
+Ingestion
+    |
+    v
+Bronze Delta Table
+    |
+    v
+PySpark Transformations
+    |
+    v
+Silver Delta Table
+    |
+    v
+Gold Delta Table
+    |
+    v
+Power BI</pre>
+<div class="card"><h4>A data engineer might</h4><ul><li>Ingest data from Oracle.</li><li>Transform the data using PySpark.</li><li>Remove duplicates.</li><li>Implement incremental loading.</li><li>Validate source and target counts.</li><li>Schedule pipelines.</li><li>Monitor failures.</li><li>Optimize performance.</li></ul></div>
+</div>
+<p>This is one of the most important Databricks use cases.</p>
+
+<h3 id="s1-3-2"><span class="num">1.3.2</span>ETL and ELT</h3>
+<p><strong>ETL</strong> stands for Extract, Transform, Load. <strong>ELT</strong> stands for Extract, Load, Transform.</p>
+<div class="grid-2">
+<div><h5>ETL — transform before loading</h5>
+<pre class="diagram">Source
+   |
+   v
+Extract
+   |
+   v
+Transform
+   |
+   v
+Load Target</pre></div>
+<div><h5>ELT — load first, transform in target</h5>
+<pre class="diagram">Source
+   |
+   v
+Extract
+   |
+   v
+Load Raw Data
+   |
+   v
+Transform in Target Platform</pre></div>
+</div>
+<p><strong>Example:</strong> Oracle contains customer information. An ETL process might extract customers, clean them using a transformation engine, and load the results into a target database. An ELT process might load the extracted records into a Bronze table, transform them using Spark, and publish the results into Silver and Gold tables. Databricks supports both approaches, depending on the architecture.</p>
+
+<h3 id="s1-3-3"><span class="num">1.3.3</span>Data Warehousing</h3>
+<p>Databricks can support analytical data warehouse workloads using Delta tables and Databricks SQL, with tables such as <code>DIM_CUSTOMER</code>, <code>DIM_PRODUCT</code>, <code>DIM_DATE</code>, <code>FACT_SALES</code>, and <code>FACT_INVENTORY</code>. A business analyst can calculate sales by product:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    p.PRODUCT_NAME,
+    SUM(f.SALES_AMOUNT) AS TOTAL_SALES
+FROM GOLD.FACT_SALES AS f
+JOIN GOLD.DIM_PRODUCT AS p
+    ON f.PRODUCT_ID = p.PRODUCT_ID
+GROUP BY p.PRODUCT_NAME
+ORDER BY TOTAL_SALES DESC;</code></pre></div>
+<p>A data engineer would typically be responsible for ensuring that the underlying data is correct, current, and appropriately optimized.</p>
+
+<h3 id="s1-3-4"><span class="num">1.3.4</span>Business Intelligence</h3>
+<p>Business intelligence converts processed data into reports, dashboards, and business insights. Databricks can provide data for BI tools such as Power BI.</p>
+<div class="grid-2">
+<pre class="diagram">Databricks Gold Tables
+          |
+          v
+Databricks SQL Warehouse
+          |
+          v
+Power BI
+          |
+          v
+Business Dashboard</pre>
+<div class="card"><h4>A dashboard might display</h4><ul><li>Daily sales.</li><li>Monthly revenue.</li><li>Inventory levels.</li><li>Customer growth.</li><li>Regional performance.</li><li>Pipeline execution status.</li></ul></div>
+</div>
+<p>The dashboard is built in Power BI, while Databricks prepares and serves the data.</p>
+
+<h3 id="s1-3-5"><span class="num">1.3.5</span>Machine Learning</h3>
+<p>Machine learning uses historical data to train models that make predictions or identify patterns. Example: predicting future sales.</p>
+<div class="grid-2">
+<pre class="diagram">Historical Sales
+       |
+       v
+Data Preparation
+       |
+       v
+Feature Engineering
+       |
+       v
+Model Training
+       |
+       v
+Model Evaluation
+       |
+       v
+Sales Prediction</pre>
+<div class="card"><h4>A model might use</h4><ul><li>Historical sales.</li><li>Product prices.</li><li>Promotions.</li><li>Seasonality.</li><li>Holidays.</li><li>Regional trends.</li></ul></div>
+</div>
+<p>Databricks provides capabilities for preparing training data, running experiments, and working with ML models. However, good predictions require suitable data, appropriate model selection, and proper evaluation.</p>
+
+<h3 id="s1-3-6"><span class="num">1.3.6</span>Artificial Intelligence</h3>
+<p>Databricks can support AI applications that use enterprise data. For example, a company wants an internal assistant that answers questions about financial reports:</p>
+<pre class="diagram">PDF Reports / Documents
+          |
+          v
+Document Processing
+          |
+          v
+Text Chunks and Embeddings
+          |
+          v
+Vector Search
+          |
+          v
+Relevant Context
+          |
+          v
+Language Model
+          |
+          v
+Answer to User</pre>
+<p>This pattern is called <strong>Retrieval-Augmented Generation (RAG)</strong>. Databricks provides capabilities for data preparation, vector search, model serving, and AI application development, subject to product configuration. The language model may be provided by Databricks or an integrated external service.</p>
+
+<h3 id="s1-3-7"><span class="num">1.3.7</span>Real-Time Data Processing</h3>
+<p>Real-time processing means processing data as it arrives or with low latency. Consider a payment company receiving transaction events:</p>
+<pre class="diagram">Payment Events
+      |
+      v
+Streaming Source
+      |
+      v
+Structured Streaming
+      |
+      v
+Fraud Detection Logic
+      |
+      v
+Alerts / Analytics</pre>
+<p>The system can analyze incoming transactions to identify suspicious patterns. Actual fraud prevention may require additional services to act on those detections. Achievable latency depends on the source, processing design, compute, and downstream systems.</p>
+
+<h3 id="s1-3-8"><span class="num">1.3.8</span>Batch Processing</h3>
+<p>Batch processing handles a collection of records at scheduled intervals or in defined groups. Example: a company processes yesterday's transactions every morning at 2:00 AM.</p>
+<div class="grid-2">
+<pre class="diagram">Daily Sales Files
+        |
+        v
+Scheduled Databricks Job
+        |
+        v
+Data Validation
+        |
+        v
+Transformation
+        |
+        v
+Gold Sales Table</pre>
+<div class="card"><h4>Suitable for</h4><ul><li>Daily ETL.</li><li>Monthly financial reports.</li><li>Historical data migration.</li><li>Periodic reconciliation.</li><li>Large-scale aggregations.</li></ul></div>
+</div>
+<p>A Databricks Job can be scheduled to run at a particular time, provided the required resources and permissions are available.</p>
+
+<h3 id="s1-3-9"><span class="num">1.3.9</span>Streaming Analytics</h3>
+<p>Streaming analytics continuously processes events and calculates useful information from them. Example: a company receives millions of website events and calculates active users, page views, orders per minute, failed transactions, and traffic by region.</p>
+<pre class="diagram">Website Events
+      |
+      v
+Event Stream
+      |
+      v
+Databricks Structured Streaming
+      |
+      v
+Windowed Aggregations
+      |
+      v
+Analytics Tables
+      |
+      v
+Dashboards and Alerts</pre>
+<h4>Batch versus streaming</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Batch processing</th><th>Streaming processing</th></tr></thead>
+<tbody>
+<tr><td>Input</td><td>Bounded collection of data</td><td>Continuously arriving events or files</td></tr>
+<tr><td>Execution</td><td>Scheduled or manually triggered</td><td>Continuously or in configured micro-batches</td></tr>
+<tr><td>Latency</td><td>Commonly minutes to hours</td><td>Can be seconds or minutes</td></tr>
+<tr><td>Example</td><td>Daily sales report</td><td>Sales monitoring throughout the day</td></tr>
+<tr><td>Typical tools</td><td>Spark batch jobs and Lakeflow Jobs</td><td>Structured Streaming and supported streaming connectors</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Note</span><p>A streaming workload does not always mean instantaneous processing. Actual latency depends on the implementation.</p></div>
+
+<!-- ===================== 1.4 ===================== -->
+<h2 id="s1-4"><span class="num">1.4</span>Databricks Cloud Platforms</h2>
+<p class="section-intro">Databricks is available on multiple major cloud platforms. The core concepts are similar, but cloud storage, identity management, networking, and integration services differ.</p>
+
+<h3 id="s1-4-1"><span class="num">1.4.1</span>Azure Databricks</h3>
+<p>Azure Databricks is the Databricks platform integrated with Microsoft Azure. It is commonly used with Azure Data Lake Storage Gen2, Microsoft Entra ID, Azure Key Vault, Azure Data Factory, Azure Monitor, Power BI, and Azure networking services.</p>
+<pre class="diagram">                AZURE
+                  |
+      +-----------+-----------+
+      |           |           |
+      v           v           v
+   SQL Server   ADF / APIs   Files
+      |           |           |
+      +-----------+-----------+
+                  |
+                  v
+          Azure Data Lake
+             Storage
+                  |
+                  v
+          Azure Databricks
+                  |
+       +----------+----------+
+       |          |          |
+       v          v          v
+    Bronze      Silver      Gold
+       |          |          |
+       +----------+----------+
+                  |
+                  v
+            Power BI</pre>
+<p class="ref">This is an example architecture. You can also use Databricks-native ingestion and orchestration instead of ADF.</p>
+<h4>Key Azure integrations</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Service</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>Azure Data Lake Storage Gen2</td><td>Stores raw files and lakehouse data.</td></tr>
+<tr><td>Microsoft Entra ID</td><td>Supports identity and access management.</td></tr>
+<tr><td>Azure Key Vault</td><td>Can be used to manage secrets and credentials.</td></tr>
+<tr><td>Azure Data Factory</td><td>Can orchestrate Databricks jobs and integrate with source systems.</td></tr>
+<tr><td>Azure Monitor</td><td>Supports monitoring and diagnostic integrations where configured and supported.</td></tr>
+</tbody></table></div>
+<p><strong>Example use case:</strong> your company uses SQL Server as the source, ADF for ingestion, ADLS Gen2 for storage, Azure Databricks for transformation, and Power BI for reporting. Databricks processes the data using Spark, stores curated Delta tables, and makes the results available for reporting.</p>
+
+<h3 id="s1-4-2"><span class="num">1.4.2</span>Databricks on AWS</h3>
+<p>Databricks on AWS integrates with Amazon S3 for object storage, AWS IAM for identity and permissions, AWS networking services, AWS monitoring services, and AWS data and messaging services.</p>
+<pre class="diagram">Source Databases
+       |
+       v
+Ingestion Services
+       |
+       v
+Amazon S3
+       |
+       v
+Databricks on AWS
+       |
+       v
+Delta Tables
+       |
+       v
+SQL Analytics / BI / AI</pre>
+<p>Compared with Azure Databricks, the AWS environment uses AWS-specific storage, identity, networking, and integration services: ADLS Gen2 versus Amazon S3, Microsoft Entra ID versus AWS IAM, Azure networking versus AWS networking. The underlying Spark, Delta Lake, and Unity Catalog concepts are broadly similar.</p>
+<p class="ref">Official reference: <a href="https://docs.databricks.com/aws/en/" target="_blank" rel="noopener">Databricks on AWS</a></p>
+
+<h3 id="s1-4-3"><span class="num">1.4.3</span>Databricks on Google Cloud</h3>
+<p>Databricks on Google Cloud integrates with Google Cloud Storage, Google Cloud IAM, networking, monitoring, and data services.</p>
+<pre class="diagram">Source Systems
+      |
+      v
+Ingestion
+      |
+      v
+Google Cloud Storage
+      |
+      v
+Databricks on Google Cloud
+      |
+      v
+Delta Tables
+      |
+      v
+Analytics / BI / AI</pre>
+<p>The architecture is conceptually similar to Azure and AWS. The main differences are the cloud-specific services, authentication methods, networking configuration, and integration options.</p>
+<p class="ref">Official reference: <a href="https://docs.databricks.com/gcp/en/" target="_blank" rel="noopener">Databricks on Google Cloud</a></p>
+
+<h3 id="s1-4-4"><span class="num">1.4.4</span>Differences Between Cloud Implementations</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Azure</th><th>AWS</th><th>Google Cloud</th></tr></thead>
+<tbody>
+<tr><td>Object storage</td><td>ADLS Gen2 / Azure Blob Storage</td><td>Amazon S3</td><td>Google Cloud Storage</td></tr>
+<tr><td>Identity and access</td><td>Microsoft Entra ID and Azure integrations</td><td>AWS IAM and supported identity integrations</td><td>Google Cloud IAM and supported identity integrations</td></tr>
+<tr><td>Secrets</td><td>Azure Key Vault and Databricks mechanisms</td><td>AWS Secrets Manager and Databricks mechanisms</td><td>Google Cloud Secret Manager and Databricks mechanisms</td></tr>
+<tr><td>Networking</td><td>Azure VNets and related services</td><td>AWS VPC and related services</td><td>Google Cloud VPC and related services</td></tr>
+<tr><td>Monitoring</td><td>Azure Monitor and Databricks monitoring</td><td>AWS monitoring and Databricks monitoring</td><td>Google Cloud monitoring and Databricks monitoring</td></tr>
+<tr><td>Core processing</td><td>Spark, Delta Lake, Databricks services</td><td>Spark, Delta Lake, Databricks services</td><td>Spark, Delta Lake, Databricks services</td></tr>
+</tbody></table></div>
+<p class="ref">Some services have different levels of integration or different configuration requirements across clouds.</p>
+<div class="callout key"><span class="label">Which cloud should you learn first?</span><p>Start with <strong>Azure Databricks</strong>. If you already work with Azure Data Factory, Azure Synapse Analytics, and Azure Data Lake Storage, it shows you how a new platform integrates with technologies you know. Once you understand the core concepts, most of that knowledge transfers to AWS and Google Cloud.</p></div>
+
+<h3 id="s1-4-5"><span class="num">1.4.5</span>Cloud Storage Integration</h3>
+<p>Databricks commonly processes data stored in cloud object storage. Using Azure as the example: <strong>Azure Data Lake Storage Gen2</strong> is Microsoft's cloud storage service designed for data lake workloads, with hierarchical namespace capabilities and integration with Azure analytics services.</p>
+<pre class="diagram">retailstorage/
+    |
+    +--- bronze/
+    |      |
+    |      +--- customers/
+    |      +--- products/
+    |      +--- orders/
+    |
+    +--- silver/
+    |      |
+    |      +--- customers/
+    |      +--- products/
+    |      +--- orders/
+    |
+    +--- gold/
+           |
+           +--- sales_summary/
+           +--- inventory_summary/</pre>
+<p>Databricks can read supported files from storage, transform the data, and write the results to Delta tables.</p>
+<h4>Reading a CSV file with PySpark</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+         .option("header", True)
+         .option("inferSchema", True)
+         .csv("/path/to/customers.csv")
+)
+
+display(df)</code></pre></div>
+<p class="ref">This assumes the path is accessible from the Databricks environment. In a real Azure deployment, the path and authentication must match the storage setup.</p>
+<h4>Writing a Delta table</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    df.write
+      .format("delta")
+      .mode("overwrite")
+      .saveAsTable("main.bronze.customers")
+)</code></pre></div>
+<p>This assumes the <code>main</code> catalog and <code>bronze</code> schema exist, you have the required privileges, and your compute supports the selected table and storage configuration.</p>
+<div class="callout warn"><span class="label">Careful</span><p>This creates or overwrites the table's data according to the write mode. Use <code>overwrite</code> carefully in production.</p></div>
+<h4>Important storage concepts</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Storage account</td><td>The Azure resource that contains the storage service.</td></tr>
+<tr><td>Container</td><td>A logical container for objects and files.</td></tr>
+<tr><td>File path</td><td>The location of a particular file or directory.</td></tr>
+<tr><td>Delta table</td><td>A table format that uses a transaction log and data files.</td></tr>
+<tr><td>Managed table</td><td>Databricks manages the table lifecycle and associated storage according to the platform's rules.</td></tr>
+<tr><td>External table</td><td>A table associated with a storage location managed outside the table's managed storage lifecycle.</td></tr>
+</tbody></table></div>
+<h4>Authentication</h4>
+<p>Production workloads should use identity-based authentication and least-privilege permissions, such as Microsoft Entra ID-based identities, service principals, supported managed identity integrations, and Unity Catalog storage credentials and external locations.</p>
+<div class="callout warn"><span class="label">Security</span><p>Avoid hardcoding storage account keys or passwords in notebooks.</p></div>
+
+<h3 id="s1-4-6"><span class="num">1.4.6</span>Cloud Networking Fundamentals</h3>
+<p>Cloud networking matters because Databricks needs to connect securely to storage, databases, APIs, and other services.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td>Virtual network</td><td>An isolated network environment in the cloud. In Azure, it is called a VNet.</td></tr>
+<tr><td>Subnet</td><td>A smaller network range within a virtual network that helps organize and control resources.</td></tr>
+<tr><td>Private connectivity</td><td>Lets supported services communicate through private network paths instead of public endpoints, e.g. private endpoints.</td></tr>
+<tr><td>Firewall</td><td>Controls permitted network traffic.</td></tr>
+<tr><td>DNS</td><td>Resolves hostnames to IP addresses or other configured endpoints.</td></tr>
+<tr><td>Network security groups</td><td>In Azure, filter network traffic based on configured rules.</td></tr>
+</tbody></table></div>
+<p class="ref">The exact network configuration depends on the Databricks deployment architecture.</p>
+<h4>Example: Connecting Databricks to SQL Server</h4>
+<p>Suppose SQL Server is hosted in a private corporate network. Databricks must be able to reach the SQL Server endpoint.</p>
+<div class="grid-2">
+<pre class="diagram">Databricks Compute
+        |
+        v
+Network Routing
+        |
+        v
+Firewall / Security Rules
+        |
+        v
+SQL Server Endpoint
+        |
+        v
+Authentication
+        |
+        v
+Query Execution</pre>
+<div class="card"><h4>For the connection to work</h4><ul><li>The hostname must resolve correctly.</li><li>Network routing must be available.</li><li>Firewall rules must permit the traffic.</li><li>SQL Server must listen on the expected port.</li><li>Authentication must succeed.</li><li>The user or identity must have the required permissions.</li></ul></div>
+</div>
+<p>A connection failure can occur even when the notebook code is correct.</p>
+<h4>Common networking errors</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Error</th><th>Possible cause</th></tr></thead>
+<tbody>
+<tr><td>Connection timeout</td><td>Network path unavailable or traffic blocked</td></tr>
+<tr><td>Host not found</td><td>DNS or hostname issue</td></tr>
+<tr><td>Connection refused</td><td>Service unavailable or port not listening</td></tr>
+<tr><td>Authentication failed</td><td>Invalid credentials or authentication configuration</td></tr>
+<tr><td>Permission denied</td><td>Insufficient database or storage permissions</td></tr>
+<tr><td>TLS error</td><td>Certificate or encryption configuration problem</td></tr>
+</tbody></table></div>
+<p>This knowledge is useful when integrating Databricks with SQL Server, Oracle, or other private data sources.</p>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter 1 Summary</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Topic</th><th>What you should remember</th></tr></thead>
+<tbody>
+<tr><td>Databricks</td><td>A cloud-based data and AI platform</td></tr>
+<tr><td>Apache Spark</td><td>An open-source distributed data processing engine</td></tr>
+<tr><td>PySpark</td><td>Python API for Spark</td></tr>
+<tr><td>Delta Lake</td><td>Provides reliable table operations and transaction capabilities</td></tr>
+<tr><td>Lakehouse</td><td>Combines flexible data storage with reliable data management and analytics</td></tr>
+<tr><td>Data lake</td><td>Stores data in many formats</td></tr>
+<tr><td>Data warehouse</td><td>Organizes data for analytical queries and reporting</td></tr>
+<tr><td>Bronze</td><td>Raw or minimally processed data</td></tr>
+<tr><td>Silver</td><td>Cleaned and standardized data</td></tr>
+<tr><td>Gold</td><td>Business-ready data</td></tr>
+<tr><td>Unity Catalog</td><td>Data governance and access management</td></tr>
+<tr><td>Lakeflow Jobs</td><td>Workflow orchestration</td></tr>
+<tr><td>Azure Databricks</td><td>Databricks integrated with Azure</td></tr>
+<tr><td>Databricks on AWS</td><td>Databricks integrated with AWS</td></tr>
+<tr><td>Databricks on Google Cloud</td><td>Databricks integrated with Google Cloud</td></tr>
+<tr><td>Batch processing</td><td>Processes bounded datasets</td></tr>
+<tr><td>Streaming processing</td><td>Processes continuously arriving data or events</td></tr>
+</tbody></table></div>
+
+<h3 id="practice">Practice Questions</h3>
+<p>Try answering these without looking at the explanations above.</p>
+<details class="q" open><summary>Beginner level</summary>
+<ol>
+<li>What is Databricks?</li><li>What is Apache Spark?</li><li>What is the difference between Spark and Databricks?</li><li>What is a data lake?</li><li>What is a data warehouse?</li><li>What is a lakehouse?</li><li>What is Delta Lake?</li><li>What is PySpark?</li><li>What is Azure Databricks?</li><li>What is the purpose of Unity Catalog?</li>
+</ol></details>
+<details class="q"><summary>Intermediate level</summary>
+<ol>
+<li>Why might an organization use Databricks instead of a traditional Hadoop MapReduce architecture?</li>
+<li>What are the differences between a data lake and a lakehouse?</li>
+<li>How does a Bronze-Silver-Gold architecture work?</li>
+<li>What is the difference between ETL and ELT?</li>
+<li>How can Databricks integrate with Power BI?</li>
+<li>What is the difference between batch and streaming processing?</li>
+<li>How does Delta Lake improve data reliability?</li>
+<li>What is the relationship between Databricks and Azure Data Lake Storage Gen2?</li>
+<li>What is the difference between Azure Databricks and Microsoft Fabric?</li>
+<li>Why are cloud networking and identity configuration important for data engineers?</li>
+</ol></details>
+
+<h3 id="exercise">Practical Exercise</h3>
+<div class="card">
+<p>Your company has customer data in SQL Server and sales data in CSV files. Design a solution that:</p>
+<ol class="steps">
+<li>Ingests both sources.</li>
+<li>Stores the raw data in a Bronze layer.</li>
+<li>Cleans the data in a Silver layer.</li>
+<li>Combines customer and sales data in a Gold layer.</li>
+<li>Makes the Gold data available to Power BI.</li>
+</ol>
+<p style="margin-bottom:0">Write down the components you would use and explain the purpose of each.</p>
+</div>
+
+<div class="next">
+<h3>What to study next</h3>
+<p>Before moving to Chapter 2, make sure you can explain these five concepts in your own words:</p>
+<ol>
+<li>Databricks versus Apache Spark.</li>
+<li>Data lake versus data warehouse versus lakehouse.</li>
+<li>Bronze, Silver, and Gold layers.</li>
+<li>Azure Databricks versus Microsoft Fabric versus Azure Synapse Analytics.</li>
+<li>Batch processing versus streaming processing.</li>
+</ol>
+<p style="margin-bottom:0"><strong>Next lesson: Chapter 2 — Databricks Architecture.</strong> Control plane, compute plane, workspace, driver, workers, executors, clusters, SQL warehouses, storage, and how a Databricks job executes from beginning to end.</p>
+</div>
+
+<nav class="pager">
+  <span class="pager-link disabled"><span>← Previous</span><strong>Course start</strong></span>
+  <a class="pager-link" href="databricks-chapter-2.html"><span>Next →</span><strong>Chapter 2: Databricks Architecture</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 1 · Chapter 1 of 24</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 6: Spark</title>
+<meta name="description" content="Databricks Tutorial — Chapter 6: Apache Spark Fundamentals. Architecture, lazy evaluation, jobs, stages, tasks, shuffles, partitions, caching, broadcast joins, Catalyst, AQE, and a one-million-record lab.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 6 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s6-1">6.1 Introduction to Spark</a></li>
+    <li class="lvl2"><a href="#s6-1-1">What is Apache Spark?</a></li>
+    <li class="lvl2"><a href="#s6-1-2">Why Spark in Databricks?</a></li>
+    <li class="lvl2"><a href="#s6-1-3">Spark vs SQL engines</a></li>
+    <li class="lvl2"><a href="#s6-1-4">Spark vs MapReduce</a></li>
+    <li class="lvl2"><a href="#s6-1-5">Distributed computing</a></li>
+    <li class="lvl2"><a href="#s6-1-6">In-memory processing</a></li>
+    <li class="lvl2"><a href="#s6-1-7">Parallel processing</a></li>
+    <li class="lvl1"><a href="#s6-2">6.2 Spark Architecture</a></li>
+    <li class="lvl2"><a href="#s6-2-1">Driver</a></li>
+    <li class="lvl2"><a href="#s6-2-2">Executors</a></li>
+    <li class="lvl2"><a href="#s6-2-3">Cluster manager</a></li>
+    <li class="lvl2"><a href="#s6-2-4">Jobs</a></li>
+    <li class="lvl2"><a href="#s6-2-5">Stages</a></li>
+    <li class="lvl2"><a href="#s6-2-6">Tasks</a></li>
+    <li class="lvl2"><a href="#s6-2-7">DAG</a></li>
+    <li class="lvl2"><a href="#s6-2-8">SparkSession</a></li>
+    <li class="lvl2"><a href="#s6-2-9">SparkContext</a></li>
+    <li class="lvl2"><a href="#s6-2-10">Execution plans</a></li>
+    <li class="lvl1"><a href="#s6-3">6.3 Spark Execution</a></li>
+    <li class="lvl2"><a href="#s6-3-1">Transformations</a></li>
+    <li class="lvl2"><a href="#s6-3-2">Actions</a></li>
+    <li class="lvl2"><a href="#s6-3-3">Lazy evaluation</a></li>
+    <li class="lvl2"><a href="#s6-3-4">Narrow transformations</a></li>
+    <li class="lvl2"><a href="#s6-3-5">Wide transformations</a></li>
+    <li class="lvl2"><a href="#s6-3-6">Shuffle operations</a></li>
+    <li class="lvl2"><a href="#s6-3-7">Job execution</a></li>
+    <li class="lvl2"><a href="#s6-3-8">Stage boundaries</a></li>
+    <li class="lvl2"><a href="#s6-3-9">Task scheduling</a></li>
+    <li class="lvl1"><a href="#s6-4">6.4 Data Structures</a></li>
+    <li class="lvl2"><a href="#s6-4-1">RDDs</a></li>
+    <li class="lvl2"><a href="#s6-4-2">DataFrames</a></li>
+    <li class="lvl2"><a href="#s6-4-3">Datasets</a></li>
+    <li class="lvl2"><a href="#s6-4-4">Schema</a></li>
+    <li class="lvl2"><a href="#s6-4-5">Columns</a></li>
+    <li class="lvl2"><a href="#s6-4-6">Rows</a></li>
+    <li class="lvl2"><a href="#s6-4-7">Partitions</a></li>
+    <li class="lvl1"><a href="#s6-5">6.5 Performance Basics</a></li>
+    <li class="lvl2"><a href="#s6-5-1">Partitioning</a></li>
+    <li class="lvl2"><a href="#s6-5-2">repartition()</a></li>
+    <li class="lvl2"><a href="#s6-5-3">coalesce()</a></li>
+    <li class="lvl2"><a href="#s6-5-4">Shuffle</a></li>
+    <li class="lvl2"><a href="#s6-5-5">Data skew</a></li>
+    <li class="lvl2"><a href="#s6-5-6">Broadcast joins</a></li>
+    <li class="lvl2"><a href="#s6-5-7">Caching &amp; persistence</a></li>
+    <li class="lvl2"><a href="#s6-5-8">Catalyst optimizer</a></li>
+    <li class="lvl2"><a href="#s6-5-9">AQE</a></li>
+    <li class="lvl1"><a href="#s6-6">6.6 Hands-on: 1M Records</a></li>
+    <li class="lvl2"><a href="#skew">Advanced: data skew</a></li>
+    <li class="lvl1"><a href="#s6-7">6.7 Common Mistakes</a></li>
+    <li class="lvl1"><a href="#s6-8">6.8 Quick Reference</a></li>
+    <li class="lvl1"><a href="#s6-9">6.9 Knowledge Check</a></li>
+    <li class="lvl1"><a href="#s6-10">6.10 Checklist</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 2 · Chapter 6 · Core concept</span>
+  <h1>Apache Spark Fundamentals</h1>
+  <p class="lead">How Spark actually executes your code: drivers and executors, jobs, stages and tasks, lazy evaluation, shuffles, partitions, and the optimizations that make large workloads fast. Then you'll put one million records through it.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will understand</span>
+  <ul>
+    <li>What Apache Spark is and why data engineers use it.</li>
+    <li>How Spark differs from traditional SQL engines and Hadoop MapReduce.</li>
+    <li>How distributed and parallel processing work.</li>
+    <li>Spark architecture: driver, executors, cluster manager, jobs, stages, and tasks.</li>
+    <li>The role of SparkSession and SparkContext.</li>
+    <li>Transformations, actions, lazy evaluation, and execution plans.</li>
+    <li>RDDs, DataFrames, schemas, columns, rows, and partitions.</li>
+    <li>Narrow and wide transformations and why shuffles matter.</li>
+    <li>Repartitioning, coalescing, caching, broadcast joins, and data skew.</li>
+    <li>Catalyst optimization and Adaptive Query Execution (AQE).</li>
+    <li>How Spark processes one million records through filters, groupings, joins, and aggregations.</li>
+  </ul></div>
+  <div class="callout"><span class="label">Important distinction</span><p><strong>Apache Spark</strong> is the distributed processing engine. <strong>Databricks</strong> is a data platform built around Spark, Delta Lake, and other lakehouse capabilities. <strong>PySpark</strong> is the Python API for using Spark from Python.</p></div>
+  <div class="chips">
+    <a class="chip" href="#s6-1"><span>6.1</span><strong>Introduction</strong></a>
+    <a class="chip" href="#s6-2"><span>6.2</span><strong>Architecture</strong></a>
+    <a class="chip" href="#s6-3"><span>6.3</span><strong>Execution</strong></a>
+    <a class="chip" href="#s6-4"><span>6.4</span><strong>Data Structures</strong></a>
+    <a class="chip" href="#s6-5"><span>6.5</span><strong>Performance</strong></a>
+    <a class="chip" href="#s6-6"><span>6.6</span><strong>1M-Record Lab</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 6.1 ===================== -->
+<h2 id="s6-1"><span class="num">6.1</span>Introduction to Apache Spark</h2>
+
+<h3 id="s6-1-1"><span class="num">6.1.1</span>What is Apache Spark?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>Apache Spark is an open-source engine for processing large datasets across multiple computing resources. Instead of one computer doing everything, Spark divides data into partitions and processes them across multiple worker processes.</p></div>
+<p>Suppose you have 100 million customer transactions and need total sales by customer, total sales by month, transaction counts by product, customers spending over ₹100,000, and the top 10 products by revenue. A single computer may struggle with the volume, memory, or time. Spark distributes suitable operations across executors so several partitions are processed in parallel.</p>
+<h4>A simplified architecture</h4>
+<pre class="diagram">                 YOUR CODE (notebook / job)
+                            |
+                            v
+                   +-----------------+
+                   |     DRIVER      |  plans the work,
+                   |                 |  schedules tasks
+                   +-----------------+
+                            |
+              +-------------+-------------+
+              |             |             |
+              v             v             v
+        +----------+  +----------+  +----------+
+        | EXECUTOR |  | EXECUTOR |  | EXECUTOR |  run tasks,
+        |  task    |  |  task    |  |  task    |  cache data
+        |  task    |  |  task    |  |  task    |
+        +----------+  +----------+  +----------+
+              |             |             |
+              v             v             v
+         Partition     Partition     Partition
+              \             |             /
+               +------------+------------+
+                            |
+                    DATA IN STORAGE</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Driver</td><td>Coordinates the Spark application</td></tr>
+<tr><td>Executors</td><td>Execute tasks and can cache data</td></tr>
+<tr><td>Cluster manager</td><td>Allocates compute resources where applicable</td></tr>
+<tr><td>Partitions</td><td>Divide a dataset into processing units</td></tr>
+<tr><td>Tasks</td><td>Process individual partitions for a particular stage</td></tr>
+<tr><td>Jobs</td><td>Represent computation triggered by actions</td></tr>
+<tr><td>Stages</td><td>Groups of tasks separated by execution dependencies</td></tr>
+</tbody></table></div>
+<h4>What makes Spark useful?</h4>
+<p>Processing large datasets, distributed transformations, joining large tables, aggregating across millions or billions of rows, batch and streaming workloads, ETL and ELT, integrating Python, SQL, and other APIs, and building pipelines on cloud storage.</p>
+<div class="callout warn"><span class="label">Not always faster</span><p>Spark is not automatically faster than every database or SQL engine. For small datasets, a traditional database or a simple Python script may be more efficient. Spark's benefit comes from distributing suitable workloads across available compute.</p></div>
+
+<h3 id="s6-1-2"><span class="num">6.1.2</span>Why do we use Spark in Databricks?</h3>
+<p>A pipeline that processes customer transactions must read files from cloud storage, validate the schema, remove invalid records, join with customer data, calculate totals by customer, and store results in a Delta table. Spark performs these transformations across distributed partitions:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>transactions_df = spark.read.parquet(
+    "/path/to/transactions"
+)
+
+filtered_df = transactions_df.filter(
+    transactions_df.amount &gt; 0
+)
+
+customer_summary_df = (
+    filtered_df
+    .groupBy("customer_id")
+    .sum("amount")
+)</code></pre></div>
+<div class="callout key"><span class="label">The key idea</span><p>The transformations describe <strong>what</strong> you want. Spark's execution engine decides <strong>how</strong> to execute it.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Use case</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>ETL</td><td>Transform source data before loading a warehouse</td></tr>
+<tr><td>ELT</td><td>Load raw data and transform it inside the lakehouse</td></tr>
+<tr><td>Data cleansing</td><td>Validate types, remove invalid records, normalize fields</td></tr>
+<tr><td>Data aggregation</td><td>Revenue by customer or product</td></tr>
+<tr><td>Large joins</td><td>Combine transactions with customer and product tables</td></tr>
+<tr><td>Streaming</td><td>Process continuously arriving events</td></tr>
+<tr><td>Data quality</td><td>Detect duplicate keys, missing values, invalid records</td></tr>
+<tr><td>ML preparation</td><td>Create features from large datasets</td></tr>
+</tbody></table></div>
+<h4>How Spark relates to Azure Data Factory</h4>
+<div class="grid-2">
+<pre class="diagram">Source SQL Server
+       |
+       v
+Azure Data Factory
+       |
+       v
+Azure Data Lake Storage
+       |
+       v
+Databricks / Apache Spark
+       |
+       v
+Delta Lake tables
+       |
+       v
+Power BI / Reporting</pre>
+<div class="card"><h4>Different jobs, same architecture</h4><p>ADF is primarily an <strong>orchestration and data integration</strong> service that moves data, for example from SQL Server into ADLS.</p><p style="margin-bottom:0">Spark is a <strong>distributed processing engine</strong> that then transforms it: standardizing columns, joining reference data, removing duplicates, aggregating, and writing Delta tables.</p></div>
+</div>
+
+<h3 id="s6-1-3"><span class="num">6.1.3</span>Spark versus traditional SQL engines</h3>
+<p>Why use Spark when SQL engines already exist? They overlap in capability but differ in architecture, execution model, and workload strengths. A traditional relational database manages tables and indexes, query execution, transactions, optimization, storage, and concurrency. Spark is a distributed processing engine that works over data in many storage systems and formats, with SQL, Python, Scala, Java, Structured Streaming, and distributed DataFrames.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Traditional SQL database</th><th>Apache Spark</th></tr></thead>
+<tbody>
+<tr><td>Primary purpose</td><td>Relational data management and querying</td><td>Distributed data processing and analytics</td></tr>
+<tr><td>Query language</td><td>SQL</td><td>SQL, Python, Scala, Java APIs</td></tr>
+<tr><td>Processing</td><td>Depends on engine architecture</td><td>Distributed across executors when configured</td></tr>
+<tr><td>Storage</td><td>Often manages its own storage</td><td>Processes data in external storage and table formats</td></tr>
+<tr><td>Indexes</td><td>Common</td><td>Not used the same way</td></tr>
+<tr><td>Transactions</td><td>Depends on database</td><td>Depend on the storage/table layer, e.g. Delta Lake</td></tr>
+<tr><td>Best suited for</td><td>Many transactional and analytical workloads</td><td>Large-scale transformations and distributed analytics</td></tr>
+<tr><td>Data formats</td><td>Database-specific plus supported external formats</td><td>Parquet, JSON, CSV, Delta, and more</td></tr>
+<tr><td>Execution</td><td>Plans optimized by the database engine</td><td>Logical and physical plans executed by Spark</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Choose by workload</span><ul><li>Frequent small transactional updates → a transactional database.</li><li>Joining several terabytes of files → Spark's distributed processing.</li><li>Reporting → possibly a SQL warehouse.</li><li>A small CSV file → plain Python or SQL may be simpler.</li></ul></div>
+
+<h3 id="s6-1-4"><span class="num">6.1.4</span>Spark versus Hadoop MapReduce</h3>
+<p>Before Spark, Hadoop MapReduce was widely used for distributed batch processing, built on map and reduce operations. Total sales by product looks like this conceptually:</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>product</th><th>sales</th></tr></thead>
+<tbody><tr><td>Laptop</td><td>50000</td></tr><tr><td>Phone</td><td>20000</td></tr><tr><td>Laptop</td><td>30000</td></tr></tbody></table></div>
+<pre class="diagram">MAP
+(Laptop, 50000)
+(Phone, 20000)
+(Laptop, 30000)
+
+SHUFFLE AND GROUP
+Laptop -&gt; [50000, 30000]
+Phone  -&gt; [20000]
+
+REDUCE
+Laptop -&gt; 80000
+Phone  -&gt; 20000</pre>
+</div>
+<p>In Spark, the same aggregation is one DataFrame expression:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_summary = (
+    sales_df
+    .groupBy("product")
+    .sum("sales")
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Hadoop MapReduce</th><th>Spark</th></tr></thead>
+<tbody>
+<tr><td>Programming model</td><td>Map and reduce phases</td><td>General distributed processing engine</td></tr>
+<tr><td>Intermediate processing</td><td>Commonly materialized to disk</td><td>Can pipeline operations and use memory where beneficial</td></tr>
+<tr><td>Iterative algorithms</td><td>Often less convenient</td><td>Often more efficient</td></tr>
+<tr><td>SQL support</td><td>Needs ecosystem components</td><td>Spark SQL built in</td></tr>
+<tr><td>APIs</td><td>Map/reduce-oriented</td><td>SQL, DataFrames, RDDs, language APIs</td></tr>
+<tr><td>Batch processing</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Streaming</td><td>Not a core strength</td><td>Structured Streaming</td></tr>
+<tr><td>Execution optimization</td><td>Depends on component</td><td>Logical and physical optimization</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Does Spark always process data in memory?</span><p>No. Spark uses memory for caching and intermediate processing, but it also reads and writes disk and may spill to disk when memory is short. Its advantage is a flexible, optimized distributed execution engine, not "everything in memory."</p></div>
+
+<h3 id="s6-1-5"><span class="num">6.1.5</span>Distributed computing</h3>
+<p>Distributed computing divides work across multiple computing resources. One million records might be split into four partitions of 250,000, each processed by its own task, concurrently where task slots allow.</p>
+<pre class="diagram">                    1,000,000 records
+                            |
+       +-------------+------+------+-------------+
+       |             |             |             |
+   P1: 250K      P2: 250K      P3: 250K      P4: 250K
+       |             |             |             |
+    Task 1        Task 2        Task 3        Task 4
+       |             |             |             |
+       +-------------+------+------+-------------+
+                            |
+                     Combined result</pre>
+<p class="ref">Conceptual. Real partition sizes may be uneven, and concurrency depends on cluster configuration.</p>
+<p>Independent partitions can be processed in parallel. But some operations need data <strong>redistributed</strong>: grouping by <code>customer_id</code> requires all of a customer's records to come together. That redistribution is a <strong>shuffle</strong> (Section 6.3).</p>
+
+<h3 id="s6-1-6"><span class="num">6.1.6</span>In-memory processing</h3>
+<p>Spark can cache or persist data in memory to avoid repeatedly reading or recomputing it.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_df = spark.read.parquet(
+    "/path/to/customers"
+)
+
+customers_df.cache()   # marks for caching; nothing loads yet
+
+customers_df.count()   # action: computes and populates the cache</code></pre></div>
+<p><code>cache()</code> doesn't load data immediately. Because of lazy evaluation, caching materializes when an action needs the data.</p>
+<div class="grid-2">
+  <div class="card"><h4>Caching can help when</h4><ul><li>A DataFrame is reused repeatedly.</li><li>Recomputing it is expensive.</li><li>It fits reasonably in available resources.</li><li>The workload benefits from reuse.</li></ul></div>
+  <div class="card"><h4>Caching may not help when</h4><ul><li>The DataFrame is used only once.</li><li>The data is too large to cache efficiently.</li><li>It displaces other useful data from memory.</li><li>Recomputing is cheap.</li></ul></div>
+</div>
+<div class="callout key"><span class="label">Best practice</span><p>Cache based on measured workload behavior, not as a default for every DataFrame.</p></div>
+
+<h3 id="s6-1-7"><span class="num">6.1.7</span>Parallel processing</h3>
+<p>Parallel processing means multiple units of work run at the same time. With eight task slots and a stage of 100 independent tasks, Spark runs up to eight at once; the rest wait for free slots.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Partitions</td><td>Divisions of data</td></tr>
+<tr><td>Tasks</td><td>Process partitions for a particular stage</td></tr>
+<tr><td>Task slots</td><td>Determine how many tasks can run concurrently</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Important limitation</span><p>Not every operation scales linearly with workers. Performance can be limited by storage throughput, network bandwidth, CPU, memory, data skew, shuffle volume, driver overhead, and inherently sequential work. More workers don't guarantee proportional speed-up.</p></div>
+
+<!-- ===================== 6.2 ===================== -->
+<h2 id="s6-2"><span class="num">6.2</span>Spark Architecture</h2>
+<p class="section-intro">How Spark actually executes a data-processing application.</p>
+
+<h3 id="s6-2-1"><span class="num">6.2.1</span>The Driver</h3>
+<p>The driver coordinates a Spark application: it creates the application context, builds and coordinates query execution, schedules jobs and tasks, tracks progress, communicates with executors, and collects results returned to it. In Databricks, your notebook or job interacts with the driver.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+filtered_df = df.filter(
+    df.amount &gt; 1000
+)
+
+display(filtered_df)</code></pre></div>
+<p>For DataFrame operations, the driver and Spark SQL engine build and optimize the query plan, then schedule distributed work.</p>
+<h4>Driver memory problems</h4>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">✗ Risky on large data</span><pre class="code"><code># Pulls every row into the
+# driver's Python process
+all_records = df.collect()</code></pre></div>
+<div class="code-wrap"><span class="lang">✓ Prefer</span><pre class="code"><code># Distributed aggregation
+df.groupBy("department").count()
+
+# Or a small sample
+df.limit(10).collect()</code></pre></div>
+</div>
+<p class="ref"><code>limit()</code> may still do work across partitions, but it caps the rows returned to the driver.</p>
+<div class="callout warn"><span class="label">Production rule</span><p>Avoid collecting large distributed datasets into ordinary Python lists.</p></div>
+
+<h3 id="s6-2-2"><span class="num">6.2.2</span>Executors</h3>
+<p>Executors are processes that run Spark tasks and can store cached data, generally on worker resources allocated to the application. They read partitions, filter, join, aggregate, write output, cache data, and report results and status to the driver.</p>
+<pre class="diagram">Executor 1 -&gt; Task 1 -&gt; Partition 1
+Executor 2 -&gt; Task 2 -&gt; Partition 2
+Executor 1 -&gt; Task 3 -&gt; Partition 3
+Executor 2 -&gt; Task 4 -&gt; Partition 4</pre>
+<p class="ref">Illustrative. Tasks are scheduled by resource availability and locality, and an executor runs many tasks over time.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Driver</th><th>Executor</th></tr></thead>
+<tbody>
+<tr><td>Coordinates the application</td><td>Executes tasks</td></tr>
+<tr><td>Builds and schedules work</td><td>Processes data partitions</td></tr>
+<tr><td>Tracks job progress</td><td>Stores cached data where configured</td></tr>
+<tr><td>Can collect results</td><td>Sends task results and status to the driver</td></tr>
+<tr><td>Bottleneck if overloaded</td><td>Bottleneck from CPU, memory, or I/O limits</td></tr>
+</tbody></table></div>
+
+<h3 id="s6-2-3"><span class="num">6.2.3</span>Cluster manager</h3>
+<p>A cluster manager allocates resources for Spark applications. Options include Spark's standalone manager, Hadoop YARN, Kubernetes, and cloud-specific provisioning. In Databricks, the platform manages much of this lifecycle, so you generally don't configure a cluster manager as you would in a self-managed deployment.</p>
+<pre class="diagram">                 Spark Application
+                        |
+                  +-----------+
+                  |  Driver   |
+                  +-----------+
+                        |
+                 Task scheduling
+                        |
+             +----------+----------+
+             |          |          |
+         Executor 1  Executor 2  Executor 3
+             |          |          |
+         Partition   Partition   Partition
+             |          |          |
+             +----------+----------+
+                        |
+                  Result / Output</pre>
+
+<h3 id="s6-2-4"><span class="num">6.2.4</span>Jobs</h3>
+<p>A Spark job is a unit of execution triggered by an action, such as <code>df.count()</code>, <code>df.collect()</code>, or <code>df.write.format("delta").save(...)</code>.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+filtered_df = df.filter(        # transformation
+    df.amount &gt; 1000
+)
+
+count = filtered_df.count()     # action: triggers a job</code></pre></div>
+<p>The resulting job may contain one or more stages.</p>
+<div class="callout"><span class="label">Important</span><p>One notebook cell is not necessarily one Spark job. A cell can trigger several jobs.</p></div>
+
+<h3 id="s6-2-5"><span class="num">6.2.5</span>Stages</h3>
+<p>A stage is a group of tasks Spark can execute without crossing a shuffle dependency boundary.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Few stages: no regrouping</span><pre class="code"><code>df.filter(df.amount &gt; 1000).count()</code></pre></div>
+<div class="code-wrap"><span class="lang">Stage boundary: shuffle</span><pre class="code"><code>df.groupBy("customer_id") \
+  .sum("amount") \
+  .show()</code></pre></div>
+</div>
+<p>Grouping usually brings records with the same customer ID together, introducing a shuffle and a stage boundary.</p>
+<div class="card"><h4>A slow stage may indicate</h4><ul><li>Expensive scans.</li><li>Large shuffles.</li><li>Data skew.</li><li>Memory pressure.</li><li>Disk spill.</li><li>Slow output writes.</li></ul><p style="margin-bottom:0">The Spark UI shows stage-level information to diagnose these.</p></div>
+
+<h3 id="s6-2-6"><span class="num">6.2.6</span>Tasks</h3>
+<p>A task is the unit of work Spark schedules for one partition in a stage. A stage over 200 partitions generally has about 200 tasks.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.rdd.getNumPartitions()   # e.g. 200</code></pre></div>
+<p class="ref">The task count can differ with the execution plan, partition pruning, data-source behavior, and other optimizations.</p>
+<p>Spark schedules tasks based on available executor resources, task dependencies, data locality, resource constraints, and scheduling policies. A stage with 1,000 tasks doesn't run all 1,000 simultaneously.</p>
+
+<h3 id="s6-2-7"><span class="num">6.2.7</span>DAG — Directed Acyclic Graph</h3>
+<p>A DAG is a graph of operations with dependencies: <strong>directed</strong> (edges have direction), <strong>acyclic</strong> (no cycles), and a <strong>graph</strong> (nodes are operations, edges are dependencies).</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+filtered_df = df.filter(
+    df.amount &gt; 1000
+)
+
+summary_df = filtered_df.groupBy(
+    "customer_id"
+).sum("amount")
+
+summary_df.write.format("delta").save(
+    "/path/to/output"
+)</code></pre></div>
+<pre class="diagram">Read Sales
+    |
+    v
+Filter Amount &gt; 1000
+    |
+    v
+Group By Customer
+    |
+    v
+Sum Amount
+    |
+    v
+Write Output</pre>
+</div>
+<p>Spark uses these dependencies to plan execution, splitting work into stages where a shuffle is needed.</p>
+<div class="grid-2">
+  <div class="card"><h4>Narrow dependency</h4><p>Each output partition depends on a limited set of input partitions, often one.</p><p style="margin-bottom:0"><code>df.filter(df.amount &gt; 1000)</code></p></div>
+  <div class="card"><h4>Wide dependency</h4><p>An output partition may depend on many input partitions, often requiring a shuffle.</p><p style="margin-bottom:0"><code>df.groupBy("customer_id").sum("amount")</code></p></div>
+</div>
+
+<h3 id="s6-2-8"><span class="num">6.2.8</span>SparkSession</h3>
+<p><code>SparkSession</code> is the main entry point for Spark SQL and DataFrames. In Databricks notebooks it's already available as <code>spark</code>.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print(spark)
+
+# Read data
+df = spark.read.parquet("/path/to/sales")
+
+# Create a DataFrame
+data = [
+    (101, "Rahul", "IT", 85000),
+    (102, "Priya", "Finance", 95000)
+]
+
+columns = ["employee_id", "employee_name", "department", "salary"]
+
+df = spark.createDataFrame(data, columns)
+
+display(df)
+
+# Register a temp view and query it with SQL
+df.createOrReplaceTempView("employee_temp")
+
+result = spark.sql("""
+    SELECT department, COUNT(*) AS employee_count
+    FROM employee_temp
+    GROUP BY department
+""")</code></pre></div>
+<div class="callout"><span class="label">Important</span><p>You usually don't need to create a new SparkSession in a Databricks notebook. The platform provides a managed, preconfigured session.</p></div>
+
+<h3 id="s6-2-9"><span class="num">6.2.9</span>SparkContext</h3>
+<p><code>SparkContext</code> represents the connection to Spark's underlying execution environment, providing lower-level functionality and RDD support.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sc = spark.sparkContext
+
+print(sc)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>SparkSession</th><th>SparkContext</th></tr></thead>
+<tbody>
+<tr><td>Main entry point for DataFrames and Spark SQL</td><td>Lower-level Spark execution context</td></tr>
+<tr><td>SQL queries and DataFrame creation</td><td>RDD operations and lower-level APIs</td></tr>
+<tr><td>Used in most modern PySpark applications</td><td>Still relevant for understanding internals</td></tr>
+<tr><td>Available as <code>spark</code> in Databricks</td><td>Accessible via <code>spark.sparkContext</code> where supported</td></tr>
+</tbody></table></div>
+<p class="ref">For most modern Databricks data engineering, prefer DataFrame and Spark SQL APIs over low-level RDD programming unless a specific requirement justifies RDDs. Some compute types, such as serverless or shared access modes, restrict direct SparkContext and RDD access.</p>
+
+<h3 id="s6-2-10"><span class="num">6.2.10</span>Execution plans</h3>
+<p>An execution plan describes how Spark will process a query.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result_df = (
+    df.filter(df.amount &gt; 1000)
+      .groupBy("customer_id")
+      .sum("amount")
+)
+
+result_df.explain()             # physical plan
+result_df.explain("extended")   # logical + physical plans</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>What to look for</h4><ul><li>Data source scans.</li><li>Filters.</li><li>Column projections.</li><li>Aggregations.</li><li>Joins.</li><li>Exchanges (shuffles).</li><li>Broadcast operations.</li><li>Partition-related behavior.</li></ul></div>
+<div><h5>A conceptual plan (read bottom-up)</h5>
+<pre class="diagram">Aggregate by customer_id
+           |
+           v
+Exchange / Shuffle
+           |
+           v
+Partial Aggregate
+           |
+           v
+Filter amount &gt; 1000
+           |
+           v
+Scan Sales Data</pre></div>
+</div>
+<p><strong>Why use <code>explain</code>?</strong> To check whether Spark reads more data than needed, adds an expensive shuffle, uses a broadcast join, applies filters effectively, or produces a plan far more complex than expected. It's one of your most useful performance tools.</p>
+
+<!-- ===================== 6.3 ===================== -->
+<h2 id="s6-3"><span class="num">6.3</span>Spark Execution</h2>
+<p class="section-intro">How Spark turns your code into executable work.</p>
+
+<h3 id="s6-3-1"><span class="num">6.3.1</span>Transformations</h3>
+<p>A transformation defines a new dataset from an existing one: <code>select()</code>, <code>filter()</code>, <code>where()</code>, <code>withColumn()</code>, <code>drop()</code>, <code>groupBy()</code>, <code>join()</code>, <code>orderBy()</code>, <code>distinct()</code>.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+filtered_df = df.filter(
+    df.amount &gt; 1000
+)
+
+selected_df = filtered_df.select(
+    "customer_id",
+    "amount"
+)</code></pre></div>
+<p>Spark doesn't run the full computation after each transformation. It builds the plan and executes it when an action needs a result.</p>
+<p class="ref">Some transformations trigger planning or metadata access early, and some APIs behave specially, but DataFrame transformations are generally lazy.</p>
+
+<h3 id="s6-3-2"><span class="num">6.3.2</span>Actions</h3>
+<p>Actions require Spark to produce a result or perform output.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.count()
+df.collect()
+df.show()
+df.take(10)
+df.write.format("delta").save("/path/to/output")</code></pre></div>
+<div class="callout warn"><span class="label">Be careful with repeated actions</span><p><code>filtered_df.count()</code> followed by <code>filtered_df.show()</code> may trigger separate jobs and recompute the transformations, unless caching or other optimizations allow reuse. For an expensive DataFrame used many times, consider caching.</p></div>
+
+<h3 id="s6-3-3"><span class="num">6.3.3</span>Lazy evaluation</h3>
+<p>Spark defers executing transformations until an action requires a result.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+df1 = df.filter(df.amount &gt; 1000)          # plan only
+df2 = df1.select("customer_id", "amount")  # plan only
+df3 = df2.groupBy("customer_id").sum("amount")  # plan only
+
+df3.show()   # now the whole plan runs</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Column pruning</h4><p style="margin-bottom:0">If the query only needs <code>customer_id</code> and <code>amount</code>, Spark may skip reading other columns from a columnar source like Parquet.</p></div>
+  <div class="card"><h4>Predicate pushdown</h4><p style="margin-bottom:0">Spark may push supported filters toward the data source, reducing the data it has to process.</p></div>
+</div>
+<p class="ref">Laziness lets Spark optimize the whole query instead of each step in isolation. Actual optimizations depend on the source, query, and plan.</p>
+
+<h3 id="s6-3-4"><span class="num">6.3.4</span>Narrow transformations</h3>
+<p>A narrow transformation can run without redistributing records across the cluster: each partition is processed independently.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.filter(df.amount &gt; 1000)
+df.select("customer_id", "amount")
+df.withColumn("tax", df.amount * 0.18)</code></pre></div>
+<pre class="diagram">Partition 1 -&gt; Filter -&gt; Output 1
+Partition 2 -&gt; Filter -&gt; Output 2
+Partition 3 -&gt; Filter -&gt; Output 3</pre>
+</div>
+
+<h3 id="s6-3-5"><span class="num">6.3.5</span>Wide transformations</h3>
+<p>A wide transformation needs data from multiple input partitions to be redistributed or coordinated, and often requires a shuffle.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.groupBy("customer_id").sum("amount")
+df.repartition(20)
+df.orderBy("amount")
+df.distinct()</code></pre></div>
+<div class="callout warn"><span class="label">Why wide transformations can be expensive</span><p>They may require serializing records, partitioning by a key, sending data over the network, writing intermediate data to memory or disk, reading it back, and processing the new partitions, all of which consume network, CPU, memory, and disk.</p></div>
+
+<h3 id="s6-3-6"><span class="num">6.3.6</span>Shuffle operations</h3>
+<p>A shuffle redistributes data across partitions.</p>
+<div class="grid-2">
+<div><h5>Input (spread across partitions)</h5><div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>amount</th></tr></thead>
+<tbody><tr><td>101</td><td>100</td></tr><tr><td>102</td><td>200</td></tr><tr><td>101</td><td>300</td></tr><tr><td>103</td><td>150</td></tr><tr><td>102</td><td>400</td></tr></tbody></table></div></div>
+<div><h5>After groupBy + sum</h5><div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>sum(amount)</th></tr></thead>
+<tbody><tr><td>101</td><td>400</td></tr><tr><td>102</td><td>600</td></tr><tr><td>103</td><td>150</td></tr></tbody></table></div></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>summary_df = df.groupBy(
+    "customer_id"
+).sum("amount")</code></pre></div>
+<p>Customer 101 may sit in several partitions, so Spark moves records so all of a customer's values are processed together.</p>
+<div class="grid-2">
+  <div class="card"><h4>What makes a shuffle expensive</h4><ul><li>Large input volume.</li><li>Many columns shuffled.</li><li>Too many or too few partitions.</li><li>Skewed keys.</li><li>Insufficient executor memory.</li><li>Disk spilling.</li><li>Network limits.</li></ul></div>
+  <div class="card"><h4>How to investigate</h4><p>Inspect <code>summary_df.explain()</code>, then use the Spark UI or Databricks execution details for actual shuffle read and write metrics.</p></div>
+</div>
+<div class="callout key"><span class="label">Not every shuffle is bad</span><p>Grouping, sorting, and many joins need redistribution to be correct. The goal is to avoid <em>unnecessary</em> shuffles and make required ones efficient.</p></div>
+
+<h3 id="s6-3-7"><span class="num">6.3.7</span>Job execution</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+filtered_df = df.filter(
+    df.amount &gt; 1000
+)
+
+summary_df = filtered_df.groupBy(
+    "customer_id"
+).sum("amount")
+
+summary_df.write.format("delta").save(
+    "/path/to/output"
+)</code></pre></div>
+<ol class="steps">
+  <li>The driver receives the operations.</li>
+  <li>Spark builds the logical plan.</li>
+  <li>Spark optimizes the plan.</li>
+  <li>Spark creates a physical execution plan.</li>
+  <li>Spark identifies stage boundaries and tasks.</li>
+  <li>Tasks are scheduled on executors.</li>
+  <li>Executors process the partitions.</li>
+  <li>Shuffle data is exchanged where necessary.</li>
+  <li>Results are written to the target.</li>
+  <li>The driver tracks completion or failure.</li>
+</ol>
+<p class="ref">Physical details depend on Spark version, execution mode, data source, and optimizer decisions.</p>
+
+<h3 id="s6-3-8"><span class="num">6.3.8</span>Stage boundaries</h3>
+<p>Spark often splits execution into stages at shuffle dependencies.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result_df = (
+    df.filter(df.amount &gt; 1000)
+      .groupBy("customer_id")
+      .sum("amount")
+)</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Stage 1</h4><ol><li>Read input partitions.</li><li>Filter records.</li><li>Perform partial aggregation.</li><li>Write shuffle data.</li></ol></div>
+  <div class="card"><h4>Stage 2</h4><ol><li>Read shuffle data.</li><li>Complete the aggregation.</li><li>Produce the result.</li></ol></div>
+</div>
+<p class="ref">Conceptual, not a guaranteed physical plan.</p>
+<div class="callout"><span class="label">Why data engineers care</span><p>A 20-minute job might show Stage 1 at 2 minutes and Stage 2 at 17, with most of Stage 2 spent in a handful of slow tasks. That points to data skew, oversized shuffle partitions, or resource limits. Stage metrics find the problem; blindly enlarging the cluster doesn't.</p></div>
+
+<h3 id="s6-3-9"><span class="num">6.3.9</span>Task scheduling</h3>
+<p>With a stage of 100 tasks and 20 task slots, Spark runs about 20 tasks at a time and schedules more as slots free up. Total time depends on individual task duration, scheduling overhead, and resource availability.</p>
+<div class="grid-2">
+  <div class="card"><h4>Too few partitions</h4><p style="margin-bottom:0">With only two partitions, a large cluster sits mostly idle: there aren't enough independent tasks.</p></div>
+  <div class="card"><h4>Too many partitions</h4><p style="margin-bottom:0">Hundreds of thousands of tiny partitions make scheduling and per-task overhead significant.</p></div>
+</div>
+<p>The right count depends on data size, workload, cluster resources, shuffle behavior, storage layout, and the query plan. <strong>There is no single ideal partition count.</strong></p>
+
+<!-- ===================== 6.4 ===================== -->
+<h2 id="s6-4"><span class="num">6.4</span>Spark Data Structures</h2>
+<p class="section-intro">Spark offers several abstractions for data. For modern Databricks data engineering, the DataFrame matters most.</p>
+
+<h3 id="s6-4-1"><span class="num">6.4.1</span>RDDs</h3>
+<p>An RDD (Resilient Distributed Dataset) is a distributed collection of elements processed in parallel, which is Spark's foundational abstraction.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>numbers_rdd = spark.sparkContext.parallelize(
+    [1, 2, 3, 4, 5]
+)
+
+squared_rdd = numbers_rdd.map(
+    lambda number: number * number
+)
+
+print(squared_rdd.collect())   # [1, 4, 9, 16, 25]</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>What does "resilient" mean?</h4><p style="margin-bottom:0">RDDs track the dependencies between operations (lineage), so Spark can recompute lost partitions. This supports fault tolerance.</p></div>
+  <div class="card"><h4>Why less common today?</h4><p style="margin-bottom:0">RDDs give low-level control but lack the schema-aware SQL optimization DataFrames get. For structured data, DataFrames are generally preferable.</p></div>
+</div>
+
+<h3 id="s6-4-2"><span class="num">6.4.2</span>DataFrames</h3>
+<p>A DataFrame is a distributed collection organized into named columns, similar in concept to a relational table, though its execution and storage behavior differ.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>data = [
+    (101, "Rahul", "IT", 85000),
+    (102, "Priya", "Finance", 95000),
+    (103, "Arjun", "IT", 110000)
+]
+
+columns = ["employee_id", "employee_name", "department", "salary"]
+
+df = spark.createDataFrame(data, columns)
+display(df)
+
+# Filter
+it_employees = df.filter(df.department == "IT")
+
+# Select
+selected_df = df.select("employee_id", "employee_name", "salary")
+
+# Group and aggregate
+department_summary = df.groupBy("department").avg("salary")
+
+# The same with SQL
+df.createOrReplaceTempView("employees")
+
+result = spark.sql("""
+    SELECT
+        department,
+        AVG(salary) AS average_salary
+    FROM employees
+    GROUP BY department
+""")
+
+display(result)</code></pre></div>
+<p>The SQL and DataFrame APIs often express equivalent operations, and Spark optimizes both with the same SQL execution framework.</p>
+
+<h3 id="s6-4-3"><span class="num">6.4.3</span>Datasets and their availability across Spark APIs</h3>
+<p>Spark's Dataset API is a <strong>typed</strong> distributed collection API available in Scala and Java:</p>
+<div class="code-wrap"><span class="lang">Scala</span><pre class="code"><code>case class Employee(employeeId: Int, name: String, salary: Double)
+
+val employees = Seq(
+  Employee(101, "Rahul", 85000.0),
+  Employee(102, "Priya", 95000.0)
+).toDS()</code></pre></div>
+<div class="callout key"><span class="label">What about PySpark?</span><p>PySpark does not expose the strongly typed <code>Dataset[T]</code> API. In PySpark you work with DataFrames, Row objects, Python collections, and Python classes for application logic. For this course, focus on DataFrames and Spark SQL.</p></div>
+
+<h3 id="s6-4-4"><span class="num">6.4.4</span>Schema</h3>
+<p>A schema defines a DataFrame's column names, types, and metadata.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.printSchema()</code></pre></div>
+<pre class="diagram">root
+ |-- employee_id: long (nullable = true)
+ |-- employee_name: string (nullable = true)
+ |-- department: string (nullable = true)
+ |-- salary: long (nullable = true)</pre>
+</div>
+<p class="ref">Inferred types depend on the source data and how the DataFrame was created.</p>
+<div class="code-wrap"><span class="lang">Python · explicit schema</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    IntegerType,
+    StringType,
+    DecimalType
+)
+
+schema = StructType([
+    StructField("employee_id", IntegerType(), False),
+    StructField("employee_name", StringType(), False),
+    StructField("department", StringType(), True),
+    StructField("salary", DecimalType(12, 2), True)
+])</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Type</th><th>Nullable</th></tr></thead>
+<tbody>
+<tr><td>employee_id</td><td>Integer</td><td>No</td></tr>
+<tr><td>employee_name</td><td>String</td><td>No</td></tr>
+<tr><td>department</td><td>String</td><td>Yes</td></tr>
+<tr><td>salary</td><td>Decimal(12, 2)</td><td>Yes</td></tr>
+</tbody></table></div>
+<p>An explicit schema controls data types and reduces dependence on inference.</p>
+<div class="callout warn"><span class="label">Note</span><p>How nullability and malformed data are enforced depends on how the DataFrame is created and the operation performed. Validate source data rather than relying on schema declarations alone.</p></div>
+
+<h3 id="s6-4-5"><span class="num">6.4.5</span>Columns</h3>
+<p>A Spark <code>Column</code> represents a column <em>expression</em>. <code>df.salary</code> and <code>df["salary"]</code> both refer to the salary column.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.functions import col
+
+result_df = df.select(
+    col("employee_name"),
+    col("salary"),
+    (col("salary") * 12).alias("annual_salary")
+)
+
+# Native column expression: the preferred pattern
+df = df.withColumn(
+    "annual_salary",
+    col("salary") * 12
+)</code></pre></div>
+<div class="callout key"><span class="label">Why this matters</span><p>No Python loop over rows is involved. You build Spark expressions that the engine optimizes and runs distributed, which is the preferred approach for ordinary column transformations.</p></div>
+
+<h3 id="s6-4-6"><span class="num">6.4.6</span>Rows</h3>
+<p>A Spark <code>Row</code> represents one record.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import Row
+
+employee = Row(
+    employee_id=101,
+    employee_name="Rahul",
+    salary=85000
+)
+
+print(employee.employee_name)
+
+# Retrieve a small sample to the driver
+sample_rows = df.take(5)
+
+for row in sample_rows:
+    print(row)</code></pre></div>
+<p class="ref">Retrieving rows moves data from distributed processing into the driver. Use <code>take()</code> or <code>limit()</code> for small samples, never to fetch an entire large dataset.</p>
+
+<h3 id="s6-4-7"><span class="num">6.4.7</span>Partitions</h3>
+<p>A partition is a logical division of a distributed dataset, processed by tasks.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print(df.rdd.getNumPartitions())</code></pre></div>
+<p class="ref">Useful for learning, but inspecting partitions via the RDD interface is no reason to redesign a DataFrame pipeline around RDDs. On compute that restricts RDD access, look at the Spark UI or query profile instead.</p>
+<p>Partitions influence parallelism, task count, shuffle behavior, data distribution, and read/write performance. Too few underuse resources; too many add scheduling overhead.</p>
+<div class="callout"><span class="label">Partition count versus file count</span><p>A DataFrame has some number of in-memory partitions; a write can produce a different number of files; and table optimization can reorganize files later. One DataFrame partition doesn't always equal one storage file.</p></div>
+
+<!-- ===================== 6.5 ===================== -->
+<h2 id="s6-5"><span class="num">6.5</span>Spark Performance Basics</h2>
+<p class="section-intro">The goal isn't memorizing tuning parameters. It's understanding why a query is expensive and which change is likely to help.</p>
+
+<h3 id="s6-5-1"><span class="num">6.5.1</span>Partitioning</h3>
+<p>Spark partitions data during ingestion, transformation, shuffling, and writing.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.parquet("/path/to/sales")
+
+print(df.rdd.getNumPartitions())   # e.g. 200
+
+# Redistribute by a column (may shuffle)
+partitioned_df = df.repartition("customer_id")</code></pre></div>
+<p>200 partitions doesn't mean exactly 200 files, or that 200 tasks always run simultaneously. Repartitioning by a column helps when later operations benefit from that distribution, but it may introduce a shuffle.</p>
+<div class="grid-2">
+  <div class="card"><h4>Spark execution partitions</h4><p style="margin-bottom:0">How data is divided <strong>for processing</strong>.</p></div>
+  <div class="card"><h4>Storage partitioning</h4><p style="margin-bottom:0">How <strong>persisted</strong> data is organized by column values, e.g. a Delta table partitioned by transaction date. This doesn't fix the execution partitioning of every DataFrame read from it.</p></div>
+</div>
+
+<h3 id="s6-5-2"><span class="num">6.5.2</span>repartition()</h3>
+<p><code>repartition()</code> changes the number of partitions and/or how records are distributed.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Request 20 partitions
+repartitioned_df = df.repartition(20)
+
+# 20 partitions distributed by customer_id
+repartitioned_df = df.repartition(20, "customer_id")</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Useful for</h4><ul><li>Increasing parallelism.</li><li>Redistributing skewed or uneven data.</li><li>Preparing for key-based workloads.</li><li>Adjusting partition count before a large write.</li></ul></div>
+  <div class="callout warn" style="margin:0"><span class="label">The cost</span><p>Repartitioning generally requires a shuffle. Don't call it repeatedly without a clear reason.</p></div>
+</div>
+
+<h3 id="s6-5-3"><span class="num">6.5.3</span>coalesce()</h3>
+<p><code>coalesce()</code> reduces the number of partitions, generally without a full shuffle.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># 100 partitions -&gt; 10
+smaller_df = df.coalesce(10)</code></pre></div>
+<p>Handy for reducing many small partitions before a write when the existing layout is otherwise fine. Reducing too aggressively creates uneven work and limits parallelism.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>repartition()</th><th>coalesce()</th></tr></thead>
+<tbody>
+<tr><td>Changes partition count</td><td>Yes</td><td>Commonly reduces it</td></tr>
+<tr><td>Full redistribution</td><td>Generally shuffles</td><td>Generally avoids a full shuffle</td></tr>
+<tr><td>Can increase partitions</td><td>Yes</td><td>No (standard DataFrame coalesce)</td></tr>
+<tr><td>Can reduce partitions</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Common use</td><td>Redistribute data or adjust parallelism</td><td>Reduce partitions with less data movement</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Avoid automatic coalesce(1)</span><p>Forcing all output through one partition to get a single file creates a bottleneck on large datasets.</p></div>
+
+<h3 id="s6-5-4"><span class="num">6.5.4</span>Shuffle</h3>
+<p>Operations that may shuffle: <code>groupBy()</code>, <code>distinct()</code>, <code>repartition()</code>, many joins, some sorts, and window functions that need redistribution or sorting.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>summary_df = (
+    df.groupBy("department")
+      .sum("salary")
+)</code></pre></div>
+<div class="card"><h4>Reducing unnecessary shuffle work</h4><ul><li>Filter out rows you don't need.</li><li>Select only required columns.</li><li>Avoid unnecessary repartitioning.</li><li>Choose suitable join strategies.</li><li>Investigate data skew.</li><li>Review the physical plan.</li><li>Measure actual shuffle metrics.</li></ul></div>
+<p class="ref">The optimizer often pushes filters and column selection earlier anyway, so write clear queries and verify the plan.</p>
+
+<h3 id="s6-5-5"><span class="num">6.5.5</span>Data skew</h3>
+<p>Data skew happens when some partitions hold far more data or work than others.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Customer ID</th><th>Records</th></tr></thead>
+<tbody><tr><td>Customer A</td><td>500,000</td></tr><tr><td>Customer B</td><td>100,000</td></tr><tr><td>All others combined</td><td>400,000</td></tr></tbody></table></div>
+<p>Partitioned by customer ID, Customer A may dominate one partition, and that task runs much longer than the rest. Because a stage usually finishes only when <strong>all</strong> its tasks finish, a few slow tasks delay the whole stage.</p>
+<div class="grid-2">
+  <div class="card"><h4>How to detect skew</h4><ul><li>A few tasks with much longer durations.</li><li>Large differences in task input sizes.</li><li>Uneven shuffle read sizes.</li><li>High spill in specific tasks.</li><li>A few partitions much larger than the rest.</li></ul></div>
+  <div class="card"><h4>Common approaches</h4><ul><li>Use Adaptive Query Execution.</li><li>Verify skew-join handling.</li><li>Reduce data before joins.</li><li>Broadcast a genuinely small dimension.</li><li>Salt severely skewed keys.</li><li>Revisit the data model or key distribution.</li></ul></div>
+</div>
+<div class="callout"><span class="label">What is salting?</span><p>Salting appends an extra value to a heavily skewed key so its work splits across multiple partitions. It adds complexity and joins may need compensating logic, so use it only when skew is measured and simpler fixes fall short.</p></div>
+
+<h3 id="s6-5-6"><span class="num">6.5.6</span>Broadcast joins</h3>
+<p>A broadcast join sends a small dataset to every executor, so the large dataset can be joined locally without shuffling the large side.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.functions import broadcast
+
+# sales: 100 million rows
+# departments: 50 rows
+joined_df = sales_df.join(
+    broadcast(departments_df),
+    on="department_id",
+    how="left"
+)</code></pre></div>
+<pre class="diagram">  departments (small)
+          |
+   copied to every executor
+   /        |         \
+Exec 1    Exec 2    Exec 3
+sales     sales     sales
+part      part      part
+   \        |         /
+  joined locally:
+  no large-side shuffle</pre>
+</div>
+<div class="grid-2">
+  <div class="card"><h4>Before broadcasting, consider</h4><ul><li>Its size in memory.</li><li>The number of executors.</li><li>Available memory.</li><li>Concurrent tasks.</li><li>Whether Spark already picks the right strategy.</li></ul></div>
+  <div class="callout warn" style="margin:0"><span class="label">Important warning</span><p>Don't broadcast a table just because it has fewer rows than the other. A small row count doesn't guarantee a small memory footprint. Spark may broadcast automatically, so check the plan before forcing it.</p></div>
+</div>
+
+<h3 id="s6-5-7"><span class="num">6.5.7</span>Caching and persistence</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>filtered_df = df.filter(
+    df.amount &gt; 1000
+)
+
+filtered_df.cache()      # mark for caching
+filtered_df.count()      # action materializes the cache
+
+# ...later actions may reuse it...
+
+filtered_df.persist()    # choose a storage level (default shown)
+
+filtered_df.unpersist()  # release when no longer needed</code></pre></div>
+<p><code>persist()</code> lets you choose a storage level. For PySpark DataFrames, caching is commonly memory-and-disk, but check the behavior of your runtime.</p>
+<div class="callout key"><span class="label">Best practice</span><p>Cache when an expensive DataFrame is reused repeatedly, recomputing costs more than storing, and it fits available resources. Don't cache everything; cache only for a measurable benefit.</p></div>
+<p class="ref">Some serverless compute doesn't support <code>cache()</code>/<code>persist()</code> in the same way. Check what your compute type allows.</p>
+
+<h3 id="s6-5-8"><span class="num">6.5.8</span>Catalyst optimizer</h3>
+<p>Catalyst is Spark SQL's query optimization framework. It transforms SQL and DataFrame queries before execution.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result_df = (
+    df.filter(df.amount &gt; 1000)
+      .select("customer_id", "amount")
+      .groupBy("customer_id")
+      .sum("amount")
+)
+
+result_df.explain("extended")</code></pre></div>
+<p>Catalyst may push filters toward sources, remove unnecessary columns, simplify expressions, reorder suitable operations, and choose physical operators from available information.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Plan</th><th>Describes</th></tr></thead>
+<tbody>
+<tr><td>Logical plan</td><td>What the query should do</td></tr>
+<tr><td>Optimized logical plan</td><td>A logically optimized version of the query</td></tr>
+<tr><td>Physical plan</td><td>How it will run, using physical operators</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Important lesson</span><p>A readable query isn't necessarily executed in the order you wrote it. Spark transforms the plan while preserving the query's meaning.</p></div>
+
+<h3 id="s6-5-9"><span class="num">6.5.9</span>Adaptive Query Execution (AQE)</h3>
+<p>AQE lets Spark SQL revise parts of its physical plan using runtime statistics. Spark might first plan a shuffle join, then discover at runtime that one side is small enough to broadcast.</p>
+<div class="grid-2">
+  <div class="card"><h4>AQE can help with</h4><ul><li>Coalescing small shuffle partitions.</li><li>Handling certain skewed joins.</li><li>Revising join strategies.</li></ul><p style="margin-bottom:0">Useful because the optimizer can't know exact sizes and distributions before running.</p></div>
+  <div class="card"><h4>Verify whether AQE helped</h4><ol><li>Run the query.</li><li>Inspect the execution plan.</li><li>Review the SQL or Spark UI.</li><li>Compare initial and final plans.</li><li>Examine shuffle metrics and task durations.</li><li>Compare times under equal conditions.</li></ol></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>spark.conf.get(
+    "spark.sql.adaptive.enabled",
+    "not-set"
+)</code></pre></div>
+<p class="ref">AQE is enabled by default in many modern Spark environments, but the effective setting depends on runtime and configuration. Don't change production settings without understanding the workload and your workspace's policies, and don't assume AQE speeds up every query.</p>
+
+<!-- ===================== 6.6 ===================== -->
+<h2 id="s6-6"><span class="num">6.6</span>Hands-on Exercise: Process One Million Records</h2>
+<p class="section-intro">Create one million synthetic sales records and use Spark to filter, group, join, inspect plans, and compare repartitioning, coalescing, caching, and broadcast joins. No external files needed.</p>
+<div class="callout"><span class="label">Environment</span><p>A Databricks Python notebook with suitable compute. It also runs locally with PySpark installed, though resources and performance differ. On serverless or shared compute, <code>df.rdd</code> and <code>cache()</code> may be restricted; use the Spark UI or query profile to see partitions and skip the caching step if needed.</p></div>
+
+<h4>Step 1: Generate one million sales records</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+number_of_records = 1_000_000
+
+sales_df = (
+    spark.range(number_of_records)
+    .withColumnRenamed("id", "transaction_id")
+    .withColumn(
+        "customer_id",
+        (F.col("transaction_id") % 100_000 + 1).cast("int")
+    )
+    .withColumn(
+        "product_id",
+        (F.col("transaction_id") % 1_000 + 1).cast("int")
+    )
+    .withColumn(
+        "quantity",
+        (F.col("transaction_id") % 10 + 1).cast("int")
+    )
+    .withColumn(
+        "amount",
+        F.round(
+            F.col("quantity") * (
+                (F.col("product_id") % 100) + F.lit(10)
+            ).cast("double"),
+            2
+        )
+    )
+)
+
+sales_df.printSchema()
+display(sales_df.limit(10))
+
+record_count = sales_df.count()   # action
+print(f"Total records: {record_count:,}")
+# Total records: 1,000,000</code></pre></div>
+<p class="ref">The data is deterministic, which makes it good for comparing plans and checking expected results.</p>
+
+<h4>Step 2: Inspect partitions</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>partition_count = sales_df.rdd.getNumPartitions()
+
+print(f"Number of partitions: {partition_count}")</code></pre></div>
+<p>The count depends on your environment. It hints at how work divides into tasks; more isn't always better.</p>
+
+<h4>Step 3: Filter records</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>high_value_sales_df = sales_df.filter(
+    F.col("amount") &gt; 100
+)
+
+high_value_sales_df.explain("extended")
+
+high_value_count = high_value_sales_df.count()
+print(f"High-value records: {high_value_count:,}")</code></pre></div>
+<p><strong>Observe:</strong> Is there a Filter in the plan? How many partitions are involved? Is there a shuffle? How long did the action take? Filtering alone doesn't normally need a full shuffle.</p>
+
+<h4>Step 4: Group and aggregate</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customer_summary_df = (
+    sales_df
+    .groupBy("customer_id")
+    .agg(
+        F.count("*").alias("transaction_count"),
+        F.sum("amount").alias("total_sales"),
+        F.avg("amount").alias("average_sales")
+    )
+)
+
+customer_summary_df.explain("extended")
+
+display(
+    customer_summary_df.orderBy(
+        F.desc("total_sales")
+    ).limit(20)
+)</code></pre></div>
+<p>Spark reads input partitions, computes partial aggregates where possible, redistributes records as needed, combines partial results, and produces the summary. Partial aggregation reduces the data shuffled.</p>
+
+<h4>Step 5: Create a customer dimension table</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_df = (
+    spark.range(100_000)
+    .withColumnRenamed("id", "customer_number")
+    .withColumn(
+        "customer_id",
+        (F.col("customer_number") + 1).cast("int")
+    )
+    .withColumn(
+        "customer_name",
+        F.concat(
+            F.lit("Customer_"),
+            F.col("customer_id").cast("string")
+        )
+    )
+    .withColumn(
+        "customer_segment",
+        F.when(F.col("customer_id") % 3 == 0, F.lit("Premium"))
+         .when(F.col("customer_id") % 3 == 1, F.lit("Standard"))
+         .otherwise(F.lit("Basic"))
+    )
+    .drop("customer_number")
+)
+
+display(customers_df.limit(10))</code></pre></div>
+
+<h4>Step 6: Join sales with customers</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_with_customers_df = sales_df.join(
+    customers_df,
+    on="customer_id",
+    how="inner"
+)
+
+sales_with_customers_df.explain("extended")
+
+print("Joined record count:", sales_with_customers_df.count())
+# Expected: 1000000 (every transaction has a matching customer)</code></pre></div>
+<p><strong>Inspect:</strong> broadcast or shuffle join? An Exchange operator? Input sizes? How much is shuffled? Are tasks even? The strategy depends on the optimizer, statistics, and configuration.</p>
+
+<h4>Step 7: Experiment with a broadcast join</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>broadcast_join_df = sales_df.join(
+    F.broadcast(customers_df),
+    on="customer_id",
+    how="inner"
+)
+
+broadcast_join_df.explain("extended")
+# Look for BroadcastHashJoin</code></pre></div>
+<div class="callout warn"><span class="label">A controlled experiment</span><p>This isn't a blanket recommendation to broadcast a 100,000-row table. For real workloads, compare the smaller table's memory footprint with available resources; a too-large broadcast can perform poorly or fail.</p></div>
+
+<h4>Step 8: Experiment with repartition</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print("Original partitions:", sales_df.rdd.getNumPartitions())
+
+repartitioned_df = sales_df.repartition(20)
+print("Repartitioned partitions:", repartitioned_df.rdd.getNumPartitions())
+
+repartitioned_df.explain()   # typically shows an Exchange
+
+# Repartition by customer ID
+customer_partitioned_df = sales_df.repartition(20, "customer_id")</code></pre></div>
+<p class="ref">Repartition by key only if a later operation benefits from the new distribution.</p>
+
+<h4>Step 9: Experiment with coalesce</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>coalesced_df = sales_df.coalesce(5)
+
+print("Coalesced partitions:", coalesced_df.rdd.getNumPartitions())</code></pre></div>
+<p>With at least five original partitions, you'll get five. With fewer, <code>coalesce(5)</code> doesn't increase the count. <code>repartition(20)</code> requests 20 and generally shuffles; <code>coalesce(5)</code> reduces to 5 without a full shuffle. They serve different purposes.</p>
+
+<h4>Step 10: Experiment with caching</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>high_value_sales_df.cache()
+
+high_value_sales_df.count()   # materialize the cache
+
+high_value_sales_df.groupBy(
+    "product_id"
+).sum("amount").show(10)       # may reuse cached data
+
+high_value_sales_df.unpersist()</code></pre></div>
+<p><strong>Observe:</strong> How long does the first action take? Does the second reuse the cache? Does memory use rise? Is the data reused enough to justify caching?</p>
+<p class="ref">Timings depend on cluster, storage, cache state, and runtime. Don't compare cached and uncached runs without accounting for OS- or storage-level caching.</p>
+
+<h4>Step 11: Analyze execution plans</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customer_summary_df.explain("extended")</code></pre></div>
+<p>Look for Scan, Project, partial and final aggregates, Exchange, and Join operators. Then open the Spark UI or query details and review jobs, stages, tasks, shuffle read/write, task duration, input/output, and spill.</p>
+<div class="card"><h4>Questions to answer (and record)</h4><ul>
+<li>How many jobs did the actions trigger?</li>
+<li>Which operations caused stage boundaries?</li>
+<li>Did the group-by require a shuffle?</li>
+<li>Did the join use broadcast or a shuffle?</li>
+<li>Were task durations evenly distributed?</li>
+<li>Did caching improve repeated operations?</li>
+<li>Did repartitioning help the downstream workload?</li>
+<li>Did coalescing cut overhead or create a bottleneck?</li></ul></div>
+
+<h4>Step 12: Create a final sales summary</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>final_summary_df = (
+    sales_df
+    .join(customers_df, on="customer_id", how="inner")
+    .groupBy("customer_segment")
+    .agg(
+        F.count("*").alias("transaction_count"),
+        F.sum("amount").alias("total_sales"),
+        F.avg("amount").alias("average_transaction_amount"),
+        F.countDistinct("customer_id").alias("unique_customers")
+    )
+    .orderBy("customer_segment")
+)
+
+display(final_summary_df)</code></pre></div>
+<p>This gives transaction count, total sales, average transaction amount, and unique customers per segment, which suits a simple dashboard or reporting table. To persist it, write to a Delta table after confirming catalog, schema, permissions, and write mode.</p>
+
+<h3 id="skew">Advanced Exercise: Identify Data Skew</h3>
+<p>Make 50% of all transactions belong to customer ID 1:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>skewed_sales_df = sales_df.withColumn(
+    "customer_id",
+    F.when(
+        F.col("transaction_id") &lt; 500_000,
+        F.lit(1)
+    ).otherwise(
+        F.col("customer_id")
+    )
+)
+
+skewed_summary_df = (
+    skewed_sales_df
+    .groupBy("customer_id")
+    .agg(
+        F.count("*").alias("transaction_count"),
+        F.sum("amount").alias("total_sales")
+    )
+)
+
+skewed_summary_df.explain("extended")
+
+skewed_summary_df.count()</code></pre></div>
+<p>In the execution metrics, check whether some tasks handle much more data or take far longer than others.</p>
+<div class="callout"><span class="label">Note</span><p>Skew doesn't automatically mean a slow query. Partial aggregation and AQE may help. The point is to learn to <strong>spot</strong> uneven distribution and <strong>measure</strong> its impact.</p></div>
+
+<!-- ===================== 6.7 ===================== -->
+<h2 id="s6-7"><span class="num">6.7</span>Common Spark Mistakes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Mistake</th><th>Do this instead</th></tr></thead>
+<tbody>
+<tr><td>1. <code>df.collect()</code> on large data</td><td>Use distributed transformations; aggregate before collecting a small result.</td></tr>
+<tr><td>2. Calling <code>count()</code> unnecessarily</td><td><code>count()</code> and <code>display()</code> each trigger computation. Don't count large DataFrames just to check progress.</td></tr>
+<tr><td>3. Repartitioning every DataFrame</td><td>Repartition only for a clear performance or distribution need.</td></tr>
+<tr><td>4. <code>coalesce(1)</code> on large data</td><td>Use a single partition only for small data with a real requirement.</td></tr>
+<tr><td>5. Caching everything</td><td>Cache only reused, expensive results.</td></tr>
+<tr><td>6. Assuming every join shuffles</td><td>Broadcast and other strategies avoid large-side shuffles; check the plan.</td></tr>
+<tr><td>7. Assuming more workers = faster</td><td>Skew, shuffle volume, source throughput, and sequential work all limit scaling.</td></tr>
+<tr><td>8. Confusing partitions with files</td><td>Execution partitions and output files are related but different.</td></tr>
+<tr><td>9. Ignoring data types</td><td>Wrong types cause conversions, wrong results, or failures. Use explicit schemas where appropriate.</td></tr>
+<tr><td>10. Optimizing without measurements</td><td>See below.</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Optimize methodically</span><ol style="margin-bottom:0"><li>Inspect the plan.</li><li>Measure the baseline.</li><li>Identify the bottleneck.</li><li>Make one targeted change.</li><li>Measure again.</li></ol></div>
+
+<!-- ===================== 6.8 ===================== -->
+<h2 id="s6-8"><span class="num">6.8</span>Quick Reference</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>Apache Spark</td><td>Distributed processing engine</td></tr>
+<tr><td>Driver</td><td>Coordinates the Spark application</td></tr>
+<tr><td>Executor</td><td>Executes tasks and can cache data</td></tr>
+<tr><td>Cluster manager</td><td>Allocates resources in supported deployment modes</td></tr>
+<tr><td>Job</td><td>Unit of execution triggered by an action</td></tr>
+<tr><td>Stage</td><td>Group of tasks separated by execution dependencies</td></tr>
+<tr><td>Task</td><td>Processes a partition for a stage</td></tr>
+<tr><td>DAG</td><td>Directed acyclic graph of operations and dependencies</td></tr>
+<tr><td>SparkSession</td><td>Main entry point for Spark SQL and DataFrames</td></tr>
+<tr><td>SparkContext</td><td>Lower-level Spark execution context</td></tr>
+<tr><td>RDD</td><td>Low-level distributed collection abstraction</td></tr>
+<tr><td>DataFrame</td><td>Distributed, schema-aware table-like collection</td></tr>
+<tr><td>Schema</td><td>Defines columns and data types</td></tr>
+<tr><td>Column</td><td>A Spark expression</td></tr>
+<tr><td>Row</td><td>An individual record</td></tr>
+<tr><td>Partition</td><td>Division of data for distributed processing</td></tr>
+<tr><td>Transformation</td><td>Defines a new dataset or operation</td></tr>
+<tr><td>Action</td><td>Requests a result or output operation</td></tr>
+<tr><td>Lazy evaluation</td><td>Defers computation until required</td></tr>
+<tr><td>Narrow transformation</td><td>Typically avoids cross-partition redistribution</td></tr>
+<tr><td>Wide transformation</td><td>Often requires redistribution across partitions</td></tr>
+<tr><td>Shuffle</td><td>Redistribution of data between partitions</td></tr>
+<tr><td>Repartition</td><td>Changes partition count or distribution, generally with a shuffle</td></tr>
+<tr><td>Coalesce</td><td>Reduces partition count without a full shuffle</td></tr>
+<tr><td>Data skew</td><td>Uneven distribution of data or work</td></tr>
+<tr><td>Broadcast join</td><td>Sends a small dataset to executors for joining</td></tr>
+<tr><td>Cache</td><td>Stores computed data for reuse</td></tr>
+<tr><td>Catalyst</td><td>Spark SQL query optimization framework</td></tr>
+<tr><td>AQE</td><td>Adjusts query execution using runtime information</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 6.9 ===================== -->
+<h2 id="s6-9"><span class="num">6.9</span>Knowledge Check</h2>
+<p>Try answering these without looking back.</p>
+<details class="q" open><summary>Concepts and architecture (1–10)</summary>
+<ol>
+<li>What is Apache Spark, and why is it useful for large datasets?</li>
+<li>What is the difference between Spark and PySpark?</li>
+<li>What is the role of the driver?</li>
+<li>What is the role of an executor?</li>
+<li>What is the difference between a job, a stage, and a task?</li>
+<li>What does a DAG represent?</li>
+<li>What is the difference between SparkSession and SparkContext?</li>
+<li>What is lazy evaluation?</li>
+<li>What is the difference between a transformation and an action?</li>
+<li>What is the difference between a narrow and a wide transformation?</li>
+</ol></details>
+<details class="q"><summary>Data structures and performance (11–20)</summary>
+<ol start="11">
+<li>Why can <code>groupBy()</code> cause a shuffle?</li>
+<li>What is the difference between a DataFrame and an RDD?</li>
+<li>Does PySpark expose the same typed Dataset API as Scala and Java?</li>
+<li>What is the difference between <code>repartition()</code> and <code>coalesce()</code>?</li>
+<li>When should you use caching?</li>
+<li>What is data skew?</li>
+<li>How can a broadcast join improve performance?</li>
+<li>What does Catalyst do?</li>
+<li>How does Adaptive Query Execution help?</li>
+<li>Why is <code>collect()</code> risky for large datasets?</li>
+</ol></details>
+
+<!-- ===================== 6.10 ===================== -->
+<h2 id="s6-10"><span class="num">6.10</span>Final Learning Checklist</h2>
+<p>Before moving to Chapter 7, make sure you can explain each of these in your own words. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch6-checklist">
+<label><input type="checkbox"> Why Spark distributes data across partitions.</label>
+<label><input type="checkbox"> How the driver and executors work together.</label>
+<label><input type="checkbox"> How actions trigger execution.</label>
+<label><input type="checkbox"> Why transformations are generally lazy.</label>
+<label><input type="checkbox"> How Spark divides work into jobs, stages, and tasks.</label>
+<label><input type="checkbox"> Why shuffles occur.</label>
+<label><input type="checkbox"> Why DataFrames are preferred for most structured PySpark processing.</label>
+<label><input type="checkbox"> How to inspect a DataFrame's schema and partition count.</label>
+<label><input type="checkbox"> When repartitioning and coalescing are appropriate.</label>
+<label><input type="checkbox"> When caching is beneficial.</label>
+<label><input type="checkbox"> How broadcast joins can reduce shuffle work.</label>
+<label><input type="checkbox"> How data skew affects task execution.</label>
+<label><input type="checkbox"> How to inspect execution plans and query metrics.</label>
+<label><input type="checkbox"> How Catalyst and AQE improve query execution.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch6-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch6-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 7!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<h3 id="remember">What to remember most</h3>
+<div class="grid-2">
+  <div class="card"><h4>1. Spark distributes processing</h4><p style="margin-bottom:0">Large datasets are divided into partitions and processed by multiple executors.</p></div>
+  <div class="card"><h4>2. Transformations are generally lazy</h4><p style="margin-bottom:0">Spark builds a plan before running the full computation.</p></div>
+  <div class="card"><h4>3. Actions trigger computation</h4><p style="margin-bottom:0"><code>count()</code>, <code>show()</code>, and writes cause Spark jobs to execute.</p></div>
+  <div class="card"><h4>4. Shuffles can be expensive</h4><p style="margin-bottom:0">Grouping, joins, and similar operations may redistribute data across partitions.</p></div>
+  <div class="card"><h4>5. Measure before optimizing</h4><p style="margin-bottom:0">Use execution plans, task metrics, and the Spark UI before changing code.</p></div>
+</div>
+
+<div class="next">
+<h3>Next chapter: PySpark Fundamentals</h3>
+<p>Chapter 6 explained how Spark executes work. Chapter 7 focuses on writing practical PySpark: creating DataFrames, reading and writing data, selecting and filtering, adding and modifying columns with <code>withColumn()</code>, renaming and dropping, sorting and grouping, joins, built-in functions, UDFs, window functions, NULL handling, deduplication, and reusable transformations.</p>
+<p style="margin-bottom:0"><strong>The key transition:</strong> Chapter 6 teaches how Spark executes work; Chapter 7 teaches how to write efficient PySpark for real-world pipelines.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-5.html"><span>← Previous</span><strong>Chapter 5: Python Fundamentals</strong></a>
+  <a class="pager-link" href="databricks-chapter-7.html"><span>Next →</span><strong>Chapter 7: PySpark Fundamentals</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 2 · Chapter 6 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

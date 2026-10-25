@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 19: Security & Administration</title>
+<meta name="description" content="Chapter 19 of a Databricks learning path: workspace administration, compute policies, service principals, OAuth and secrets, network security, Unity Catalog grants, row filters, column masks, auditing, and dev/prod separation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 19 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s19-1">19.1 Workspace Administration</a></li>
+    <li class="lvl2"><a href="#s19-1-1">Workspaces &amp; admin levels</a></li>
+    <li class="lvl2"><a href="#s19-1-2">Workspace settings</a></li>
+    <li class="lvl2"><a href="#s19-1-3">Compute policies</a></li>
+    <li class="lvl2"><a href="#s19-1-4">Workspace permissions</a></li>
+    <li class="lvl2"><a href="#s19-1-5">Users &amp; groups</a></li>
+    <li class="lvl2"><a href="#s19-1-6">Service principals</a></li>
+    <li class="lvl1"><a href="#s19-2">19.2 Identity &amp; Authentication</a></li>
+    <li class="lvl2"><a href="#s19-2-1">AuthN vs AuthZ</a></li>
+    <li class="lvl2"><a href="#s19-2-2">Microsoft Entra ID</a></li>
+    <li class="lvl2"><a href="#s19-2-3">OAuth &amp; tokens</a></li>
+    <li class="lvl2"><a href="#s19-2-6">Secret management</a></li>
+    <li class="lvl2"><a href="#s19-2-7">Credential management</a></li>
+    <li class="lvl2"><a href="#s19-2-8">Least privilege</a></li>
+    <li class="lvl1"><a href="#s19-3">19.3 Network Security</a></li>
+    <li class="lvl2"><a href="#s19-3-1">Private connectivity</a></li>
+    <li class="lvl2"><a href="#s19-3-2">Network &amp; IP controls</a></li>
+    <li class="lvl2"><a href="#s19-3-4">Firewalls &amp; sources</a></li>
+    <li class="lvl2"><a href="#s19-3-6">Cloud networking</a></li>
+    <li class="lvl1"><a href="#s19-4">19.4 Data Security</a></li>
+    <li class="lvl2"><a href="#s19-4-1">Unity Catalog permissions</a></li>
+    <li class="lvl2"><a href="#s19-4-3">Storage credentials &amp; locations</a></li>
+    <li class="lvl2"><a href="#s19-4-5">Row filters</a></li>
+    <li class="lvl2"><a href="#s19-4-6">Column masks</a></li>
+    <li class="lvl2"><a href="#s19-4-7">Auditing</a></li>
+    <li class="lvl1"><a href="#s19-5">19.5 Production Administration</a></li>
+    <li class="lvl2"><a href="#s19-5-1">Environment separation</a></li>
+    <li class="lvl2"><a href="#s19-5-3">Access reviews</a></li>
+    <li class="lvl2"><a href="#s19-5-4">Compute &amp; cost</a></li>
+    <li class="lvl2"><a href="#s19-5-5">Security checklist</a></li>
+    <li class="lvl1"><a href="#s19-6">19.6 Hands-On Exercise</a></li>
+    <li class="lvl2"><a href="#s19-6-design">Part A: Design</a></li>
+    <li class="lvl2"><a href="#s19-6-lab">Part B: Lab</a></li>
+    <li class="lvl1"><a href="#s19-7">19.7 Common Mistakes</a></li>
+    <li class="lvl1"><a href="#s19-8">19.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s19-9">19.9 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 7 · Chapter 19 · Security, Monitoring, and DevOps</span>
+  <h1>Databricks Security and Administration</h1>
+  <p class="lead">Secure, administer, and govern Databricks workloads in production: workspace settings, compute policies, users, groups, and service principals; Microsoft Entra ID, OAuth, secrets, and least privilege; private connectivity and network controls; Unity Catalog grants, storage credentials, external locations, row filters, and column masks; and the separation, reviews, and controls that keep production safe.</p>
+  <div class="callout"><span class="label">Scope</span><p>This chapter focuses on <strong>Azure Databricks</strong> with Microsoft Entra ID, Unity Catalog, and Azure networking. Most concepts apply to AWS and Google Cloud too; cloud-specific configuration differs.</p></div>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Manage workspaces, users, groups, and service principals.</li>
+    <li>Implement least-privilege access.</li>
+    <li>Authenticate applications securely using OAuth.</li>
+    <li>Manage secrets and credentials without hardcoding them.</li>
+    <li>Understand private connectivity and network security.</li>
+    <li>Control data access through Unity Catalog.</li>
+    <li>Implement row-level filtering and column masking.</li>
+    <li>Design separate development and production environments.</li>
+    <li>Apply production security and compute-governance practices.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s19-1"><span>19.1</span><strong>Administration</strong></a>
+    <a class="chip" href="#s19-2"><span>19.2</span><strong>Identity</strong></a>
+    <a class="chip" href="#s19-3"><span>19.3</span><strong>Network</strong></a>
+    <a class="chip" href="#s19-4"><span>19.4</span><strong>Data Security</strong></a>
+    <a class="chip" href="#s19-5"><span>19.5</span><strong>Production</strong></a>
+    <a class="chip" href="#s19-6"><span>19.6</span><strong>Exercise</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 19.1 ===================== -->
+<h2 id="s19-1"><span class="num">19.1</span>Workspace Administration</h2>
+
+<h3 id="s19-1-1"><span class="num">19.1.1</span>What Is a Workspace?</h3>
+<p>A workspace is an environment where users develop, run, and manage data engineering, analytics, and ML workloads. It contains notebooks, jobs, compute, SQL warehouses, repos, workspace files, permissions, and <em>references</em> to governed data.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Workspace</th><th>Purpose</th><th>Typical users</th></tr></thead>
+<tbody>
+<tr><td><code>adb-retail-dev</code></td><td>Development and experimentation</td><td>Data engineers and developers</td></tr>
+<tr><td><code>adb-retail-test</code></td><td>Integration and UAT</td><td>QA and data engineers</td></tr>
+<tr><td><code>adb-retail-prod</code></td><td>Production pipelines and reporting</td><td>Production service principals, authorized support engineers</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">A workspace is not where data lives</span><p>The data itself sits in ADLS, managed Delta tables, external databases, and so on. The workspace is the environment you work in; Unity Catalog governs the data, and one metastore can serve several workspaces.</p></div>
+<h4>Administrative levels</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Level</th><th>Main responsibilities</th></tr></thead>
+<tbody>
+<tr><td>Account admin</td><td>Account configuration, identity management, workspaces, metastores</td></tr>
+<tr><td>Workspace admin</td><td>Workspace settings, workspace users, object permissions</td></tr>
+<tr><td>Metastore admin</td><td>Unity Catalog metastore administration (optional role)</td></tr>
+<tr><td>Data owner</td><td>Access and governance for particular catalogs, schemas, or tables</td></tr>
+<tr><td>Data engineer</td><td>Develop and operate pipelines with explicitly granted permissions</td></tr>
+</tbody></table></div>
+<p class="ref"><strong>Best practice:</strong> don't make every senior engineer a workspace admin. Grant admin rights only when required.</p>
+
+<h3 id="s19-1-2"><span class="num">19.1.2</span>Workspace Settings</h3>
+<p>Administrators may configure authentication and access, who can create compute, personal access token policies, IP access lists, network connectivity, object permissions, default compute settings, Unity Catalog integration, and identity provisioning.</p>
+<div class="grid-2">
+<div class="card"><h4>Development</h4><ul style="margin-bottom:0"><li>Engineers create approved dev compute.</li><li>Experiment with test data.</li><li>Debugging access available.</li><li>Resource limits on workloads.</li><li>No production credentials by default.</li></ul></div>
+<div class="card"><h4>Production</h4><ul style="margin-bottom:0"><li>Compute creation restricted.</li><li>Jobs run as dedicated service principals.</li><li>Sensitive data tightly controlled.</li><li>Limited interactive experimentation.</li><li>Changes follow a deployment process.</li><li>Access and activity audited.</li></ul></div>
+</div>
+<p class="ref">The goal isn't an unrestricted dev environment; it's productive experimentation without exposing production data or credentials.</p>
+
+<h3 id="s19-1-3"><span class="num">19.1.3</span>Compute Policies</h3>
+<p>A compute policy limits which configurations users can create: node types, worker counts, autoscaling, runtime versions, auto-termination, access modes, and required tags. Without one, someone runs a 20-worker cluster for a tiny job, or leaves a cluster running overnight.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting</th><th>Development rule (example)</th></tr></thead>
+<tbody>
+<tr><td>Maximum workers</td><td>4</td></tr>
+<tr><td>Auto-termination</td><td>Required (10–60 min)</td></tr>
+<tr><td>Runtime</td><td>Approved LTS only</td></tr>
+<tr><td>Access mode</td><td>Standard or dedicated</td></tr>
+<tr><td>Required tags</td><td><code>Environment</code>, <code>Owner</code>, <code>CostCenter</code></td></tr>
+<tr><td>Node types</td><td>Two approved sizes</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">JSON · policy definition</span><pre class="code"><code>{
+  "spark_version": { "type": "allowlist", "values": ["auto:latest-lts"], "defaultValue": "auto:latest-lts" },
+  "node_type_id": { "type": "allowlist", "values": ["Standard_D4ds_v5", "Standard_D8ds_v5"], "defaultValue": "Standard_D4ds_v5" },
+  "autoscale.min_workers": { "type": "fixed", "value": 1, "hidden": true },
+  "autoscale.max_workers": { "type": "range", "maxValue": 4, "defaultValue": 2 },
+  "autotermination_minutes": { "type": "range", "minValue": 10, "maxValue": 60, "defaultValue": 30 },
+  "data_security_mode": { "type": "allowlist", "values": ["USER_ISOLATION", "SINGLE_USER"] },
+  "custom_tags.Environment": { "type": "fixed", "value": "dev" },
+  "custom_tags.Owner": { "type": "unlimited", "isOptional": false },
+  "custom_tags.CostCenter": { "type": "allowlist", "values": ["CC-RETAIL-01", "CC-FIN-02"] }
+}</code></pre></div>
+<p class="ref">The original text described policies only in words; this is what one looks like (Compute → Policies → Create). <code>fixed</code> pins a value, <code>range</code> bounds it, <code>allowlist</code> restricts choices, and <code>"isOptional": false</code> forces users to fill it in. <code>USER_ISOLATION</code> and <code>SINGLE_USER</code> are the API names for standard and dedicated access modes. Node types are Azure examples. These are organizational rules, not Databricks defaults. Policies govern <strong>classic</strong> compute; serverless (including Free Edition) is governed by budget policies and workspace settings instead.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Control</th><th>Governs</th></tr></thead>
+<tbody>
+<tr><td>Compute policy</td><td>How compute is configured and used</td></tr>
+<tr><td>Workspace permissions</td><td>Access to workspace resources (notebooks, jobs, warehouses)</td></tr>
+<tr><td>Unity Catalog permissions</td><td>Access to governed data objects</td></tr>
+</tbody></table></div>
+<p>A user can create a notebook but lack permission to read a production table, or read a table but not create arbitrary compute. Apply compute and data governance together.</p>
+
+<h3 id="s19-1-4"><span class="num">19.1.4</span>Workspace Permissions</h3>
+<p>Workspace permissions control who can do what with notebooks, jobs, experiments, dashboards, SQL warehouses, and other objects. Levels vary by object type; for jobs they are <strong>CAN VIEW</strong>, <strong>CAN MANAGE RUN</strong>, <strong>IS OWNER</strong>, and <strong>CAN MANAGE</strong>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Access to production job <code>pl_customer_daily_load</code></th></tr></thead>
+<tbody>
+<tr><td>Data Engineering</td><td>Manage jobs in development; at most view in production</td></tr>
+<tr><td>Production Support</td><td>CAN MANAGE RUN: view runs, rerun, cancel, investigate</td></tr>
+<tr><td>Data Platform Admins</td><td>CAN MANAGE: change job configuration</td></tr>
+<tr><td>Business Analysts</td><td>None; they read reporting data, not ingestion jobs</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Workspace permissions are not data permissions</span><p>Opening a notebook that contains <code>spark.table("prod_catalog.finance.transactions")</code> doesn't let you read that table; the query still passes Unity Catalog authorization. Likewise, access to a SQL warehouse doesn't grant access to every table it can query.</p></div>
+
+<h3 id="s19-1-5"><span class="num">19.1.5</span>User Management and Groups</h3>
+<p>In enterprises, users come from the organization's identity system rather than being added to each resource by hand. Microsoft Entra ID users and groups are provisioned into the Databricks <strong>account</strong> (through automatic identity management or SCIM) and then assigned to workspaces.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>dbx-platform-admins</code></td><td>Platform administration</td></tr>
+<tr><td><code>dbx-data-engineers</code></td><td>Development and data engineering</td></tr>
+<tr><td><code>dbx-production-support</code></td><td>Production troubleshooting</td></tr>
+<tr><td><code>dbx-business-analysts</code></td><td>Approved reporting access</td></tr>
+<tr><td><code>dbx-finance-readers</code></td><td>Finance data access</td></tr>
+<tr><td><code>dbx-customer-data-restricted</code></td><td>Approved access to sensitive customer data</td></tr>
+</tbody></table></div>
+<p><strong>Why groups?</strong> Granting 30 analysts one by one is unmaintainable as people join, move, and leave. Grant to a group and manage membership centrally. Reading one table takes three grants:</p>
+<div class="code-wrap"><span class="lang">SQL · Unity Catalog</span><pre class="code"><code>GRANT USE CATALOG ON CATALOG reporting           TO `dbx-business-analysts`;
+GRANT USE SCHEMA  ON SCHEMA  reporting.sales     TO `dbx-business-analysts`;
+GRANT SELECT      ON TABLE   reporting.sales.daily_sales TO `dbx-business-analysts`;</code></pre></div>
+<p class="ref">Run as an identity allowed to grant (the owner, or someone with <code>MANAGE</code>). The group also needs workspace access and a compute resource or SQL warehouse it can use. Use <strong>account-level</strong> groups for Unity Catalog grants; legacy workspace-local groups can't be granted UC privileges.</p>
+
+<h3 id="s19-1-6"><span class="num">19.1.6</span>Service Principals</h3>
+<p>A service principal is an identity for applications and automation: scheduled jobs, CI/CD deployments, API automation, external orchestrators, and programmatic administration.</p>
+<div class="grid-2">
+<div class="card"><h4>Why production jobs need one</h4><p style="margin-bottom:0">A pipeline owned by an engineer runs fine for six months. The engineer leaves, their account is disabled, and the pipeline stops. A dedicated service principal is a stable execution identity that doesn't depend on any one person. Set it as the job's <strong>Run as</strong> identity.</p></div>
+<pre class="diagram">Azure Data Factory
+        |
+        | authenticates with approved credentials
+        v
+Databricks production workspace
+        |
+        | runs job as dedicated service principal
+        v
+Unity Catalog
+        |
+        | checks granted privileges
+        v
+Production Delta tables</pre>
+</div>
+<p class="ref">Give it only what the job needs. Azure Databricks supports <strong>Databricks-managed</strong> service principals (OAuth secrets issued by Databricks; enough for Databricks-only automation) and <strong>Microsoft Entra ID-managed</strong> ones (needed when the same identity must also reach other Azure resources). Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/admin/users-groups/manage-service-principals" target="_blank" rel="noopener">Manage service principals</a>.</p>
+
+<!-- ===================== 19.2 ===================== -->
+<h2 id="s19-2"><span class="num">19.2</span>Identity and Authentication</h2>
+
+<h3 id="s19-2-1"><span class="num">19.2.1</span>Authentication Versus Authorization</h3>
+<div class="grid-2">
+<div class="callout key" style="margin:0"><span class="label">Two questions</span><p><strong>Authentication:</strong> who are you?<br><strong>Authorization:</strong> what are you allowed to do?</p><p style="margin-bottom:0">Signing in successfully grants nothing by itself; Databricks then evaluates the permissions of that identity.</p></div>
+<div class="card"><h4>Valid login, query denied</h4><p><code>SELECT * FROM prod_catalog.finance.transactions;</code> can fail because of:</p><ul style="margin-bottom:0"><li>Missing <code>USE CATALOG</code>.</li><li>Missing <code>USE SCHEMA</code>.</li><li>Missing <code>SELECT</code>.</li><li>A workspace binding restricting the catalog.</li><li>A row filter returning no rows (looks like empty data, not an error).</li></ul></div>
+</div>
+
+<h3 id="s19-2-2"><span class="num">19.2.2</span>Microsoft Entra ID Integration</h3>
+<p>Entra ID (formerly Azure AD) provides corporate sign-in and SSO, users and groups, application identities, Conditional Access and MFA through organizational policy, and lifecycle management.</p>
+<div class="grid-2">
+<pre class="diagram">User
+ |
+ v
+Microsoft Entra ID       (authenticates)
+ |
+ v
+Azure Databricks         (evaluates permissions)
+ |
+ v
+Notebook / Job / SQL warehouse
+ |
+ v
+Unity Catalog            (authorizes data access)
+ |
+ v
+Governed data</pre>
+<div class="card"><h4>Identity lifecycle</h4><ol style="margin-bottom:0"><li>User joins the organization.</li><li>Added to the right groups.</li><li>Gets approved workspace access.</li><li>Job and data permissions assigned as needed.</li><li>Changes responsibilities.</li><li>Permissions reviewed and updated.</li><li>Leaves the organization.</li><li>Access revoked via the identity process.</li></ol></div>
+</div>
+<p class="ref">Automated provisioning means leavers lose access when they're disabled in Entra ID, rather than when someone remembers. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/security/auth/" target="_blank" rel="noopener">Authentication and access control</a>.</p>
+
+<h3 id="s19-2-3"><span class="num">19.2.3</span>Service-Principal Authentication, OAuth, and Access Tokens</h3>
+<div class="grid-2">
+<pre class="diagram">CI/CD pipeline
+      |
+      | OAuth (client ID + secret, or
+      | workload identity federation)
+      v
+Service principal access token
+      |
+      | authorized API request
+      v
+Databricks workspace
+      |
+      v
+Deploy job / notebook / configuration</pre>
+<div class="card"><h4>The deployment flow</h4><ol style="margin-bottom:0"><li>Obtain a short-lived token through an approved OAuth flow.</li><li>Authenticate to Databricks.</li><li>Call an authorized API.</li><li>Perform the deployment.</li><li>Finish without exposing a reusable human credential.</li></ol></div>
+</div>
+<p><strong>OAuth</strong> is an authorization framework that grants applications access without sharing a user's password.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Client</td><td>Application requesting access</td></tr>
+<tr><td>Resource server</td><td>Service hosting the protected resource</td></tr>
+<tr><td>Authorization server</td><td>Issues tokens</td></tr>
+<tr><td>Access token</td><td>Credential used to call an authorized resource; short-lived</td></tr>
+<tr><td>Scope</td><td>The access being requested, where applicable</td></tr>
+<tr><td>Client ID</td><td>Identifies the application (for a service principal, its application ID)</td></tr>
+<tr><td>Client secret</td><td>Confidential credential used in machine-to-machine flows</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="card"><h4>Flows</h4><ul style="margin-bottom:0"><li><strong>Machine-to-machine (M2M):</strong> a service principal with client ID and secret. Jobs, CI/CD.</li><li><strong>User-to-machine (U2M):</strong> browser sign-in for an interactive user, e.g. <code>databricks auth login</code>.</li><li><strong>Workload identity federation:</strong> CI systems (GitHub Actions, Azure DevOps) exchange their own token, so no secret is stored at all.</li></ul><p style="margin:8px 0 0" class="ref">Not every flow supports every API; check the docs for the integration.</p></div>
+<div class="code-wrap"><span class="lang">Python · Databricks SDK, OAuth M2M</span><pre class="code"><code>import os
+from databricks.sdk import WorkspaceClient
+
+# Credentials come from the environment (set by the CI system),
+# never from source code
+w = WorkspaceClient(
+    host=os.environ["DATABRICKS_HOST"],
+    client_id=os.environ["DATABRICKS_CLIENT_ID"],
+    client_secret=os.environ["DATABRICKS_CLIENT_SECRET"],
+)
+
+# The SDK fetches and refreshes short-lived tokens itself
+print(w.current_user.me().user_name)   # the SP's application ID</code></pre></div>
+</div>
+<p class="ref">The SDK and CLI read <code>DATABRICKS_HOST</code>, <code>DATABRICKS_CLIENT_ID</code>, and <code>DATABRICKS_CLIENT_SECRET</code> automatically, so <code>WorkspaceClient()</code> with no arguments works too. Not run here (needs a workspace).</p>
+<h4>Handling tokens</h4>
+<p>A token isn't a password, but anyone holding a valid one can act with its permissions until it expires. Get it through the supported mechanism, keep it in memory, send it only to the intended service, never log it, and let it expire or revoke it.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · bad practice</span><pre class="code"><code># BAD: token in source code (leaks via Git, screenshots, shared files)
+token = "dapi-example-sensitive-token"
+
+# BAD: headers often contain "Authorization: Bearer ..."
+print(request_headers)</code></pre></div>
+<div class="card"><h4>Better practice</h4><ul style="margin-bottom:0"><li>Dedicated automation identity, not a person's account.</li><li>OAuth instead of long-lived personal access tokens (PATs).</li><li>Secrets in a controlled store.</li><li>Minimal permissions.</li><li>Admins can restrict or disable PATs in workspace settings.</li></ul></div>
+</div>
+
+<h3 id="s19-2-6"><span class="num">19.2.4</span>Secret Management and Secret Scopes</h3>
+<p>Secrets are database passwords, API keys, client secrets, and connection credentials. Databricks <strong>secret scopes</strong> store them; on Azure a scope can be <strong>Azure Key Vault-backed</strong> (secrets stay in Key Vault, created from the workspace UI) or <strong>Databricks-backed</strong>.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Bash · Databricks CLI (Databricks-backed scope)</span><pre class="code"><code>databricks secrets create-scope retail-dev-secrets
+
+# Prompts for the value, so it never appears in shell history
+databricks secrets put-secret retail-dev-secrets source-db-password
+
+databricks secrets list-secrets retail-dev-secrets
+
+# Let only the prod job's service principal read prod secrets
+databricks secrets put-acl retail-prod-secrets \
+    &amp;lt;sp-application-id&amp;gt; READ</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · notebook</span><pre class="code"><code>db_password = dbutils.secrets.get(
+    scope="retail-dev-secrets",
+    key="source-db-password",
+)
+
+print(db_password)   # shows [REDACTED] — but don't rely on that
+
+# Redaction only catches the exact string. Transformed values
+# (e.g. reversed, split, base64) are NOT redacted. Never print,
+# log, or put secrets in exception messages.</code></pre></div>
+</div>
+<p class="ref">Scope ACLs are <code>READ</code>, <code>WRITE</code>, and <code>MANAGE</code>. Separate scopes by environment and purpose (<code>retail-dev-secrets</code>, <code>retail-test-secrets</code>, <code>retail-prod-secrets</code>), and don't give developers access to production secrets just because they use the dev workspace.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Main purpose</th></tr></thead>
+<tbody>
+<tr><td>Secret scope</td><td>Store and retrieve secrets in code</td></tr>
+<tr><td>UC storage credential</td><td>The identity Unity Catalog uses to reach external storage</td></tr>
+<tr><td>UC external location</td><td>Govern access to a specific storage path</td></tr>
+<tr><td>Managed identity</td><td>Identity-based authentication with no password or secret in code</td></tr>
+</tbody></table></div>
+<p class="ref">For Azure storage, prefer identity-based access (an access connector's managed identity) over distributing storage account keys.</p>
+
+<h3 id="s19-2-7"><span class="num">19.2.5</span>Credential Management</h3>
+<p>The full lifecycle: create through an approved mechanism, distribute in a controlled way, store in an approved place, restrict access, rotate, manage expiry, revoke when compromised or unneeded, and audit access and changes.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · insecure</span><pre class="code"><code>connection_string = (
+    "Server=sqlserver01;"
+    "Database=RetailSourceDB;"
+    "User Id=admin;"                 # admin account!
+    "Password=HardcodedPassword;"    # in code, in Git
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · improved</span><pre class="code"><code>jdbc_url = ("jdbc:sqlserver://sqlserver01:1433;"
+            "databaseName=RetailSourceDB;"
+            "encrypt=true;trustServerCertificate=false")
+
+df = (spark.read.format("jdbc")
+      .option("url", jdbc_url)
+      .option("dbtable", "dbo.customers")
+      .option("user", dbutils.secrets.get("retail-prod-secrets", "sql-user"))
+      .option("password", dbutils.secrets.get("retail-prod-secrets", "sql-password"))
+      .load())</code></pre></div>
+</div>
+<p class="ref">The original's improved version fetched the password but didn't show it in use. Here the secret goes straight into the reader, the account is a dedicated read-only one rather than <code>admin</code>, and TLS is enforced with certificate validation. Rotating the password now means updating the secret, not the code. Where supported, managed identity is better still. On Unity Catalog, <strong>Lakehouse Federation</strong> connections can hold the credential centrally so notebooks never see it.</p>
+
+<h3 id="s19-2-8"><span class="num">19.2.6</span>Least-Privilege Access</h3>
+<p>Grant each identity only what its responsibilities require. A pipeline that reads customer data and writes a curated table needs read on its sources, write on its target, use of the containing catalog and schemas, and permission to run its job. It doesn't need workspace admin, unrelated finance tables, rights on every production catalog, control of other service principals, or unrelated secrets.</p>
+<div class="callout warn"><span class="label">Correction: grant to service principals by application ID</span><p>The original granted to <code>`sp-retail-customer-load`</code>, the display name. In Unity Catalog SQL, a service principal is referenced by its <strong>application ID</strong> (a UUID), in backticks. A display name fails with a principal-not-found error. Find the ID under Settings → Identity and access → Service principals.</p></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- sp-retail-customer-load (application ID shown here as an example)
+GRANT USE CATALOG ON CATALOG prod_catalog
+  TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+
+GRANT USE SCHEMA ON SCHEMA prod_catalog.bronze
+  TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+
+GRANT SELECT ON TABLE prod_catalog.bronze.customer_source
+  TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;</code></pre></div>
+<p class="ref">To write a target, add only what that operation needs: appending, updating, or deleting requires <code>MODIFY</code> on the table (a <code>MERGE</code> also needs <code>SELECT</code> to read it). Don't grant <code>ALL PRIVILEGES</code> to make a permission error disappear.</p>
+
+<!-- ===================== 19.3 ===================== -->
+<h2 id="s19-3"><span class="num">19.3</span>Network Security</h2>
+<p class="section-intro">Authentication controls <em>who</em> gets in; network security controls <em>how</em> systems communicate and which paths are permitted. There are three distinct paths, each with its own controls.</p>
+<pre class="diagram">  (1) Front-end              (2) Back-end                 (3) Data access
+  Users / apps  ------&gt;  Databricks control plane  &lt;------  Compute plane  ------&gt;  ADLS, SQL Server,
+  to the workspace         (web app, APIs, jobs)          (clusters, serverless)     APIs, SaaS</pre>
+
+<h3 id="s19-3-1"><span class="num">19.3.1</span>Private Connectivity</h3>
+<p>Azure Private Link creates private connections to Azure services, including Azure Databricks in supported configurations, reducing exposure to public networks. It can cover user access to the workspace (front-end), classic compute to the control plane (back-end), and serverless compute to your resources. <strong>These are separate paths; enabling one doesn't secure the others.</strong></p>
+<div class="grid-2">
+<pre class="diagram">Corporate network
+        |
+        v
+Private endpoint (front-end)
+        |
+        v
+Azure Databricks workspace
+        |
+        v
+Databricks compute
+        |
+        v
+Private endpoint / approved path
+        |
+        v
+Azure Data Lake Storage</pre>
+<div class="card"><h4>Evaluate before implementing</h4><ul style="margin-bottom:0"><li>VNet configuration and private endpoints.</li><li><strong>DNS resolution</strong> (the most common failure).</li><li>NSG, routing, and firewall rules.</li><li>Connectivity to source databases.</li><li>Connectivity to the control plane.</li><li>Serverless networking requirements.</li><li>Cost and operational complexity.</li></ul></div>
+</div>
+<p class="ref">Conceptual diagram; the real design depends on compute type, deployment, DNS, and endpoints. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/concepts/private-link" target="_blank" rel="noopener">Private Link concepts</a>.</p>
+
+<h3 id="s19-3-2"><span class="num">19.3.2</span>Network Controls and IP Access Lists</h3>
+<p>Controls include VNet configuration, Network Security Groups, firewalls, private endpoints, IP access lists, domain-based controls, serverless egress controls, and storage firewall rules.</p>
+<div class="grid-2">
+<div class="card"><h4>Correct password, connection still fails</h4><p>A job can't reach <code>sql-prod.internal.example</code> because:</p><ul style="margin-bottom:0"><li>DNS can't resolve the hostname.</li><li>A firewall blocks the port.</li><li>The database rejects the compute network.</li><li>A route is missing.</li><li>TLS is misconfigured.</li><li>The database rejects the identity.</li></ul><p style="margin:8px 0 0">Troubleshoot <strong>both identity and network</strong>.</p></div>
+<div class="card"><h4>IP access lists</h4><p>Restrict workspace or account-console access to approved ranges: office networks, the corporate VPN, admin networks.</p><ul style="margin-bottom:0"><li>Include VPN and admin paths, or you lock yourself out.</li><li>Include CI/CD agents and automation.</li><li>Test before applying broadly.</li><li>Document a recovery procedure.</li><li>Ingress lists don't control <em>outbound</em> traffic from compute.</li></ul></div>
+</div>
+
+<h3 id="s19-3-4"><span class="num">19.3.3</span>Firewalls and Secure Connectivity to Sources</h3>
+<p>A firewall between compute and, say, an on-premises SQL Server should permit only required connections; avoid unrestricted outbound access where tighter control is feasible.</p>
+<div class="grid-2">
+<div class="card"><h4>Pre-deployment connectivity checklist</h4><ul style="margin-bottom:0"><li>Can compute resolve the hostname?</li><li>Is the destination IP reachable?</li><li>Is the port open?</li><li>Does the destination accept the connection?</li><li>Is TLS configured correctly?</li><li>Is the workload using the expected identity?</li><li>Does the source authorize that identity?</li><li>Are network and auth failures logged (without credentials)?</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Identity</td><td>Dedicated DB account or managed identity</td></tr>
+<tr><td>Authentication</td><td>OAuth, integrated auth, or protected credentials</td></tr>
+<tr><td>Authorization</td><td>Read only the needed source tables</td></tr>
+<tr><td>Network</td><td>Private or restricted route</td></tr>
+<tr><td>Transport</td><td>TLS</td></tr>
+<tr><td>Secret storage</td><td>Approved secret manager</td></tr>
+<tr><td>Logging</td><td>Failures logged, credentials never</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">Sources include SQL Server, Oracle, ADLS, REST APIs, SaaS, and on-prem databases. A pipeline reading <code>RetailSourceDB</code> should use a dedicated read-only account, never the DBA account.</p>
+
+<h3 id="s19-3-6"><span class="num">19.3.4</span>Cloud Networking Requirements</h3>
+<p class="ref">This syllabus topic wasn't covered in the original text; here's the essential Azure picture.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>VNet injection</td><td>Deploy classic compute into <em>your</em> Azure VNet, so you control NSGs, routes, and firewalls. Needs two dedicated subnets (host and container) delegated to Azure Databricks, sized for your maximum cluster nodes.</td></tr>
+<tr><td>Secure cluster connectivity</td><td>"No public IP": cluster nodes have no public addresses and open no inbound ports; they connect out to the control plane. The default for new workspaces.</td></tr>
+<tr><td>Egress</td><td>With no public IPs, outbound traffic needs a NAT gateway or a firewall (e.g. Azure Firewall with user-defined routes).</td></tr>
+<tr><td>Serverless networking</td><td>Serverless compute runs in Databricks' network. A <strong>network connectivity configuration (NCC)</strong> provides stable IPs or private endpoints to your storage, plus serverless egress controls.</td></tr>
+<tr><td>Storage access</td><td>Storage firewall allows the workspace subnets or private endpoints; Unity Catalog reaches it through an access connector's managed identity.</td></tr>
+</tbody></table></div>
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/" target="_blank" rel="noopener">Azure Databricks networking</a>. Network design usually involves your cloud networking team; as a data engineer, know the paths well enough to diagnose failures.</p>
+
+<!-- ===================== 19.4 ===================== -->
+<h2 id="s19-4"><span class="num">19.4</span>Data Security</h2>
+
+<h3 id="s19-4-1"><span class="num">19.4.1</span>Unity Catalog Permissions</h3>
+<p>Unity Catalog governs access to data and related resources through grants and ownership. You've used its three-level names since Chapter 4; here's the security side.</p>
+<div class="grid-2">
+<pre class="diagram">Metastore
+   |
+   +-- Catalog            prod_catalog
+         |
+         +-- Schema         bronze / silver / gold
+               |
+               +-- Table      customers, orders
+               +-- View       customer_summary
+               +-- Function   mask_email
+               +-- Volume     raw files</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Privilege</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>USE CATALOG</code></td><td>Use a catalog</td></tr>
+<tr><td><code>USE SCHEMA</code></td><td>Use a schema</td></tr>
+<tr><td><code>SELECT</code></td><td>Read tables or views</td></tr>
+<tr><td><code>MODIFY</code></td><td>Insert, update, delete</td></tr>
+<tr><td><code>CREATE TABLE</code></td><td>Create tables in a schema</td></tr>
+<tr><td><code>EXECUTE</code></td><td>Run functions</td></tr>
+<tr><td><code>READ FILES</code> / <code>WRITE FILES</code></td><td>File access via an external location or volume</td></tr>
+<tr><td><code>MANAGE</code></td><td>Manage grants on the object (without owning it)</td></tr>
+</tbody></table></div>
+</div>
+<div class="callout key"><span class="label">Privileges inherit downward</span><p><code>GRANT SELECT ON SCHEMA prod_catalog.gold</code> gives <code>SELECT</code> on every current <em>and future</em> table in that schema. That's convenient for a reporting layer but too broad when only one table is approved. You still need <code>USE CATALOG</code> and <code>USE SCHEMA</code> to reach anything.</p></div>
+<div class="code-wrap"><span class="lang">SQL · read-only access, then review it</span><pre class="code"><code>GRANT USE CATALOG ON CATALOG reporting                 TO `dbx-finance-readers`;
+GRANT USE SCHEMA  ON SCHEMA  reporting.finance         TO `dbx-finance-readers`;
+GRANT SELECT      ON TABLE   reporting.finance.monthly_revenue TO `dbx-finance-readers`;
+
+-- Who has what on this table?
+SHOW GRANTS ON TABLE reporting.finance.monthly_revenue;
+
+-- What does one group have on the schema?
+SHOW GRANTS `dbx-finance-readers` ON SCHEMA reporting.finance;
+
+-- Remove access
+REVOKE SELECT ON TABLE reporting.finance.monthly_revenue FROM `dbx-finance-readers`;</code></pre></div>
+<p class="ref">Permissions should reflect actual responsibilities, not membership of a broad technical team. Docs: <a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/" target="_blank" rel="noopener">Unity Catalog access control</a>.</p>
+
+<h3 id="s19-4-3"><span class="num">19.4.2</span>Storage Credentials and External Locations</h3>
+<div class="grid-2">
+<div class="card"><h4>Storage credential</h4><p style="margin-bottom:0">The identity Unity Catalog uses to reach external storage. On Azure, usually an <strong>access connector</strong>'s managed identity, which is granted a role (e.g. Storage Blob Data Contributor) on the storage account. It moves storage authentication out of notebook code.</p></div>
+<div class="card"><h4>External location</h4><p style="margin-bottom:0">Binds a storage path such as <code>abfss://retail@stretailprod.dfs.core.windows.net/bronze/</code> to a storage credential, creating one governance point for that path. Without it, people reach storage through scattered keys and nobody can say who reads what.</p></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">Databricks job
+      |
+      v
+Unity Catalog         (checks the job's grants)
+      |
+      v
+External location     (governed path)
+      |
+      v
+Storage credential    (managed identity)
+      |
+      v
+Azure Data Lake Storage</pre>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE EXTERNAL LOCATION IF NOT EXISTS retail_bronze_location
+  URL 'abfss://retail@stretailprod.dfs.core.windows.net/bronze/'
+  WITH (STORAGE CREDENTIAL retail_prod_credential)
+  COMMENT 'Raw source files';
+
+-- Let the ingestion SP read the landing files
+GRANT READ FILES ON EXTERNAL LOCATION retail_bronze_location
+  TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;</code></pre></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>External location</th><th>Purpose</th></tr></thead>
+<tbody><tr><td><code>retail_bronze_location</code></td><td>Raw source files</td></tr><tr><td><code>retail_silver_location</code></td><td>Cleansed, standardized data</td></tr><tr><td><code>retail_export_location</code></td><td>Approved outbound exports</td></tr></tbody></table></div>
+<p class="ref">Reading a registered table and reading its underlying files are <strong>different access paths</strong>; govern both. Grant <code>READ FILES</code> on locations sparingly, since file access bypasses table-level row filters and masks.</p>
+
+<h3 id="s19-4-5"><span class="num">19.4.3</span>Row Filters</h3>
+<p>A row filter restricts which rows a user sees, enforced in Unity Catalog for every query and every tool. Regional managers should see only their region:</p>
+<div class="grid-2">
+<pre class="diagram">Regional manager queries sales
+              |
+              v
+     Row filter function
+              |
+   +----------+----------+
+   |          |          |
+ North      South      West
+ manager    manager    manager
+   |          |          |
+ North      South      West
+ rows       rows       rows</pre>
+<div class="card"><h4>How it works</h4><ol style="margin-bottom:0"><li>Write a SQL function returning <code>BOOLEAN</code>.</li><li>Attach it: <code>ALTER TABLE … SET ROW FILTER fn ON (column)</code>.</li><li>Unity Catalog adds it to every query; rows where it's false are invisible.</li></ol><p style="margin:8px 0 0">One filter per table.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · filter by a governed mapping table</span><pre class="code"><code>-- Who may see which region (maintained by data owners, not users)
+CREATE TABLE prod_catalog.security.region_access (user_email STRING, region STRING);
+
+CREATE OR REPLACE FUNCTION prod_catalog.security.region_filter(row_region STRING)
+RETURNS BOOLEAN
+RETURN is_account_group_member('dbx-platform-admins')
+    OR EXISTS (
+         SELECT 1 FROM prod_catalog.security.region_access a
+         WHERE a.user_email = session_user()
+           AND a.region = row_region
+       );
+
+ALTER TABLE prod_catalog.gold.sales SET ROW FILTER prod_catalog.security.region_filter ON (region);
+
+-- Remove: ALTER TABLE prod_catalog.gold.sales DROP ROW FILTER;</code></pre></div>
+<div class="callout warn"><span class="label">Never filter on a user-supplied value</span><p>A notebook parameter like <code>region = "North"</code> can be changed by the user. Security must be enforced in the governed layer from <code>session_user()</code> or group membership, which users can't fake.</p></div>
+<p class="ref">The original described row filters only conceptually; this uses the documented syntax. A filtered-out user sees <strong>zero rows, not an error</strong>, which can look like missing data. Compute: SQL warehouses, standard access mode, or dedicated access mode on Runtime 15.4 LTS+.</p>
+
+<h3 id="s19-4-6"><span class="num">19.4.4</span>Column Masks</h3>
+<p>A column mask changes what a user sees in one column. General analysts get customer names but not full emails or phone numbers; approved customer-service users see full values.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE FUNCTION prod_catalog.security.mask_email(email STRING)
+RETURNS STRING
+RETURN CASE
+  WHEN is_account_group_member('dbx-customer-data-restricted') THEN email
+  WHEN email IS NULL THEN NULL
+  ELSE concat(left(email, 1), '***@', substring_index(email, '@', -1))
+END;
+
+CREATE OR REPLACE FUNCTION prod_catalog.security.mask_phone(phone STRING)
+RETURNS STRING
+RETURN CASE
+  WHEN is_account_group_member('dbx-customer-data-restricted') THEN phone
+  WHEN phone IS NULL THEN NULL
+  ELSE concat('******', right(regexp_replace(phone, '[^0-9]', ''), 4))
+END;
+
+ALTER TABLE prod_catalog.silver.customer_clean
+  ALTER COLUMN email_address SET MASK prod_catalog.security.mask_email;
+ALTER TABLE prod_catalog.silver.customer_clean
+  ALTER COLUMN phone_number SET MASK prod_catalog.security.mask_phone;</code></pre></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Stored</th><th>Masked result (verified)</th></tr></thead>
+<tbody>
+<tr><td>asha.rao@example.com</td><td>a***@example.com</td></tr>
+<tr><td>+91 98450 12345</td><td>******2345</td></tr>
+<tr><td>NULL</td><td>NULL</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Restricts</th></tr></thead>
+<tbody><tr><td>Table permission</td><td>Whether you can access the table at all</td></tr><tr><td>Row filter</td><td>Which records you see</td></tr><tr><td>Column mask</td><td>Which values you see in a column</td></tr></tbody></table></div>
+</div>
+<p class="ref">I ran the masking expressions on Spark 4 to confirm the output above; <code>SET MASK</code> itself is Databricks-only. Drop a mask or filter <em>before</em> dropping its function, or the table becomes unreadable. For many tables, Databricks also offers centralized <strong>attribute-based access control (ABAC)</strong> with governed tags, where available.</p>
+
+<h3 id="s19-4-7"><span class="num">19.4.5</span>Data Access Auditing</h3>
+<p>Auditing answers: who ran this job, which identity executed the query, when a permission changed, who accessed a sensitive table, and who changed the job configuration. Databricks records these in <strong>system tables</strong>.</p>
+<div class="code-wrap"><span class="lang">SQL · platform audit log (system.access.audit)</span><pre class="code"><code>-- Unity Catalog permission changes in the last 7 days
+SELECT event_time,
+       user_identity.email AS changed_by,
+       action_name,
+       request_params
+FROM system.access.audit
+WHERE service_name = 'unityCatalog'
+  AND action_name = 'updatePermissions'
+  AND event_date &gt;= current_date() - INTERVAL 7 DAYS
+ORDER BY event_time DESC;</code></pre></div>
+<p class="ref">System tables must be enabled by an admin and access granted. <code>system.access.table_lineage</code> also shows which identities read or wrote each table. Chapter 20 uses system tables for monitoring.</p>
+<div class="code-wrap"><span class="lang">SQL · application-level audit table</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS prod_catalog.ops.pipeline_security_audit (
+    audit_id STRING,
+    pipeline_name STRING,
+    execution_identity STRING,     -- e.g. from current_user() inside the job
+    environment STRING,
+    action STRING,
+    status STRING,
+    event_timestamp TIMESTAMP
+);</code></pre></div>
+<div class="callout"><span class="label">Two kinds of audit</span><p>Your own table records pipeline events (like Chapter 18's audit tables). It <strong>does not replace</strong> platform audit logs: a pipeline can't record actions it doesn't perform, and its rows can be edited by anyone with <code>MODIFY</code>. Use platform logs for security events.</p></div>
+
+<!-- ===================== 19.5 ===================== -->
+<h2 id="s19-5"><span class="num">19.5</span>Production Administration</h2>
+
+<h3 id="s19-5-1"><span class="num">19.5.1</span>Environment Separation and Deployment</h3>
+<div class="grid-2">
+<pre class="diagram">       Azure Databricks account
+                 |
+     +-----------+-----------+
+     |           |           |
+    DEV         TEST        PROD
+ workspace   workspace   workspace
+     |           |           |
+dev_catalog test_catalog prod_catalog
+     |           |           |
+  Dev data   Test data   Production data</pre>
+<div class="card"><h4>Names alone don't isolate</h4><p style="margin-bottom:0">Separate workspaces and catalogs only isolate if permissions, <strong>workspace-catalog bindings</strong> (so <code>prod_catalog</code> is reachable only from the prod workspace), storage credentials, network controls, and deployment practices enforce it.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · make the prod catalog prod-only</span><pre class="code"><code>-- Then bind it to the production workspace in Catalog Explorer
+-- (Workspaces tab) or with the workspace-bindings API
+ALTER CATALOG prod_catalog SET ISOLATION MODE ISOLATED;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Area</th><th>Development</th><th>Production</th></tr></thead>
+<tbody>
+<tr><td>Data</td><td>Synthetic, masked, or approved</td><td>Authorized production data</td></tr>
+<tr><td>Credentials</td><td>Dev credentials</td><td>Prod credentials</td></tr>
+<tr><td>Compute</td><td>Controlled experimentation</td><td>Approved configurations</td></tr>
+<tr><td>Deployment</td><td>Develop and test</td><td>Controlled releases</td></tr>
+<tr><td>Access</td><td>Engineering groups</td><td>Restricted operational groups</td></tr>
+<tr><td>Monitoring</td><td>Diagnostics</td><td>Alerting and audit</td></tr>
+<tr><td>Changes</td><td>Frequent iteration</td><td>Reviewed and controlled</td></tr>
+<tr><td>Recovery</td><td>Developer-led</td><td>Documented procedures</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<pre class="diagram">Developer changes code
+        |
+Version control (Git)
+        |
+Automated tests
+        |
+Development deployment
+        |
+Integration / acceptance tests
+        |
+Approval
+        |
+Production deployment (as an SP)
+        |
+Monitoring and validation</pre>
+<div class="card"><h4>Deployment practices</h4><ul style="margin-bottom:0"><li>Code in version control; reviewed changes.</li><li>Automated, repeatable deployments (Databricks Asset Bundles, Chapter 21).</li><li>Environment-specific configuration.</li><li>Credentials outside source code.</li><li>Validate permissions before deploying.</li><li>Deployment identity has only required access.</li><li>Tested rollback.</li></ul></div>
+</div>
+<p class="ref">Don't hand developers production credentials because a dev notebook "needs" a prod source. If production data is genuinely needed for testing, use a separately approved path, ideally masked.</p>
+
+<h3 id="s19-5-3"><span class="num">19.5.2</span>Access Reviews</h3>
+<p>Periodic reviews keep permissions matched to need. Ask: does each user still need access and the right groups? Any unnecessary admin rights? Do service principals still need their access? Are production grants justified? Are secrets visible to the right identities? Are inactive users and old SPs handled? Do direct grants bypass the group model?</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Identity</th><th>Resource</th><th>Current</th><th>Required</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Data Engineer A</td><td>Dev workspace</td><td>Admin</td><td>Developer</td><td>Reduce</td></tr>
+<tr><td>Analyst B</td><td>Finance table</td><td>Read</td><td>Read</td><td>Keep</td></tr>
+<tr><td>Old deployment SP</td><td>Prod catalog</td><td>Read/write</td><td>None</td><td>Revoke</td></tr>
+<tr><td>Prod job SP</td><td>Customer tables</td><td>All schemas</td><td>Two tables</td><td>Reduce</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · find direct grants to individual users</span><pre class="code"><code>-- Grants to emails (individual users) rather than groups, in one catalog
+SELECT grantee, table_schema, table_name, privilege_type
+FROM prod_catalog.information_schema.table_privileges
+WHERE grantee LIKE '%@%'
+ORDER BY grantee, table_schema, table_name;</code></pre></div>
+<p class="ref">Record decisions and track the changes to completion.</p>
+
+<h3 id="s19-5-4"><span class="num">19.5.3</span>Compute Governance and Cost Controls</h3>
+<p>Uncontrolled compute is both waste and risk. Use compute policies, auto-termination for interactive compute, job compute sized for each workload, tags for ownership and cost allocation, reviews of unused jobs and clusters, usage monitoring, and limits on production experimentation.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Job</th><th>Runtime</th><th>Frequency</th><th>Primary concern</th></tr></thead>
+<tbody><tr><td>Customer load</td><td>20 min</td><td>Daily</td><td>Data correctness</td></tr><tr><td>Sales aggregation</td><td>45 min</td><td>Daily</td><td>Compute efficiency</td></tr><tr><td>Historical backfill</td><td>4 hours</td><td>Occasional</td><td>Cost and capacity</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · spend by tag (system.billing.usage)</span><pre class="code"><code>SELECT custom_tags['CostCenter'] AS cost_center,
+       sku_name,
+       SUM(usage_quantity)       AS dbus
+FROM system.billing.usage
+WHERE usage_date &gt;= current_date() - INTERVAL 30 DAYS
+GROUP BY ALL
+ORDER BY dbus DESC;</code></pre></div>
+<p class="ref">A backfill shouldn't automatically use the same configuration as a small daily load. Size from measured behavior (Chapter 15), not assumptions. Required tags in the policy are what make this query useful.</p>
+
+<h3 id="s19-5-5"><span class="num">19.5.4</span>Production Security Checklist</h3>
+<div class="grid-2">
+<div class="card"><h4>Identity and access</h4><ul style="margin-bottom:0"><li>Centralized identity management.</li><li>Organizational auth requirements (SSO, MFA).</li><li>Groups for access management.</li><li>Restricted admin privileges.</li><li>Dedicated SPs for production automation.</li><li>Least privilege for data and compute.</li><li>Periodic reviews.</li></ul></div>
+<div class="card"><h4>Secrets and credentials</h4><ul style="margin-bottom:0"><li>No hardcoded credentials.</li><li>Approved secret management.</li><li>Identity-based auth where possible.</li><li>Restricted production secrets.</li><li>Rotation and revocation procedures.</li><li>No secrets in logs or source control.</li></ul></div>
+<div class="card"><h4>Network security</h4><ul style="margin-bottom:0"><li>Documented inbound and outbound connections.</li><li>Private connectivity where required.</li><li>Firewall rules for needed destinations only.</li><li>Workspace access from approved networks.</li><li>DNS and routing verified.</li><li>Connectivity tested after changes.</li></ul></div>
+<div class="card"><h4>Data governance</h4><ul style="margin-bottom:0"><li>Tables governed by Unity Catalog.</li><li>Grants at the right level.</li><li>External storage access controlled.</li><li>Row filters and masks where required.</li><li>Sensitive-data access audited.</li><li>No unnecessary raw-data access.</li></ul></div>
+</div>
+<div class="card"><h4>Operations</h4><p style="margin-bottom:0">Separate dev and prod · version control and controlled deployments · monitor failures and unusual behavior · review compute usage and cost · documented incident response and access revocation · tested recovery and rollback.</p></div>
+
+<!-- ===================== 19.6 ===================== -->
+<h2 id="s19-6"><span class="num">19.6</span>Hands-On Exercise: Secure Dev and Prod Environments</h2>
+<p class="section-intro">Part A is the design exercise from the syllabus. Part B is a lab you can actually run on Free Edition, so you see a row filter and column masks work rather than only reading about them.</p>
+
+<h3 id="s19-6-design"><span class="num">19.6.1</span>Part A: Design the Environment</h3>
+<p>Your retail platform has customer, product, sales, and finance data, daily ingestion pipelines, reporting users, data engineers, and production support.</p>
+<div class="card"><h4>Requirements</h4><ol style="margin-bottom:0">
+<li>Developers can create and test pipelines.</li>
+<li>Production jobs run as dedicated service principals.</li>
+<li>Developers don't automatically get production data.</li>
+<li>Business analysts read approved reporting tables.</li>
+<li>Finance analysts access authorized finance data.</li>
+<li>Sensitive customer columns are protected.</li>
+<li>Production support investigates failures without unrestricted data access.</li>
+<li>Production compute is controlled.</li>
+<li>Access is auditable.</li>
+<li>Dev and prod credentials are separate.</li>
+</ol></div>
+<div>
+<div><h4>Step 1: Environments</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Environment</th><th>Workspace</th><th>Catalog</th></tr></thead>
+<tbody><tr><td>Development</td><td><code>adb-retail-dev</code></td><td><code>dev_catalog</code></td></tr><tr><td>Testing</td><td><code>adb-retail-test</code></td><td><code>test_catalog</code></td></tr><tr><td>Production</td><td><code>adb-retail-prod</code></td><td><code>prod_catalog</code></td></tr></tbody></table></div>
+<p>Each catalog has schemas <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>finance</code>, plus <code>security</code> (filter functions, mapping tables) and <code>ops</code> (audit tables). Bind each catalog to its own workspace.</p></div>
+
+<div><h4>Step 2: Groups and an access matrix</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Group / identity</th><th>Dev workspace</th><th>Prod workspace</th><th>Prod data</th></tr></thead>
+<tbody>
+<tr><td><code>dbx-platform-admins</code></td><td>Admin</td><td>Admin</td><td>Via approved process</td></tr>
+<tr><td><code>dbx-data-engineers</code></td><td>User, create compute (policy)</td><td>None or view</td><td>None by default</td></tr>
+<tr><td><code>dbx-production-support</code></td><td>User</td><td>CAN MANAGE RUN on jobs</td><td><code>ops</code> schema; masked customers</td></tr>
+<tr><td><code>dbx-business-analysts</code></td><td>None</td><td>SQL warehouse</td><td><code>gold.sales_summary</code></td></tr>
+<tr><td><code>dbx-finance-readers</code></td><td>None</td><td>SQL warehouse</td><td><code>finance</code> schema</td></tr>
+<tr><td><code>sp-retail-customer-load</code></td><td>None</td><td>Job run-as</td><td>Source read, target modify</td></tr>
+</tbody></table></div>
+<p class="ref">Avoid broad grants to all engineers just because some of them support production.</p></div>
+
+<div><h4>Step 3: Production job identity</h4>
+<p>Create service principal <code>sp-retail-customer-load</code> with access only to the prod workspace, its job, its source and target tables, its secrets or connections, and its storage locations. No workspace-admin rights without a specific justification. Note its <strong>application ID</strong>.</p></div>
+
+<div><h4>Step 4: Minimum data permissions</h4>
+<div class="code-wrap"><span class="lang">SQL · replace the UUID with your SP's application ID</span><pre class="code"><code>GRANT USE CATALOG ON CATALOG prod_catalog                      TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+
+GRANT USE SCHEMA ON SCHEMA prod_catalog.bronze                 TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+GRANT SELECT ON TABLE prod_catalog.bronze.customer_source      TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+
+GRANT USE SCHEMA ON SCHEMA prod_catalog.silver                 TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;
+GRANT SELECT, MODIFY ON TABLE prod_catalog.silver.customer_clean TO `6f1c2a9e-1b2d-4c3e-9f80-0a1b2c3d4e5f`;</code></pre></div>
+<p class="ref">The original granted only <code>MODIFY</code> on the target; a <code>MERGE</code> (the usual Silver pattern, Chapter 17) also reads it, so <code>SELECT</code> is added. The table must already exist; creating or replacing tables needs <code>CREATE TABLE</code> on the schema and a different deployment design. Also grant workspace, job, and compute access. Verify before running in production and follow your approval process.</p></div>
+
+<div><h4>Step 5: Reporting access</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>GRANT USE CATALOG ON CATALOG prod_catalog                 TO `dbx-business-analysts`;
+GRANT USE SCHEMA  ON SCHEMA  prod_catalog.gold            TO `dbx-business-analysts`;
+GRANT SELECT      ON TABLE   prod_catalog.gold.sales_summary TO `dbx-business-analysts`;</code></pre></div>
+<p class="ref">No bronze access without a valid business requirement.</p></div>
+
+<div><h4>Step 6: Protect customer columns</h4>
+<p>The customer table has <code>customer_id</code>, <code>customer_name</code>, <code>email_address</code>, <code>phone_number</code>, <code>region</code>. Approved customer-service users need full contact details; analysts need counts and regional summaries; production support needs execution metadata, not contact details. Apply the <code>mask_email</code> and <code>mask_phone</code> masks from 19.4.4, and the row filter from 19.4.3 for regional managers.</p></div>
+
+<div><h4>Step 7: Compute governance</h4>
+<p><strong>Dev:</strong> the policy from 19.1.3 (approved configurations, auto-termination, worker limits, approved runtimes). <strong>Prod:</strong> restrict who creates or modifies compute; job compute with approved configurations; tags; usage and cost review; limited interactive access.</p></div>
+
+<div><h4>Step 8: Test with real identities</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Test</th><th>Expected</th></tr></thead>
+<tbody>
+<tr><td>Developer reads dev data</td><td>Allowed if granted</td></tr>
+<tr><td>Developer reads prod customer data</td><td>Denied</td></tr>
+<tr><td>Prod SP reads its source</td><td>Allowed</td></tr>
+<tr><td>Prod SP merges into its target</td><td>Allowed</td></tr>
+<tr><td>Prod SP reads unrelated finance tables</td><td>Denied</td></tr>
+<tr><td>Analyst reads sales summary</td><td>Allowed</td></tr>
+<tr><td>Analyst modifies sales summary</td><td>Denied</td></tr>
+<tr><td>Non-approved user reads customer emails</td><td>Masked</td></tr>
+<tr><td>Production support views job runs</td><td>Allowed</td></tr>
+<tr><td>Production support reads full contact details</td><td>Masked unless separately authorized</td></tr>
+</tbody></table></div>
+<p class="ref">These are expected outcomes for the design; confirm them with real test identities in an isolated environment. Test denials as carefully as allowances.</p></div>
+
+<div><h4>Step 9: Document it</h4>
+<p>Deliver a short security design document: (1) environment architecture diagram, (2) identity and access matrix, (3) catalog and schema permission matrix, (4) secret and credential plan, (5) network connectivity plan, (6) production security checklist. Also cover storage access, compute policies, masking, audit and monitoring, access-review schedule, and incident response and credential revocation.</p></div>
+</div>
+
+<h3 id="s19-6-lab"><span class="num">19.6.2</span>Part B: Lab You Can Run on Free Edition</h3>
+<p>Free Edition has one user (you), so you can't test other people's access, but you can see a row filter and masks change what <em>you</em> see. Run in a SQL editor or notebook. Use the <code>workspace</code> catalog on Free Edition or <code>retail_dev</code> elsewhere.</p>
+<div class="code-wrap"><span class="lang">SQL · 1. Set up</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.security;
+
+CREATE OR REPLACE TABLE retail_dev.security.customers (
+  customer_id INT, customer_name STRING, email_address STRING,
+  phone_number STRING, region STRING
+);
+INSERT INTO retail_dev.security.customers VALUES
+  (101, 'Customer A', 'asha.rao@example.com', '+91 98450 12345', 'North'),
+  (102, 'Customer B', 'vikram@example.com',   '+91 99000 67890', 'South'),
+  (103, 'Customer C', NULL,                   NULL,              'West');
+
+-- Grant yourself North only
+CREATE OR REPLACE TABLE retail_dev.security.region_access (user_email STRING, region STRING);
+INSERT INTO retail_dev.security.region_access VALUES (session_user(), 'North');</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · 2. Create and attach the policies</span><pre class="code"><code>CREATE OR REPLACE FUNCTION retail_dev.security.region_filter(row_region STRING)
+RETURNS BOOLEAN
+RETURN is_account_group_member('dbx-platform-admins')
+    OR EXISTS (SELECT 1 FROM retail_dev.security.region_access a
+               WHERE a.user_email = session_user() AND a.region = row_region);
+
+CREATE OR REPLACE FUNCTION retail_dev.security.mask_email(email STRING)
+RETURNS STRING
+RETURN CASE
+  WHEN is_account_group_member('dbx-customer-data-restricted') THEN email
+  WHEN email IS NULL THEN NULL
+  ELSE concat(left(email, 1), '***@', substring_index(email, '@', -1))
+END;
+
+ALTER TABLE retail_dev.security.customers
+  SET ROW FILTER retail_dev.security.region_filter ON (region);
+ALTER TABLE retail_dev.security.customers
+  ALTER COLUMN email_address SET MASK retail_dev.security.mask_email;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · 3. Observe, change access, observe again</span><pre class="code"><code>SELECT * FROM retail_dev.security.customers;
+-- Expected: only 101 / North, email shown as a***@example.com
+-- (you're not in dbx-platform-admins or dbx-customer-data-restricted)
+
+INSERT INTO retail_dev.security.region_access VALUES (session_user(), 'South');
+SELECT * FROM retail_dev.security.customers;
+-- Expected: 101 and 102, both emails masked. No code changed, only the mapping.
+
+-- 4. Clean up: drop policies BEFORE their functions
+ALTER TABLE retail_dev.security.customers DROP ROW FILTER;
+ALTER TABLE retail_dev.security.customers ALTER COLUMN email_address DROP MASK;
+SELECT * FROM retail_dev.security.customers;   -- all 3 rows, real emails</code></pre></div>
+<div class="callout key"><span class="label">What this proves, and what was tested</span><p>Access is driven by governed data (the mapping table and group membership), not by anything the user can pass in. I verified the masking and mapping logic on Spark 4 (North visible, South and West hidden; <code>a***@example.com</code>; nulls preserved). The <code>SET ROW FILTER</code> and <code>SET MASK</code> statements are Databricks-only and weren't run here; the expected results follow the documented behavior. As the table owner you could simply drop the filter, which is why, in production, the <strong>owner should be a group or SP</strong>, not the users being filtered.</p></div>
+
+<!-- ===================== 19.7 ===================== -->
+<h2 id="s19-7"><span class="num">19.7</span>Common Security Mistakes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Mistake</th><th>Problem</th><th>Better approach</th></tr></thead>
+<tbody>
+<tr><td>Everyone is workspace admin</td><td>No real boundaries</td><td>Admin only where justified</td></tr>
+<tr><td>Prod jobs run as a person</td><td>Break when they leave</td><td>Dedicated service principal</td></tr>
+<tr><td>Granting to an SP's display name</td><td>Principal not found</td><td>Use the application ID</td></tr>
+<tr><td>Grants to individuals</td><td>Unmaintainable, missed on leaving</td><td>Account-level groups</td></tr>
+<tr><td><code>ALL PRIVILEGES</code> to fix an error</td><td>Far more access than needed</td><td>Grant the missing privilege only</td></tr>
+<tr><td>Schema-level <code>SELECT</code> for one table</td><td>Includes future tables</td><td>Table-level grant</td></tr>
+<tr><td>Hardcoded passwords or tokens</td><td>Leak via Git and logs</td><td>Secret scopes or managed identity</td></tr>
+<tr><td>Relying on <code>[REDACTED]</code></td><td>Transformed secrets aren't redacted</td><td>Never print secrets</td></tr>
+<tr><td>Long-lived PATs for automation</td><td>Stolen tokens stay valid</td><td>OAuth M2M or federation</td></tr>
+<tr><td>Dev access to prod secrets</td><td>Prod reachable from dev</td><td>Separate scopes and ACLs</td></tr>
+<tr><td>Filter on a notebook parameter</td><td>User can change it</td><td>Row filter on <code>session_user()</code> / groups</td></tr>
+<tr><td>Broad <code>READ FILES</code></td><td>Bypasses filters and masks</td><td>Govern file and table paths</td></tr>
+<tr><td>Dropping a mask's function first</td><td>Table becomes unreadable</td><td>Drop mask, then function</td></tr>
+<tr><td>IP list without VPN or CI paths</td><td>Locked out</td><td>Test; recovery plan</td></tr>
+<tr><td>Assuming a valid login is enough</td><td>Confusing permission errors</td><td>Check AuthN and AuthZ separately</td></tr>
+<tr><td>App audit table as security log</td><td>Incomplete, editable</td><td>Platform audit logs</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 19.8 ===================== -->
+<h2 id="s19-8"><span class="num">19.8</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. Workspace admin vs Unity Catalog administration?</summary><div class="answer">A workspace admin manages workspace resources and settings. Unity Catalog administration (metastore admins, object owners) governs data objects, permissions, and the metastore. They can overlap but aren't interchangeable; a workspace admin doesn't automatically read all data.</div></details>
+<details class="q"><summary>Q2. Why should production jobs use service principals?</summary><div class="answer">They're dedicated automation identities that don't depend on any employee, and permissions can be granted precisely to the workload.</div></details>
+<details class="q"><summary>Q3. Least privilege?</summary><div class="answer">Giving an identity only the permissions its responsibilities require, rather than broad workspace or catalog access.</div></details>
+<details class="q"><summary>Q4. Authentication vs authorization?</summary><div class="answer">Authentication verifies identity; authorization decides what that identity may access or do.</div></details>
+<details class="q"><summary>Q5. Why not hardcode credentials in notebooks?</summary><div class="answer">They leak through Git, logs, output, and shared files, and rotation requires code changes. Use secret scopes or identity-based authentication.</div></details>
+<details class="q"><summary>Q6. Purpose of Unity Catalog?</summary><div class="answer">Centralized governance of data and related assets: permissions, ownership, fine-grained controls, lineage, and auditing across workspaces.</div></details>
+<details class="q"><summary>Q7. Storage credential vs external location?</summary><div class="answer">A storage credential is the identity used to reach external storage; an external location binds a storage path to that credential and is the governance point for the path.</div></details>
+<details class="q"><summary>Q8. Row filter vs column mask?</summary><div class="answer">A row filter restricts which records you see; a column mask restricts which values you see in a column. Both are SQL functions attached to the table.</div></details>
+<details class="q"><summary>Q9. Securing a pipeline from Databricks to SQL Server?</summary><div class="answer">Dedicated read-only workload identity, credentials from a secret scope or identity-based auth, private/restricted network path, TLS with certificate validation, and failure logging without credentials.</div></details>
+<details class="q"><summary>Q10. Separating dev and prod?</summary><div class="answer">Separate workspaces and catalogs with workspace bindings, separate credentials and secret scopes, compute policies, restricted prod access, and deployment through version control and CI/CD as a service principal.</div></details>
+<details class="q"><summary>Q11. Does SELECT on a table grant everything needed?</summary><div class="answer">No. You also need USE CATALOG and USE SCHEMA, workspace access, and compute or a warehouse; bindings, row filters, and masks may still restrict results.</div></details>
+<details class="q"><summary>Q12. Investigating a production permission failure?</summary><div class="answer">Identify the executing principal (the job's run-as), check catalog/schema/table privileges with SHOW GRANTS, check bindings and storage or network controls, reproduce as that identity, and grant only the justified missing privilege.</div></details>
+<details class="q"><summary>Q13. How do you reference a service principal in GRANT?</summary><div class="answer">By its application ID (a UUID) in backticks, not its display name.</div></details>
+<details class="q"><summary>Q14. Key Vault-backed vs Databricks-backed secret scope?</summary><div class="answer">Key Vault-backed scopes read secrets that stay in Azure Key Vault (managed there); Databricks-backed scopes store secrets in Databricks. Both are read with dbutils.secrets.get.</div></details>
+<details class="q"><summary>Q15. OAuth M2M vs U2M?</summary><div class="answer">M2M: a service principal authenticates with client credentials for unattended automation. U2M: an interactive user signs in through a browser.</div></details>
+<details class="q"><summary>Q16. What happens when you GRANT SELECT on a schema?</summary><div class="answer">The grantee can read all current and future tables in it (with USE CATALOG/USE SCHEMA), because privileges inherit downward.</div></details>
+<details class="q"><summary>Q17. What's secure cluster connectivity?</summary><div class="answer">Cluster nodes have no public IPs and no open inbound ports; they connect outbound to the control plane.</div></details>
+<details class="q"><summary>Q18. Where do you find who changed a permission?</summary><div class="answer">The platform audit log, e.g. system.access.audit with service_name 'unityCatalog'.</div></details>
+<details class="q"><summary>Q19. Why can a user with READ FILES weaken table security?</summary><div class="answer">Reading underlying files directly bypasses table-level row filters and column masks.</div></details>
+<details class="q"><summary>Q20. A user sees an empty table but no error. Security cause?</summary><div class="answer">A row filter that returns false for every row for that user.</div></details>
+
+<!-- ===================== 19.9 ===================== -->
+<h2 id="s19-9"><span class="num">19.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topics</th><th>Practical activity</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Workspace administration</td><td>Design dev and prod workspaces; write a compute policy</td></tr>
+<tr><td>2</td><td>Users, groups, service principals</td><td>Create the identity and access matrix</td></tr>
+<tr><td>3</td><td>Authentication, OAuth, secrets</td><td>Create a secret scope; read a secret; design M2M auth for a job</td></tr>
+<tr><td>4</td><td>Network security</td><td>Draw the three connection paths for a job and a source DB</td></tr>
+<tr><td>5</td><td>Unity Catalog</td><td>Practice GRANT, SHOW GRANTS, REVOKE</td></tr>
+<tr><td>6</td><td>Row filters and column masks</td><td>Run the Part B lab</td></tr>
+<tr><td>7</td><td>Production administration</td><td>Complete the design document and test matrix</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/" target="_blank" rel="noopener">Azure Databricks security and compliance</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/auth/" target="_blank" rel="noopener">Authentication and access control</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/admin/users-groups/manage-service-principals" target="_blank" rel="noopener">Manage service principals</a></li>
+<li><a href="https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-principal" target="_blank" rel="noopener">Principal names in SQL</a> (application IDs for service principals)</li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/concepts/private-link" target="_blank" rel="noopener">Private Link concepts</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/security/network/" target="_blank" rel="noopener">Azure Databricks networking</a></li>
+<li><a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/" target="_blank" rel="noopener">Unity Catalog access control</a></li>
+<li><a href="https://docs.databricks.com/aws/en/data-governance/unity-catalog/filters-and-masks/manually-apply" target="_blank" rel="noopener">Row filters and column masks</a></li>
+</ul></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch19-checklist">
+<label><input type="checkbox"> <span><strong>Workspace administration</strong> manages the workspace and its resources.</span></label>
+<label><input type="checkbox"> <span><strong>Microsoft Entra ID</strong> provides identity and authentication.</span></label>
+<label><input type="checkbox"> <span><strong>Service principals</strong> are dedicated identities for automation, granted by application ID.</span></label>
+<label><input type="checkbox"> <span><strong>OAuth</strong> gives applications short-lived tokens instead of passwords.</span></label>
+<label><input type="checkbox"> <span><strong>Secret management</strong> keeps credentials out of code and logs.</span></label>
+<label><input type="checkbox"> <span><strong>Least privilege</strong> limits each identity to what it needs.</span></label>
+<label><input type="checkbox"> <span><strong>Network security</strong> controls three separate connection paths.</span></label>
+<label><input type="checkbox"> <span><strong>Unity Catalog</strong> governs data through grants that inherit downward.</span></label>
+<label><input type="checkbox"> <span><strong>Row filters and column masks</strong> enforce fine-grained protection.</span></label>
+<label><input type="checkbox"> <span><strong>Production administration</strong> needs separation, reviews, compute governance, auditing, and controlled deployments.</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch19-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch19-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 20!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="callout key"><span class="label">Production engineer's perspective</span><p>A pipeline that runs successfully isn't necessarily production-ready. It must also run under the right identity, access only authorized data, use secure connectivity, protect credentials, and leave enough audit information for troubleshooting and compliance.</p></div>
+
+<div class="next">
+<h3>Next chapter: Databricks Monitoring and Troubleshooting</h3>
+<p>Chapter 20 is the production-support chapter: monitoring jobs and pipelines, SLA tracking, troubleshooting slow Spark jobs, OOM errors, skew and shuffle failures, diagnosing schema, permission, and connectivity errors, system tables and alerting, and building a monitoring framework that captures failures and SLA breaches.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-18.html"><span>← Previous</span><strong>Chapter 18: Data Quality &amp; Testing</strong></a>
+  <a class="pager-link" href="databricks-chapter-20.html"><span>Next →</span><strong>Chapter 20: Monitoring &amp; Troubleshooting</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 7 · Chapter 19 of 24</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

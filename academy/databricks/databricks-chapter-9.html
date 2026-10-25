@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 9: Delta Lake</title>
+<meta name="description" content="Databricks Tutorial — Chapter 9: Delta Lake. Transaction log, ACID, schema enforcement and evolution, MERGE, time travel, RESTORE, OPTIMIZE, Z-Ordering, liquid clustering, VACUUM, and an incremental customer project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 9 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s9-1">9.1 Delta Lake Fundamentals</a></li>
+    <li class="lvl2"><a href="#s9-1-1">What is Delta Lake?</a></li>
+    <li class="lvl2"><a href="#s9-1-2">Delta vs Parquet</a></li>
+    <li class="lvl2"><a href="#s9-1-3">Delta tables</a></li>
+    <li class="lvl2"><a href="#s9-1-4">Transaction log</a></li>
+    <li class="lvl2"><a href="#s9-1-5">ACID transactions</a></li>
+    <li class="lvl2"><a href="#s9-1-6">Schema enforcement</a></li>
+    <li class="lvl2"><a href="#s9-1-7">Schema evolution</a></li>
+    <li class="lvl2"><a href="#s9-1-8">Data reliability</a></li>
+    <li class="lvl2"><a href="#s9-1-9">Concurrent reads &amp; writes</a></li>
+    <li class="lvl1"><a href="#s9-2">9.2 Creating Delta Tables</a></li>
+    <li class="lvl2"><a href="#s9-2-1">Managed tables</a></li>
+    <li class="lvl2"><a href="#s9-2-2">External tables</a></li>
+    <li class="lvl2"><a href="#s9-2-3">Using PySpark</a></li>
+    <li class="lvl2"><a href="#s9-2-4">CTAS</a></li>
+    <li class="lvl2"><a href="#s9-2-5">Inserting</a></li>
+    <li class="lvl2"><a href="#s9-2-6">Updating</a></li>
+    <li class="lvl2"><a href="#s9-2-7">Deleting</a></li>
+    <li class="lvl2"><a href="#s9-2-8">Dropping tables</a></li>
+    <li class="lvl1"><a href="#s9-3">9.3 Delta Operations</a></li>
+    <li class="lvl2"><a href="#s9-3-1">What is MERGE?</a></li>
+    <li class="lvl2"><a href="#s9-3-2">MERGE syntax</a></li>
+    <li class="lvl2"><a href="#s9-3-3">Upserts</a></li>
+    <li class="lvl2"><a href="#s9-3-4">Insert-only</a></li>
+    <li class="lvl2"><a href="#s9-3-5">Update-only</a></li>
+    <li class="lvl2"><a href="#s9-3-6">Deletes with MERGE</a></li>
+    <li class="lvl2"><a href="#s9-3-7">Deduplication + MERGE</a></li>
+    <li class="lvl2"><a href="#s9-3-8">Schema evolution on write</a></li>
+    <li class="lvl2"><a href="#s9-3-9">Schema mismatches</a></li>
+    <li class="lvl1"><a href="#s9-4">9.4 Time Travel</a></li>
+    <li class="lvl2"><a href="#s9-4-2">Table history</a></li>
+    <li class="lvl2"><a href="#s9-4-3">Previous versions</a></li>
+    <li class="lvl2"><a href="#s9-4-4">By timestamp</a></li>
+    <li class="lvl2"><a href="#s9-4-5">Comparing versions</a></li>
+    <li class="lvl2"><a href="#s9-4-6">RESTORE</a></li>
+    <li class="lvl2"><a href="#s9-4-7">Recovery scenarios</a></li>
+    <li class="lvl2"><a href="#s9-4-8">Retention</a></li>
+    <li class="lvl1"><a href="#s9-5">9.5 Maintenance</a></li>
+    <li class="lvl2"><a href="#s9-5-2">OPTIMIZE</a></li>
+    <li class="lvl2"><a href="#s9-5-3">Compaction</a></li>
+    <li class="lvl2"><a href="#s9-5-4">Z-Ordering</a></li>
+    <li class="lvl2"><a href="#s9-5-5">Liquid clustering</a></li>
+    <li class="lvl2"><a href="#s9-5-6">VACUUM</a></li>
+    <li class="lvl2"><a href="#s9-5-7">Small files</a></li>
+    <li class="lvl2"><a href="#s9-5-8">Data skipping</a></li>
+    <li class="lvl2"><a href="#s9-5-9">Statistics</a></li>
+    <li class="lvl2"><a href="#s9-5-10">Maintenance strategies</a></li>
+    <li class="lvl1"><a href="#project">Project: Incremental Customers</a></li>
+    <li class="lvl2"><a href="#extensions">Project extensions</a></li>
+    <li class="lvl1"><a href="#takeaways">Key Takeaways</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 4 · Chapter 9 · Delta Lake &amp; Data Management</span>
+  <h1>Delta Lake</h1>
+  <p class="lead">The storage layer that makes the lakehouse reliable: transaction logs, ACID guarantees, schema control, MERGE, time travel, and table maintenance, ending with an incremental customer pipeline you can inspect version by version.</p>
+  <p class="ref">Examples use Databricks SQL, PySpark, Delta tables, and Unity Catalog. Some features depend on your Databricks Runtime, table configuration, catalog, and permissions.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain Delta Lake's architecture and its advantages over plain Parquet.</li>
+    <li>Explain how the Delta transaction log works.</li>
+    <li>Understand ACID transactions, schema enforcement, and schema evolution.</li>
+    <li>Create and manage managed and external Delta tables.</li>
+    <li>Perform inserts, updates, deletes, and upserts.</li>
+    <li>Implement incremental processing with <code>MERGE INTO</code>.</li>
+    <li>Use table history and time travel.</li>
+    <li>Restore previous table versions.</li>
+    <li>Optimize tables with compaction and clustering.</li>
+    <li>Understand <code>OPTIMIZE</code>, <code>ZORDER BY</code>, liquid clustering, and <code>VACUUM</code>.</li>
+    <li>Build an incremental customer-processing pipeline.</li>
+    <li>Apply enterprise data-management practices.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s9-1"><span>9.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s9-2"><span>9.2</span><strong>Creating Tables</strong></a>
+    <a class="chip" href="#s9-3"><span>9.3</span><strong>MERGE &amp; Operations</strong></a>
+    <a class="chip" href="#s9-4"><span>9.4</span><strong>Time Travel</strong></a>
+    <a class="chip" href="#s9-5"><span>9.5</span><strong>Maintenance</strong></a>
+    <a class="chip" href="#project"><span>Project</span><strong>Incremental Customers</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 9.1 ===================== -->
+<h2 id="s9-1"><span class="num">9.1</span>Delta Lake Fundamentals</h2>
+
+<h3 id="s9-1-1"><span class="num">9.1.1</span>What Is Delta Lake?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>Delta Lake is a storage layer that adds transactional and data-management capabilities to data in lake storage. It's a foundational technology of the Databricks lakehouse.</p></div>
+<p>CSV, JSON, and Parquet are useful storage formats, but on their own they don't provide the transactional guarantees reliable analytical tables need. Delta Lake fills that gap by keeping a <strong>transaction log</strong> that tracks every change to a table.</p>
+<div class="grid-2">
+<div><h5>Plain Parquet</h5>
+<pre class="diagram">customers/
+    part-00000.parquet
+    part-00001.parquet
+    part-00002.parquet</pre>
+<p>To update customer 101, your application must read the data, produce replacement files, and coordinate them itself. Parquet has no table-level transactions, which causes trouble when several processes touch the same data.</p></div>
+<div><h5>Delta table</h5>
+<pre class="diagram">customers_delta/
+│
+├── part-00000-....parquet
+├── part-00001-....parquet
+├── part-00002-....parquet
+│
+└── _delta_log/
+    ├── 00000000000000000000.json
+    ├── 00000000000000000001.json
+    └── ...</pre>
+<p>Parquet files hold the data; <code>_delta_log</code> records metadata and which files are active. Readers use a consistent table version instead of treating every file in the folder as live.</p></div>
+</div>
+<div class="callout warn"><span class="label">Important</span><p>Never modify the Parquet files inside a Delta table directly. That can break the relationship between the data files and the transaction log.</p></div>
+<div class="card"><h4>Key capabilities</h4><div class="grid-2" style="margin:0"><ul style="margin:0"><li>ACID transactions.</li><li>Schema enforcement.</li><li>Controlled schema evolution.</li><li>Inserts, updates, and deletes.</li><li>Upserts through <code>MERGE</code>.</li></ul><ul style="margin:0"><li>Table history.</li><li>Time travel.</li><li>Optimized data layout operations.</li><li>Integration with Databricks governance and catalogs.</li></ul></div></div>
+
+<h3 id="s9-1-2"><span class="num">9.1.2</span>Delta Lake Versus Parquet</h3>
+<p>Parquet is a columnar <strong>file format</strong>. Delta Lake is a transactional <strong>table format</strong> that uses Parquet files plus a transaction log.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Parquet</th><th>Delta Lake</th></tr></thead>
+<tbody>
+<tr><td>Columnar storage</td><td>Yes</td><td>Yes, through Parquet</td></tr>
+<tr><td>Data compression</td><td>Yes</td><td>Yes, through underlying files</td></tr>
+<tr><td>Table transaction log</td><td>No</td><td>Yes</td></tr>
+<tr><td>ACID transactions</td><td>Not inherently</td><td>Yes</td></tr>
+<tr><td>Schema enforcement</td><td>Schema metadata, no table-level enforcement</td><td>Yes</td></tr>
+<tr><td>Schema evolution</td><td>Depends on the processing system</td><td>Controlled operations</td></tr>
+<tr><td>Insert, update, delete</td><td>Need extra processing</td><td>Supported</td></tr>
+<tr><td>Upsert</td><td>Custom processing</td><td>Through <code>MERGE</code></td></tr>
+<tr><td>Table history</td><td>No</td><td>Yes</td></tr>
+<tr><td>Time travel</td><td>No</td><td>Yes, subject to retention</td></tr>
+<tr><td>Concurrent table operations</td><td>No native management</td><td>Delta transaction protocol</td></tr>
+<tr><td>Best use</td><td>Analytical files and data exchange</td><td>Reliable analytical tables</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+  <div class="card"><h4>Use Parquet when</h4><ul><li>You need an interoperable analytical file format.</li><li>Data is written once and read many times.</li><li>You don't need transactional table operations.</li><li>The target system expects Parquet.</li></ul></div>
+  <div class="card"><h4>Use Delta when</h4><ul><li>Data is updated incrementally.</li><li>Multiple pipelines access the same table.</li><li>You need reliable inserts, updates, and deletes.</li><li>You need history and recovery.</li><li>You need schema enforcement.</li><li>You maintain curated reporting datasets.</li></ul></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">Source Systems
+      |
+      v
+Bronze: Raw / Ingested Delta
+      |
+      v
+Silver: Cleansed Delta
+      |
+      v
+Gold: Business-Ready Delta
+      |
+      v
+Power BI / SQL Analytics</pre>
+<div class="callout key" style="margin:0"><span class="label">Enterprise recommendation</span><p>Bronze preserves ingested data, Silver applies validation and standardization, and Gold holds business-ready datasets, all as Delta tables.</p></div>
+</div>
+
+<h3 id="s9-1-3"><span class="num">9.1.3</span>Delta Tables</h3>
+<p>A Delta table is a named or path-based dataset whose active state is managed by the transaction log. You access it by storage path or by catalog name.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Path-based
+df = spark.read.format("delta").load(
+    "/Volumes/main/silver/customers_delta/"
+)
+
+# Catalog-based
+df = spark.table("main.silver.customers")</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    CustomerID,
+    CustomerName,
+    City
+FROM main.silver.customers;</code></pre></div>
+</div>
+<div class="callout"><span class="label">Important distinction</span><p>A Delta table at a path doesn't automatically have a catalog name. A catalog table is a named object with metadata, permissions, and governance. In Unity Catalog it's referenced as <code>catalog.schema.table</code>, e.g. <code>main.silver.customers</code>; the catalog and schema must exist and you need permissions.</p></div>
+
+<h3 id="s9-1-4"><span class="num">9.1.4</span>Delta Transaction Logs</h3>
+<p>The transaction log is one of Delta Lake's most important components. It records the changes needed to determine a table's current state: data files added, files removed from the active state, schema and metadata, protocol information, transaction IDs and application metadata, and supported table features.</p>
+<p class="ref">The log doesn't store every row; the data stays in the data files.</p>
+<div class="grid-2">
+<pre class="diagram">Version 0:
+    customers_001.parquet
+    customers_002.parquet
+
+Version 1  (new batch inserted):
+    customers_001.parquet
+    customers_002.parquet
+    customers_003.parquet
+
+Version 2  (existing customer updated):
+    New replacement files are added.
+    Previously active files may be
+    removed from the current state.</pre>
+<div class="card"><h4>Why this matters</h4><p>Without the log, a reader could see incomplete or inconsistent results while a write is in progress.</p><p style="margin-bottom:0">Delta commits each transaction <strong>atomically</strong>, so readers always see a consistent table state. Delta uses the log to know exactly which files belong to each version.</p></div>
+</div>
+<div class="callout warn"><span class="label">Inspect, don't edit</span><p><code>_delta_log</code> is great for understanding the architecture, but never modify it manually. Use SQL commands and Delta APIs to inspect history and change tables.</p></div>
+
+<h3 id="s9-1-5"><span class="num">9.1.5</span>ACID Transactions</h3>
+<p>Delta Lake provides ACID properties for supported table operations.</p>
+<div class="grid-2">
+  <div class="card"><h4>Atomicity</h4><p style="margin-bottom:0">A transaction commits entirely or not at all. If a 100,000-record write fails before committing, readers see none of it.</p></div>
+  <div class="card"><h4>Consistency</h4><p style="margin-bottom:0">Transactions preserve the table's rules: schema compatibility, enforced constraints, valid metadata, protocol requirements. Business rules like unique customer IDs still need explicit implementation.</p></div>
+  <div class="card"><h4>Isolation</h4><p style="margin-bottom:0">Concurrent readers and writers are coordinated by Delta's transaction and concurrency rules. Conflicting writes are resolved per the operations, isolation settings, and runtime.</p></div>
+  <div class="card"><h4>Durability</h4><p style="margin-bottom:0">Once committed, the state persists according to the storage platform's durability guarantees.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>UPDATE main.silver.customers
+SET City = 'Hyderabad'
+WHERE CustomerID = 101;</code></pre></div>
+<p>This changes the table atomically: no query ever sees a state where only part of the update is committed.</p>
+
+<h3 id="s9-1-6"><span class="num">9.1.6</span>Schema Enforcement</h3>
+<p>Schema enforcement blocks incompatible data from being written to a Delta table.</p>
+<div class="grid-2">
+<div><h5>Target table</h5><pre class="diagram">CustomerID   INT
+CustomerName STRING
+Age          INT</pre></div>
+<div><h5>Incoming DataFrame</h5><pre class="diagram">CustomerID   INT
+CustomerName STRING
+Age          STRING   &lt;- mismatch</pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
+    StructType,
+    StructField,
+    IntegerType,
+    StringType
+)
+
+schema = StructType([
+    StructField("CustomerID", IntegerType(), True),
+    StructField("CustomerName", StringType(), True),
+    StructField("Age", StringType(), True)
+])
+
+incoming_df = spark.createDataFrame(
+    [(101, "John", "35"), (102, "David", "40")],
+    schema
+)</code></pre></div>
+<p>Appending this to a table whose <code>Age</code> is an integer can fail with a schema incompatibility. The fix is to convert first, then check for conversion failures:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+corrected_df = incoming_df.withColumn(
+    "Age",
+    F.expr("try_cast(Age AS INT)")
+)
+
+invalid_df = corrected_df.filter(F.col("Age").isNull())</code></pre></div>
+<p class="ref">If null ages are legitimate, distinguish source nulls from conversion failures.</p>
+<p><strong>Benefits:</strong> prevents unintended schema changes, protects downstream queries, improves consistency, helps detect upstream source changes, and reduces surprise reporting failures.</p>
+
+<h3 id="s9-1-7"><span class="num">9.1.7</span>Schema Evolution</h3>
+<p>Schema evolution lets a table's schema change in a controlled way, for example when the source adds an <code>Email</code> column to <code>CustomerID, CustomerName, City</code>.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    incoming_df.write
+    .format("delta")
+    .mode("append")
+    .option("mergeSchema", "true")
+    .saveAsTable("main.silver.customers")
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Schema enforcement</th><th>Schema evolution</th></tr></thead>
+<tbody>
+<tr><td>Rejects incompatible changes</td><td>Allows approved schema changes</td></tr>
+<tr><td>Protects the existing data contract</td><td>Supports changes to the contract</td></tr>
+<tr><td>Prevents accidental drift</td><td>Incorporates legitimate new fields</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Don't enable it everywhere</span><p>A new column can affect downstream SQL, semantic models, reports, and contracts. Define which new columns are allowed, whether type changes are permitted, how incompatible changes are handled, which downstream systems need updates, and how changes are logged and reviewed.</p></div>
+
+<h3 id="s9-1-8"><span class="num">9.1.8</span>Data Reliability</h3>
+<p>Data reliability means the table consistently represents the intended business data. Delta helps through transactions, schema enforcement, and controlled changes, but it doesn't guarantee <strong>business</strong> correctness. A transaction will happily insert a customer with a negative credit limit if no constraint or validation stops it.</p>
+<div class="grid-2">
+  <div class="card"><h4>Reliability controls</h4><ol><li>Schema validation.</li><li>Required-field validation.</li><li>Duplicate detection.</li><li>Business-rule validation.</li><li>Record count reconciliation.</li><li>Incremental-load reconciliation.</li><li>Transaction failure handling.</li><li>Audit logging.</li><li>Source-to-target comparison.</li><li>Recovery and reprocessing procedures.</li></ol></div>
+  <div><h5>Example: a check constraint</h5>
+  <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>ALTER TABLE main.silver.products
+ADD CONSTRAINT valid_price
+CHECK (Price &gt;= 0);</code></pre></div>
+  <p class="ref">Illustrative: the table needs a compatible <code>Price</code> column, and existing data must already satisfy the rule. Constraints don't replace comprehensive validation.</p></div>
+</div>
+
+<h3 id="s9-1-9"><span class="num">9.1.9</span>Concurrent Reads and Writes</h3>
+<p>In enterprise environments, several jobs touch the same table: Pipeline A inserts customers, Pipeline B updates addresses, a report reads, an optimization job reorganizes files. Readers query a consistent snapshot while supported writes happen.</p>
+<div class="grid-2">
+<div class="card"><h4>Optimistic concurrency control</h4><ol><li>Read the relevant table state.</li><li>Do the data-processing work.</li><li>Attempt to commit.</li><li>Check for conflicting concurrent changes.</li><li>Commit, or fail if a conflict is found.</li></ol></div>
+<div class="card"><h4>When a conflict occurs</h4><ul><li>Inspect the error.</li><li>Decide whether it's transient.</li><li>Refresh the relevant table state.</li><li>Recompute the operation where appropriate.</li><li>Retry with a bounded retry policy.</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Don't retry blindly</span><p>Schema mismatches and invalid data won't be fixed by retrying. Only transient concurrency conflicts benefit from a retry.</p></div>
+
+<!-- ===================== 9.2 ===================== -->
+<h2 id="s9-2"><span class="num">9.2</span>Creating Delta Tables</h2>
+
+<h3 id="s9-2-1"><span class="num">9.2.1</span>Managed Delta Tables</h3>
+<p>A managed table's storage lifecycle is managed by the platform. In Unity Catalog, its data lives in the managed storage location configured for the catalog or schema.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.silver.customers (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING,
+    Email STRING
+)
+USING DELTA;
+
+INSERT INTO main.silver.customers
+VALUES
+    (101, 'John', 'Hyderabad', 'john@example.com'),
+    (102, 'David', 'Chennai', 'david@example.com');
+
+SELECT *
+FROM main.silver.customers;</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Catalog-managed metadata.</li><li>Access control integration.</li><li>Easy table discovery.</li><li>Simplified lifecycle.</li><li>Strong Databricks SQL and Spark integration.</li></ul></div>
+  <div class="callout warn" style="margin:0"><span class="label">Important</span><p>Dropping a managed table normally removes the table <em>and its data</em>. Don't assume dropping is harmless.</p></div>
+</div>
+<p class="ref">If <code>main.silver.customers</code> already exists from Chapter 8 with a different schema, use a new name for these examples, or drop the old table first.</p>
+
+<h3 id="s9-2-2"><span class="num">9.2.2</span>External Delta Tables</h3>
+<p>An external table's metadata is registered in the catalog, but its data lives at a location you specify and manage separately.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.silver.external_customers (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING
+)
+USING DELTA
+LOCATION 'abfss://silver@myaccount.dfs.core.windows.net/customers/';</code></pre></div>
+<p class="ref">An illustrative ADLS Gen2 location. In Unity Catalog, external locations and storage credentials must be configured; access also depends on workspace and cloud permissions.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Managed table</th><th>External table</th></tr></thead>
+<tbody>
+<tr><td>Storage location</td><td>Managed by the platform</td><td>Specified external location</td></tr>
+<tr><td>Catalog metadata</td><td>Managed by the catalog</td><td>Managed by the catalog</td></tr>
+<tr><td>Data lifecycle</td><td>Managed-table lifecycle</td><td>Managed separately</td></tr>
+<tr><td>Typical use</td><td>Curated platform-managed datasets</td><td>Data that must stay at a controlled location</td></tr>
+<tr><td>Drop behavior</td><td>Normally removes managed data</td><td>Normally removes only the catalog entry</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Recommendation</span><p>Use managed tables when you want Databricks to manage storage. Use external tables only when you have a deliberate need to control the storage location independently.</p></div>
+
+<h3 id="s9-2-3"><span class="num">9.2.3</span>Creating Delta Tables Using PySpark</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>data = [
+    (101, "John", "Hyderabad"),
+    (102, "David", "Chennai"),
+    (103, "Smith", "Bengaluru")
+]
+
+columns = ["CustomerID", "CustomerName", "City"]
+
+df = spark.createDataFrame(data, columns)
+
+(
+    df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("main.silver.customers")
+)
+
+customers_df = spark.table("main.silver.customers")
+
+display(customers_df)</code></pre></div>
+<p class="ref">This creates or replaces the table depending on its current state and your permissions. In production, prefer an explicit target schema and avoid accidental overwrites.</p>
+
+<h3 id="s9-2-4"><span class="num">9.2.4</span>Creating a Delta Table Using CTAS</h3>
+<p>CTAS (<code>CREATE TABLE AS SELECT</code>) creates a table from a query result.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.silver.active_customers
+USING DELTA
+AS
+SELECT
+    CustomerID,
+    CustomerName,
+    City
+FROM main.bronze.customers
+WHERE IsActive = true;</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>What happens</h4><ol><li>Spark runs the query.</li><li>The query returns the selected records.</li><li>The result is written to a new Delta table.</li><li>The table becomes available in the catalog.</li></ol></div>
+  <div class="card"><h4>Use cases</h4><ul><li>Creating curated tables.</li><li>Transforming during creation.</li><li>Materializing filtered datasets.</li><li>Building reporting tables.</li></ul></div>
+</div>
+<p class="ref">CTAS fails if the target already exists. Use <code>CREATE OR REPLACE TABLE ... AS SELECT</code> when replacement is intended.</p>
+
+<h3 id="s9-2-5"><span class="num">9.2.5</span>Inserting Data</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- One record
+INSERT INTO main.silver.customers
+VALUES (104, 'Kumar', 'Vijayawada', 'kumar@example.com');
+
+-- Named columns
+INSERT INTO main.silver.customers (
+    CustomerID, CustomerName, City, Email
+)
+VALUES (105, 'Ravi', 'Hyderabad', 'ravi@example.com');
+
+-- From another table (columns must be compatible)
+INSERT INTO main.silver.customers
+SELECT CustomerID, CustomerName, City, Email
+FROM main.bronze.new_customers;</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · append</span><pre class="code"><code>(
+    new_customers_df.write
+    .format("delta")
+    .mode("append")
+    .saveAsTable("main.silver.customers")
+)</code></pre></div>
+<p class="ref">These assume the four-column table from 9.2.1. Appending doesn't eliminate duplicate business keys.</p>
+
+<h3 id="s9-2-6"><span class="num">9.2.6</span>Updating Data</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>UPDATE main.silver.customers
+SET City = 'Hyderabad'
+WHERE CustomerID = 101;
+
+-- Multiple columns
+UPDATE main.silver.customers
+SET
+    City = 'Hyderabad',
+    Email = 'john.new@example.com'
+WHERE CustomerID = 101;
+
+-- A group of records
+UPDATE main.silver.customers
+SET City = 'Unknown'
+WHERE City IS NULL;</code></pre></div>
+<div class="callout warn"><span class="label">Check the WHERE clause</span><p>An update without an appropriate filter modifies every row. Validate the <code>WHERE</code> clause before running it against production.</p></div>
+
+<h3 id="s9-2-7"><span class="num">9.2.7</span>Deleting Data</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DELETE FROM main.silver.customers
+WHERE CustomerID = 105;
+
+-- Assumes an IsActive column exists
+DELETE FROM main.silver.customers
+WHERE IsActive = false;</code></pre></div>
+<p class="ref">A Delta delete changes the logical table state; the physical files may remain until retention and maintenance policies allow cleanup. Never delete the Parquet files manually.</p>
+
+<h3 id="s9-2-8"><span class="num">9.2.8</span>Dropping Tables</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DROP TABLE IF EXISTS main.silver.customers;</code></pre></div>
+<p>Dropping removes the catalog registration and follows the table type's lifecycle: a managed table's data is normally deleted; an external table's files normally remain.</p>
+<div class="card"><h4>Before dropping a table</h4><ol class="steps">
+<li>Confirm the table name.</li>
+<li>Confirm whether it's managed or external.</li>
+<li>Check downstream dependencies.</li>
+<li>Confirm backup or recovery requirements.</li>
+<li>Review the applicable retention and recovery mechanisms.</li>
+</ol></div>
+<p class="ref">Unity Catalog managed tables can often be recovered with <code>UNDROP TABLE</code> within a limited window, but treat dropping as a potentially destructive operation.</p>
+
+<!-- ===================== 9.3 ===================== -->
+<h2 id="s9-3"><span class="num">9.3</span>Delta Lake Operations</h2>
+
+<h3 id="s9-3-1"><span class="num">9.3.1</span>What Is MERGE INTO?</h3>
+<p><code>MERGE INTO</code> combines source and target data by a matching condition, and is the workhorse of incremental ingestion. It can update matching records, insert unmatched ones, delete matches under conditions, and handle different source actions.</p>
+<div class="grid-2">
+<div><h5>Target</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Hyderabad</td></tr><tr><td>102</td><td>David</td><td>Chennai</td></tr></tbody></table></div></div>
+<div><h5>Incoming batch</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Bengaluru</td></tr><tr><td>103</td><td>Smith</td><td>Vijayawada</td></tr></tbody></table></div></div>
+</div>
+<h5>After the merge</h5>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th><th>What happened</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Bengaluru</td><td>Updated</td></tr><tr><td>102</td><td>David</td><td>Chennai</td><td>Unchanged</td></tr><tr><td>103</td><td>Smith</td><td>Vijayawada</td><td>Inserted</td></tr></tbody></table></div>
+
+<h3 id="s9-3-2"><span class="num">9.3.2</span>Basic MERGE Syntax</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.silver.customers AS target
+USING main.bronze.customer_updates AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED THEN
+    UPDATE SET
+        target.CustomerName = source.CustomerName,
+        target.City = source.City
+
+WHEN NOT MATCHED THEN
+    INSERT (CustomerID, CustomerName, City)
+    VALUES (source.CustomerID, source.CustomerName, source.City);</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Clause</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>MERGE INTO</code></td><td>Identifies the target table</td></tr>
+<tr><td><code>USING</code></td><td>Identifies the source dataset</td></tr>
+<tr><td><code>ON</code></td><td>Defines the matching condition</td></tr>
+<tr><td><code>WHEN MATCHED</code></td><td>Records in both source and target</td></tr>
+<tr><td><code>WHEN NOT MATCHED</code></td><td>Records only in the source</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Important rule</span><p>The source must not contain multiple conflicting rows for the same target key, or the merge may fail because several source rows match one target row. Deduplicate the source first.</p></div>
+
+<h3 id="s9-3-3"><span class="num">9.3.3</span>Upserts</h3>
+<p>An upsert updates matching records and inserts new ones.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from delta.tables import DeltaTable
+
+target = DeltaTable.forName(spark, "main.silver.customers")
+
+(
+    target.alias("target")
+    .merge(
+        source_df.alias("source"),
+        "target.CustomerID = source.CustomerID"
+    )
+    .whenMatchedUpdateAll()
+    .whenNotMatchedInsertAll()
+    .execute()
+)</code></pre></div>
+<p><strong>Use cases:</strong> customer master synchronization, product dimension maintenance, incremental reference data, slowly changing data, source-to-target synchronization.</p>
+<div class="callout"><span class="label">Important</span><p><code>whenMatchedUpdateAll()</code> updates every compatible column. Use explicit column mappings (<code>whenMatchedUpdate(set={...})</code>) if some columns shouldn't change, such as ingestion timestamps, audit fields, or manually maintained attributes.</p></div>
+
+<h3 id="s9-3-4"><span class="num">9.3.4</span>Insert-Only Operations</h3>
+<p>Adds records that don't already exist in the target.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.silver.customers AS target
+USING main.bronze.new_customers AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN NOT MATCHED THEN
+    INSERT (CustomerID, CustomerName, City)
+    VALUES (source.CustomerID, source.CustomerName, source.City);</code></pre></div>
+<p><strong>Use cases:</strong> new customer registration, append-oriented reference data, initial population of missing entities.</p>
+<p class="ref">Still deduplicate the source: two rows with the same new key are both "not matched" and would create duplicate target records.</p>
+
+<h3 id="s9-3-5"><span class="num">9.3.5</span>Update-Only Operations</h3>
+<p>Changes existing records and never inserts.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.silver.customers AS target
+USING main.bronze.customer_updates AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED THEN
+    UPDATE SET
+        target.CustomerName = source.CustomerName,
+        target.City = source.City;</code></pre></div>
+<p>New source customers are ignored because there's no insert clause. <strong>Use cases:</strong> updating attributes, correcting loaded data, synchronizing selected columns.</p>
+
+<h3 id="s9-3-6"><span class="num">9.3.6</span>Delete Operations Using MERGE</h3>
+<p>When a source sends an <code>Action</code> column (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>):</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.silver.customers AS target
+USING main.bronze.customer_changes AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED AND source.Action = 'DELETE'
+    THEN DELETE
+
+WHEN MATCHED AND source.Action = 'UPDATE'
+    THEN UPDATE SET
+        target.CustomerName = source.CustomerName
+
+WHEN NOT MATCHED AND source.Action = 'INSERT'
+    THEN INSERT (CustomerID, CustomerName)
+    VALUES (source.CustomerID, source.CustomerName);</code></pre></div>
+<div class="callout key"><span class="label">Why explicit delete events matter</span><p>A record missing from an incremental batch doesn't mean it was deleted; it may simply not have changed. Use source delete events, tombstones, CDC, or a reliable full-snapshot comparison when you need deletion detection.</p></div>
+
+<h3 id="s9-3-7"><span class="num">9.3.7</span>Deduplication Using MERGE</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>ModifiedDate</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>2026-10-24 09:00:00</td></tr><tr><td>101</td><td>Jonathan</td><td>2026-10-24 11:00:00</td></tr><tr><td>102</td><td>David</td><td>2026-10-24 10:00:00</td></tr></tbody></table></div>
+<p>Customer 101 appears twice. Keep the latest valid record, then merge:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import Window
+from pyspark.sql import functions as F
+from delta.tables import DeltaTable
+
+window_spec = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("ModifiedDate").desc_nulls_last(),
+        F.col("IngestionTimestamp").desc_nulls_last()
+    )
+)
+
+deduplicated_df = (
+    source_df
+    .withColumn("row_num", F.row_number().over(window_spec))
+    .filter(F.col("row_num") == 1)
+    .drop("row_num")
+)
+
+target = DeltaTable.forName(spark, "main.silver.customers")
+
+(
+    target.alias("target")
+    .merge(
+        deduplicated_df.alias("source"),
+        "target.CustomerID = source.CustomerID"
+    )
+    .whenMatchedUpdateAll(
+        condition="source.ModifiedDate &gt; target.ModifiedDate"
+    )
+    .whenNotMatchedInsertAll()
+    .execute()
+)</code></pre></div>
+<p>The condition stops older source versions from replacing newer target versions, as long as timestamps are reliable. Add a deterministic tie-breaker if ordering values can be identical.</p>
+
+<h3 id="s9-3-8"><span class="num">9.3.8</span>Schema Evolution During Writes</h3>
+<p>When the source adds a field, say <code>LoyaltyStatus</code>:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    incoming_df.write
+    .format("delta")
+    .mode("append")
+    .option("mergeSchema", "true")
+    .saveAsTable("main.silver.customers")
+)</code></pre></div>
+<p>For <code>MERGE</code>, schema evolution can be enabled with <code>MERGE WITH SCHEMA EVOLUTION INTO ...</code> in SQL or <code>.withSchemaEvolution()</code> in the Python API, depending on your runtime.</p>
+<div class="card"><h4>Best practices</h4><ul><li>Review new columns before enabling them.</li><li>Validate each new field's type.</li><li>Check whether downstream reports depend on the current schema.</li><li>Log schema changes.</li><li>Avoid unintended type changes.</li><li>Keep schema evolution separate from data-quality validation.</li></ul></div>
+
+<h3 id="s9-3-9"><span class="num">9.3.9</span>Handling Schema Mismatches</h3>
+<p>A mismatch happens when source data doesn't fit the target: <code>CustomerID</code> is a string in the source but an integer in the target, a required column is missing, a new column appears unexpectedly, or a type is incompatible.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+# Step 1: Inspect the source schema
+source_df.printSchema()
+
+# Step 2: Inspect the target schema
+target_df = spark.table("main.silver.customers")
+target_df.printSchema()
+
+# Step 3: Convert source types
+source_df = source_df.withColumn(
+    "CustomerID",
+    F.expr("try_cast(CustomerID AS INT)")
+)
+
+# Step 4: Find invalid values
+invalid_df = source_df.filter(F.col("CustomerID").isNull())
+
+# Step 5: Select compatible columns
+source_df = source_df.select(
+    "CustomerID",
+    "CustomerName",
+    "City",
+    "ModifiedDate"
+)
+
+# Step 6: Merge only after the data passes schema and business checks</code></pre></div>
+
+<!-- ===================== 9.4 ===================== -->
+<h2 id="s9-4"><span class="num">9.4</span>Time Travel</h2>
+
+<h3 id="s9-4-1"><span class="num">9.4.1</span>What Is Time Travel?</h3>
+<p>Time travel lets you query a Delta table as of a previous committed version, to investigate changes, compare results, troubleshoot accidental updates, reproduce historical queries, and support controlled recovery. It depends on retained transaction-log history <strong>and</strong> the corresponding data files still existing.</p>
+
+<h3 id="s9-4-2"><span class="num">9.4.2</span>Delta Table History</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE HISTORY main.silver.customers;</code></pre></div>
+<div class="card"><h4>Output can include</h4><p style="margin-bottom:0">Version, timestamp, operation, operation parameters, user or identity, job or notebook, and operation metrics.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from delta.tables import DeltaTable
+
+delta_table = DeltaTable.forName(spark, "main.silver.customers")
+
+history_df = delta_table.history()
+
+display(
+    history_df.select(
+        "version",
+        "timestamp",
+        "operation",
+        "operationParameters",
+        "operationMetrics"
+    )
+)</code></pre></div>
+<p class="ref">History shows when and how the table changed, but it doesn't necessarily contain every deleted row's original contents.</p>
+
+<h3 id="s9-4-3"><span class="num">9.4.3</span>Querying Previous Versions</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Version</th><th>Operation</th></tr></thead>
+<tbody><tr><td>0</td><td>CREATE TABLE</td></tr><tr><td>1</td><td>WRITE</td></tr><tr><td>2</td><td>MERGE</td></tr><tr><td>3</td><td>UPDATE</td></tr><tr><td>4</td><td>DELETE</td></tr></tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.silver.customers VERSION AS OF 2;</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>previous_df = (
+    spark.read
+    .format("delta")
+    .option("versionAsOf", 2)
+    .table("main.silver.customers")
+)</code></pre></div>
+</div>
+<p class="ref">Version numbers are examples; use one that exists in your table's history.</p>
+
+<h3 id="s9-4-4"><span class="num">9.4.4</span>Querying by Timestamp</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.silver.customers
+TIMESTAMP AS OF '2026-10-24 12:00:00';</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>previous_df = (
+    spark.read
+    .format("delta")
+    .option("timestampAsOf", "2026-10-24 12:00:00")
+    .table("main.silver.customers")
+)</code></pre></div>
+</div>
+<p class="ref">The timestamp must fall where history and data are still available. Use version-based travel when you need a specific committed version precisely.</p>
+
+<h3 id="s9-4-5"><span class="num">9.4.5</span>Comparing Two Versions</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+old_df = (
+    spark.read
+    .format("delta")
+    .option("versionAsOf", 2)
+    .table("main.silver.customers")
+)
+
+new_df = spark.table("main.silver.customers")
+
+# Record counts
+old_count = old_df.count()
+new_count = new_df.count()
+
+print("Old count:", old_count)
+print("Current count:", new_count)
+print("Difference:", new_count - old_count)
+
+# Keys present only in the newer version (not updates)
+new_only_df = new_df.join(
+    old_df.select("CustomerID"),
+    on="CustomerID",
+    how="left_anti"
+)
+
+# Changed records: join on the key, compare attributes null-safely
+changed_df = (
+    new_df.alias("new")
+    .join(old_df.alias("old"), on="CustomerID", how="inner")
+    .filter(
+        ~F.col("new.CustomerName").eqNullSafe(F.col("old.CustomerName"))
+        | ~F.col("new.City").eqNullSafe(F.col("old.City"))
+    )
+)</code></pre></div>
+
+<h3 id="s9-4-6"><span class="num">9.4.6</span>Restoring a Previous Version</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · by version</span><pre class="code"><code>RESTORE TABLE main.silver.customers
+TO VERSION AS OF 2;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · by timestamp</span><pre class="code"><code>RESTORE TABLE main.silver.customers
+TO TIMESTAMP AS OF '2026-10-24 12:00:00';</code></pre></div>
+</div>
+<div class="callout key"><span class="label">What happens during restore</span><p>A restore creates a <strong>new</strong> committed version that reflects the chosen historical state. It doesn't rewind the log or erase later history; the restore itself appears in table history.</p></div>
+<div class="callout warn"><span class="label">Before restoring</span><p>A restore can remove legitimate changes made after the chosen version.</p><ol style="margin-bottom:0"><li>Identify the incorrect operation.</li><li>Find the last correct version.</li><li>Compare historical and current data.</li><li>Assess downstream impact.</li><li>Decide between a full restore and a selective repair.</li><li>Communicate with dependent consumers.</li></ol></div>
+<p class="ref">A selective correction may be safer than restoring the entire table.</p>
+
+<h3 id="s9-4-7"><span class="num">9.4.7</span>Recovery Scenarios</h3>
+<h4>Scenario 1: Accidental deletion</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- The mistake
+DELETE FROM main.silver.customers;
+
+-- Inspect the version before it (say, version 4)
+SELECT *
+FROM main.silver.customers VERSION AS OF 4;
+
+-- If version 4 is correct, restore it
+RESTORE TABLE main.silver.customers
+TO VERSION AS OF 4;</code></pre></div>
+<h4>Scenario 2: Incorrect update</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- The mistake: no WHERE clause
+UPDATE main.silver.customers
+SET City = 'Unknown';</code></pre></div>
+<p>Compare the current state with the previous version to find affected records, then restore or repair them.</p>
+<h4>Scenario 3: Unexpected data loss</h4>
+<p>A pipeline produces fewer records than expected. Investigate recent table operations, source counts, merge conditions, delete logic, schema changes, rejected records, and previous versions.</p>
+<div class="callout warn"><span class="label">Remember</span><p>Time travel is an investigation and recovery tool. It doesn't remove the need for source retention, backups, and tested recovery procedures.</p></div>
+
+<h3 id="s9-4-8"><span class="num">9.4.8</span>Retention Considerations</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting</th><th>Controls</th><th>Typical default</th></tr></thead>
+<tbody>
+<tr><td><code>delta.logRetentionDuration</code></td><td>How long transaction-log history is kept before it's eligible for cleanup</td><td>30 days</td></tr>
+<tr><td><code>delta.deletedFileRetentionDuration</code></td><td>How long files no longer in the current state are kept before <code>VACUUM</code> can remove them</td><td>7 days</td></tr>
+</tbody></table></div>
+<p class="ref">Defaults and effective behavior depend on runtime and table configuration; check your table.</p>
+<div class="callout key"><span class="label">Important distinction</span><p>Keeping log history doesn't guarantee the data files for every historical version still exist. Time travel needs <strong>both</strong>.</p></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SHOW TBLPROPERTIES main.silver.customers;
+
+DESCRIBE HISTORY main.silver.customers;</code></pre></div>
+<p><strong>Align retention with</strong> recovery objectives, audit requirements, storage costs, long-running readers, regulatory requirements, and backup and disaster-recovery policies. Don't cut retention just to save storage without understanding the recovery impact.</p>
+
+<!-- ===================== 9.5 ===================== -->
+<h2 id="s9-5"><span class="num">9.5</span>Delta Lake Maintenance</h2>
+
+<h3 id="s9-5-1"><span class="num">9.5.1</span>Why Delta Maintenance Is Important</h3>
+<p>Growing tables accumulate small files, which increase file-listing overhead, query-planning overhead, metadata processing, task scheduling, and storage requests. Maintenance reorganizes the physical layout while preserving the logical contents, through <code>OPTIMIZE</code>, compaction, Z-Ordering, liquid clustering, <code>VACUUM</code>, and statistics collection.</p>
+<p class="ref">On Unity Catalog managed tables, <strong>predictive optimization</strong> can run OPTIMIZE and VACUUM automatically where it's enabled. Check your workspace before scheduling these yourself.</p>
+
+<h3 id="s9-5-2"><span class="num">9.5.2</span>OPTIMIZE</h3>
+<p><code>OPTIMIZE</code> reorganizes data files to improve layout and compact small files into appropriately sized ones. A pipeline writing small batches every few minutes can build up thousands of files; optimization combines them.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>OPTIMIZE main.silver.customers;
+
+-- One partition of a table
+-- partitioned by Year and Month
+OPTIMIZE main.silver.transactions
+WHERE Year = 2026
+  AND Month = 10;</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from delta.tables import DeltaTable
+
+delta_table = DeltaTable.forName(
+    spark,
+    "main.silver.customers"
+)
+
+delta_table.optimize().executeCompaction()</code></pre></div>
+</div>
+<p class="ref">The <code>WHERE</code> predicate must use the table's partition columns.</p>
+<div class="callout key"><span class="label">Best practice</span><p>Don't run <code>OPTIMIZE</code> after every small write without measuring. Schedule it based on data volume, ingestion frequency, query patterns, and performance needs.</p></div>
+
+<h3 id="s9-5-3"><span class="num">9.5.3</span>Compaction</h3>
+<p>Compaction combines smaller files into fewer, larger ones.</p>
+<div class="grid-2">
+<div><h5>Before</h5><pre class="diagram">customers/
+    part-00001.parquet
+    part-00002.parquet
+    part-00003.parquet
+    part-00004.parquet
+    part-00005.parquet</pre></div>
+<div><h5>After</h5><pre class="diagram">customers/
+    part-00010.parquet
+    part-00011.parquet</pre></div>
+</div>
+<p class="ref">Conceptual; actual file counts depend on volume, partition layout, and settings.</p>
+<p>It reduces small-file overhead, can speed up queries, and reduces files considered during planning. It changes the <strong>physical</strong> layout, not the logical contents; the transaction log records the new state.</p>
+
+<h3 id="s9-5-4"><span class="num">9.5.4</span>Z-Ordering</h3>
+<p>Z-Ordering co-locates related values in multidimensional space, improving data skipping for suitable filters.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Table frequently filtered by CustomerID
+OPTIMIZE main.silver.transactions
+ZORDER BY (CustomerID);
+
+-- Multiple columns
+OPTIMIZE main.silver.transactions
+ZORDER BY (CustomerID, TransactionDate);</code></pre></div>
+<div class="callout warn"><span class="label">Considerations</span><ul><li>Z-Ordering isn't SQL result sorting and doesn't guarantee row order.</li><li>It has computation and maintenance costs.</li><li>More columns isn't always better.</li><li>Effectiveness depends on data distribution, file statistics, and filter patterns.</li><li>It can't be used on tables with liquid clustering.</li></ul></div>
+<p>Consider it when queries repeatedly filter on selective columns and the workload benefits from better data skipping.</p>
+
+<h3 id="s9-5-5"><span class="num">9.5.5</span>Liquid Clustering</h3>
+<p>Liquid clustering organizes data around clustering columns and adapts to evolving access patterns without static partitioning. For new Delta tables, Databricks generally recommends it over partitioning and Z-Ordering.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE main.silver.transactions (
+    TransactionID BIGINT,
+    CustomerID BIGINT,
+    TransactionDate DATE,
+    Amount DECIMAL(12, 2)
+)
+USING DELTA
+CLUSTER BY (CustomerID, TransactionDate);
+
+-- Clustering is applied incrementally when you run:
+OPTIMIZE main.silver.transactions;</code></pre></div>
+<p class="ref">Assumes your environment supports liquid clustering for this table type. You can change keys later with <code>ALTER TABLE ... CLUSTER BY (...)</code>, or let Databricks choose them with <code>CLUSTER BY AUTO</code> where supported.</p>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul><li>Flexible data layout.</li><li>Improved data skipping.</li><li>Less static partition management.</li><li>Clustering keys can change through supported operations.</li></ul></div>
+  <div class="card"><h4>Considerations</h4><ul><li>Availability depends on your environment.</li><li>Not every table type or feature combination supports it.</li><li>Keys should reflect common query filters.</li><li>It doesn't replace schema or data-quality checks.</li><li>Review the current layout before changing clustering.</li></ul></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Z-Ordering</th><th>Liquid clustering</th></tr></thead>
+<tbody>
+<tr><td>Purpose</td><td>Improve file-level data locality</td><td>Organize data around clustering keys</td></tr>
+<tr><td>Typical command</td><td><code>OPTIMIZE ... ZORDER BY</code></td><td><code>CLUSTER BY</code> + <code>OPTIMIZE</code></td></tr>
+<tr><td>Static partitioning required</td><td>No</td><td>No</td></tr>
+<tr><td>Layout management</td><td>Reapply when appropriate</td><td>Incremental</td></tr>
+<tr><td>Best fit</td><td>Existing workloads that benefit from Z-Ordering</td><td>New tables and changing access patterns</td></tr>
+</tbody></table></div>
+<p class="ref">The two are alternatives, not a combination: pick one per table.</p>
+
+<h3 id="s9-5-6"><span class="num">9.5.6</span>VACUUM</h3>
+<p><code>VACUUM</code> permanently removes data files that the current table state no longer needs and that are past the retention threshold. Updates and deletes leave obsolete files behind; vacuuming reclaims their storage.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Preview what would be removed (no deletion)
+VACUUM main.silver.customers DRY RUN;
+
+-- Default retention
+VACUUM main.silver.customers;
+
+-- Explicit retention: 168 hours = 7 days
+VACUUM main.silver.customers RETAIN 168 HOURS;</code></pre></div>
+<div class="callout warn"><span class="label">Important warning</span><p>Vacuuming can permanently remove files needed for historical queries; afterwards some versions are no longer queryable. The typical default retention is seven days, but verify your table's configuration and platform safeguards. Don't shorten retention without understanding the effect on long-running readers, concurrent operations, and time travel. Always review a <code>DRY RUN</code> first.</p></div>
+
+<h3 id="s9-5-7"><span class="num">9.5.7</span>Small-File Problems</h3>
+<div class="grid-2">
+  <div class="card"><h4>Causes</h4><ul><li>Frequent micro-batch writes.</li><li>Excessive repartitioning.</li><li>Over-partitioning by high-cardinality columns.</li><li>Writing many small DataFrames separately.</li><li>Inappropriate output partition counts.</li></ul></div>
+  <div class="card"><h4>Consequences</h4><ul><li>More metadata overhead.</li><li>Slower query planning.</li><li>More file-open operations.</li><li>Less efficient large scans.</li></ul></div>
+</div>
+<div class="card"><h4>Solutions</h4><ol class="steps"><li>Review write frequency.</li><li>Avoid unnecessary partitioning.</li><li>Use appropriate Spark partition counts.</li><li>Run <code>OPTIMIZE</code> where beneficial.</li><li>Use optimized writes and auto-compaction where appropriate.</li><li>Monitor actual file sizes and query performance.</li></ol></div>
+<div class="callout"><span class="label">Fewer isn't always better</span><p>Very large files can hurt parallelism or create uneven workloads. Choose file sizes based on the workload and platform behavior.</p></div>
+
+<h3 id="s9-5-8"><span class="num">9.5.8</span>Data Skipping</h3>
+<p>Data skipping lets Databricks avoid files that can't contain matching records, using file-level statistics such as min and max values.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.silver.transactions
+WHERE CustomerID = 101;</code></pre></div>
+<pre class="diagram">File A: CustomerID 1 – 50     -&gt; skipped
+File B: CustomerID 100 – 200  -&gt; read</pre>
+</div>
+<p><strong>Factors:</strong> file-level data distribution, statistics availability, filter selectivity, physical layout, data types, and query predicates. Z-Ordering and clustering improve locality and can make skipping more effective, but neither guarantees a speed. Measure with query profiles and execution metrics.</p>
+
+<h3 id="s9-5-9"><span class="num">9.5.9</span>Statistics Collection</h3>
+<p>Statistics (row counts, column statistics, min/max values, file-level statistics, distribution information) help the optimizer choose join order and strategy and estimate data volume.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Format, location, file count,
+-- size, partitions, properties
+DESCRIBE DETAIL main.silver.customers;
+
+ANALYZE TABLE main.silver.customers
+COMPUTE STATISTICS;</code></pre></div>
+<div class="callout" style="margin:0"><span class="label">Note</span><p>Column-level statistics can be collected with <code>COMPUTE STATISTICS FOR ALL COLUMNS</code> where supported. Statistics are one part of optimization; they don't replace good layout or query design.</p></div>
+</div>
+
+<h3 id="s9-5-10"><span class="num">9.5.10</span>Table Maintenance Strategies</h3>
+<p>Base maintenance on each table's workload rather than applying the same routine everywhere.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Table type</th><th>Maintenance approach</th></tr></thead>
+<tbody>
+<tr><td>Small reference table</td><td>Limited; optimize only when justified</td></tr>
+<tr><td>Frequently appended event table</td><td>Monitor small files; optimize when beneficial</td></tr>
+<tr><td>Large transaction table</td><td>Review data skipping, clustering, and query performance</td></tr>
+<tr><td>Frequently updated customer table</td><td>Monitor merge performance and file layout</td></tr>
+<tr><td>Historical archive table</td><td>Review retention and storage policies</td></tr>
+<tr><td>High-volume reporting table</td><td>Monitor query profiles, statistics, and layout</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<pre class="diagram">Daily Ingestion
+      |
+      v
+Schema &amp; Data Quality Validation
+      |
+      v
+Delta Append or MERGE
+      |
+      v
+Audit and Reconciliation
+      |
+      v
+Performance Monitoring
+      |
+      v
+Scheduled Maintenance
+      |
+      v
+Retention &amp; Recovery Review</pre>
+<div class="card"><h4>Metrics to monitor</h4><ul><li>Total table size.</li><li>Number of active files.</li><li>Average file size.</li><li>Files added and removed.</li><li>Query and merge duration.</li><li>Record and rejected-record counts.</li><li>Optimization duration.</li><li>Storage growth.</li></ul></div>
+</div>
+
+<!-- ===================== Project ===================== -->
+<h2 id="project">Hands-On Project: Incremental Customer Table Using Delta Lake</h2>
+<p class="section-intro">Build an incremental customer pipeline that creates a target table, loads initial data, inserts, updates, and deletes from a change feed, deduplicates changes, and then uses history, time travel, and restore.</p>
+<div class="callout"><span class="label">A dedicated schema</span><p>This project uses its own schema, <code>main.delta_lab</code>, so it doesn't collide with the <code>main.silver.customers</code> table used in earlier examples and in Chapter 8. Using <code>CREATE OR REPLACE</code> means you can rerun it cleanly, and the version numbers below will match.</p></div>
+<p><strong>Scenario:</strong> a source system sends customer changes every day. The target table must keep the latest valid state of each customer.</p>
+<div class="grid-2">
+<div><h5>Initial target data</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th><th>ModifiedDate</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Hyderabad</td><td>2026-10-20 10:00</td></tr><tr><td>102</td><td>David</td><td>Chennai</td><td>2026-10-20 11:00</td></tr><tr><td>103</td><td>Smith</td><td>Bengaluru</td><td>2026-10-20 12:00</td></tr></tbody></table></div></div>
+<div><h5>Expected after processing</h5><div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Hyderabad</td></tr><tr><td>102</td><td>David</td><td>Vijayawada</td></tr><tr><td>104</td><td>Kumar</td><td>Hyderabad</td></tr></tbody></table></div></div>
+</div>
+<h5>Incoming changes</h5>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th><th>ModifiedDate</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>101</td><td>John</td><td>Hyderabad</td><td>2026-10-25 09:00</td><td>UPDATE</td></tr>
+<tr><td>102</td><td>David</td><td>Vijayawada</td><td>2026-10-25 09:30</td><td>UPDATE</td></tr>
+<tr><td>104</td><td>Kumar</td><td>Hyderabad</td><td>2026-10-25 10:00</td><td>INSERT</td></tr>
+<tr><td>103</td><td>Smith</td><td>Bengaluru</td><td>2026-10-25 10:30</td><td>DELETE</td></tr>
+</tbody></table></div>
+<p>Customer 103 is deleted, 102 is updated, 104 is inserted, and 101 stays logically unchanged even though the source sends an update event (only its <code>ModifiedDate</code> moves forward).</p>
+
+<h4>Step 1: Create the schema and target table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.delta_lab;
+
+CREATE OR REPLACE TABLE main.delta_lab.customers (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING,
+    ModifiedDate TIMESTAMP
+)
+USING DELTA;</code></pre></div>
+
+<h4>Step 2: Load initial data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>INSERT INTO main.delta_lab.customers
+VALUES
+    (101, 'John',  'Hyderabad', TIMESTAMP '2026-10-20 10:00:00'),
+    (102, 'David', 'Chennai',   TIMESTAMP '2026-10-20 11:00:00'),
+    (103, 'Smith', 'Bengaluru', TIMESTAMP '2026-10-20 12:00:00');
+
+SELECT *
+FROM main.delta_lab.customers
+ORDER BY CustomerID;</code></pre></div>
+
+<h4>Step 3: Create the incoming change table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.delta_lab.customer_changes (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING,
+    ModifiedDate TIMESTAMP,
+    Action STRING
+)
+USING DELTA;
+
+INSERT INTO main.delta_lab.customer_changes
+VALUES
+    (101, 'John',  'Hyderabad',  TIMESTAMP '2026-10-25 09:00:00', 'UPDATE'),
+    (102, 'David', 'Vijayawada', TIMESTAMP '2026-10-25 09:30:00', 'UPDATE'),
+    (104, 'Kumar', 'Hyderabad',  TIMESTAMP '2026-10-25 10:00:00', 'INSERT'),
+    (103, 'Smith', 'Bengaluru',  TIMESTAMP '2026-10-25 10:30:00', 'DELETE');</code></pre></div>
+
+<h4>Step 4: Validate the incoming data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.delta_lab.customer_changes
+WHERE CustomerID IS NULL
+   OR Action IS NULL
+   OR Action NOT IN ('INSERT', 'UPDATE', 'DELETE');</code></pre></div>
+<p>Expected: no rows. This catches missing keys and unsupported actions; add checks for required attributes, timestamp validity, and key uniqueness.</p>
+<p class="ref">The <code>Action IS NULL</code> check matters: <code>NULL NOT IN (...)</code> evaluates to unknown, not true, so a null action would otherwise slip through.</p>
+
+<h4>Step 5: Deduplicate the source</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW deduplicated_customer_changes AS
+SELECT
+    CustomerID,
+    CustomerName,
+    City,
+    ModifiedDate,
+    Action
+FROM (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY CustomerID
+            ORDER BY ModifiedDate DESC
+        ) AS row_num
+    FROM main.delta_lab.customer_changes
+) ranked
+WHERE row_num = 1;</code></pre></div>
+<p class="ref">In production, add a deterministic tie-breaker for identical timestamps.</p>
+
+<h4>Step 6: Apply the incremental changes</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.delta_lab.customers AS target
+USING deduplicated_customer_changes AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED AND source.Action = 'DELETE'
+    THEN DELETE
+
+WHEN MATCHED AND source.Action = 'UPDATE'
+    AND source.ModifiedDate &gt; target.ModifiedDate
+    THEN UPDATE SET
+        target.CustomerName = source.CustomerName,
+        target.City = source.City,
+        target.ModifiedDate = source.ModifiedDate
+
+WHEN NOT MATCHED AND source.Action = 'INSERT'
+    THEN INSERT (CustomerID, CustomerName, City, ModifiedDate)
+    VALUES (source.CustomerID, source.CustomerName, source.City, source.ModifiedDate);</code></pre></div>
+<div class="callout"><span class="label">Implementation detail</span><p>Only records marked <code>INSERT</code> are inserted. An <code>UPDATE</code> event for a customer missing from the target is ignored, which is right for a strict change-event contract; other pipelines may treat it as an insert. Define this explicitly for your source system.</p></div>
+
+<h4>Step 7: Validate the final data</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM main.delta_lab.customers
+ORDER BY CustomerID;
+-- Expected: 101 John Hyderabad, 102 David Vijayawada, 104 Kumar Hyderabad
+
+SELECT COUNT(*) AS CustomerCount
+FROM main.delta_lab.customers;
+-- Expected: 3
+
+SELECT
+    CustomerID,
+    COUNT(*) AS RecordCount
+FROM main.delta_lab.customers
+GROUP BY CustomerID
+HAVING COUNT(*) &gt; 1;
+-- Expected: no rows</code></pre></div>
+<p class="ref">Delta doesn't enforce uniqueness of business keys, so this duplicate check stays important.</p>
+
+<h4>Step 8: Inspect table history</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE HISTORY main.delta_lab.customers;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Version</th><th>Operation</th><th>From step</th></tr></thead>
+<tbody><tr><td>0</td><td>CREATE OR REPLACE TABLE</td><td>Step 1</td></tr><tr><td>1</td><td>WRITE</td><td>Step 2 (initial insert)</td></tr><tr><td>2</td><td>MERGE</td><td>Step 6</td></tr></tbody></table></div>
+<p class="ref">On a fresh run you should see these three versions. If you rerun the project, <code>CREATE OR REPLACE</code> adds new versions on top of the old history, so check the actual numbers.</p>
+
+<h4>Step 9: Query an earlier version</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Version 1 = the original three customers
+SELECT *
+FROM main.delta_lab.customers VERSION AS OF 1;</code></pre></div>
+<p>You should see customers 101, 102 (still in Chennai), and 103.</p>
+
+<h4>Step 10: Restore a previous version</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>RESTORE TABLE main.delta_lab.customers
+TO VERSION AS OF 1;</code></pre></div>
+<div class="callout warn"><span class="label">Warning</span><p>This undoes the merge: customer 103 comes back, 102 returns to Chennai, and 104 disappears. That's fine in this lab, but in real work confirm the right version and downstream impact first. Run <code>DESCRIBE HISTORY</code> again and you'll see the restore recorded as a new version 3.</p></div>
+
+<h4>Step 11: Optimize the table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>OPTIMIZE main.delta_lab.customers;</code></pre></div>
+<p class="ref">On a tiny training table this gives little or no measurable benefit; it's here to demonstrate the operation.</p>
+
+<h4>Step 12: Inspect table details</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE DETAIL main.delta_lab.customers;</code></pre></div>
+<p>Review the location, file count, size, and other metadata.</p>
+
+<h3 id="extensions">Project Extensions</h3>
+<div class="grid-2">
+  <div class="card"><h4>1. Watermark management</h4><p style="margin-bottom:0">Track the last successfully processed modification timestamp. Advance it only after the changes are applied and reconciled.</p></div>
+  <div class="card"><h4>2. Idempotent processing</h4><p style="margin-bottom:0">Process the same batch twice. Confirm the second run adds no duplicates and doesn't replace newer data.</p></div>
+  <div class="card"><h4>3. Rejected-record handling</h4><p style="margin-bottom:0">Create a quarantine table for invalid keys, unsupported actions, or missing values, with the source batch and rejection reason.</p></div>
+  <div class="card"><h4>4. Delete handling</h4><p>Test what happens when:</p><ul style="margin-bottom:0"><li>A delete references an existing customer.</li><li>A delete references a missing customer.</li><li>A duplicate delete arrives.</li><li>An older update arrives after a newer one.</li></ul></div>
+  <div class="card"><h4>5. Time-travel investigation</h4><p style="margin-bottom:0">Record the version before a test update, run the update, compare both versions, and restore the original in a test table.</p></div>
+  <div class="card"><h4>6. Maintenance and performance</h4><p style="margin-bottom:0">Generate a larger dataset, write many small batches, and compare query behavior before and after <code>OPTIMIZE</code> using query profiles and table metadata.</p></div>
+</div>
+
+<!-- ===================== Takeaways ===================== -->
+<h2 id="takeaways">Key Takeaways</h2>
+<p>Tick each one once you can explain it in your own words. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch9-checklist">
+<label><input type="checkbox"> Delta Lake adds transactional table management to Parquet-based storage.</label>
+<label><input type="checkbox"> The transaction log defines the active state of a Delta table.</label>
+<label><input type="checkbox"> ACID transactions improve reliability during concurrent reads and writes.</label>
+<label><input type="checkbox"> Schema enforcement protects the target data contract.</label>
+<label><input type="checkbox"> Schema evolution should be controlled and deliberate.</label>
+<label><input type="checkbox"> <code>MERGE INTO</code> supports incremental inserts, updates, and deletes.</label>
+<label><input type="checkbox"> Deduplication and deterministic conflict resolution are essential before merging.</label>
+<label><input type="checkbox"> Time travel works only while the required files and logs remain available.</label>
+<label><input type="checkbox"> <code>RESTORE</code> creates a new table state based on a previous version.</label>
+<label><input type="checkbox"> <code>OPTIMIZE</code> helps address small-file problems.</label>
+<label><input type="checkbox"> Z-Ordering and liquid clustering are alternative layout strategies.</label>
+<label><input type="checkbox"> <code>VACUUM</code> reclaims storage but can remove files needed for recovery.</label>
+<label><input type="checkbox"> Delta transactions don't replace business-level data-quality validation.</label>
+<label><input type="checkbox"> Production pipelines need monitoring, reconciliation, audit logging, and recovery procedures.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch9-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch9-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 10!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Final recommendation</span><p>Practice the complete MERGE project on a dedicated test table before applying these operations to production data. Pay close attention to duplicate keys, delete events, late-arriving updates, schema mismatches, and recovery procedures.</p></div>
+
+<div class="next">
+<h3>Next chapter: Unity Catalog and Data Governance</h3>
+<p>Chapter 10 covers Unity Catalog's object model (metastore, catalogs, schemas, tables, views, volumes, functions), managed and external data objects, permissions with GRANT and REVOKE, row filters and column masks, lineage and auditing, and Delta Sharing.</p>
+<p style="margin-bottom:0" class="ref">Advanced Delta topics are covered later: Auto Loader and CDC in Chapter 12, declarative pipelines in Chapter 13, streaming in Chapter 16, and slowly changing dimensions in Chapter 17.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-8.html"><span>← Previous</span><strong>Chapter 8: Reading and Writing Data</strong></a>
+  <a class="pager-link" href="databricks-chapter-10.html"><span>Next →</span><strong>Chapter 10: Unity Catalog</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 4 · Chapter 9 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

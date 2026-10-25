@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 15: Spark Optimization</title>
+<meta name="description" content="Chapter 15 of a Databricks learning path: execution plans, Spark UI, broadcast and sort-merge joins, skew and salting, AQE, partitioning, memory, caching, Photon, statistics, data skipping and liquid clustering, with a hands-on optimization exercise.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 15 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s15-1">15.1 Understanding Performance</a></li>
+    <li class="lvl2"><a href="#s15-1-1">Why jobs get slow</a></li>
+    <li class="lvl2"><a href="#s15-1-2">Execution plans</a></li>
+    <li class="lvl2"><a href="#s15-1-3">The Spark UI</a></li>
+    <li class="lvl2"><a href="#s15-1-4">Stage analysis</a></li>
+    <li class="lvl2"><a href="#s15-1-5">Task metrics</a></li>
+    <li class="lvl2"><a href="#s15-1-6">Shuffle read/write</a></li>
+    <li class="lvl2"><a href="#s15-1-7">Executor utilization</a></li>
+    <li class="lvl2"><a href="#s15-1-8">Memory consumption</a></li>
+    <li class="lvl1"><a href="#s15-2">15.2 Join Optimization</a></li>
+    <li class="lvl2"><a href="#s15-2-1">Broadcast joins</a></li>
+    <li class="lvl2"><a href="#s15-2-2">Sort-merge joins</a></li>
+    <li class="lvl2"><a href="#s15-2-3">Join strategies</a></li>
+    <li class="lvl2"><a href="#s15-2-4">Join hints</a></li>
+    <li class="lvl2"><a href="#s15-2-5">Data skew</a></li>
+    <li class="lvl2"><a href="#s15-2-6">Salting</a></li>
+    <li class="lvl2"><a href="#s15-2-7">AQE</a></li>
+    <li class="lvl2"><a href="#s15-2-8">Large fact tables</a></li>
+    <li class="lvl1"><a href="#s15-3">15.3 Partition Optimization</a></li>
+    <li class="lvl2"><a href="#s15-3-1">Repartition vs coalesce</a></li>
+    <li class="lvl2"><a href="#s15-3-2">Partition pruning</a></li>
+    <li class="lvl2"><a href="#s15-3-3">Shuffle partitions</a></li>
+    <li class="lvl2"><a href="#s15-3-4">File partitioning</a></li>
+    <li class="lvl2"><a href="#s15-3-5">Small files</a></li>
+    <li class="lvl2"><a href="#s15-3-6">Output file sizing</a></li>
+    <li class="lvl2"><a href="#s15-3-7">Choosing partition columns</a></li>
+    <li class="lvl1"><a href="#s15-4">15.4 Memory Management</a></li>
+    <li class="lvl2"><a href="#s15-4-1">Driver memory</a></li>
+    <li class="lvl2"><a href="#s15-4-2">Executor memory</a></li>
+    <li class="lvl2"><a href="#s15-4-3">Garbage collection</a></li>
+    <li class="lvl2"><a href="#s15-4-4">Out-of-memory errors</a></li>
+    <li class="lvl2"><a href="#s15-4-5">Caching &amp; persistence</a></li>
+    <li class="lvl2"><a href="#s15-4-7">Avoid collect()</a></li>
+    <li class="lvl1"><a href="#s15-5">15.5 Advanced Optimization</a></li>
+    <li class="lvl2"><a href="#s15-5-1">Photon</a></li>
+    <li class="lvl2"><a href="#s15-5-2">Query plan analysis</a></li>
+    <li class="lvl2"><a href="#s15-5-3">Predicate pushdown</a></li>
+    <li class="lvl2"><a href="#s15-5-4">Column pruning</a></li>
+    <li class="lvl2"><a href="#s15-5-5">Statistics</a></li>
+    <li class="lvl2"><a href="#s15-5-6">Liquid clustering</a></li>
+    <li class="lvl2"><a href="#s15-5-7">Data skipping</a></li>
+    <li class="lvl2"><a href="#s15-5-8">Compute selection</a></li>
+    <li class="lvl1"><a href="#s15-6">15.6 Exercise: Slow Join</a></li>
+    <li class="lvl2"><a href="#s15-6-0">Generate the data</a></li>
+    <li class="lvl2"><a href="#s15-6-2">Baseline &amp; plan</a></li>
+    <li class="lvl2"><a href="#s15-6-5">Joins, skew, AQE</a></li>
+    <li class="lvl2"><a href="#s15-6-8">Layout &amp; compare</a></li>
+    <li class="lvl1"><a href="#s15-7">15.7 Common Mistakes</a></li>
+    <li class="lvl1"><a href="#s15-8">15.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s15-9">15.9 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 6 · Chapter 15 · Advanced Data Engineering</span>
+  <h1>Advanced Spark Optimization</h1>
+  <p class="lead">Find the real bottleneck, fix it, and prove the fix worked. Execution plans and the Spark UI; broadcast and sort-merge joins, hints, skew, salting, and AQE; partitioning and small files; driver and executor memory; Photon, statistics, data skipping, and liquid clustering. The exercise includes a data generator so you can see each technique for yourself.</p>
+  <p class="ref">Examples use <code>retail_dev.perf_lab</code> tables created in 15.6. Level: advanced.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Diagnose slow Spark jobs using the Spark UI.</li>
+    <li>Read and interpret physical execution plans.</li>
+    <li>Understand stages, tasks, shuffles, executors, and memory.</li>
+    <li>Optimize joins with broadcast, sort-merge, and AQE.</li>
+    <li>Identify and mitigate data skew.</li>
+    <li>Optimize partitioning and avoid small files.</li>
+    <li>Diagnose driver and executor memory problems.</li>
+    <li>Use caching and persistence appropriately.</li>
+    <li>Use Photon, statistics, data skipping, and liquid clustering.</li>
+    <li>Compare performance before and after optimization reliably.</li>
+  </ol></div>
+  <div class="callout warn"><span class="label">The golden rule</span><p><strong>Measure first.</strong> Identify the bottleneck before changing anything. A bigger cluster won't fix a bad join, and more partitions won't help a query that's waiting on storage.</p></div>
+  <div class="chips">
+    <a class="chip" href="#s15-1"><span>15.1</span><strong>Diagnosis</strong></a>
+    <a class="chip" href="#s15-2"><span>15.2</span><strong>Joins &amp; Skew</strong></a>
+    <a class="chip" href="#s15-3"><span>15.3</span><strong>Partitions</strong></a>
+    <a class="chip" href="#s15-4"><span>15.4</span><strong>Memory</strong></a>
+    <a class="chip" href="#s15-5"><span>15.5</span><strong>Databricks</strong></a>
+    <a class="chip" href="#s15-6"><span>15.6</span><strong>Exercise</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 15.1 ===================== -->
+<h2 id="s15-1"><span class="num">15.1</span>Understanding Performance</h2>
+
+<h3 id="s15-1-1"><span class="num">15.1.1</span>Why Do Spark Jobs Become Slow?</h3>
+<p>Spark splits work into tasks across a cluster, but distribution has costs. Common causes of slowness: inefficient joins, excessive shuffling, data skew, small files, poor partitioning, too little compute, memory pressure, GC overhead, Python UDFs, repeated scans, stale statistics, weak filtering, wrong join conditions, and poor data layout.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Rows</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>fact_sales</code></td><td>500 million</td><td>Sales transactions</td></tr>
+<tr><td><code>dim_customer</code></td><td>2 million</td><td>Customer attributes</td></tr>
+<tr><td><code>dim_product</code></td><td>100,000</td><td>Product attributes</td></tr>
+<tr><td><code>dim_date</code></td><td>10,000</td><td>Calendar attributes</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Slow vs optimized</h4><p><strong>Slow:</strong> reads all 500M rows, shuffles heavily, joins before filtering, hits skewed keys, writes excessive intermediate data. 20+ minutes.</p><p style="margin-bottom:0"><strong>Optimized:</strong> filters early, reads only needed columns, broadcasts genuinely small dimensions, mitigates skew, improves data skipping. Much faster, depending on workload.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Possible cause</th><th>Investigate</th></tr></thead>
+<tbody>
+<tr><td>High shuffle read</td><td>Large joins or aggregations</td><td>Join strategy, data distribution</td></tr>
+<tr><td>One task much longer than others</td><td>Data skew</td><td>Task-level input and duration</td></tr>
+<tr><td>High GC time</td><td>Memory pressure, object-heavy processing</td><td>Executor metrics</td></tr>
+<tr><td>Many tiny tasks</td><td>Too many partitions or small files</td><td>Input layout, partition count</td></tr>
+<tr><td>High input bytes</td><td>Large scans, poor data skipping</td><td>Filters, statistics, layout</td></tr>
+<tr><td>Executor lost</td><td>Memory pressure or infrastructure</td><td>Executor logs</td></tr>
+<tr><td>Slow Python transformation</td><td>Python UDF overhead</td><td>Plan and UDF usage</td></tr>
+<tr><td>High spill to disk</td><td>Memory pressure in shuffle/sort</td><td>Partition sizes</td></tr>
+<tr><td>Long-running join stage</td><td>Skew, shuffle, expensive join</td><td>SQL plan and Spark UI</td></tr>
+</tbody></table></div>
+
+<h3 id="s15-1-2"><span class="num">15.1.2</span>Understanding Spark Execution Plans</h3>
+<p>Spark's optimizer (Catalyst) turns SQL or DataFrame code into an execution strategy in three steps:</p>
+<div class="grid-2">
+<div class="card"><h4>1. Logical plan: <em>what</em></h4><p style="margin-bottom:0">Read fact_sales → read dim_customer → join on customer_id → group by customer_name → sum sales.</p></div>
+<div class="card"><h4>2. Optimized logical plan</h4><p style="margin-bottom:0">Rewritten with predicate pushdown, column pruning, constant folding, expression simplification, and join reordering where beneficial.</p></div>
+</div>
+<div class="grid-2">
+<div class="card"><h4>3. Physical plan: <em>how</em></h4><p style="margin-bottom:0">The concrete operators Spark runs, such as which join algorithm and where data is exchanged.</p></div>
+<pre class="diagram">HashAggregate
+    |
+Exchange
+    |
+HashAggregate
+    |
+SortMergeJoin
+   /          \
+Exchange    Exchange
+   |           |
+Scan Fact   Scan Dimension</pre>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Operator</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>Scan</code></td><td>Reads data from a source</td></tr>
+<tr><td><code>Filter</code></td><td>Removes non-matching records</td></tr>
+<tr><td><code>Project</code></td><td>Selects or computes columns</td></tr>
+<tr><td><code>Exchange</code></td><td>Redistributes data (a <strong>shuffle</strong>)</td></tr>
+<tr><td><code>BroadcastExchange</code></td><td>Sends a small table to every executor</td></tr>
+<tr><td><code>SortMergeJoin</code></td><td>Joins sorted, shuffled datasets</td></tr>
+<tr><td><code>BroadcastHashJoin</code></td><td>Joins against a broadcast table</td></tr>
+<tr><td><code>HashAggregate</code></td><td>Hash-based aggregation</td></tr>
+<tr><td><code>Sort</code> / <code>Window</code></td><td>Sorting / window functions</td></tr>
+<tr><td><code>InMemoryTableScan</code></td><td>Reads from Spark's cache</td></tr>
+<tr><td><code>AdaptiveSparkPlan</code></td><td>AQE may change the plan at runtime</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales = spark.table("retail_dev.perf_lab.fact_sales")
+customers = spark.table("retail_dev.perf_lab.dim_customer")
+
+result = sales.join(customers, "customer_id")
+
+result.explain("formatted")   # numbered operator tree + details (recommended)
+result.explain("simple")      # concise physical plan
+result.explain("extended")    # parsed, analyzed, optimized logical, and physical plans
+result.explain("cost")        # logical plan with size/row statistics</code></pre></div>
+<p class="ref">In SQL, prefix a query with <code>EXPLAIN FORMATTED</code>. On Photon compute, operators appear as <code>PhotonBroadcastHashJoin</code>, <code>PhotonShuffleExchangeSink</code>, and so on.</p>
+<div class="grid-2">
+<div class="card"><h4>What to look for</h4><ol style="margin-bottom:0"><li>Unnecessary full-table scans?</li><li>Filters applied before expensive work?</li><li>Unneeded columns read?</li><li>Broadcast where appropriate?</li><li>Large <code>Exchange</code> operators?</li><li>Repeated scans of one source?</li><li>Unexpectedly expensive sorts or aggregations?</li><li>A Python UDF blocking optimizations?</li></ol></div>
+<div class="callout key" style="margin:0"><span class="label">Interview tip</span><p><code>explain()</code> shows the <em>planned</em> strategy. The Spark UI shows what <em>actually</em> happened, and with AQE they can differ. Use both.</p></div>
+</div>
+
+<h3 id="s15-1-3"><span class="num">15.1.3</span>Understanding the Spark UI</h3>
+<p>On classic compute, open the cluster's <strong>Spark UI</strong> tab, or click <strong>View</strong> next to a Spark job in a notebook cell's output. On serverless compute and SQL warehouses, use the <strong>Query Profile</strong> (from the query history or the notebook cell's "See performance" link), which shows the same operator-level metrics.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Page</th><th>Helps you find</th></tr></thead>
+<tbody>
+<tr><td><strong>Jobs</strong></td><td>Long-running or failed jobs, which action triggered them, their stages</td></tr>
+<tr><td><strong>Stages</strong></td><td>Slow or shuffle-heavy stages, failed tasks, uneven task durations</td></tr>
+<tr><td><strong>Tasks</strong> (within a stage)</td><td>Skew, slow partitions, excessive input, spill, GC time</td></tr>
+<tr><td><strong>SQL / DataFrame</strong></td><td>The executed plan with per-operator rows, sizes, and times</td></tr>
+<tr><td><strong>Executors</strong></td><td>Active/failed tasks, memory and disk use, GC time, shuffle activity</td></tr>
+<tr><td><strong>Storage</strong></td><td>Cached datasets and their size</td></tr>
+<tr><td><strong>Environment</strong></td><td>Effective Spark configuration</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric (15-min query)</th><th>Observation</th></tr></thead>
+<tbody>
+<tr><td>Total stages</td><td>8</td></tr>
+<tr><td>Longest stage</td><td>11 minutes</td></tr>
+<tr><td>Shuffle read / write</td><td>250 GB / 180 GB</td></tr>
+<tr><td>Slowest task</td><td>9 minutes</td></tr>
+<tr><td>Median task</td><td>35 seconds</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Reading it</h4><p>The 9-minute task against a 35-second median points to <strong>skew</strong>. The large shuffle volumes point to the <strong>join or aggregation strategy</strong>.</p><p style="margin-bottom:0">Next step: inspect that stage's tasks <em>before</em> changing the query or compute.</p></div>
+</div>
+
+<h3 id="s15-1-4"><span class="num">15.1.4</span>Stage-Level Analysis</h3>
+<p>Spark splits a job into stages at <strong>shuffle boundaries</strong>, the points where data must be redistributed.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result = (
+    sales
+    .groupBy("customer_id")
+    .sum("sales_amount")
+)</code></pre></div>
+<pre class="diagram">Stage 1:  Read sales
+             |
+          Partial aggregation (per partition)
+             |
+          Shuffle by customer_id
+---------------------------------- boundary
+Stage 2:  Final aggregation</pre>
+</div>
+<p>Different stages have different bottlenecks: stage 1 may be limited by reading, stage 2 by shuffle, stage 3 by skew. Optimizing the wrong stage wastes time. For each slow stage, inspect input size, shuffle read/write, the task-duration distribution, spill, failed tasks, executor utilization, and GC time.</p>
+<div class="callout"><span class="label">Diagnosis pattern</span><p>200 tasks finish in 30 s but one takes 8 min, and that task read far more data: <strong>skew</strong>. <em>All</em> tasks slow: more likely insufficient compute, large input, expensive operations, or storage.</p></div>
+
+<h3 id="s15-1-5"><span class="num">15.1.5</span>Task-Level Metrics</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Tells you</th></tr></thead>
+<tbody>
+<tr><td>Executor run time</td><td>Time doing task work</td></tr>
+<tr><td>Input bytes / records</td><td>Data read by the task</td></tr>
+<tr><td>Shuffle read / write</td><td>Data received / produced via shuffle</td></tr>
+<tr><td>Memory / disk spill</td><td>Data spilled under memory pressure</td></tr>
+<tr><td>GC time</td><td>Time in garbage collection</td></tr>
+<tr><td>Duration</td><td>Total elapsed time</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Input records</th><th>Duration</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>1 million</td><td>20 s</td></tr>
+<tr><td>2</td><td>1.2 million</td><td>22 s</td></tr>
+<tr><td>3</td><td>900,000</td><td>18 s</td></tr>
+<tr><td><strong>4</strong></td><td><strong>30 million</strong></td><td><strong>8 min</strong></td></tr>
+</tbody></table>
+<p class="ref" style="padding:0 12px">Task 4 processes 30× more data, a strong sign of skew.</p></div>
+</div>
+<p><strong>Respond by</strong> investigating the key distribution, whether a few keys dominate, whether AQE can split the skewed partition, whether a broadcast is feasible, and whether the query can be safely restructured. Not every slow task is skew; check its input, spill, and details.</p>
+
+<h3 id="s15-1-6"><span class="num">15.1.6</span>Shuffle Read and Shuffle Write</h3>
+<p>A shuffle redistributes data across partitions. It happens in joins, grouping, sorting, windows, deduplication, and repartitioning. To sum sales per customer, all of a customer's rows must meet in one place.</p>
+<div class="grid-2">
+<div class="card"><h4>Terms</h4><p><strong>Shuffle write:</strong> data upstream tasks write out for redistribution.</p><p style="margin-bottom:0"><strong>Shuffle read:</strong> data downstream tasks fetch from that output.</p></div>
+<div class="card"><h4>Why it's expensive</h4><p style="margin-bottom:0">Network transfer, serialization, disk I/O, sorting, extra memory, and spill.</p></div>
+</div>
+<div class="card"><h4>Reduce unnecessary shuffle</h4><ol style="margin-bottom:0"><li>Filter early.</li><li>Select only needed columns.</li><li>Avoid unnecessary <code>repartition()</code>.</li><li>Use appropriate join strategies (broadcast small tables).</li><li>Reduce data before joins where logically valid.</li><li>Avoid repeated wide transformations.</li><li>Address skew.</li></ol></div>
+<p class="ref">A shuffle isn't always bad; many operations need one to be correct. Avoid <em>unnecessary</em> or excessively expensive ones.</p>
+
+<h3 id="s15-1-7"><span class="num">15.1.7</span>Executor Utilization</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Possible causes</th></tr></thead>
+<tbody>
+<tr><td>Low CPU, little task activity</td><td>Waiting on I/O, too few parallel tasks, dependency bottlenecks</td></tr>
+<tr><td>High CPU</td><td>CPU-heavy transformations, complex expressions, serialization</td></tr>
+<tr><td>High memory pressure</td><td>Large joins/aggregations, excessive caching, oversized partitions</td></tr>
+<tr><td>Many idle executors</td><td>Too few runnable tasks, serialized dependencies, overprovisioning</td></tr>
+</tbody></table></div>
+<p><strong>Optimize by</strong> checking there are enough tasks for parallelism, looking for stages waiting on dependencies, reviewing partition sizes, avoiding unnecessary caching, and sizing compute to measured needs. More executors don't help if the workload can't use the parallelism.</p>
+
+<h3 id="s15-1-8"><span class="num">15.1.8</span>Memory Consumption</h3>
+<div class="grid-2">
+<div class="card"><h4>Spark uses memory for</h4><p style="margin-bottom:0">Execution (shuffles, sorts, hash aggregations, join hash tables) and storage (cached data).</p></div>
+<div class="card"><h4>Pressure causes</h4><p style="margin-bottom:0">Disk spills, heavy garbage collection, slow tasks, executor failures, out-of-memory errors.</p></div>
+</div>
+<p>If a join's hash table outgrows execution memory, Spark spills to disk or changes strategy, and runtime jumps. Inspect executor memory, storage vs execution memory, spill, GC time, failures, and task input sizes.</p>
+<div class="callout key"><span class="label">Principle</span><p>Don't solve every memory problem by adding memory. Filtering, reducing data before joins, and fixing skew often help more.</p></div>
+
+<!-- ===================== 15.2 ===================== -->
+<h2 id="s15-2"><span class="num">15.2</span>Join Optimization</h2>
+<p class="section-intro">The best join strategy depends on each side's size, available statistics, the join condition, data distribution, memory, and whether one side can be broadcast efficiently.</p>
+
+<h3 id="s15-2-1"><span class="num">15.2.1</span>Broadcast Joins</h3>
+<p>A broadcast join copies a small table to every executor, so the large table joins locally without being shuffled. With <code>fact_sales</code> at 100 GB and <code>dim_product</code> at 20 MB, broadcasting the product table avoids shuffling 100 GB.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+sales = spark.table("retail_dev.perf_lab.fact_sales")
+products = spark.table("retail_dev.perf_lab.dim_product")
+
+result = sales.join(F.broadcast(products), on="product_id", how="inner")</code></pre></div>
+<div class="grid-2">
+<pre class="diagram">Without broadcast:
+
+Fact table  -- Shuffle --+
+                         +-- Join
+Dimension   -- Shuffle --+</pre>
+<pre class="diagram">With broadcast:
+
+       Broadcast dimension
+        /       |       \
+       v        v        v
+   Executor  Executor  Executor
+       ^        ^        ^
+       |        |        |
+     Fact partitions (not shuffled)</pre>
+</div>
+<div class="grid-2">
+<div class="card"><h4>Use when</h4><ul style="margin-bottom:0"><li>One side is genuinely small.</li><li>The join type supports it.</li><li>It fits comfortably in executor memory.</li><li>Network and memory costs are acceptable.</li></ul></div>
+<div class="card"><h4>Risks of broadcasting too much</h4><ul style="margin-bottom:0"><li>Memory pressure on driver and executors.</li><li>Network traffic.</li><li>Executor failures.</li><li>Slower execution.</li></ul></div>
+</div>
+<div class="callout"><span class="label">Automatic broadcasts</span><p>Spark broadcasts automatically when it estimates a side is below <code>spark.sql.autoBroadcastJoinThreshold</code> (10 MB by default in Apache Spark; Databricks may adjust this and AQE can also convert joins at runtime). In the exercise's tests, all three dimension joins were broadcast automatically with no hints at all. Don't broadcast a table just because it's called a "dimension"; measure its size.</p></div>
+
+<h3 id="s15-2-2"><span class="num">15.2.2</span>Sort-Merge Joins</h3>
+<p>The default for joining two large datasets on equality. Spark (1) shuffles both sides by join key, (2) sorts each partition, and (3) merges matching keys. With <code>fact_sales</code> at 500 GB and <code>dim_customer</code> at 50 GB, broadcasting isn't sensible, so sort-merge is appropriate.</p>
+<div class="grid-2">
+<pre class="diagram">Fact table
+    |
+Exchange (by customer_id)
+    |
+Sort
+    |
+    +------ SortMergeJoin
+    |
+Sort
+    |
+Exchange (by customer_id)
+    |
+Customer dimension</pre>
+<div><div class="card"><h4>Advantages</h4><p style="margin-bottom:0">Scales to large datasets; no side needs to fit in memory.</p></div><div class="card"><h4>Disadvantages</h4><p style="margin-bottom:0">Shuffle and sort costs; skewed keys create long tasks.</p></div></div>
+</div>
+<p><strong>For large joins:</strong> filter first, project only needed columns, keep statistics current, address skew, avoid transforming join keys, and inspect the actual plan.</p>
+
+<h3 id="s15-2-3"><span class="num">15.2.3</span>Join Strategies</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Strategy</th><th>Typical use</th><th>Main consideration</th></tr></thead>
+<tbody>
+<tr><td>Broadcast hash join</td><td>One side small enough to broadcast</td><td>Memory and broadcast cost</td></tr>
+<tr><td>Sort-merge join</td><td>Large equi-joins</td><td>Shuffle and sort cost</td></tr>
+<tr><td>Shuffled hash join</td><td>Equi-joins where per-partition hash tables fit</td><td>Partition sizes and memory</td></tr>
+<tr><td>Broadcast nested-loop join</td><td>Non-equi conditions (e.g. <code>&lt;</code>, <code>BETWEEN</code>)</td><td>Very expensive for large inputs</td></tr>
+</tbody></table></div>
+<p>Spark chooses based on the query, join type, statistics, configuration, and runtime (AQE). Check with <code>explain("formatted")</code> and look for <code>BroadcastHashJoin</code>, <code>SortMergeJoin</code>, <code>ShuffledHashJoin</code>, or <code>BroadcastNestedLoopJoin</code>. Don't force a strategy without understanding the data and the plan.</p>
+
+<h3 id="s15-2-4"><span class="num">15.2.4</span>Join Hints</h3>
+<p>Hints tell the optimizer which strategy you prefer. In SQL, they go <strong>immediately after <code>SELECT</code></strong> and name the table alias:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Broadcast p
+SELECT /*+ BROADCAST(p) */
+    f.order_id, p.product_category, f.sales_amount
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_product p
+    ON f.product_id = p.product_id;
+
+-- Prefer sort-merge with c
+SELECT /*+ MERGE(c) */ f.order_id, c.customer_name
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c ON f.customer_id = c.customer_id;
+
+-- Prefer shuffled hash with c
+SELECT /*+ SHUFFLE_HASH(c) */ f.order_id, c.customer_name
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c ON f.customer_id = c.customer_id;</code></pre></div>
+<div class="code-wrap"><span class="lang">Python equivalents</span><pre class="code"><code>sales.join(products.hint("broadcast"), "product_id")
+sales.join(customers.hint("merge"), "customer_id")
+sales.join(customers.hint("shuffle_hash"), "customer_id")</code></pre></div>
+<div class="callout warn"><span class="label">Hints are preferences, not guarantees</span><p>Support depends on join type and runtime. Use hints only after inspecting the plan, and re-check the plan afterwards. A broadcast hint on an unexpectedly large table is especially risky, because it can crash executors.</p></div>
+
+<h3 id="s15-2-5"><span class="num">15.2.5</span>Data Skew</h3>
+<p>Skew is uneven data distribution. If 30 million of 100 million fact rows have <code>customer_id = UNKNOWN</code>, the partition holding that key does far more work than the rest.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Customer ID</th><th>Records</th></tr></thead>
+<tbody><tr><td>C101</td><td>100</td></tr><tr><td>C102</td><td>200</td></tr><tr><td>C103</td><td>300</td></tr><tr><td><strong>UNKNOWN</strong></td><td><strong>30 million</strong></td></tr></tbody></table></div>
+<div class="card"><h4>Effects</h4><p style="margin-bottom:0">199 tasks finish in 20 s; 1 takes 12 min and holds up the stage. Poor parallelism, long stages, high memory, spill, and wasted compute cost.</p></div>
+</div>
+<p><strong>Spot it</strong> in the Spark UI (wide spread of task durations, uneven input or shuffle read, large spill on a few tasks), then confirm with the key distribution:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT customer_id, COUNT(*) AS record_count
+FROM retail_dev.perf_lab.fact_sales
+GROUP BY customer_id
+ORDER BY record_count DESC
+LIMIT 20;</code></pre></div>
+<div class="card"><h4>Mitigation options (roughly in order)</h4><ol style="margin-bottom:0"><li>Check AQE is enabled; it splits skewed sort-merge join partitions automatically.</li><li>Broadcast the other side if it's small, since broadcast joins aren't affected by skew.</li><li>Filter out invalid or unneeded records (is <code>UNKNOWN</code> even needed?).</li><li>Process the hot key separately and <code>UNION</code> the results.</li><li>Salt, only when the semantics allow (next section).</li></ol></div>
+
+<h3 id="s15-2-6"><span class="num">15.2.6</span>Skew Mitigation Using Salting</h3>
+<p>Salting splits a hot key into several sub-keys (<code>UNKNOWN_0</code>, <code>UNKNOWN_1</code>, …) so its rows spread across partitions. The trick is preserving correct results.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · salted aggregation</span><pre class="code"><code>from pyspark.sql import functions as F
+
+N = 8  # number of salt buckets
+fact = spark.table("retail_dev.perf_lab.fact_sales")
+
+salted_totals = (
+    fact
+    .withColumn("salt", (F.rand() * N).cast("int"))
+    # Phase 1: partial sums per (key, salt) spread hot keys
+    .groupBy("customer_id", "salt")
+    .agg(F.sum("sales_amount").alias("partial_sales"))
+    # Phase 2: combine the partials per key
+    .groupBy("customer_id")
+    .agg(F.sum("partial_sales").alias("total_sales"))
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · salted join (hot key only)</span><pre class="code"><code>HOT = 0   # customer_id of 'UNKNOWN'
+dim = spark.table("retail_dev.perf_lab.dim_customer")
+
+# Fact: random salt for the hot key, 0 for others
+fact_s = fact.withColumn("salt",
+    F.when(F.col("customer_id") == HOT,
+           (F.rand() * N).cast("int"))
+     .otherwise(F.lit(0)))
+
+# Dimension: REPLICATE the hot row once per salt
+dim_s = dim.withColumn("salt", F.explode(
+    F.when(F.col("customer_id") == HOT,
+           F.sequence(F.lit(0), F.lit(N - 1)))
+     .otherwise(F.array(F.lit(0)))))
+
+joined = fact_s.join(dim_s, ["customer_id", "salt"])</code></pre></div>
+</div>
+<div class="callout key"><span class="label">Verified correct</span><p>On the 2-million-row generated dataset (30% hot key), both salted versions returned <strong>exactly</strong> the same results as the unsalted queries: identical totals for all 199,834 customers, and identical join row count (2,000,000) and country totals.</p></div>
+<div class="callout warn"><span class="label">Salting can silently break results</span><p>Forget to replicate the hot dimension row for every salt value, and most hot-key fact rows vanish from an inner join. Forget phase 2, and you get several rows per key. Salting is rarely needed on Databricks, because AQE skew handling usually covers it. Use it only after confirming skew is the real bottleneck.</p></div>
+
+<h3 id="s15-2-7"><span class="num">15.2.7</span>Adaptive Query Execution (AQE)</h3>
+<p>Before running, Spark only <em>estimates</em> intermediate sizes. AQE re-optimizes at each shuffle boundary using <strong>actual</strong> runtime statistics:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>AQE feature</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>Coalesce shuffle partitions</td><td>Merges many tiny shuffle partitions into fewer reasonable ones</td></tr>
+<tr><td>Switch join strategies</td><td>Converts a sort-merge join to a broadcast join if one side turns out small</td></tr>
+<tr><td>Skew-join optimization</td><td>Splits oversized partitions of a sort-merge join into smaller tasks</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>spark.conf.get("spark.sql.adaptive.enabled")                    # 'true' by default (Spark 3.2+, Databricks)
+spark.conf.get("spark.sql.adaptive.skewJoin.enabled")           # skew handling
+spark.conf.get("spark.sql.adaptive.coalescePartitions.enabled") # partition coalescing</code></pre></div>
+<p>AQE plans show as <code>AdaptiveSparkPlan isFinalPlan=false</code> before running. After execution, the Spark UI's SQL tab shows the <strong>final</strong> plan, which may differ.</p>
+<div class="callout"><span class="label">Important</span><p>AQE is an optimization layer, not a substitute for good modeling, suitable joins, or analysis. On serverless compute it's always on and most Spark configs can't be changed.</p></div>
+
+<h3 id="s15-2-8"><span class="num">15.2.8</span>Handling Large Fact Tables</h3>
+<p>The best approach is usually to <strong>reduce work before expensive operations</strong>.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · original</span><pre class="code"><code>SELECT f.order_id, f.sales_amount, c.customer_name
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c
+    ON f.customer_id = c.customer_id
+WHERE f.order_date &gt;= DATE '2026-01-01';</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · explicit filter-first</span><pre class="code"><code>WITH filtered_sales AS (
+    SELECT order_id, customer_id, sales_amount
+    FROM retail_dev.perf_lab.fact_sales
+    WHERE order_date &gt;= DATE '2026-01-01'
+)
+SELECT f.order_id, f.sales_amount, c.customer_name
+FROM filtered_sales f
+JOIN retail_dev.perf_lab.dim_customer c
+    ON f.customer_id = c.customer_id;</code></pre></div>
+</div>
+<div class="callout"><span class="label">Same plan?</span><p>Usually yes. Catalyst pushes the filter and prunes columns in both. The rewrite is clearer, not necessarily faster. Compare the physical plans rather than assuming.</p></div>
+<p><strong>Techniques:</strong> (1) filter early, (2) select only required columns, (3) broadcast small dimensions and use distributed joins for large ones, (4) improve data skipping with layout and statistics, (5) address skew, (6) avoid unnecessary sorts, global windows, and repeated repartitioning.</p>
+
+<!-- ===================== 15.3 ===================== -->
+<h2 id="s15-3"><span class="num">15.3</span>Partition Optimization</h2>
+<div class="callout"><span class="label">Three different things called "partitions"</span><p>(1) <strong>Spark execution partitions</strong>: in-memory chunks, one per task. (2) <strong>Storage partitions</strong>: Hive-style folders such as <code>order_date=2026-10-20/</code>. (3) <strong>File organization and clustering</strong>: how rows are arranged within files. Related, but not interchangeable.</p></div>
+
+<h3 id="s15-3-1"><span class="num">15.3.1</span>Repartition Versus Coalesce</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · repartition (shuffle)</span><pre class="code"><code>df.repartition(200)                  # 200 balanced partitions
+df.repartition(200, "customer_id")   # partition by key</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · coalesce (no full shuffle)</span><pre class="code"><code>df.coalesce(20)   # merge down to 20 partitions</code></pre></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>repartition()</th><th>coalesce()</th></tr></thead>
+<tbody>
+<tr><td>Main purpose</td><td>Redistribute data</td><td>Reduce partitions</td></tr>
+<tr><td>Full shuffle</td><td>Yes</td><td>No (merges existing partitions)</td></tr>
+<tr><td>Increase partitions</td><td>Yes</td><td>No</td></tr>
+<tr><td>Balance</td><td>Rebalances evenly</td><td>May keep uneven sizes</td></tr>
+<tr><td>Cost</td><td>Can be expensive</td><td>Usually cheaper</td></tr>
+</tbody></table></div>
+<p><strong>repartition</strong> when you need more parallelism, rebalancing, or a specific key partitioning. <strong>coalesce</strong> when you need fewer, reasonably balanced partitions without a full redistribution.</p>
+<div class="callout warn"><span class="label">Don't coalesce(1) large data</span><p>It funnels everything through one task and can even pull <em>upstream</em> work onto a single core. Use it only for genuinely small outputs.</p></div>
+
+<h3 id="s15-3-2"><span class="num">15.3.2</span>Partition Pruning</h3>
+<div class="grid-2">
+<pre class="diagram">orders/
+  order_date=2026-10-20/
+  order_date=2026-10-21/
+  order_date=2026-10-22/   &amp;lt;- only this one is read
+  order_date=2026-10-23/</pre>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM orders
+WHERE order_date = DATE '2026-10-22';</code></pre></div>
+</div>
+<p>When a query filters on a <strong>partition column</strong>, Spark skips irrelevant folders, reducing files read, bytes scanned, I/O, and runtime. Verify with <code>explain("formatted")</code> (look for <code>PartitionFilters</code>) and the actual "files read" metrics.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Partition pruning</th><th>Data skipping</th></tr></thead>
+<tbody><tr><td>Skips <strong>folders</strong> using partition-column filters</td><td>Skips <strong>files</strong> using per-file min/max statistics (15.5.7)</td></tr></tbody></table></div>
+
+<h3 id="s15-3-3"><span class="num">15.3.3</span>Shuffle Partition Settings</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>spark.conf.get("spark.sql.shuffle.partitions")          # default '200'
+spark.conf.set("spark.sql.shuffle.partitions", "400")   # classic compute; or "auto" on Databricks</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Too few</h4><p style="margin-bottom:0">Large partitions, long tasks, high memory, spill.</p></div>
+<div class="card"><h4>Too many</h4><p style="margin-bottom:0">Task and scheduling overhead, tiny partitions, sometimes tiny output files.</p></div>
+</div>
+<p><strong>Should you always use 200?</strong> No. A fixed value can't suit every workload. With AQE coalescing, a generous value is usually safe because AQE merges small partitions. Databricks also supports <code>"auto"</code> to let the platform choose. Change it only after looking at task metrics.</p>
+
+<h3 id="s15-3-4"><span class="num">15.3.4</span>File Partitioning</h3>
+<div class="grid-2">
+<pre class="diagram">sales/
+  year=2025/
+    month=01/
+    month=02/
+  year=2026/
+    month=01/
+    month=02/</pre>
+<div><div class="card"><h4>Benefits</h4><p style="margin-bottom:0">Partition pruning; easy management of date ranges; efficient range processing.</p></div><div class="card"><h4>Risks</h4><p style="margin-bottom:0">Too many partitions, small files, uneven sizes, no benefit if the column isn't filtered.</p></div></div>
+</div>
+<p>A good partition column is frequently filtered, has manageable cardinality, distributes data reasonably, and matches access patterns. Partitioning a big fact table by date can help; partitioning by a high-cardinality <code>customer_id</code> is almost always a mistake.</p>
+<div class="callout key"><span class="label">Databricks guidance</span><p>For Delta tables, Databricks recommends <strong>not partitioning</strong> tables smaller than about 1 TB, and using <strong>liquid clustering</strong> (15.5.6) for new tables instead.</p></div>
+
+<h3 id="s15-3-5"><span class="num">15.3.5</span>Small-File Problems</h3>
+<div class="grid-2">
+<pre class="diagram">Table size:        100 GB
+File count:        100,000
+Average file size: ~1 MB  (100 GB / 100,000)</pre>
+<div class="card"><h4>Cost of small files</h4><p style="margin-bottom:0">File listing, metadata processing, task scheduling, query planning, and per-file read overhead all grow with file count.</p></div>
+</div>
+<p><strong>Common causes:</strong> frequent small streaming writes, over-partitioning, very frequent micro-batches, many tiny input files, repeated small incremental updates.</p>
+<div class="code-wrap"><span class="lang">SQL · Delta compaction</span><pre class="code"><code>-- Compact small files (and recluster, for clustered tables)
+OPTIMIZE retail_dev.perf_lab.fact_sales;
+
+-- Check file count and size
+DESCRIBE DETAIL retail_dev.perf_lab.fact_sales;   -- numFiles, sizeInBytes</code></pre></div>
+<p class="ref">Also consider fewer write partitions, liquid clustering, optimized writes / auto compaction, and <strong>predictive optimization</strong>, which runs <code>OPTIMIZE</code> automatically on Unity Catalog managed tables.</p>
+
+<h3 id="s15-3-6"><span class="num">15.3.6</span>Output File Sizing</h3>
+<p>Thousands of tiny files slow every later read; a handful of huge files limits read parallelism. For 20 GB of output, 200 files is about 100 MB each, while 20,000 files is about 1 MB each. The former usually suits analytics better.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df.coalesce(20).write.format("delta").saveAsTable("retail_dev.perf_lab.sales_copy")</code></pre></div>
+<p class="ref">This reduces write tasks but doesn't guarantee exactly 20 files; partitioned writes, max-records-per-file, and optimized writes all affect file count.</p>
+<p><strong>Best practices:</strong> avoid one file per tiny group; avoid excessive partition counts; monitor file sizes after repeated incremental writes (<code>DESCRIBE DETAIL</code>); compact with <code>OPTIMIZE</code>; don't force single files without a reason.</p>
+
+<h3 id="s15-3-7"><span class="num">15.3.7</span>Partition-Column Selection</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Distinct values</th><th>As a partition column?</th></tr></thead>
+<tbody>
+<tr><td><code>order_date</code></td><td>3,650</td><td>Possibly, for a very large table filtered by date (or by month)</td></tr>
+<tr><td><code>customer_id</code></td><td>5 million</td><td>No: millions of tiny folders</td></tr>
+<tr><td><code>country</code></td><td>20</td><td>Maybe, if heavily filtered and data is balanced</td></tr>
+<tr><td><code>product_category</code></td><td>100</td><td>Maybe, depending on query patterns</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Decision process</h4><ol style="margin-bottom:0"><li>Identify common filters.</li><li>Measure the dataset size.</li><li>Count distinct values.</li><li>Estimate data per partition (aim for at least ~1 GB).</li><li>Consider file counts.</li><li>Test representative queries.</li><li>Compare scan metrics and runtime.</li></ol></div>
+<p class="ref">Traditional partitioning isn't always best for modern Delta tables; liquid clustering adapts to several filter columns without fixed folders.</p>
+
+<!-- ===================== 15.4 ===================== -->
+<h2 id="s15-4"><span class="num">15.4</span>Memory Management</h2>
+
+<h3 id="s15-4-1"><span class="num">15.4.1</span>Driver Memory</h3>
+<p>The driver plans queries, schedules tasks, tracks progress, and collects results. Problems come from <code>collect()</code> on large data, huge local objects, very complex plans, too much metadata, and driver-side Python over big data.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · ✗ dangerous</span><pre class="code"><code>rows = spark.table(
+    "retail_dev.perf_lab.fact_sales"
+).collect()        # every row to the driver</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · ✓ distributed</span><pre class="code"><code>summary = (
+    spark.table("retail_dev.perf_lab.fact_sales")
+    .groupBy("order_date")
+    .sum("sales_amount")
+)
+summary.show(20)   # only 20 rows reach the driver</code></pre></div>
+</div>
+<p class="ref">Keep large-scale processing distributed. Use the driver for coordination and small results.</p>
+
+<h3 id="s15-4-2"><span class="num">15.4.2</span>Executor Memory</h3>
+<p>Executors use memory for joins, sorts, aggregations, shuffles, and cached data. If working memory is exceeded, Spark spills or fails.</p>
+<div class="grid-2">
+<div class="card"><h4>Improve memory behavior</h4><ul style="margin-bottom:0"><li>Read fewer columns; filter early.</li><li>Avoid oversized partitions.</li><li>Address skew.</li><li>Use suitable join strategies.</li><li>Don't cache what isn't reused.</li><li>Choose suitable compute.</li></ul></div>
+<div class="card"><h4>Before adding memory, check for</h4><ul style="margin-bottom:0"><li>An oversized partition.</li><li>A too-large broadcast.</li><li>Skew.</li><li>Excessive caching.</li><li>A huge shuffle.</li><li>…or a genuine need for more resources.</li></ul></div>
+</div>
+
+<h3 id="s15-4-3"><span class="num">15.4.3</span>Garbage Collection</h3>
+<p>The JVM reclaims memory from unused objects. Workloads creating many short-lived objects, or holding many objects, spend time collecting instead of computing.</p>
+<div class="grid-2">
+<div class="card"><h4>Symptoms and causes</h4><p style="margin-bottom:0"><strong>Symptoms:</strong> high GC time, long tasks, memory pressure, variable runtimes.<br><strong>Causes:</strong> large hash tables, object-heavy processing, excessive caching, big joins, oversized partitions.</p></div>
+<div class="card"><h4>Strategies</h4><p style="margin-bottom:0">Prefer built-in functions over Python UDFs; avoid unnecessary caching; process less data; right-size partitions; check GC as a <em>share</em> of task time (a rule of thumb: worry above ~10%).</p></div>
+</div>
+
+<h3 id="s15-4-4"><span class="num">15.4.4</span>Out-of-Memory Errors</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Where</th><th>Typical causes</th></tr></thead>
+<tbody>
+<tr><td>Driver</td><td>Large <code>collect()</code> / <code>toPandas()</code>, driver-side processing, huge metadata, oversized broadcasts (built on the driver)</td></tr>
+<tr><td>Executor</td><td>Oversized joins, skewed partitions, excessive caching, large broadcast relations</td></tr>
+<tr><td>Python worker</td><td>Large Python objects, pandas UDF batches, collecting big partitions into Python</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Troubleshooting</h4><ol style="margin-bottom:0"><li>Identify which component failed.</li><li>Read the error and logs.</li><li>Find the stage and task.</li><li>Review input sizes and partition distribution.</li><li>Check spill and GC.</li><li>See whether the query can be reduced or restructured.</li><li>Add compute only if genuinely needed.</li></ol></div>
+
+<h3 id="s15-4-5"><span class="num">15.4.5</span>Caching and Persistence</h3>
+<p>Caching keeps an intermediate result for reuse. It helps when a DataFrame is <strong>expensive to compute and reused</strong>.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales = (
+    spark.table("retail_dev.perf_lab.fact_sales")
+    .filter("order_date &gt;= DATE '2026-01-01'")
+    .select("customer_id", "product_id", "sales_amount")
+    .cache()               # lazy: nothing stored yet
+)
+
+sales.count()              # action materializes the cache
+
+customer_summary = sales.groupBy("customer_id").sum("sales_amount")   # reuses cache
+product_summary  = sales.groupBy("product_id").sum("sales_amount")    # reuses cache
+
+sales.unpersist()          # release when done</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · persist with a storage level</span><pre class="code"><code>from pyspark import StorageLevel
+
+sales = spark.table("retail_dev.perf_lab.fact_sales").persist(StorageLevel.MEMORY_AND_DISK)</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Cache when</h4><ul style="margin-bottom:0"><li>Reused multiple times.</li><li>Expensive to compute.</li><li>Fits in the memory budget.</li><li>Recomputing is costly.</li></ul></div>
+<div class="card"><h4>Don't cache when</h4><ul style="margin-bottom:0"><li>Used only once.</li><li>Too large for memory.</li><li>It causes memory pressure.</li><li>The source is cheap to reread (Delta + disk cache often is).</li></ul></div>
+</div>
+<div class="callout warn"><span class="label">Serverless</span><p><code>cache()</code> and <code>persist()</code> aren't supported on serverless compute (as noted in Chapter 6). There, write the reused intermediate result to a temporary table instead, or rely on Databricks' automatic disk cache.</p></div>
+<p class="ref"><code>cache()</code> is shorthand for a default storage level; <code>persist()</code> lets you choose one. Measure before and after; never cache every intermediate DataFrame.</p>
+
+<h3 id="s15-4-7"><span class="num">15.4.6</span>Avoiding Unnecessary Collection to the Driver</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · ✗ avoid</span><pre class="code"><code>data = spark.table("retail_dev.perf_lab.fact_sales").collect()
+
+for row in data:      # single-machine loop
+    pass</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · ✓ prefer</span><pre class="code"><code>result = (
+    spark.table("retail_dev.perf_lab.fact_sales")
+    .groupBy("order_date")
+    .sum("sales_amount")
+)
+
+# Small, deliberate driver results only
+sample_rows = (spark.table("retail_dev.perf_lab.fact_sales")
+               .limit(10).collect())</code></pre></div>
+</div>
+<div class="callout key"><span class="label">Key takeaway</span><p>Keep large transformations distributed; collect only small results that driver-side logic genuinely needs. The same goes for <code>toPandas()</code>.</p></div>
+
+<!-- ===================== 15.5 ===================== -->
+<h2 id="s15-5"><span class="num">15.5</span>Advanced Optimization</h2>
+
+<h3 id="s15-5-1"><span class="num">15.5.1</span>Photon</h3>
+<p>Photon is Databricks' native (C++), vectorized query engine. It accelerates supported scans, filters, joins, aggregations, and SQL expressions by processing data in columnar batches instead of row by row. SQL warehouses and serverless compute use it by default; on classic clusters it's a checkbox.</p>
+<div class="grid-2">
+<div class="card"><h4>Consider Photon when</h4><ul style="margin-bottom:0"><li>You run substantial SQL / DataFrame workloads.</li><li>Operations are Photon-supported.</li><li>Work is CPU-bound (joins, aggregations, Delta writes).</li></ul></div>
+<div class="card"><h4>Considerations</h4><ul style="margin-bottom:0"><li>Not every operator runs in Photon; Python UDFs and some functions fall back.</li><li>Gains vary by workload.</li><li>Photon compute has a different price.</li></ul></div>
+</div>
+<p><strong>Evaluate it:</strong> baseline the runtime, run the same workload on Photon compute, check the plan for <code>Photon…</code> operators (and fallback notes), then compare runtime <em>and</em> cost.</p>
+
+<h3 id="s15-5-2"><span class="num">15.5.2</span>Query Plan Analysis</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT c.country, SUM(f.sales_amount) AS total_sales
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c
+    ON f.customer_id = c.customer_id
+WHERE f.order_date &gt;= DATE '2026-01-01'
+GROUP BY c.country;</code></pre></div>
+<pre class="diagram">Inspect query
+     |
+Capture physical plan
+     |
+Run query
+     |
+Inspect Spark UI / Query Profile
+     |
+Identify the bottleneck
+     |
+Apply ONE optimization
+     |
+Compare results and runtime</pre>
+</div>
+<p><strong>Questions:</strong> Is unnecessary history scanned? Is the dimension small enough to broadcast? Does the join produce more rows than expected? Is a key skewed? Are there unnecessary sorts? Is anything spilling? Are repeated scans avoidable? Change <strong>one</strong> thing at a time so you know what helped.</p>
+
+<h3 id="s15-5-3"><span class="num">15.5.3</span>Predicate Pushdown</h3>
+<p>Supported filters are pushed into the scan, so less data is read, transferred, and shuffled. Here's the real plan for the exercise query (local Spark 4, Parquet). Every filter appears in <code>PushedFilters</code>:</p>
+<div class="code-wrap"><span class="lang">explain("formatted") · excerpt</span><pre class="code"><code>(1) Scan parquet spark_catalog.perf_lab.fact_sales
+Output [6]: [customer_id, product_id, order_date, date_key, sales_amount, order_status]
+PushedFilters: [IsNotNull(order_date), IsNotNull(order_status),
+                GreaterThanOrEqual(order_date,2026-01-01),
+                EqualTo(order_status,COMPLETED), IsNotNull(customer_id), ...]
+ReadSchema: struct&amp;lt;customer_id:bigint,product_id:bigint,order_date:date,
+                   date_key:int,sales_amount:decimal(18,2),order_status:string&amp;gt;</code></pre></div>
+<p class="ref">Writing the filter earlier in code doesn't guarantee earlier execution, because the optimizer rearranges anyway. Check the plan and scan metrics. If the table holds five years of data but you need October 2026, pushdown plus pruning or skipping can avoid reading the rest.</p>
+
+<h3 id="s15-5-4"><span class="num">15.5.4</span>Column Pruning</h3>
+<p>Columnar formats (Parquet, Delta) read only the columns a query needs. In the excerpt above, <code>ReadSchema</code> lists just the 6 columns the query uses, not the whole table, and <code>order_id</code> isn't read at all.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · ✗</span><pre class="code"><code>SELECT *
+FROM retail_dev.perf_lab.fact_sales;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · ✓</span><pre class="code"><code>SELECT order_id, customer_id, order_date, sales_amount
+FROM retail_dev.perf_lab.fact_sales;</code></pre></div>
+</div>
+<p class="ref">Benefits: less data scanned, less memory, less I/O, cheaper downstream work. Spark prunes automatically as long as nothing downstream needs the columns, but a final <code>SELECT *</code> or <code>collect()</code> forces it to read them all.</p>
+
+<h3 id="s15-5-5"><span class="num">15.5.5</span>Statistics</h3>
+<p>Statistics (row counts, sizes, column min/max/distinct counts) drive join strategy, join order, and broadcast decisions. If Spark thinks a dimension is 10 MB but it's grown to 5 GB, it may choose badly.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Table-level
+ANALYZE TABLE retail_dev.perf_lab.dim_customer COMPUTE STATISTICS;
+
+-- Column-level
+ANALYZE TABLE retail_dev.perf_lab.dim_customer COMPUTE STATISTICS FOR COLUMNS customer_id;
+
+-- Everything
+ANALYZE TABLE retail_dev.perf_lab.fact_sales COMPUTE STATISTICS FOR ALL COLUMNS;</code></pre></div>
+<p><strong>Best practice:</strong> know the table's maintenance strategy (predictive optimization can run <code>ANALYZE</code> automatically on Unity Catalog managed tables), refresh statistics after big changes, and compare estimated vs actual sizes with <code>explain("cost")</code>. Statistics improve choices but don't guarantee a strategy.</p>
+
+<h3 id="s15-5-6"><span class="num">15.5.6</span>Liquid Clustering</h3>
+<p>Liquid clustering (Chapter 9) co-locates rows with similar values of chosen columns in the same files, which improves data skipping without rigid partition folders. You can change the keys later without rewriting the table.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- New clustered copy
+CREATE TABLE retail_dev.perf_lab.fact_sales_clustered
+CLUSTER BY (order_date, customer_id)
+AS SELECT * FROM retail_dev.perf_lab.fact_sales;
+
+-- Or cluster an existing table, then reorganize its data
+ALTER TABLE retail_dev.perf_lab.fact_sales CLUSTER BY (order_date, customer_id);
+OPTIMIZE retail_dev.perf_lab.fact_sales;   -- applies clustering to existing data
+
+-- Let Databricks choose keys from query history (UC managed tables)
+ALTER TABLE retail_dev.perf_lab.fact_sales CLUSTER BY AUTO;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Helps</h4><ul style="margin-bottom:0"><li>Data skipping on clustered columns.</li><li>Several different filter patterns.</li><li>Avoiding over-partitioning.</li><li>Adapting layout as data and keys change.</li></ul></div>
+<div class="card"><h4>Choose keys wisely</h4><ul style="margin-bottom:0"><li>Columns you actually filter on.</li><li>Up to 4 keys; fewer is better.</li><li>Not every column.</li><li>Not rarely filtered high-cardinality columns.</li></ul></div>
+</div>
+<p class="ref"><code>ALTER TABLE … CLUSTER BY</code> only affects new writes until you run <code>OPTIMIZE</code>. Measure files skipped before and after.</p>
+
+<h3 id="s15-5-7"><span class="num">15.5.7</span>Data Skipping</h3>
+<p>Delta records min/max (and null counts) per file for the first 32 columns by default. A file whose <code>order_date</code> range is 2026-01-01 to 2026-01-31 can't contain <code>2026-10-25</code>, so it's skipped without being opened.</p>
+<div class="grid-2">
+<div class="card"><h4>Affected by</h4><p style="margin-bottom:0">File statistics, query filters, data layout and clustering, file sizes, and whether filtered columns have stats.</p></div>
+<div class="card"><h4>Improve it</h4><ol style="margin-bottom:0"><li>Filter on commonly used columns.</li><li>Keep a good layout (cluster / OPTIMIZE).</li><li>Put frequently filtered columns among the first 32.</li><li>Avoid unnecessary full scans.</li><li>Verify files and bytes read in the Query Profile.</li></ol></div>
+</div>
+<p class="ref">Skipping works at file level even on unpartitioned tables. It works best when data is clustered: if every file spans all dates, no file can be skipped.</p>
+
+<h3 id="s15-5-8"><span class="num">15.5.8</span>Appropriate Compute Selection</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Workload</th><th>Consideration</th></tr></thead>
+<tbody>
+<tr><td>Small, light transformations</td><td>Smaller compute or serverless</td></tr>
+<tr><td>Large distributed joins</td><td>Enough parallel cores and memory</td></tr>
+<tr><td>Memory-intensive operations</td><td>Investigate partition sizes before memory-optimized nodes</td></tr>
+<tr><td>CPU-intensive SQL</td><td>Photon-enabled compute</td></tr>
+<tr><td>Irregular workloads</td><td>Autoscaling or serverless</td></tr>
+<tr><td>Frequent short jobs</td><td>Startup overhead; serverless or pools</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Optimize cost, not just runtime</span><p>Going from 20 to 10 minutes with 4× the compute <em>doubles</em> the cost. Measure both.</p></div>
+
+<!-- ===================== 15.6 ===================== -->
+<h2 id="s15-6"><span class="num">15.6</span>Hands-On Exercise: Optimize a Slow Fact-to-Dimension Join</h2>
+<p class="section-intro">The business wants total sales by <strong>country</strong>, <strong>product category</strong>, and <strong>month</strong>, for <strong>completed</strong> orders from January 2026 on. You'll baseline the query, inspect its plan, test joins, find skew, check AQE, consider layout, and compare.</p>
+<pre class="diagram">fact_sales
+    |---- dim_customer  (country)
+    |---- dim_product   (product_category)
+    |---- dim_date      (calendar_year, calendar_month)
+              |
+              v
+   SUM(sales_amount) by country, category, month</pre>
+
+<h3 id="s15-6-0"><span class="num">15.6.1</span>Step 1: Generate the Data</h3>
+<p>The original exercise assumed tables you don't have. This notebook cell generates them, with a deliberate <strong>skew</strong>: 30% of sales belong to customer 0 ("UNKNOWN").</p>
+<div class="code-wrap"><span class="lang">Python · generate perf_lab tables</span><pre class="code"><code>from pyspark.sql import functions as F
+
+catalog = "retail_dev"        # change to a catalog you own (e.g. "workspace")
+schema = "perf_lab"
+fact_rows = 20_000_000        # ~20M rows; lower it on small compute
+
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
+
+# dim_customer: 200,000 customers, plus customer 0 = 'UNKNOWN'
+dim_customer = (
+    spark.range(0, 200_001).withColumnRenamed("id", "customer_id")
+    .withColumn("customer_name",
+                F.when(F.col("customer_id") == 0, F.lit("UNKNOWN"))
+                 .otherwise(F.concat(F.lit("Customer "), F.col("customer_id"))))
+    .withColumn("country", F.element_at(
+        F.array(*[F.lit(c) for c in ["India", "USA", "UK", "Germany", "Japan"]]),
+        (F.col("customer_id") % 5 + 1).cast("int")))
+)
+
+# dim_product: 1,000 products in 10 categories
+dim_product = (
+    spark.range(1, 1_001).withColumnRenamed("id", "product_id")
+    .withColumn("product_category", F.concat(F.lit("Category "), F.col("product_id") % 10))
+)
+
+# dim_date: 2025-01-01 .. 2026-12-31
+dim_date = (
+    spark.sql("SELECT explode(sequence(DATE'2025-01-01', DATE'2026-12-31')) AS order_date")
+    .withColumn("date_key", F.date_format("order_date", "yyyyMMdd").cast("int"))
+    .withColumn("calendar_year", F.year("order_date"))
+    .withColumn("calendar_month", F.month("order_date"))
+)
+
+# fact_sales: 30% of rows belong to customer 0 -&gt; deliberate skew
+fact_sales = (
+    spark.range(0, fact_rows).withColumnRenamed("id", "order_id")
+    .withColumn("customer_id",
+                F.when(F.rand(1) &lt; 0.30, F.lit(0))
+                 .otherwise((F.rand(2) * 200_000 + 1).cast("long")))
+    .withColumn("product_id", (F.rand(3) * 1_000 + 1).cast("long"))
+    .withColumn("order_date", F.date_add(F.lit("2025-01-01").cast("date"),
+                                         (F.rand(4) * 730).cast("int")))
+    .withColumn("date_key", F.date_format("order_date", "yyyyMMdd").cast("int"))
+    .withColumn("sales_amount", F.round(F.rand(5) * 5_000, 2).cast("decimal(18,2)"))
+    .withColumn("order_status",
+                F.when(F.rand(6) &lt; 0.85, "COMPLETED").otherwise("CANCELLED"))
+)
+
+for name, df in [("dim_customer", dim_customer), ("dim_product", dim_product),
+                 ("dim_date", dim_date), ("fact_sales", fact_sales)]:
+    df.write.mode("overwrite").saveAsTable(f"{catalog}.{schema}.{name}")
+    print(f"Created {catalog}.{schema}.{name}")</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Rows</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><code>fact_sales</code></td><td>20 million (configurable)</td><td>~30% for customer 0; 85% COMPLETED; dates 2025–2026</td></tr>
+<tr><td><code>dim_customer</code></td><td>200,001</td><td>5 countries; row 0 = UNKNOWN</td></tr>
+<tr><td><code>dim_product</code></td><td>1,000</td><td>10 categories</td></tr>
+<tr><td><code>dim_date</code></td><td>730</td><td>Calendar attributes</td></tr>
+</tbody></table></div>
+<p class="ref">Tested locally at 2 million rows. 20 million takes a few minutes on modest compute; lower <code>fact_rows</code> on Free Edition. Real warehouses are much bigger, so focus on <em>plans and metrics</em>, not absolute times.</p>
+
+<h3 id="s15-6-2"><span class="num">15.6.2</span>Step 2: Run the Baseline Query</h3>
+<div class="code-wrap"><span class="lang">SQL · baseline</span><pre class="code"><code>SELECT
+    c.country,
+    p.product_category,
+    d.calendar_year,
+    d.calendar_month,
+    SUM(f.sales_amount) AS total_sales
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c ON f.customer_id = c.customer_id
+JOIN retail_dev.perf_lab.dim_product  p ON f.product_id  = p.product_id
+JOIN retail_dev.perf_lab.dim_date     d ON f.date_key    = d.date_key
+WHERE f.order_date &gt;= DATE '2026-01-01'
+  AND f.order_status = 'COMPLETED'
+GROUP BY c.country, p.product_category, d.calendar_year, d.calendar_month;</code></pre></div>
+<p>The result has <strong>600 rows</strong> (5 countries × 10 categories × 12 months). This baseline isn't necessarily bad, because Spark already pushes down filters, prunes columns, and picks join strategies. The point is to <strong>measure</strong> it. Record these from the Spark UI or Query Profile:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Baseline</th></tr></thead>
+<tbody><tr><td>Query runtime</td><td>measure</td></tr><tr><td>Bytes / files scanned</td><td>measure</td></tr><tr><td>Shuffle read / write</td><td>measure</td></tr><tr><td>Number of stages</td><td>measure</td></tr><tr><td>Longest task vs median</td><td>measure</td></tr><tr><td>Spill to disk</td><td>measure</td></tr></tbody></table></div>
+<p class="ref">Run it twice and use the second time, so caching and startup don't distort the comparison. Don't invent numbers; capture them.</p>
+
+<h4>Step 3: Inspect the physical plan</h4>
+<p>Prefix the query with <code>EXPLAIN FORMATTED</code>, or use <code>spark.sql(query).explain("formatted")</code>. On the generated data, Spark chose:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting</th><th>Join strategies chosen (verified locally)</th></tr></thead>
+<tbody>
+<tr><td>Defaults</td><td>3 × <code>BroadcastHashJoin</code>: every dimension was small enough to broadcast automatically</td></tr>
+<tr><td><code>autoBroadcastJoinThreshold = -1</code> (broadcasting off)</td><td>3 × <code>SortMergeJoin</code>, each with two <code>Exchange</code>s (shuffles)</td></tr>
+</tbody></table></div>
+<p><strong>Answer for your run:</strong> Are the date and status filters in <code>PushedFilters</code>? Which join strategies appear? Are there large Exchanges? Is any dimension small enough to broadcast? Are statistics accurate (<code>explain("cost")</code>)? Is there a skewed join? Write down what you see before changing anything.</p>
+
+<h4>Step 4: Reduce unnecessary data</h4>
+<div class="code-wrap"><span class="lang">SQL · explicit projection and filtering</span><pre class="code"><code>WITH filtered_sales AS (
+    SELECT customer_id, product_id, date_key, sales_amount
+    FROM retail_dev.perf_lab.fact_sales
+    WHERE order_date &gt;= DATE '2026-01-01'
+      AND order_status = 'COMPLETED'
+)
+SELECT
+    c.country, p.product_category, d.calendar_year, d.calendar_month,
+    SUM(f.sales_amount) AS total_sales
+FROM filtered_sales f
+JOIN retail_dev.perf_lab.dim_customer c ON f.customer_id = c.customer_id
+JOIN retail_dev.perf_lab.dim_product  p ON f.product_id  = p.product_id
+JOIN retail_dev.perf_lab.dim_date     d ON f.date_key    = d.date_key
+GROUP BY c.country, p.product_category, d.calendar_year, d.calendar_month;</code></pre></div>
+<div class="callout"><span class="label">Expect the same plan</span><p>Compare both <code>EXPLAIN</code> outputs. Catalyst already pushed these filters and pruned these columns in the baseline, so the rewrite should be identical and no faster. That's a lesson in itself.</p></div>
+
+<h3 id="s15-6-5"><span class="num">15.6.5</span>Step 5: Test a Broadcast Join</h3>
+<p>To see the difference, first turn off automatic broadcasting (classic compute; serverless may not allow this setting), then add a hint for just the product table:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")   # force sort-merge everywhere</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · hint goes right after SELECT</span><pre class="code"><code>SELECT /*+ BROADCAST(p) */
+    c.country, p.product_category, d.calendar_year, d.calendar_month,
+    SUM(f.sales_amount) AS total_sales
+FROM retail_dev.perf_lab.fact_sales f
+JOIN retail_dev.perf_lab.dim_customer c ON f.customer_id = c.customer_id
+JOIN retail_dev.perf_lab.dim_product  p ON f.product_id  = p.product_id
+JOIN retail_dev.perf_lab.dim_date     d ON f.date_key    = d.date_key
+WHERE f.order_date &gt;= DATE '2026-01-01'
+  AND f.order_status = 'COMPLETED'
+GROUP BY c.country, p.product_category, d.calendar_year, d.calendar_month;</code></pre></div>
+<div class="callout warn"><span class="label">Fixed: hint placement</span><p>The original exercise put the hint after <code>JOIN</code> (<code>JOIN /*+ BROADCAST(p) */ … dim_product p</code>). Spark rejects that with <code>PARSE_SYNTAX_ERROR … near '/*+'</code> (verified on Spark 4). The hint must follow <code>SELECT</code>. With it there, the plan became <code>SortMergeJoin</code> (customer) + <code>BroadcastHashJoin</code> (product) + <code>SortMergeJoin</code> (date), and the 600 result rows were identical to the baseline.</p></div>
+<p><strong>Compare</strong> join strategy, shuffle read/write, runtime, memory, and task duration across three runs: defaults, broadcast off, broadcast off + hint. Then reset with <code>spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")</code>.</p>
+
+<h4>Step 6: Check data skew</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT customer_id, COUNT(*) AS record_count
+FROM retail_dev.perf_lab.fact_sales
+GROUP BY customer_id
+ORDER BY record_count DESC
+LIMIT 20;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>record_count (2M-row test)</th></tr></thead>
+<tbody><tr><td><strong>0</strong></td><td><strong>599,006</strong></td></tr><tr><td>5466</td><td>22</td></tr><tr><td>107767</td><td>21</td></tr></tbody></table></div>
+<p>One key holds ~30% of the data, so with sort-merge joins (broadcast off), one task in the customer join stage gets almost a third of the rows. Find it in the stage's task list. Remedies, in order: let AQE split it (next step); broadcast <code>dim_customer</code> (skew doesn't matter for broadcast joins); ask whether UNKNOWN rows belong in this report; salting (15.2.6) only if those fail.</p>
+
+<h4>Step 7: Verify AQE</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print(spark.conf.get("spark.sql.adaptive.enabled"))            # expect 'true'
+print(spark.conf.get("spark.sql.adaptive.skewJoin.enabled"))   # expect 'true'</code></pre></div>
+<p>Run the broadcast-off query with AQE on, then open the SQL tab or Query Profile. Look for a skew-join marker on the <code>SortMergeJoin</code> and coalesced shuffle partitions. Compare the <strong>final</strong> plan, not just the initial one; AQE may even switch a join to broadcast at runtime.</p>
+
+<h3 id="s15-6-8"><span class="num">15.6.8</span>Step 8: Evaluate Storage Layout</h3>
+<p>This query filters by date and status. Is the table partitioned? Does pruning or skipping apply? Too many small files (<code>DESCRIBE DETAIL</code>)? Would clustering help?</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE DETAIL retail_dev.perf_lab.fact_sales;          -- numFiles, sizeInBytes
+
+ALTER TABLE retail_dev.perf_lab.fact_sales CLUSTER BY (order_date);
+OPTIMIZE retail_dev.perf_lab.fact_sales;                 -- reorganize existing files</code></pre></div>
+<p class="ref">Rerun the query and compare files and bytes read in the Query Profile. Clustering isn't guaranteed to help every query; at 20M rows the table may be only a handful of files, so effects are clearer on bigger data.</p>
+
+<h4>Step 9: Compare results</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Baseline</th><th>Broadcast off</th><th>+ Hint</th><th>+ Clustering</th></tr></thead>
+<tbody>
+<tr><td>Runtime</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Bytes / files scanned</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Shuffle read / write</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Longest task</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Spill</td><td></td><td></td><td></td><td></td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Formula</span><pre class="code"><code>Runtime improvement (%) = (baseline − optimized) / baseline × 100
+
+Example: (600 s − 360 s) / 600 s × 100 = 40%</code></pre></div>
+<div class="card"><h4>Verify correctness before declaring success</h4>
+<ul><li>Same business result (here, the same 600 rows and totals).</li><li>Join keys correct; aggregation grain unchanged.</li><li>No duplicate dimension keys multiplying fact rows.</li><li>Null handling preserved; date range unchanged.</li></ul>
+<div class="code-wrap" style="margin-bottom:0"><span class="lang">Python · prove two versions match</span><pre class="code"><code>baseline_df  = spark.sql(baseline_sql)
+optimized_df = spark.sql(optimized_sql)
+
+assert baseline_df.exceptAll(optimized_df).isEmpty()
+assert optimized_df.exceptAll(baseline_df).isEmpty()</code></pre></div>
+<p style="margin:8px 0 0">An optimization that changes the totals is not an optimization.</p></div>
+
+<!-- ===================== 15.7 ===================== -->
+<h2 id="s15-7"><span class="num">15.7</span>Common Spark Optimization Mistakes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Mistake</th><th>Why it's a problem</th><th>Better approach</th></tr></thead>
+<tbody>
+<tr><td>Broadcasting a large table</td><td>Memory pressure, failures</td><td>Measure size; inspect the plan</td></tr>
+<tr><td>Increasing partitions without evidence</td><td>Unnecessary tasks</td><td>Inspect task durations and sizes</td></tr>
+<tr><td><code>coalesce(1)</code> on large data</td><td>Kills parallelism</td><td>Appropriate output partitioning</td></tr>
+<tr><td>Caching every DataFrame</td><td>Wastes memory</td><td>Cache only reused, expensive data</td></tr>
+<tr><td>Collecting large datasets</td><td>Driver OOM</td><td>Distributed operations</td></tr>
+<tr><td>Salting every join</td><td>Complexity; can change results</td><td>Only after diagnosing skew</td></tr>
+<tr><td>Adding compute immediately</td><td>Cost without a fix</td><td>Diagnose the plan first</td></tr>
+<tr><td>Assuming SQL rewrites help</td><td>Same plan generated</td><td>Compare physical plans</td></tr>
+<tr><td>Ignoring small files</td><td>Metadata and read overhead</td><td>Compaction, clustering, write layout</td></tr>
+<tr><td>Trusting the initial plan</td><td>AQE changes it</td><td>Inspect the final plan</td></tr>
+<tr><td>Hints in the wrong place</td><td>Syntax error, or silently ignored</td><td>Put hints after <code>SELECT</code>; verify in the plan</td></tr>
+<tr><td>Optimizing runtime only</td><td>Higher cost or wrong results</td><td>Compare correctness, speed, and cost</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 15.8 ===================== -->
+<h2 id="s15-8"><span class="num">15.8</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. Why do Spark jobs become slow?</summary><div class="answer">Excessive shuffles, skew, inefficient joins, large scans, small files, memory pressure, and insufficient or poorly used compute.</div></details>
+<details class="q"><summary>Q2. Logical vs physical plan?</summary><div class="answer">The logical plan describes the relational operations (what); the physical plan names the concrete operators Spark will run (how), such as which join algorithm.</div></details>
+<details class="q"><summary>Q3. What is a shuffle?</summary><div class="answer">Redistribution of data between partitions (an <code>Exchange</code> in the plan), commonly for joins, aggregations, and sorts. It costs network, disk, and serialization.</div></details>
+<details class="q"><summary>Q4. When use a broadcast join?</summary><div class="answer">When one side is small enough to fit comfortably in executor memory and the join type supports it, so the large side isn't shuffled.</div></details>
+<details class="q"><summary>Q5. What is a sort-merge join?</summary><div class="answer">A distributed join that shuffles both sides by key, sorts them, and merges matching keys. It's the default for two large equi-joined tables.</div></details>
+<details class="q"><summary>Q6. What is data skew?</summary><div class="answer">Uneven distribution where a few keys or partitions hold most of the data, so a few tasks do most of the work.</div></details>
+<details class="q"><summary>Q7. How does AQE improve performance?</summary><div class="answer">It re-optimizes at runtime using actual statistics: coalescing shuffle partitions, switching to broadcast joins, and splitting skewed join partitions.</div></details>
+<details class="q"><summary>Q8. repartition vs coalesce?</summary><div class="answer"><code>repartition()</code> shuffles to redistribute (can increase or decrease); <code>coalesce()</code> merges partitions without a full shuffle (decrease only).</div></details>
+<details class="q"><summary>Q9. What is partition pruning?</summary><div class="answer">Skipping irrelevant storage partitions (folders) when a query filters on partition columns.</div></details>
+<details class="q"><summary>Q10. What is data skipping?</summary><div class="answer">Using per-file statistics (e.g. min/max) to skip files that can't match a filter, even on unpartitioned tables.</div></details>
+<details class="q"><summary>Q11. What causes executor OOM?</summary><div class="answer">Large joins, oversized or skewed partitions, excessive caching, and large broadcast relations.</div></details>
+<details class="q"><summary>Q12. When cache a DataFrame?</summary><div class="answer">When it's expensive to compute and reused several times, and fits without memory pressure (not on serverless).</div></details>
+<details class="q"><summary>Q13. What is Photon?</summary><div class="answer">Databricks' native vectorized C++ engine that accelerates supported SQL and DataFrame operations.</div></details>
+<details class="q"><summary>Q14. What is liquid clustering?</summary><div class="answer">A Delta layout feature that clusters data by chosen columns to improve data skipping, with keys you can change without rewriting the table.</div></details>
+<details class="q"><summary>Q15. How do you prove an optimization worked?</summary><div class="answer">Show identical results (e.g. <code>exceptAll</code> both ways is empty) and better runtime, scan, shuffle, task, and cost metrics under comparable conditions.</div></details>
+<details class="q"><summary>Q16. Where does a SQL join hint go?</summary><div class="answer">Immediately after <code>SELECT</code>, naming the table alias: <code>SELECT /*+ BROADCAST(p) */ …</code>. After <code>JOIN</code> it's a syntax error in Spark.</div></details>
+
+<!-- ===================== 15.9 ===================== -->
+<h2 id="s15-9"><span class="num">15.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topic</th><th>Practical exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Execution plans</td><td>Analyze logical and physical plans</td></tr>
+<tr><td>2</td><td>Spark UI</td><td>Investigate stages, tasks, shuffle metrics</td></tr>
+<tr><td>3</td><td>Joins</td><td>Compare broadcast and sort-merge joins</td></tr>
+<tr><td>4</td><td>Partitions</td><td>Test repartitioning; inspect small files</td></tr>
+<tr><td>5</td><td>Memory</td><td>Caching, spill, driver collection</td></tr>
+<tr><td>6</td><td>Advanced</td><td>AQE, Photon, data skipping</td></tr>
+<tr><td>7</td><td>End to end</td><td>Complete the 15.6 exercise</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html" target="_blank" rel="noopener">Spark SQL performance tuning</a></li>
+<li><a href="https://spark.apache.org/docs/latest/configuration.html" target="_blank" rel="noopener">Spark configuration</a></li>
+<li><a href="https://docs.databricks.com/aws/en/optimizations/" target="_blank" rel="noopener">Databricks query performance optimization</a></li>
+<li><a href="https://docs.databricks.com/aws/en/compute/photon" target="_blank" rel="noopener">Photon</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/clustering" target="_blank" rel="noopener">Liquid clustering</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/data-skipping" target="_blank" rel="noopener">Data skipping</a></li>
+</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; check the Azure docs for Azure-specific options.</p></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Final Summary</h2>
+<p>Tick each principle once you can apply it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch15-checklist">
+<label><input type="checkbox"> <strong>Measure first:</strong> plans and the Spark UI identify the bottleneck.</label>
+<label><input type="checkbox"> <strong>Optimize joins intelligently:</strong> broadcast small relations; distributed joins for large ones.</label>
+<label><input type="checkbox"> <strong>Control shuffle costs:</strong> filter early, project only needed columns.</label>
+<label><input type="checkbox"> <strong>Investigate skew:</strong> compare task durations before mitigating.</label>
+<label><input type="checkbox"> <strong>Manage partitions:</strong> balance parallelism, overhead, and file sizes.</label>
+<label><input type="checkbox"> <strong>Protect memory:</strong> avoid unnecessary collect() and caching.</label>
+<label><input type="checkbox"> <strong>Use Databricks features:</strong> Photon, AQE, statistics, skipping, clustering.</label>
+<label><input type="checkbox"> <strong>Validate correctness:</strong> results must match before and after.</label>
+<label><input type="checkbox"> <strong>Evaluate cost</strong> as well as runtime.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch15-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch15-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 16!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Practical assignment</span><p>Take a slow query joining a large fact table with several dimensions. Establish a baseline, inspect its plan, apply one optimization at a time, and document runtime, shuffle volume, task distribution, and output correctness.</p></div>
+
+<div class="next">
+<h3>Next chapter: Streaming and Real-Time Data Processing</h3>
+<p>Chapter 16 moves from batch to continuous data: Structured Streaming, micro-batches, output modes, triggers and checkpointing; event time, watermarks, late data, windowed aggregations and streaming deduplication; Kafka, Event Hubs and Auto Loader sources; and monitoring, schema changes and recovery in production, ending with a live sales-aggregation pipeline.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-14.html"><span>← Previous</span><strong>Chapter 14: Lakeflow Jobs</strong></a>
+  <a class="pager-link" href="databricks-chapter-16.html"><span>Next →</span><strong>Chapter 16: Streaming</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 6 · Chapter 15 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

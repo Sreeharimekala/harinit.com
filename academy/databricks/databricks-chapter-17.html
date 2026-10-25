@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 17: Data Warehousing</title>
+<meta name="description" content="Chapter 17 of a Databricks learning path: OLTP vs OLAP, star and snowflake schemas, keys and grain, SCD Types 0-2, incremental loading with MERGE and CDC, integrity and reconciliation, Databricks SQL and Power BI, with a retail warehouse project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 17 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s17-1">17.1 Warehousing Concepts</a></li>
+    <li class="lvl2"><a href="#s17-1-1">What is a warehouse?</a></li>
+    <li class="lvl2"><a href="#s17-1-2">OLTP vs OLAP</a></li>
+    <li class="lvl2"><a href="#s17-1-3">Facts &amp; dimensions</a></li>
+    <li class="lvl2"><a href="#s17-1-4">Star schema</a></li>
+    <li class="lvl2"><a href="#s17-1-5">Snowflake schema</a></li>
+    <li class="lvl2"><a href="#s17-1-6">Data marts</a></li>
+    <li class="lvl2"><a href="#s17-1-7">Architecture</a></li>
+    <li class="lvl1"><a href="#s17-2">17.2 Dimensional Modeling</a></li>
+    <li class="lvl2"><a href="#s17-2-1">Business keys</a></li>
+    <li class="lvl2"><a href="#s17-2-2">Surrogate keys</a></li>
+    <li class="lvl2"><a href="#s17-2-3">Fact grain</a></li>
+    <li class="lvl2"><a href="#s17-2-4">Measures</a></li>
+    <li class="lvl2"><a href="#s17-2-5">Conformed dimensions</a></li>
+    <li class="lvl2"><a href="#s17-2-6">Degenerate dimensions</a></li>
+    <li class="lvl2"><a href="#s17-2-7">Role-playing dimensions</a></li>
+    <li class="lvl1"><a href="#s17-3">17.3 Slowly Changing Dims</a></li>
+    <li class="lvl2"><a href="#s17-3-1">What is an SCD?</a></li>
+    <li class="lvl2"><a href="#s17-3-2">Types 0, 1, 2</a></li>
+    <li class="lvl2"><a href="#s17-3-6">Effective dates</a></li>
+    <li class="lvl2"><a href="#s17-3-7">Historical tracking</a></li>
+    <li class="lvl2"><a href="#s17-3-8">Late-arriving dims</a></li>
+    <li class="lvl2"><a href="#s17-3-9">Change detection</a></li>
+    <li class="lvl1"><a href="#s17-4">17.4 Incremental Loading</a></li>
+    <li class="lvl2"><a href="#s17-4-1">Incremental loads</a></li>
+    <li class="lvl2"><a href="#s17-4-2">Incremental facts</a></li>
+    <li class="lvl2"><a href="#s17-4-3">Dimension updates</a></li>
+    <li class="lvl2"><a href="#s17-4-4">MERGE INTO</a></li>
+    <li class="lvl2"><a href="#s17-4-5">CDC &amp; Change Data Feed</a></li>
+    <li class="lvl2"><a href="#s17-4-6">Deleted records</a></li>
+    <li class="lvl2"><a href="#s17-4-7">Referential integrity</a></li>
+    <li class="lvl2"><a href="#s17-4-8">Reconciliation</a></li>
+    <li class="lvl1"><a href="#s17-5">17.5 Databricks SQL</a></li>
+    <li class="lvl2"><a href="#s17-5-1">SQL warehouses</a></li>
+    <li class="lvl2"><a href="#s17-5-2">Views &amp; MVs</a></li>
+    <li class="lvl2"><a href="#s17-5-4">Query optimization</a></li>
+    <li class="lvl2"><a href="#s17-5-5">Dashboards &amp; BI</a></li>
+    <li class="lvl2"><a href="#s17-5-7">Power BI &amp; semantics</a></li>
+    <li class="lvl1"><a href="#s17-6">17.6 Project: Retail DW</a></li>
+    <li class="lvl2"><a href="#s17-6-2">Steps 1–5: Tables</a></li>
+    <li class="lvl2"><a href="#s17-6-7">Steps 6–10: SCD Type 2</a></li>
+    <li class="lvl2"><a href="#s17-6-12">Steps 11–15: Load</a></li>
+    <li class="lvl2"><a href="#s17-6-17">Steps 16–18: Analyze</a></li>
+    <li class="lvl1"><a href="#s17-7">17.7 Production Design</a></li>
+    <li class="lvl1"><a href="#s17-8">17.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s17-9">17.9 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 6 · Chapter 17 · Advanced Data Engineering</span>
+  <h1>Advanced Data Modeling and Warehousing</h1>
+  <p class="lead">Design a warehouse people can trust: OLTP vs OLAP, star and snowflake schemas, keys and grain, conformed, degenerate, and role-playing dimensions, and Slowly Changing Dimensions. Then load it incrementally with <code>MERGE</code>, CDC, delete handling, integrity checks, and reconciliation, and serve it through Databricks SQL and Power BI. The project builds a retail star schema with customer history.</p>
+  <p class="ref">Examples use <code>gold.*</code> for illustration and <code>retail_dev.retail_gold</code> in the project.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain OLTP, OLAP, and modern warehouse architecture.</li>
+    <li>Design fact and dimension tables, star and snowflake schemas.</li>
+    <li>Define fact grain and choose business and surrogate keys.</li>
+    <li>Implement SCD Types 0, 1, and 2.</li>
+    <li>Load facts and dimensions incrementally.</li>
+    <li>Use <code>MERGE INTO</code>, CDC, and delete handling.</li>
+    <li>Validate referential integrity and reconcile data.</li>
+    <li>Use SQL warehouses, views, materialized views, and dashboards.</li>
+    <li>Integrate with Power BI.</li>
+    <li>Build a retail warehouse with SCD Type 2 customer history.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s17-1"><span>17.1</span><strong>Concepts</strong></a>
+    <a class="chip" href="#s17-2"><span>17.2</span><strong>Modeling</strong></a>
+    <a class="chip" href="#s17-3"><span>17.3</span><strong>SCDs</strong></a>
+    <a class="chip" href="#s17-4"><span>17.4</span><strong>Loading</strong></a>
+    <a class="chip" href="#s17-5"><span>17.5</span><strong>Databricks SQL</strong></a>
+    <a class="chip" href="#s17-6"><span>17.6</span><strong>Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 17.1 ===================== -->
+<h2 id="s17-1"><span class="num">17.1</span>Data Warehousing Concepts</h2>
+
+<h3 id="s17-1-1"><span class="num">17.1.1</span>What Is a Data Warehouse?</h3>
+<p>A data warehouse consolidates data from many sources (transactional databases, CRM, ERP, e-commerce, files, APIs, event streams, cloud apps) into consistent business entities and measures for reporting and decisions.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Source system</th><th>Data</th></tr></thead>
+<tbody><tr><td>E-commerce DB</td><td>Online orders</td></tr><tr><td>CRM</td><td>Customer details</td></tr><tr><td>Inventory</td><td>Products and stock</td></tr><tr><td>Finance</td><td>Revenue and payments</td></tr><tr><td>Marketing</td><td>Campaigns</td></tr></tbody></table></div>
+<div class="card"><h4>Questions the business asks</h4><ul style="margin-bottom:0"><li>Total sales this month?</li><li>Which products earn the most?</li><li>Which customers buy the most?</li><li>Which regions are declining?</li><li>How has a customer's address changed over time?</li></ul></div>
+</div>
+<div class="grid-2">
+<pre class="diagram">        Source systems
+              |
+              v
+   Ingestion (ADF / Auto Loader / CDC)
+              |
+              v
+   Bronze: raw source data
+              |
+              v
+   Silver: cleaned, standardized
+              |
+              v
+   Gold: facts and dimensions
+              |
+              v
+        SQL warehouse
+         /         \
+    Power BI     SQL reports</pre>
+<div class="callout key" style="margin:0"><span class="label">Lakehouse vs traditional warehouse</span><p>In a Databricks lakehouse, the same Delta tables serve engineering and analytics. A traditional enterprise warehouse uses dedicated database storage and compute. The goal is the same: trusted, consistent data for analytics.</p></div>
+</div>
+
+<h3 id="s17-1-2"><span class="num">17.1.2</span>OLTP Versus OLAP</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>OLTP (Online Transaction Processing)</th><th>OLAP (Online Analytical Processing)</th></tr></thead>
+<tbody>
+<tr><td>Purpose</td><td>Run business operations</td><td>Analyze business performance</td></tr>
+<tr><td>Operations</td><td>Many small inserts, updates, deletes</td><td>Large reads, joins, aggregations</td></tr>
+<tr><td>Queries</td><td>Targeted (one order, one customer)</td><td>Complex, scanning lots of data</td></tr>
+<tr><td>Data scope</td><td>Current operational data</td><td>Historical, integrated data</td></tr>
+<tr><td>Users</td><td>Applications, operational teams</td><td>Analysts, engineers, business users</td></tr>
+<tr><td>Example</td><td>Place an order, update an address</td><td>Yearly revenue by region</td></tr>
+<tr><td>Design priority</td><td>Transaction integrity, fast writes</td><td>Analytical query performance</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th colspan="4">OLTP order table</th></tr></thead>
+<tbody><tr><td><strong>Order</strong></td><td><strong>Customer</strong></td><td><strong>Product</strong></td><td><strong>Qty</strong></td></tr><tr><td>1001</td><td>C101</td><td>P101</td><td>2</td></tr><tr><td>1002</td><td>C102</td><td>P102</td><td>1</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL · OLAP query on the warehouse</span><pre class="code"><code>SELECT d.year, p.category, SUM(f.sales_amount) AS total_sales
+FROM gold.fact_sales AS f
+JOIN gold.dim_date    AS d ON f.date_key = d.date_key
+JOIN gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY d.year, p.category;</code></pre></div>
+</div>
+<p class="ref">Best practice: don't run expensive analytics directly against critical operational databases.</p>
+
+<h3 id="s17-1-3"><span class="num">17.1.3</span>Fact and Dimension Tables</h3>
+<div class="grid-2">
+<div class="card"><h4>Fact table: <em>what happened</em></h4><p>Measurable business events: sales, payments, inventory movements, visits, shipments.</p><p style="margin-bottom:0">Contains foreign keys to dimensions, numeric <strong>measures</strong>, transaction identifiers, and dates.</p></div>
+<div class="card"><h4>Dimension table: <em>the context</em></h4><p>Descriptive attributes used to filter and group facts: customer, product, date, store, employee, geography.</p></div>
+</div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th colspan="4">dim_customer</th></tr></thead>
+<tbody><tr><td><strong>customer_key</strong></td><td><strong>customer_id</strong></td><td><strong>name</strong></td><td><strong>city</strong></td></tr><tr><td>1</td><td>C101</td><td>Ravi</td><td>Hyderabad</td></tr><tr><td>2</td><td>C102</td><td>Priya</td><td>Chennai</td></tr><tr><td>3</td><td>C103</td><td>Arjun</td><td>Bengaluru</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="4">dim_product</th></tr></thead>
+<tbody><tr><td><strong>product_key</strong></td><td><strong>product_id</strong></td><td><strong>name</strong></td><td><strong>category</strong></td></tr><tr><td>101</td><td>P101</td><td>Laptop</td><td>Electronics</td></tr><tr><td>102</td><td>P102</td><td>Chair</td><td>Furniture</td></tr><tr><td>103</td><td>P103</td><td>Monitor</td><td>Electronics</td></tr></tbody></table></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="5">fact_sales</th></tr></thead>
+<tbody><tr><td><strong>sales_id</strong></td><td><strong>customer_key</strong></td><td><strong>product_key</strong></td><td><strong>quantity</strong></td><td><strong>sales_amount</strong></td></tr><tr><td>S1001</td><td>1</td><td>101</td><td>1</td><td>65000</td></tr><tr><td>S1002</td><td>2</td><td>102</td><td>2</td><td>12000</td></tr><tr><td>S1003</td><td>3</td><td>103</td><td>1</td><td>15000</td></tr></tbody></table></div>
+<p><strong>Why separate them?</strong> Less repetition in the fact table, consistent business definitions, flexible queries, historical analysis, and BI-friendly models. Delta stores these as ordinary tables, so relationships and integrity rules must be designed and validated by you.</p>
+
+<h3 id="s17-1-4"><span class="num">17.1.4</span>Star Schema</h3>
+<div class="grid-2">
+<pre class="diagram">              dim_customer
+                    |
+dim_product --- fact_sales --- dim_date
+                    |
+                dim_store</pre>
+<div class="card"><h4>fact_sales holds</h4><p style="margin-bottom:0"><code>date_key</code>, <code>customer_key</code>, <code>product_key</code>, <code>store_key</code>, plus measures <code>quantity</code>, <code>sales_amount</code>, <code>discount_amount</code>.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · "Which categories earn most in each customer city?"</span><pre class="code"><code>SELECT c.city, p.category, SUM(f.sales_amount) AS total_sales
+FROM gold.fact_sales AS f
+JOIN gold.dim_customer AS c ON f.customer_key = c.customer_key
+JOIN gold.dim_product  AS p ON f.product_key  = p.product_key
+GROUP BY c.city, p.category
+ORDER BY total_sales DESC;</code></pre></div>
+<p><strong>Advantages:</strong> easy to understand, few joins, great for SQL and BI semantic models, consistent reporting across measures. The strong default for analytical warehouses.</p>
+
+<h3 id="s17-1-5"><span class="num">17.1.5</span>Snowflake Schema</h3>
+<p>A snowflake schema normalizes some dimension attributes into separate tables, e.g. product → category → department.</p>
+<div class="grid-2">
+<pre class="diagram">                 dim_department
+                       |
+                  dim_category
+                       |
+dim_customer --- fact_sales --- dim_product
+                       |
+                   dim_date</pre>
+<div>
+<div class="table-wrap"><table><thead><tr><th colspan="3">dim_product</th></tr></thead><tbody><tr><td>101</td><td>Laptop</td><td>cat 10</td></tr><tr><td>102</td><td>Monitor</td><td>cat 10</td></tr><tr><td>103</td><td>Chair</td><td>cat 20</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th colspan="3">dim_category → dim_department</th></tr></thead><tbody><tr><td>10</td><td>Electronics</td><td>Technology</td></tr><tr><td>20</td><td>Furniture</td><td>Home</td></tr></tbody></table></div>
+</div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Star</th><th>Snowflake</th></tr></thead>
+<tbody>
+<tr><td>Dimensions</td><td>Denormalized</td><td>Normalized</td></tr>
+<tr><td>Query complexity</td><td>Simpler</td><td>More joins</td></tr>
+<tr><td>Repeated attributes</td><td>More</td><td>Less</td></tr>
+<tr><td>BI usability</td><td>Easier</td><td>More modeling work</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Recommendation</span><p>Start with a star schema unless normalization brings a clear benefit. Storage format doesn't decide whether the logical model is a star or a snowflake.</p></div>
+
+<h3 id="s17-1-6"><span class="num">17.1.6</span>Data Marts</h3>
+<div class="grid-2">
+<pre class="diagram">          Enterprise warehouse
+                   |
+      +------------+------------+
+      |            |            |
+      v            v            v
+ Sales mart   Finance mart  Inventory mart
+      |            |            |
+      v            v            v
+  Sales BI    Finance BI   Stock reports</pre>
+<div class="card"><h4>A data mart</h4><p>A curated analytical dataset for one domain or team. The sales mart exposes revenue, product performance, segments, and regions; the finance mart exposes recognized revenue, expenses, profitability, and periods.</p><p style="margin-bottom:0">In a lakehouse, curated <strong>Gold</strong> tables serve as marts. Share conformed definitions so marts don't compute the same metric differently.</p></div>
+</div>
+
+<h3 id="s17-1-7"><span class="num">17.1.7</span>Data Warehouse Architecture</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td>Source</td><td>Operational systems and files</td></tr>
+<tr><td>Bronze</td><td>Raw / minimally processed, kept for traceability and reprocessing</td></tr>
+<tr><td>Silver</td><td>Cleaned, validated, deduplicated, standardized</td></tr>
+<tr><td>Gold</td><td>Business-ready facts, dimensions, aggregates, marts</td></tr>
+<tr><td>Consumption</td><td>SQL warehouses, dashboards, reports, apps</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Important distinction</span><p>Bronze/Silver/Gold is a <em>data organization pattern</em>, not a replacement for dimensional modeling. The Gold layer is where your star schemas live.</p></div>
+<p><strong>Design principles:</strong> preserve source identifiers; consistent naming; defined quality rules; clear table ownership; incremental processing; centralized business logic; lineage and operational metadata; access controls for sensitive data.</p>
+
+<!-- ===================== 17.2 ===================== -->
+<h2 id="s17-2"><span class="num">17.2</span>Dimensional Modeling</h2>
+<p class="section-intro">Understand the business process and decide what one fact row represents <em>before</em> creating tables.</p>
+
+<h3 id="s17-2-1"><span class="num">17.2.1</span>Business Keys</h3>
+<p>A business key is an identifier from a source system or defined by the business: <code>customer_id</code>, <code>product_id</code>, <code>order_id</code>, <code>store_id</code>, <code>invoice_number</code>. It identifies an entity within its scope, is often meaningful to users, may change, and may not be unique across systems.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Source</th><th>customer_id</th><th>Customer</th></tr></thead>
+<tbody><tr><td>CRM</td><td>1001</td><td>Ravi</td></tr><tr><td>E-commerce</td><td>1001</td><td>Priya</td></tr></tbody></table></div>
+<div class="card"><h4>Collision!</h4><p>Same ID, different people. Use a composite key: <code>source_system + customer_id</code> → <code>CRM|1001</code>, <code>ECOM|1001</code>.</p><p style="margin-bottom:0" class="ref">This prevents collisions but doesn't <em>match</em> customers across systems; that needs identity-resolution rules.</p></div>
+</div>
+
+<h3 id="s17-2-2"><span class="num">17.2.2</span>Surrogate Keys</h3>
+<p>A surrogate key is a warehouse-generated identifier for a dimension <strong>row</strong> (e.g. <code>customer_key = 10001</code> for business key <code>C1001</code>).</p>
+<div class="grid-2">
+<div class="card"><h4>Why use them?</h4><ol style="margin-bottom:0"><li>Business keys may change.</li><li>Different sources may reuse IDs.</li><li>SCD Type 2 needs several rows per entity.</li><li>Facts must point to the correct historical row.</li><li>They decouple warehouse joins from source IDs.</li></ol></div>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>Business key</th><th>Surrogate key</th></tr></thead>
+<tbody><tr><td>Origin</td><td>Source / business</td><td>Warehouse</td></tr><tr><td>Identifies</td><td>An entity</td><td>A warehouse row</td></tr><tr><td>Changes?</td><td>May change</td><td>Stable for its row</td></tr><tr><td>In SCD2</td><td>Same across versions</td><td>Different per version</td></tr><tr><td>Example</td><td><code>C1001</code></td><td><code>10001</code>, <code>10025</code></td></tr></tbody></table></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · recommended on Databricks: identity columns</span><pre class="code"><code>CREATE TABLE gold.dim_customer (
+    customer_key BIGINT GENERATED ALWAYS AS IDENTITY,   -- assigned by Delta on insert
+    customer_id  STRING,
+    customer_name STRING
+    -- ...
+);
+
+-- Inserts simply omit the key column:
+INSERT INTO gold.dim_customer (customer_id, customer_name) VALUES ('C1001', 'Ravi');</code></pre></div>
+<div class="grid-2">
+<div class="callout warn" style="margin:0"><span class="label">Avoid for persistent keys</span><p><code>F.monotonically_increasing_id()</code> is unique per run but not consecutive or repeatable across reruns. <code>MAX(key) + ROW_NUMBER()</code> breaks with concurrent writers. Never regenerate all keys on reload; that breaks every fact reference.</p></div>
+<div class="callout" style="margin:0"><span class="label">Identity columns</span><p>Delta assigns unique, increasing values (gaps are possible), keeps existing keys on updates, and serializes writes to the table, so concurrent loads can't produce duplicate keys. The project uses them.</p></div>
+</div>
+
+<h3 id="s17-2-3"><span class="num">17.2.3</span>Fact Table Grain</h3>
+<p>The <strong>grain</strong> defines what one fact row represents. It's the most important modeling decision.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th colspan="5">Grain: one row per order line</th></tr></thead>
+<tbody><tr><td><strong>order</strong></td><td><strong>line</strong></td><td><strong>product</strong></td><td><strong>qty</strong></td><td><strong>amount</strong></td></tr><tr><td>O1001</td><td>1</td><td>P101</td><td>2</td><td>200</td></tr><tr><td>O1001</td><td>2</td><td>P102</td><td>1</td><td>500</td></tr><tr><td>O1002</td><td>1</td><td>P101</td><td>1</td><td>100</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="5">Grain: one row per date, store, product</th></tr></thead>
+<tbody><tr><td><strong>date</strong></td><td><strong>store</strong></td><td><strong>product</strong></td><td><strong>qty</strong></td><td><strong>amount</strong></td></tr><tr><td>20261025</td><td>1</td><td>101</td><td>10</td><td>1000</td></tr><tr><td>20261025</td><td>1</td><td>102</td><td>5</td><td>2500</td></tr><tr><td>20261025</td><td>2</td><td>101</td><td>8</td><td>800</td></tr></tbody></table></div>
+</div>
+<div class="grid-2">
+<div class="card"><h4>To define grain, ask</h4><ol style="margin-bottom:0"><li>What business event is measured?</li><li>What uniquely identifies a row?</li><li>Can one order have several rows?</li><li>Transaction-level or aggregated measures?</li><li>Which dimensions will analysts filter by?</li></ol></div>
+<div class="callout key" style="margin:0"><span class="label">Rule</span><p>Define the grain before choosing columns. An unclear grain leads to duplicated measures. Joining order-line facts to an order-level table without controlling cardinality multiplies values.</p></div>
+</div>
+
+<h3 id="s17-2-4"><span class="num">17.2.4</span>Measures and Dimensions</h3>
+<p><strong>Measures</strong> quantify activity (quantity, sales, discount, cost, tax, profit). <strong>Dimensions</strong> give context (customer, product, date, store, region, channel).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Measure type</th><th>Can be summed…</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Additive</td><td>Across all dimensions</td><td><code>sales_amount</code></td></tr>
+<tr><td>Semi-additive</td><td>Across some (products, warehouses) but not time</td><td><code>inventory_balance</code></td></tr>
+<tr><td>Non-additive</td><td>Never directly</td><td>Percentages, ratios, unit prices, conversion rates</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · ✗ wrong</span><pre class="code"><code>SELECT SUM(margin_percentage)
+FROM gold.fact_sales;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · ✓ weighted margin</span><pre class="code"><code>SELECT SUM(profit_amount)
+       / NULLIF(SUM(net_sales_amount), 0) AS margin_percentage
+FROM gold.fact_sales;</code></pre></div>
+</div>
+
+<h3 id="s17-2-5"><span class="num">17.2.5</span>Conformed Dimensions</h3>
+<div class="grid-2">
+<pre class="diagram">                dim_date
+                   |
+     +-------------+-------------+
+     |             |             |
+     v             v             v
+fact_sales   fact_returns   fact_inventory</pre>
+<div class="card"><p style="margin-bottom:0">A <strong>conformed dimension</strong> is shared consistently by several fact tables or marts. Without one, teams define fiscal year, segment, category, region, or channel differently, and their reports disagree. Sales and returns must share one product-category definition to be compared.</p></div>
+</div>
+
+<h3 id="s17-2-6"><span class="num">17.2.6</span>Degenerate Dimensions</h3>
+<p>A business identifier stored directly in the fact table with no dimension table of its own: order number, invoice number, transaction reference, ticket number.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- order_number lives in fact_sales; no dim_order needed
+SELECT order_number, SUM(sales_amount) AS order_total
+FROM gold.fact_sales
+GROUP BY order_number;</code></pre></div>
+<p class="ref">Create a separate order dimension only if orders have substantial descriptive attributes of their own.</p>
+
+<h3 id="s17-2-7"><span class="num">17.2.7</span>Role-Playing Dimensions</h3>
+<p>One dimension used in several roles. An order has an order date, ship date, and delivery date, all referencing the same <code>dim_date</code>:</p>
+<div class="code-wrap"><span class="lang">SQL · same table, joined twice with different aliases</span><pre class="code"><code>SELECT
+    order_date.full_date AS order_date,
+    ship_date.full_date  AS shipment_date,
+    f.sales_amount
+FROM gold.fact_sales AS f
+LEFT JOIN gold.dim_date AS order_date ON f.order_date_key = order_date.date_key
+LEFT JOIN gold.dim_date AS ship_date  ON f.ship_date_key  = ship_date.date_key;</code></pre></div>
+
+<!-- ===================== 17.3 ===================== -->
+<h2 id="s17-3"><span class="num">17.3</span>Slowly Changing Dimensions</h2>
+
+<h3 id="s17-3-1"><span class="num">17.3.1</span>What Is an SCD?</h3>
+<p>Dimension attributes change: address, city, phone, segment, account status. An SCD policy decides whether to keep the old value or overwrite it. If a customer moves from Hyderabad (2025-01-01) to Chennai (2026-06-01), keeping both rows lets you report historical sales by the city at the time; overwriting loses that context.</p>
+
+<h3 id="s17-3-2"><span class="num">17.3.2</span>SCD Types 0, 1, and 2</h3>
+<div class="grid-2">
+<div class="card"><h4>Type 0: keep the original</h4><p>Never update. For attributes the business defines as immutable: original registration date, acquisition channel, onboarding date.</p><p style="margin-bottom:0" class="ref">Don't use Type 0 just because updating is inconvenient.</p></div>
+<div class="card"><h4>Type 1: overwrite</h4><p>Replace the value; history is lost.</p><table style="margin:0"><tbody><tr><td>Before</td><td>C1001 · Ravi · Hyderabad</td></tr><tr><td>After</td><td>C1001 · Ravi Kumar · Chennai</td></tr></tbody></table><p style="margin:8px 0 0" class="ref">For spelling corrections, fixing bad values, non-historical attributes.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · Type 1</span><pre class="code"><code>MERGE INTO gold.dim_customer AS target
+USING silver.customer_latest AS source
+ON target.customer_id = source.customer_id
+WHEN MATCHED THEN UPDATE SET
+    target.customer_name = source.customer_name,
+    target.city = source.city
+WHEN NOT MATCHED THEN INSERT (customer_id, customer_name, city)
+    VALUES (source.customer_id, source.customer_name, source.city);</code></pre></div>
+<h4>Type 2: keep history with a new row</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
+<tbody>
+<tr><td>1001</td><td>C1001</td><td>Hyderabad</td><td>2025-01-01</td><td><strong>2026-06-01</strong></td><td><strong>false</strong></td></tr>
+<tr><td><strong>1002</strong></td><td>C1001</td><td><strong>Chennai</strong></td><td>2026-06-01</td><td>9999-12-31</td><td>true</td></tr>
+</tbody></table></div>
+<p>The old row is <strong>closed</strong> (end date set, flag false) and a <strong>new row</strong> with a new surrogate key is inserted.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Purpose</th></tr></thead>
+<tbody><tr><td><code>customer_key</code></td><td>Surrogate key per version</td></tr><tr><td><code>customer_id</code></td><td>Stable business key</td></tr><tr><td><code>effective_from</code> / <code>_to</code></td><td>Validity period</td></tr><tr><td><code>is_current</code></td><td>Current-version flag</td></tr><tr><td><code>attribute_hash</code></td><td>Change detection (optional)</td></tr></tbody></table></div>
+<div class="card"><h4>Type 2 rules</h4><ol style="margin-bottom:0"><li>Business key is the same across versions.</li><li>Each version gets a new surrogate key.</li><li>A change closes the previous version.</li><li>A new version is inserted.</li><li>Exactly one current row per business key.</li><li>Facts reference the version valid at the time.</li></ol></div>
+</div>
+<p><strong>Half-open intervals:</strong> treat validity as <code>effective_from &lt;= t &lt; effective_to</code>, so [2025-01-01, 2026-06-01) and [2026-06-01, 9999-12-31) never both contain the same instant. The far-future end date is a convention; some designs use <code>NULL</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Type 0</th><th>Type 1</th><th>Type 2</th></tr></thead>
+<tbody>
+<tr><td>Preserve original value</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr><td>Update existing value</td><td>No</td><td>Yes</td><td>Close old, insert new</td></tr>
+<tr><td>New row per change</td><td>No</td><td>No</td><td>Yes</td></tr>
+<tr><td>Keys per entity</td><td>One</td><td>One</td><td>One per version</td></tr>
+<tr><td>Example</td><td>Registration date</td><td>Spelling fix</td><td>City history</td></tr>
+</tbody></table></div>
+<p class="ref">One dimension can mix types per column, e.g. <code>original_registration_date</code> Type 0, <code>email_address</code> Type 1, <code>city</code> and <code>customer_segment</code> Type 2. Define tracked columns explicitly.</p>
+
+<h3 id="s17-3-6"><span class="num">17.3.3</span>Effective Dates and Current-Record Flags</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
+<tbody><tr><td>1001</td><td>C1001</td><td>Hyderabad</td><td>2025-01-01</td><td>2025-08-01</td><td>false</td></tr><tr><td>1002</td><td>C1001</td><td>Vijayawada</td><td>2025-08-01</td><td>2026-03-01</td><td>false</td></tr><tr><td>1003</td><td>C1001</td><td>Chennai</td><td>2026-03-01</td><td>9999-12-31</td><td>true</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Current customers
+SELECT * FROM gold.dim_customer WHERE is_current = true;
+
+-- One customer's history
+SELECT customer_id, city, effective_from, effective_to, is_current
+FROM gold.dim_customer
+WHERE customer_id = 'C1001'
+ORDER BY effective_from;
+
+-- The version valid on 15 Oct 2025  (returns Vijayawada)
+SELECT *
+FROM gold.dim_customer
+WHERE customer_id = 'C1001'
+  AND TIMESTAMP '2025-10-15 00:00:00' &gt;= effective_from
+  AND TIMESTAMP '2025-10-15 00:00:00' &lt;  effective_to;</code></pre></div>
+
+<h3 id="s17-3-7"><span class="num">17.3.4</span>Historical Tracking</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>sales_id</th><th>customer_key</th><th>amount</th><th>order_date</th></tr></thead>
+<tbody><tr><td>S1001</td><td>1001 (Hyderabad)</td><td>5000</td><td>2026-04-15</td></tr><tr><td>S1002</td><td>1002 (Chennai)</td><td>7000</td><td>2026-07-20</td></tr></tbody></table></div>
+<div class="callout warn" style="margin:0"><span class="label">Critical principle</span><p><strong>Type 2 history alone doesn't guarantee correct historical reports.</strong> Each fact must reference the version valid when it happened. Join every fact to the <em>current</em> row and all history is attributed to Chennai.</p></div>
+</div>
+
+<h3 id="s17-3-8"><span class="num">17.3.5</span>Late-Arriving Dimensions</h3>
+<p>An order for customer C1005 arrives before C1005 is in <code>dim_customer</code>. Options:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Approach</th><th>How</th><th>Trade-off</th></tr></thead>
+<tbody>
+<tr><td>Delay the fact</td><td>Hold it until the dimension row arrives</td><td>Fine for short delays</td></tr>
+<tr><td><strong>Inferred member</strong></td><td>Insert placeholder <code>C1005 · Unknown · is_inferred = true</code>; fill in attributes when the real record arrives</td><td>Keeps the link to the right customer. Often the best choice</td></tr>
+<tr><td>Unknown member</td><td>Point the fact at a generic "Unknown" row (e.g. key −1)</td><td>Keeps integrity but loses the customer link until reprocessed</td></tr>
+</tbody></table></div>
+<p class="ref">Define the behavior explicitly, or one customer can end up as several unrelated dimension members.</p>
+
+<h3 id="s17-3-9"><span class="num">17.3.6</span>Change Detection</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · compare columns (null-safe)</span><pre class="code"><code>from pyspark.sql import functions as F
+
+changes = (
+    source_df.alias("s")
+    .join(target_df.alias("t"), "customer_id")
+    .filter(
+        ~F.col("s.city").eqNullSafe(F.col("t.city"))
+        | ~F.col("s.customer_segment").eqNullSafe(F.col("t.customer_segment"))
+    )
+)
+# NULL vs NULL -&gt; equal; NULL vs value -&gt; different</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · hash of tracked attributes</span><pre class="code"><code>source_hashed = source_df.withColumn(
+    "attribute_hash",
+    F.sha2(
+        F.to_json(F.struct("customer_name", "city", "customer_segment")),
+        256,
+    ),
+)</code></pre></div>
+</div>
+<div class="card"><h4>Hashing considerations</h4><ul style="margin-bottom:0"><li>Hash only attributes that should trigger a new version.</li><li>Normalize first if rules require it (trim, case).</li><li>Handle nulls consistently.</li><li>Keep a stable column order.</li><li>Never include load timestamps or other always-changing fields.</li></ul><p style="margin:8px 0 0" class="ref">A hash detects change; it doesn't define your SCD rules.</p></div>
+
+<!-- ===================== 17.4 ===================== -->
+<h2 id="s17-4"><span class="num">17.4</span>Incremental Warehouse Loading</h2>
+
+<h3 id="s17-4-1"><span class="num">17.4.1</span>What Is Incremental Loading?</h3>
+<div class="grid-2">
+<pre class="diagram">Full load:
+  Read ALL source records
+         |
+  Transform all
+         |
+  Reload the target
+
+Incremental load:
+  Read NEW + CHANGED records
+         |
+  Classify inserts / updates / deletes
+         |
+  Transform changes
+         |
+  MERGE into the target</pre>
+<div class="card"><h4>Why, and how to detect changes</h4><p>Less time, compute, and source load; supports frequent refreshes; scales.</p><p style="margin-bottom:0"><strong>Change sources:</strong> modification timestamps, increasing sequence IDs, CDC, Delta Change Data Feed, source change tables, file-arrival tracking, application events. Each has different reliability.</p></div>
+</div>
+
+<h3 id="s17-4-2"><span class="num">17.4.2</span>Incremental Fact Loading</h3>
+<p>500 million historical lines, 100,000 new today: process the 100,000.</p>
+<div class="code-wrap"><span class="lang">SQL · watermark extraction</span><pre class="code"><code>SELECT *
+FROM source.sales
+WHERE modified_at &gt; :last_successful_watermark;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Safer approaches</h4><ul style="margin-bottom:0"><li>Composite watermark <code>(modified_at, source_id)</code>.</li><li>CDC where available.</li><li>Overlap window + dedup/MERGE.</li><li>Advance the watermark only after the load commits.</li><li>Record batch IDs and load metadata.</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>pipeline_name</th><th>last_successful_watermark</th><th>last_success_time</th></tr></thead>
+<tbody><tr><td>sales_fact_load</td><td>2026-10-24 23:59:59</td><td>2026-10-25 00:10:00</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">Update the control table only after the data is safely committed.</p></div>
+</div>
+
+<h3 id="s17-4-3"><span class="num">17.4.3</span>Dimension Updates</h3>
+<div class="grid-2">
+<pre class="diagram">Incoming customer records
+          |
+Compare with current dimension
+          |
+    Classify changes
+       /        \
+ Unchanged     Changed
+     |            |
+   No-op    Apply SCD rules:
+            Type 0 -&gt; keep
+            Type 1 -&gt; update in place
+            Type 2 -&gt; close + insert</pre>
+<div class="callout" style="margin:0"><span class="label">Type 2 precondition</span><p>Each business key must have exactly one current row before applying changes, and the incoming batch must have at most one record per key (resolve multiple versions first).</p></div>
+</div>
+
+<h3 id="s17-4-4"><span class="num">17.4.4</span>MERGE INTO</h3>
+<div class="code-wrap"><span class="lang">SQL · Type 1 product merge, updating only real changes</span><pre class="code"><code>MERGE INTO gold.dim_product AS target
+USING silver.product_updates AS source
+ON target.product_id = source.product_id
+WHEN MATCHED AND (
+       NOT (target.product_name &lt;=&gt; source.product_name)
+    OR NOT (target.category     &lt;=&gt; source.category)
+) THEN UPDATE SET
+    target.product_name = source.product_name,
+    target.category     = source.category,
+    target.updated_at   = current_timestamp()
+WHEN NOT MATCHED THEN INSERT (product_id, product_name, category, updated_at)
+    VALUES (source.product_id, source.product_name, source.category, current_timestamp());</code></pre></div>
+<p class="ref">I added the <code>WHEN MATCHED AND …</code> condition so unchanged rows aren't rewritten. <code>&lt;=&gt;</code> is null-safe equality.</p>
+<div class="grid-2">
+<div class="card"><h4>MERGE requirements</h4><ol style="margin-bottom:0"><li>Deduplicate the source by the merge key.</li><li>The match condition reflects the business logic.</li><li>Several source rows matching one target row → error.</li><li>Handle nulls intentionally.</li><li>Test retries.</li><li>Validate insert and update counts (returned by <code>MERGE</code>).</li></ol></div>
+<div class="callout warn" style="margin:0"><span class="label">Not a multi-table transaction</span><p>A MERGE is atomic for <em>one</em> table. Updating a dimension, inserting facts, and updating a control table are separate commits. Coordinate them with orchestration and load-control logic (Chapter 14).</p></div>
+</div>
+
+<h3 id="s17-4-5"><span class="num">17.4.5</span>Change Data Capture (CDC)</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>operation</th><th>city</th></tr></thead>
+<tbody><tr><td>C1001</td><td>UPDATE</td><td>Chennai</td></tr><tr><td>C1002</td><td>INSERT</td><td>Bengaluru</td></tr><tr><td>C1003</td><td>DELETE</td><td>null</td></tr></tbody></table></div>
+<pre class="diagram">Operational DB
+      |
+CDC mechanism
+      |
+Change stream
+      |
+Databricks pipeline
+      |
+Delta warehouse</pre>
+</div>
+<p><strong>Advantages:</strong> no repeated full scans, ordered changes, deletes captured, low latency. <strong>Challenges:</strong> ordering, duplicates, source retention, schema evolution, snapshot initialization, outage recovery, correct deletes. (Chapters 12–13; <code>AUTO CDC</code> handles much of this declaratively.)</p>
+<div class="code-wrap"><span class="lang">SQL · Delta Change Data Feed</span><pre class="code"><code>ALTER TABLE silver.customers SET TBLPROPERTIES (delta.enableChangeDataFeed = true);
+
+-- Row-level changes since table version 5
+SELECT customer_id, city, _change_type, _commit_version, _commit_timestamp
+FROM table_changes('silver.customers', 5);
+-- _change_type: insert, update_preimage, update_postimage, delete</code></pre></div>
+<p class="ref">CDF captures changes to a <strong>Delta table</strong>; source-system CDC captures changes in an <strong>operational database</strong>. Different things. CDF must be enabled before the changes happen and is subject to retention.</p>
+
+<h3 id="s17-4-6"><span class="num">17.4.6</span>Handling Deleted Source Records</h3>
+<p>If C1002 is deleted at the source, an incremental "changed rows" query simply never mentions it. You need an explicit strategy:</p>
+<div class="grid-2">
+<div class="card"><h4>Detection strategies</h4><ol style="margin-bottom:0"><li><strong>CDC delete events.</strong></li><li><strong>Soft deletes</strong> at the source (<code>is_deleted = true</code>).</li><li><strong>Full snapshot comparison</strong>: anti-join warehouse keys against a complete snapshot (expensive; beware incomplete snapshots).</li><li><strong>Tombstones</strong>: explicit deletion markers.</li></ol></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Common approach</th></tr></thead>
+<tbody><tr><td>Current-state dimension</td><td>Soft or controlled delete</td></tr><tr><td>SCD Type 2 dimension</td><td>Keep history; close the current version (and flag deleted)</td></tr><tr><td>Transaction fact</td><td>Usually keep; record reversals</td></tr><tr><td>Snapshot fact</td><td>Per snapshot semantics</td></tr></tbody></table></div>
+</div>
+<p class="ref">A source delete doesn't always mean a warehouse delete. Financial audit often requires keeping the original transaction and adding a reversal.</p>
+
+<h3 id="s17-4-7"><span class="num">17.4.7</span>Referential Integrity Checks</h3>
+<p>Delta doesn't enforce foreign keys (Unity Catalog <code>PRIMARY KEY</code>/<code>FOREIGN KEY</code> constraints are informational), so check them yourself:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Orphaned fact references
+SELECT f.customer_key, COUNT(*) AS orphan_count
+FROM gold.fact_sales AS f
+LEFT ANTI JOIN gold.dim_customer AS d ON f.customer_key = d.customer_key
+GROUP BY f.customer_key;
+
+-- More than one current version per customer (expect no rows)
+SELECT customer_id, COUNT(*) AS current_record_count
+FROM gold.dim_customer
+WHERE is_current = true
+GROUP BY customer_id
+HAVING COUNT(*) &gt; 1;
+
+-- Overlapping adjacent SCD periods (expect no rows)
+WITH customer_versions AS (
+    SELECT customer_id, effective_from, effective_to,
+           LEAD(effective_from) OVER (PARTITION BY customer_id
+                                      ORDER BY effective_from) AS next_effective_from
+    FROM gold.dim_customer
+)
+SELECT *
+FROM customer_versions
+WHERE next_effective_from IS NOT NULL
+  AND effective_to &gt; next_effective_from;</code></pre></div>
+<p class="ref">Also check for gaps (<code>effective_to &lt; next_effective_from</code>), duplicate start dates, and <code>effective_from &gt;= effective_to</code>. On failure: quarantine, assign unknown/inferred keys, delay, alert, or fail the load. Never ignore it.</p>
+
+<h3 id="s17-4-8"><span class="num">17.4.8</span>Data Reconciliation</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Source</th><th>Target</th><th>Diff</th></tr></thead>
+<tbody><tr><td>Records</td><td>100,000</td><td>100,000</td><td>0</td></tr><tr><td>Sales amount</td><td>₹50,000,000</td><td>₹50,000,000</td><td>₹0</td></tr><tr><td>Quantity</td><td>250,000</td><td>250,000</td><td>0</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT 'SOURCE' AS data_source, COUNT(*) AS record_count,
+       SUM(sales_amount) AS total_sales, SUM(quantity) AS total_quantity
+FROM silver.sales_source
+UNION ALL
+SELECT 'TARGET', COUNT(*), SUM(sales_amount), SUM(quantity)
+FROM gold.fact_sales;</code></pre></div>
+</div>
+<p>Only meaningful when source and target share the same scope and grain. Filters, aggregation, rejected rows, and history all change counts. <strong>Reconcile at the right grain</strong>: by batch, business date, source system, store, or category.</p>
+<div class="code-wrap"><span class="lang">Control table · ops.load_reconciliation</span><pre class="code"><code>pipeline_name, batch_id, source_count, insert_count, update_count, delete_count,
+reject_count, source_sales_amount, target_sales_amount, load_status,
+started_at, completed_at</code></pre></div>
+
+<!-- ===================== 17.5 ===================== -->
+<h2 id="s17-5"><span class="num">17.5</span>Databricks SQL Analytics</h2>
+
+<h3 id="s17-5-1"><span class="num">17.5.1</span>SQL Warehouses</h3>
+<p>A SQL warehouse is <strong>compute</strong> for SQL analytics and BI. It's not a database or schema; it runs queries against tables in Unity Catalog.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>SQL warehouse</th><th>General-purpose compute</th></tr></thead>
+<tbody>
+<tr><td>Primary use</td><td>SQL analytics, BI, dashboards</td><td>Engineering, notebooks, ML</td></tr>
+<tr><td>Users</td><td>Analysts, BI consumers</td><td>Engineers, data scientists</td></tr>
+<tr><td>Interface</td><td>SQL editor, dashboards, BI connectors</td><td>Notebooks, jobs</td></tr>
+<tr><td>Engine</td><td>Photon, tuned for SQL concurrency</td><td>Depends on configuration</td></tr>
+</tbody></table></div>
+<p><strong>Production:</strong> right-size (serverless where available), auto-stop, access controls, monitor query duration and failures in <strong>Query History</strong>, separate heavy workloads, watch concurrency and cost.</p>
+
+<h3 id="s17-5-2"><span class="num">17.5.2</span>Views and Materialized Views</h3>
+<div class="code-wrap"><span class="lang">SQL · view: saved query, computed on read</span><pre class="code"><code>CREATE OR REPLACE VIEW gold.vw_sales_summary AS
+SELECT d.year, d.month, p.category,
+       SUM(f.sales_amount) AS total_sales,
+       SUM(f.quantity) AS total_quantity
+FROM gold.fact_sales AS f
+JOIN gold.dim_date    AS d ON f.date_key = d.date_key
+JOIN gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY d.year, d.month, p.category;
+
+SELECT * FROM gold.vw_sales_summary WHERE year = 2026 ORDER BY month, total_sales DESC;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · materialized view: results stored and refreshed</span><pre class="code"><code>CREATE MATERIALIZED VIEW gold.mv_monthly_sales
+SCHEDULE EVERY 1 HOUR          -- optional; or REFRESH MATERIALIZED VIEW on demand
+AS
+SELECT d.year, d.month, p.category,
+       SUM(f.sales_amount) AS total_sales,
+       SUM(f.quantity) AS total_quantity
+FROM gold.fact_sales AS f
+JOIN gold.dim_date    AS d ON f.date_key = d.date_key
+JOIN gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY d.year, d.month, p.category;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>View</th><th>Materialized view</th></tr></thead>
+<tbody>
+<tr><td>Stores the query</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Stores results</td><td>No</td><td>Yes</td></tr>
+<tr><td>Each read</td><td>Re-runs the query</td><td>Reads stored results</td></tr>
+<tr><td>Freshness</td><td>Always current</td><td>As of last refresh</td></tr>
+<tr><td>Cost</td><td>Compute per read</td><td>Storage + refresh compute</td></tr>
+<tr><td>Use for</td><td>Reusable logic, access control</td><td>Expensive, frequently read aggregations</td></tr>
+</tbody></table></div>
+<p class="ref">Views encapsulate logic, reduce repeated SQL, give BI a stable interface, and can restrict access. Materialized views in Databricks SQL are created on a SQL warehouse (Unity Catalog required); syntax and refresh options depend on your environment.</p>
+
+<h3 id="s17-5-4"><span class="num">17.5.3</span>Query Optimization</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · select needed columns, filter early</span><pre class="code"><code>SELECT product_key, SUM(sales_amount) AS total_sales
+FROM gold.fact_sales
+WHERE date_key &gt;= 20260101
+  AND date_key &lt;  20270101
+GROUP BY product_key;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · inspect the plan</span><pre class="code"><code>EXPLAIN FORMATTED
+SELECT p.category, SUM(f.sales_amount) AS total_sales
+FROM gold.fact_sales AS f
+JOIN gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY p.category;</code></pre></div>
+</div>
+<p><strong>Checklist:</strong> no <code>SELECT *</code>; filter early; join only needed dimensions; good layout (compaction, statistics, data skipping, liquid clustering; partition only when justified); avoid needless casts and nested expressions; read the plan; check actual metrics in the Query Profile. See Chapter 15.</p>
+
+<h3 id="s17-5-5"><span class="num">17.5.4</span>Dashboards and BI Connectivity</h3>
+<p>Databricks <strong>AI/BI dashboards</strong> turn SQL into visuals with filters: total sales, monthly trend, category mix, top customers, regions, orders, AOV, YoY growth.</p>
+<div class="code-wrap"><span class="lang">SQL · KPI tile</span><pre class="code"><code>SELECT
+    SUM(sales_amount) AS total_sales,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) / NULLIF(COUNT(DISTINCT order_number), 0) AS average_order_value
+FROM gold.fact_sales;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Dashboard tips</h4><ul style="margin-bottom:0"><li>Clearly defined metrics.</li><li>A date filter.</li><li>Consistent currency and time zone.</li><li>Explicit aggregation grain.</li><li>Only useful visuals.</li><li>Numbers validated against reconciled results.</li><li>Monitor query performance.</li></ul></div>
+<div class="card"><h4>BI connectivity</h4><p>Via the Databricks connector, JDBC/ODBC, or Partner Connect. A BI tool needs:</p><ol style="margin-bottom:0"><li>Server hostname.</li><li>SQL warehouse HTTP path.</li><li>Approved authentication.</li><li>Permissions on catalogs, schemas, tables, views.</li></ol></div>
+</div>
+
+<h3 id="s17-5-7"><span class="num">17.5.5</span>Power BI Integration and Semantic Modeling</h3>
+<div class="grid-2">
+<pre class="diagram">     Delta tables
+          |
+   Databricks SQL warehouse
+          |
+       Power BI
+       /      \
+Semantic      Reports and
+model         dashboards</pre>
+<div class="card"><h4>Connecting</h4><ol style="margin-bottom:0"><li>Power BI Desktop → Get Data → <strong>Azure Databricks</strong>.</li><li>Enter hostname and HTTP path.</li><li>Authenticate (Entra ID / approved method).</li><li>Select tables or views.</li><li>Build relationships and measures.</li><li>Validate against the warehouse.</li></ol></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Import</th><th>DirectQuery</th></tr></thead>
+<tbody>
+<tr><td>Data</td><td>Copied into the Power BI model</td><td>Queried from Databricks on demand</td></tr>
+<tr><td>Interaction</td><td>Fast once loaded</td><td>Depends on warehouse performance</td></tr>
+<tr><td>Freshness</td><td>As of last refresh</td><td>Near-live</td></tr>
+<tr><td>Model size</td><td>Limited by capacity</td><td>Not limited by import</td></tr>
+<tr><td>Warehouse load</td><td>Mainly at refresh</td><td>Every interaction</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">DAX</span><pre class="code"><code>Total Sales =
+SUM ( FactSales[SalesAmount] )
+
+Average Order Value =
+DIVIDE (
+    [Total Sales],
+    DISTINCTCOUNT ( FactSales[OrderNumber] )
+)</code></pre></div>
+<div class="card"><h4>Semantic model must define</h4><p style="margin-bottom:0">Measures, relationships, hierarchies, date roles, filter behavior, currency, security, aggregation behavior, so "revenue" means the same for sales, finance, and marketing.</p></div>
+</div>
+<div class="card"><h4>Relationship rules</h4><ul style="margin-bottom:0"><li>Dimensions filter facts (one-to-many).</li><li>Dimension keys unique on the "one" side.</li><li>Join facts to dimensions on surrogate keys.</li><li>For history, facts must carry the correct SCD2 version key.</li><li>Many-to-many only when the semantics are understood; it's the classic cause of double counting.</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Typical responsibility</th></tr></thead>
+<tbody><tr><td>Bronze</td><td>Raw ingestion, traceability</td></tr><tr><td>Silver</td><td>Cleansing, standardization, validation</td></tr><tr><td>Gold</td><td>Facts, dimensions, curated metrics</td></tr><tr><td>Semantic model</td><td>Relationships, reusable measures, presentation</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">A guideline: put logic where it must be shared and governed.</p></div>
+
+<!-- ===================== 17.6 ===================== -->
+<h2 id="s17-6"><span class="num">17.6</span>Hands-On Project: Build a Retail Data Warehouse</h2>
+<p class="section-intro">Build <code>dim_customer</code> (SCD Type 2), <code>dim_product</code>, <code>dim_date</code>, and <code>fact_sales</code>, load sales against the correct historical customer version, then analyze and validate.</p>
+<div class="grid-2">
+<pre class="diagram">   Simulated source (staging tables)
+                 |
+     +-----------+-----------+
+     |           |           |
+     v           v           v
+dim_customer dim_product  dim_date
+  (SCD 2)     (Type 1)
+     |           |           |
+     +-----------+-----------+
+                 |
+                 v
+            fact_sales
+                 |
+                 v
+     Databricks SQL -&gt; Power BI</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Grain</th></tr></thead>
+<tbody><tr><td>dim_customer</td><td>One row per customer <strong>version</strong></td></tr><tr><td>dim_product</td><td>One row per product (current state)</td></tr><tr><td>dim_date</td><td>One row per calendar date</td></tr><tr><td>fact_sales</td><td>One row per order <strong>line</strong></td></tr></tbody></table></div>
+</div>
+<div class="callout"><span class="label">What changed from the original, and why</span><p><strong>1. First versions now start at <code>1900-01-01</code>.</strong> The original set them to the staging timestamp (2026-10-25 09:00), but the sample sales are dated 20–21 October, before any customer version existed. Every sale failed the historical lookup and <strong>the fact table loaded zero rows</strong> (verified by simulation). <strong>2. Surrogate keys use identity columns</strong> instead of <code>MAX+1</code> and the original's unresolved <code>NULL</code> product and sales keys. <strong>3. A post-change sale was added</strong> so you can see history attribution work.</p></div>
+<div class="callout"><span class="label">Verified by simulation</span><p>I ran the SCD logic, key resolution, and validation queries in Spark 4, emulating the Delta <code>MERGE</code> steps. The expected tables below come from that run. Delta-specific syntax (identity columns, <code>MERGE</code>) wasn't executed.</p></div>
+
+<h3 id="s17-6-2"><span class="num">17.6.2</span>Steps 1–5: Create the Schema and Tables</h3>
+<div class="code-wrap"><span class="lang">SQL · Step 1–2: schema and customer dimension</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.retail_gold;
+
+CREATE TABLE IF NOT EXISTS retail_dev.retail_gold.dim_customer (
+    customer_key     BIGINT GENERATED ALWAYS AS IDENTITY,  -- surrogate key per version
+    customer_id      STRING,                                -- business key
+    customer_name    STRING,
+    email            STRING,
+    city             STRING,
+    customer_segment STRING,
+    effective_from   TIMESTAMP,
+    effective_to     TIMESTAMP,
+    is_current       BOOLEAN,
+    attribute_hash   STRING,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP
+);</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · Steps 3–5: product, date, fact</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.retail_gold.dim_product (
+    product_key  BIGINT GENERATED ALWAYS AS IDENTITY,
+    product_id   STRING,
+    product_name STRING,
+    category     STRING,
+    brand        STRING,
+    unit_price   DECIMAL(18, 2),
+    is_active    BOOLEAN,
+    created_at   TIMESTAMP,
+    updated_at   TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS retail_dev.retail_gold.dim_date (
+    date_key       INT,
+    full_date      DATE,
+    day_of_month   INT,
+    day_name       STRING,
+    month_number   INT,
+    month_name     STRING,
+    quarter_number INT,
+    year           INT,
+    is_weekend     BOOLEAN
+);
+
+CREATE TABLE IF NOT EXISTS retail_dev.retail_gold.fact_sales (
+    sales_key       BIGINT GENERATED ALWAYS AS IDENTITY,
+    order_number    STRING,          -- degenerate dimension
+    line_number     INT,
+    customer_key    BIGINT,
+    product_key     BIGINT,
+    date_key        INT,
+    quantity        INT,
+    unit_price      DECIMAL(18, 2),
+    discount_amount DECIMAL(18, 2),
+    sales_amount    DECIMAL(18, 2),
+    created_at      TIMESTAMP
+);</code></pre></div>
+<p class="ref">Delta is the default table format, so <code>USING DELTA</code> is optional. Fact grain: one product line on one order, identified by <code>(order_number, line_number)</code> for this single-source exercise (add <code>source_system</code> with multiple sources). <code>dim_product</code> is Type 1; extend to Type 2 if price or category history matters.</p>
+
+<h3 id="s17-6-7"><span class="num">17.6.7</span>Step 6: Stage Sample Customers</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.customer_stage (
+    customer_id       STRING,
+    customer_name     STRING,
+    email             STRING,
+    city              STRING,
+    customer_segment  STRING,
+    source_updated_at TIMESTAMP
+);
+
+INSERT INTO retail_dev.retail_gold.customer_stage VALUES
+    ('C1001', 'Ravi Kumar',   'ravi@example.com',  'Hyderabad', 'Premium',  TIMESTAMP '2026-10-25 09:00:00'),
+    ('C1002', 'Priya Sharma', 'priya@example.com', 'Chennai',   'Standard', TIMESTAMP '2026-10-25 09:00:00'),
+    ('C1003', 'Arjun Reddy',  'arjun@example.com', 'Bengaluru', 'Premium',  TIMESTAMP '2026-10-25 09:00:00');</code></pre></div>
+<p class="ref"><code>CREATE OR REPLACE</code> makes reruns start clean.</p>
+
+<h4>Steps 7–8: Detect new and changed customers</h4>
+<p>Hash the tracked attributes (name, email, city, segment) and compare with each customer's current version. The result is saved as a <strong>table</strong>, a fixed snapshot, because Step 9 modifies <code>dim_customer</code> and a view would be re-evaluated against the changed table.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.customer_changes AS
+WITH source_hashed AS (
+    SELECT
+        *,
+        SHA2(TO_JSON(NAMED_STRUCT(
+            'customer_name', customer_name,
+            'email', email,
+            'city', city,
+            'customer_segment', customer_segment
+        )), 256) AS attribute_hash
+    FROM retail_dev.retail_gold.customer_stage
+)
+SELECT
+    s.*,
+    t.customer_key IS NULL AS is_new_customer       -- no current version yet
+FROM source_hashed AS s
+LEFT JOIN retail_dev.retail_gold.dim_customer AS t
+    ON s.customer_id = t.customer_id
+   AND t.is_current = true
+WHERE t.customer_id IS NULL                          -- new customer
+   OR NOT (s.attribute_hash &lt;=&gt; t.attribute_hash);   -- tracked attribute changed
+
+SELECT customer_id, city, is_new_customer FROM retail_dev.retail_gold.customer_changes;</code></pre></div>
+<p class="ref">First run: all 3 customers, <code>is_new_customer = true</code>. Staging must hold at most one record per customer; resolve multiple versions first.</p>
+
+<h4>Step 9: Apply SCD Type 2</h4>
+<div class="code-wrap"><span class="lang">SQL · A. close the current version of changed customers</span><pre class="code"><code>MERGE INTO retail_dev.retail_gold.dim_customer AS target
+USING retail_dev.retail_gold.customer_changes AS source
+ON  target.customer_id = source.customer_id
+AND target.is_current = true
+WHEN MATCHED THEN UPDATE SET
+    target.effective_to = source.source_updated_at,
+    target.is_current   = false,
+    target.updated_at   = current_timestamp();</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · B. insert the new versions (key assigned automatically)</span><pre class="code"><code>INSERT INTO retail_dev.retail_gold.dim_customer (
+    customer_id, customer_name, email, city, customer_segment,
+    effective_from, effective_to, is_current, attribute_hash, created_at, updated_at
+)
+SELECT
+    customer_id, customer_name, email, city, customer_segment,
+    CASE WHEN is_new_customer
+         THEN TIMESTAMP '1900-01-01 00:00:00'   -- first version: valid for all history
+         ELSE source_updated_at                 -- later version: valid from the change
+    END,
+    TIMESTAMP '9999-12-31 00:00:00',
+    true,
+    attribute_hash,
+    current_timestamp(),
+    current_timestamp()
+FROM retail_dev.retail_gold.customer_changes;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
+<tbody><tr><td>1</td><td>C1001</td><td>Hyderabad</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr><tr><td>2</td><td>C1002</td><td>Chennai</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr><tr><td>3</td><td>C1003</td><td>Bengaluru</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr></tbody></table></div>
+<p class="ref">Identity values are unique but not guaranteed consecutive, so yours may differ. Steps A and B are separate commits; in production run them in one orchestrated, retry-safe task and validate before loading facts.</p>
+
+<h3 id="s17-6-12"><span class="num">17.6.12</span>Steps 11–12: Product and Date Dimensions</h3>
+<div class="code-wrap"><span class="lang">SQL · Step 11: stage and merge products (Type 1)</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.product_stage (
+    product_id STRING, product_name STRING, category STRING,
+    brand STRING, unit_price DECIMAL(18, 2)
+);
+
+INSERT INTO retail_dev.retail_gold.product_stage VALUES
+    ('P101', 'Laptop',  'Electronics', 'Brand A', 65000.00),
+    ('P102', 'Chair',   'Furniture',   'Brand B',  6000.00),
+    ('P103', 'Monitor', 'Electronics', 'Brand C', 15000.00);
+
+MERGE INTO retail_dev.retail_gold.dim_product AS target
+USING retail_dev.retail_gold.product_stage AS source
+ON target.product_id = source.product_id
+WHEN MATCHED THEN UPDATE SET
+    target.product_name = source.product_name,
+    target.category     = source.category,
+    target.brand        = source.brand,
+    target.unit_price   = source.unit_price,
+    target.updated_at   = current_timestamp()
+WHEN NOT MATCHED THEN INSERT (
+    product_id, product_name, category, brand, unit_price, is_active, created_at, updated_at
+) VALUES (
+    source.product_id, source.product_name, source.category, source.brand,
+    source.unit_price, true, current_timestamp(), current_timestamp()
+);   -- product_key comes from the identity column; updates keep the existing key</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · Step 12: populate dim_date</span><pre class="code"><code>from pyspark.sql import functions as F
+
+dim_date = (
+    spark.sql("""
+        SELECT explode(sequence(DATE'2026-01-01', DATE'2027-12-31', INTERVAL 1 DAY)) AS full_date
+    """)
+    .select(
+        F.date_format("full_date", "yyyyMMdd").cast("int").alias("date_key"),
+        "full_date",
+        F.dayofmonth("full_date").alias("day_of_month"),
+        F.date_format("full_date", "EEEE").alias("day_name"),
+        F.month("full_date").alias("month_number"),
+        F.date_format("full_date", "MMMM").alias("month_name"),
+        F.quarter("full_date").alias("quarter_number"),
+        F.year("full_date").alias("year"),
+        F.dayofweek("full_date").isin(1, 7).alias("is_weekend"),   # 1 = Sunday, 7 = Saturday
+    )
+)
+
+(
+    dim_date.write
+    .mode("overwrite")
+    .saveAsTable("retail_dev.retail_gold.dim_date")
+)
+
+print(dim_date.count(), "dates loaded")   # 730</code></pre></div>
+<p class="ref">Tested: produces 730 rows with correct day names and weekend flags (e.g. 2026-10-25 Sunday → true, 2026-10-26 Monday → false). Columns are selected in table order so the overwrite matches the table you created. Production calendars add fiscal periods and holidays.</p>
+
+<h4>Steps 13–14: Stage sales and resolve keys</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.sales_stage (
+    order_number STRING, line_number INT, customer_id STRING, product_id STRING,
+    order_date DATE, quantity INT, unit_price DECIMAL(18, 2), discount_amount DECIMAL(18, 2)
+);
+
+INSERT INTO retail_dev.retail_gold.sales_stage VALUES
+    ('O1001', 1, 'C1001', 'P101', DATE '2026-10-20', 1, 65000.00, 1000.00),
+    ('O1001', 2, 'C1001', 'P103', DATE '2026-10-20', 2, 15000.00,  500.00),
+    ('O1002', 1, 'C1002', 'P102', DATE '2026-10-21', 2,  6000.00,    0.00);</code></pre></div>
+<p><strong>Net sales = quantity × unit price − discount</strong> (confirm tax, shipping, and refund rules in real projects). Each sale must find the customer version valid on its date:</p>
+<div class="code-wrap"><span class="lang">SQL · unresolved keys check (must be empty before loading)</span><pre class="code"><code>SELECT s.order_number, s.line_number, c.customer_key, p.product_key, d.date_key
+FROM retail_dev.retail_gold.sales_stage AS s
+LEFT JOIN retail_dev.retail_gold.dim_customer AS c
+       ON s.customer_id = c.customer_id
+      AND CAST(s.order_date AS TIMESTAMP) &gt;= c.effective_from
+      AND CAST(s.order_date AS TIMESTAMP) &lt;  c.effective_to
+LEFT JOIN retail_dev.retail_gold.dim_product AS p ON s.product_id = p.product_id
+LEFT JOIN retail_dev.retail_gold.dim_date    AS d ON s.order_date = d.full_date
+WHERE c.customer_key IS NULL OR p.product_key IS NULL OR d.date_key IS NULL;</code></pre></div>
+<p class="ref">With the original effective dates, this check returned <strong>all three sales</strong>. With first versions from 1900-01-01 it's empty. If the source has a transaction timestamp, use it instead of a date-only value.</p>
+
+<h4>Step 15: Load the fact table (idempotent MERGE)</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW sales_fact_source AS
+SELECT
+    s.order_number, s.line_number,
+    c.customer_key, p.product_key, d.date_key,
+    s.quantity, s.unit_price, s.discount_amount,
+    s.quantity * s.unit_price - s.discount_amount AS sales_amount
+FROM retail_dev.retail_gold.sales_stage AS s
+JOIN retail_dev.retail_gold.dim_customer AS c
+  ON s.customer_id = c.customer_id
+ AND CAST(s.order_date AS TIMESTAMP) &gt;= c.effective_from
+ AND CAST(s.order_date AS TIMESTAMP) &lt;  c.effective_to
+JOIN retail_dev.retail_gold.dim_product AS p ON s.product_id = p.product_id
+JOIN retail_dev.retail_gold.dim_date    AS d ON s.order_date = d.full_date;
+
+MERGE INTO retail_dev.retail_gold.fact_sales AS target
+USING sales_fact_source AS source
+ON  target.order_number = source.order_number
+AND target.line_number  = source.line_number
+WHEN MATCHED THEN UPDATE SET
+    target.customer_key    = source.customer_key,
+    target.product_key     = source.product_key,
+    target.date_key        = source.date_key,
+    target.quantity        = source.quantity,
+    target.unit_price      = source.unit_price,
+    target.discount_amount = source.discount_amount,
+    target.sales_amount    = source.sales_amount
+WHEN NOT MATCHED THEN INSERT (
+    order_number, line_number, customer_key, product_key, date_key,
+    quantity, unit_price, discount_amount, sales_amount, created_at
+) VALUES (
+    source.order_number, source.line_number, source.customer_key, source.product_key,
+    source.date_key, source.quantity, source.unit_price, source.discount_amount,
+    source.sales_amount, current_timestamp()
+);</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order</th><th>line</th><th>customer_key</th><th>product_key</th><th>date_key</th><th>sales_amount</th></tr></thead>
+<tbody><tr><td>O1001</td><td>1</td><td>1</td><td>1</td><td>20261020</td><td>64,000.00</td></tr><tr><td>O1001</td><td>2</td><td>1</td><td>3</td><td>20261020</td><td>29,500.00</td></tr><tr><td>O1002</td><td>1</td><td>2</td><td>2</td><td>20261021</td><td>12,000.00</td></tr></tbody></table></div>
+<p class="ref">The inner joins exclude unresolved rows, which is why the Step 14 check must be empty first (production: quarantine or use inferred members). Rerunning the MERGE updates the same lines rather than duplicating them. Corrections and deletions at source need explicit policies.</p>
+
+<h4>Step 10 (now): Test SCD Type 2 with a city change</h4>
+<p>C1001 moves to Vijayawada at 12:00 on 25 October. Run this after the first fact load so you can see history preserved:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>UPDATE retail_dev.retail_gold.customer_stage
+SET city = 'Vijayawada',
+    source_updated_at = TIMESTAMP '2026-10-25 12:00:00'
+WHERE customer_id = 'C1001';
+
+-- Now rerun Steps 7–8 (customer_changes) and Step 9 (A and B).
+-- customer_changes now holds 1 row: C1001, is_new_customer = false.
+
+-- A sale AFTER the move:
+INSERT INTO retail_dev.retail_gold.sales_stage VALUES
+    ('O1003', 1, 'C1001', 'P102', DATE '2026-10-26', 1, 6000.00, 0.00);
+
+-- Then rerun Step 15 (view + MERGE).</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
+<tbody><tr><td>1</td><td>C1001</td><td>Hyderabad</td><td>1900-01-01</td><td><strong>2026-10-25 12:00</strong></td><td><strong>false</strong></td></tr><tr><td><strong>4</strong></td><td>C1001</td><td><strong>Vijayawada</strong></td><td>2026-10-25 12:00</td><td>9999-12-31</td><td>true</td></tr><tr><td>2</td><td>C1002</td><td>Chennai</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr><tr><td>3</td><td>C1003</td><td>Bengaluru</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order</th><th>line</th><th>customer_key</th><th>city (via key)</th><th>sales_amount</th></tr></thead>
+<tbody><tr><td>O1001</td><td>1</td><td>1</td><td>Hyderabad</td><td>64,000.00</td></tr><tr><td>O1001</td><td>2</td><td>1</td><td>Hyderabad</td><td>29,500.00</td></tr><tr><td>O1002</td><td>1</td><td>2</td><td>Chennai</td><td>12,000.00</td></tr><tr><td><strong>O1003</strong></td><td>1</td><td><strong>4</strong></td><td><strong>Vijayawada</strong></td><td>6,000.00</td></tr></tbody></table></div>
+<div class="callout key"><span class="label">History works</span><p>The October 20 sales stay attributed to <strong>Hyderabad</strong>; the October 26 sale goes to <strong>Vijayawada</strong>. Running Steps 7–9 a second time with no new changes finds 0 changed customers, so the SCD load is idempotent (both verified in simulation).</p></div>
+<div class="code-wrap"><span class="lang">SQL · validate history</span><pre class="code"><code>SELECT customer_key, customer_id, customer_name, city, effective_from, effective_to, is_current
+FROM retail_dev.retail_gold.dim_customer
+WHERE customer_id = 'C1001'
+ORDER BY effective_from;          -- 2 rows
+
+SELECT * FROM retail_dev.retail_gold.dim_customer
+WHERE customer_id = 'C1001' AND is_current = true;   -- exactly 1 row</code></pre></div>
+
+<h3 id="s17-6-17"><span class="num">17.6.17</span>Step 16: Sales Summary View</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW retail_dev.retail_gold.vw_sales_summary AS
+SELECT
+    d.year, d.month_number, d.month_name, p.category,
+    SUM(f.quantity) AS total_quantity,
+    SUM(f.sales_amount) AS total_sales,
+    COUNT(DISTINCT f.order_number) AS total_orders
+FROM retail_dev.retail_gold.fact_sales AS f
+JOIN retail_dev.retail_gold.dim_date    AS d ON f.date_key = d.date_key
+JOIN retail_dev.retail_gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY d.year, d.month_number, d.month_name, p.category;
+
+SELECT * FROM retail_dev.retail_gold.vw_sales_summary
+ORDER BY year, month_number, total_sales DESC;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>year</th><th>month</th><th>category</th><th>total_quantity</th><th>total_sales</th><th>total_orders</th></tr></thead>
+<tbody><tr><td>2026</td><td>October</td><td>Electronics</td><td>3</td><td>93,500.00</td><td>1</td></tr><tr><td>2026</td><td>October</td><td>Furniture</td><td>3</td><td>18,000.00</td><td>2</td></tr></tbody></table></div>
+
+<h4>Step 17: Analytical queries</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- 1. Sales by customer (grouped by the version's city)
+SELECT c.customer_id, c.customer_name, c.city, SUM(f.sales_amount) AS total_sales
+FROM retail_dev.retail_gold.fact_sales AS f
+JOIN retail_dev.retail_gold.dim_customer AS c ON f.customer_key = c.customer_key
+GROUP BY c.customer_id, c.customer_name, c.city
+ORDER BY total_sales DESC;
+
+-- 2. Sales by product category
+SELECT p.category, SUM(f.sales_amount) AS total_sales, SUM(f.quantity) AS total_quantity
+FROM retail_dev.retail_gold.fact_sales AS f
+JOIN retail_dev.retail_gold.dim_product AS p ON f.product_key = p.product_key
+GROUP BY p.category
+ORDER BY total_sales DESC;
+
+-- 3. Monthly sales
+SELECT d.year, d.month_number, d.month_name, SUM(f.sales_amount) AS total_sales
+FROM retail_dev.retail_gold.fact_sales AS f
+JOIN retail_dev.retail_gold.dim_date AS d ON f.date_key = d.date_key
+GROUP BY d.year, d.month_number, d.month_name
+ORDER BY d.year, d.month_number;
+
+-- 4. Sales per historical customer version
+SELECT c.customer_id, c.city, c.effective_from, c.effective_to,
+       SUM(f.sales_amount) AS total_sales
+FROM retail_dev.retail_gold.fact_sales AS f
+JOIN retail_dev.retail_gold.dim_customer AS c ON f.customer_key = c.customer_key
+GROUP BY c.customer_id, c.city, c.effective_from, c.effective_to
+ORDER BY c.customer_id, c.effective_from;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Query 1 / 4 result</th><th>city</th><th>total_sales</th></tr></thead>
+<tbody><tr><td>C1001</td><td>Hyderabad</td><td>93,500.00</td></tr><tr><td>C1001</td><td>Vijayawada</td><td>6,000.00</td></tr><tr><td>C1002</td><td>Chennai</td><td>12,000.00</td></tr></tbody></table></div>
+<p class="ref">C1001 appears twice, once per city: exactly what Type 2 is for. To report everything under the <em>current</em> city instead, join on <code>customer_id</code> to the <code>is_current = true</code> row.</p>
+
+<h4>Step 18: Validate the warehouse</h4>
+<div class="code-wrap"><span class="lang">SQL · all checks expect no rows / zero</span><pre class="code"><code>-- 1. One current record per customer
+SELECT customer_id, COUNT(*) AS current_count
+FROM retail_dev.retail_gold.dim_customer
+WHERE is_current = true
+GROUP BY customer_id
+HAVING COUNT(*) &gt; 1;
+
+-- 2. Valid effective periods
+SELECT * FROM retail_dev.retail_gold.dim_customer
+WHERE effective_from &gt;= effective_to;
+
+-- 3. No orphaned facts (repeat for product_key and date_key)
+SELECT COUNT(*) AS orphaned_customer_facts
+FROM retail_dev.retail_gold.fact_sales AS f
+LEFT ANTI JOIN retail_dev.retail_gold.dim_customer AS c ON f.customer_key = c.customer_key;
+
+-- 4. No duplicate sales lines
+SELECT order_number, line_number, COUNT(*) AS record_count
+FROM retail_dev.retail_gold.fact_sales
+GROUP BY order_number, line_number
+HAVING COUNT(*) &gt; 1;
+
+-- 5. Reconcile sales amount (both should be 111,500.00)
+SELECT
+    (SELECT SUM(quantity * unit_price - discount_amount)
+       FROM retail_dev.retail_gold.sales_stage)        AS expected_sales,
+    (SELECT SUM(sales_amount)
+       FROM retail_dev.retail_gold.fact_sales)          AS loaded_sales;</code></pre></div>
+<p class="ref">Expected sales: 64,000 + 29,500 + 12,000 + 6,000 = <strong>111,500.00</strong> (verified). If staging held corrections, duplicates, or rejected rows, account for them before calling a difference a defect.</p>
+
+<!-- ===================== 17.7 ===================== -->
+<h2 id="s17-7"><span class="num">17.7</span>Production Design Considerations</h2>
+<div class="grid-2">
+<div class="card"><h4>1. Idempotency</h4><p style="margin-bottom:0">Rerunning the same input must not add effects. Use stable business keys, deduplicated staging, MERGE, batch IDs, load-control tables, retry-safe key assignment (identity columns), and reconciliation.</p></div>
+<div class="card"><h4>2. Late-arriving facts</h4><p style="margin-bottom:0">Delay, inferred members, unknown keys with reprocessing, or a controlled resolution step. Pick one and apply it consistently.</p></div>
+<div class="card"><h4>3. Historical corrections</h4><p style="margin-bottom:0">A correction effective three months ago needs more than close-and-insert: find the affected version, split or adjust periods, insert the corrected version, check overlaps and gaps, reassign affected facts, reconcile.</p></div>
+<div class="card"><h4>4. Concurrency</h4><p style="margin-bottom:0">Two jobs on one dimension can duplicate keys, close the same version twice, or create two current rows. Give each dimension one owning job, use safe key generation, and orchestrate.</p></div>
+</div>
+<div class="card"><h4>5. Auditability: track per load</h4><p style="margin-bottom:0">Pipeline name, batch ID, source watermark, start/end time, records processed, inserts/updates/deletes, rejects, reconciliation status, failure details.</p></div>
+
+<!-- ===================== 17.8 ===================== -->
+<h2 id="s17-8"><span class="num">17.8</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. OLTP vs OLAP?</summary><div class="answer">OLTP runs operational transactions (many small writes); OLAP serves analytical queries (large reads, joins, aggregations).</div></details>
+<details class="q"><summary>Q2. What is a star schema?</summary><div class="answer">A central fact table joined directly to denormalized dimension tables.</div></details>
+<details class="q"><summary>Q3. What is a snowflake schema?</summary><div class="answer">A dimensional model where some dimensions are normalized into further related tables (e.g. product → category → department).</div></details>
+<details class="q"><summary>Q4. What is a fact table?</summary><div class="answer">A table recording business events or measurements at a defined grain, with dimension keys and numeric measures.</div></details>
+<details class="q"><summary>Q5. What is a dimension table?</summary><div class="answer">A table of descriptive attributes used to filter, group, and interpret facts.</div></details>
+<details class="q"><summary>Q6. What is fact-table grain?</summary><div class="answer">The precise definition of what one fact row represents, e.g. one order line.</div></details>
+<details class="q"><summary>Q7. What is a business key?</summary><div class="answer">An identifier from a source system or the business, e.g. <code>customer_id</code>.</div></details>
+<details class="q"><summary>Q8. What is a surrogate key?</summary><div class="answer">A warehouse-generated identifier for a dimension row or version, e.g. an identity column.</div></details>
+<details class="q"><summary>Q9. Why are surrogate keys needed for SCD Type 2?</summary><div class="answer">Each historical version needs its own key so facts can reference the exact version valid when they occurred.</div></details>
+<details class="q"><summary>Q10. Conformed dimension?</summary><div class="answer">A dimension shared consistently across fact tables or marts, e.g. one <code>dim_date</code> for sales, returns, and inventory.</div></details>
+<details class="q"><summary>Q11. Degenerate dimension?</summary><div class="answer">A business identifier kept in the fact table without its own dimension table, e.g. order number.</div></details>
+<details class="q"><summary>Q12. Role-playing dimension?</summary><div class="answer">One dimension used in several roles, e.g. <code>dim_date</code> as order date, ship date, and delivery date via aliases.</div></details>
+<details class="q"><summary>Q13. SCD Type 1?</summary><div class="answer">Overwrites the attribute; history is lost.</div></details>
+<details class="q"><summary>Q14. SCD Type 2?</summary><div class="answer">Closes the current row and inserts a new version when a tracked attribute changes, preserving history.</div></details>
+<details class="q"><summary>Q15. Business vs surrogate key in Type 2?</summary><div class="answer">The business key is the same across versions; each version has a different surrogate key.</div></details>
+<details class="q"><summary>Q16. Why effective dates?</summary><div class="answer">They define when each version is valid, enabling point-in-time lookups and correct historical attribution.</div></details>
+<details class="q"><summary>Q17. Late-arriving dimension?</summary><div class="answer">A fact arrives before its dimension record; handle with delay, inferred member, or unknown member.</div></details>
+<details class="q"><summary>Q18. Change detection?</summary><div class="answer">Determining whether tracked attributes differ from the current version, via null-safe comparisons or a hash.</div></details>
+<details class="q"><summary>Q19. Incremental loading?</summary><div class="answer">Processing only new or changed records instead of reloading everything.</div></details>
+<details class="q"><summary>Q20. CDC?</summary><div class="answer">Capturing source inserts, updates, and deletes so they can be applied downstream incrementally.</div></details>
+<details class="q"><summary>Q21. MERGE INTO is used for?</summary><div class="answer">Matching source to target rows to apply inserts, updates, and deletes in one atomic operation per table.</div></details>
+<details class="q"><summary>Q22. Handling deleted source records?</summary><div class="answer">CDC delete events, soft-delete flags, tombstones, or snapshot comparison, often as a soft delete or reversal rather than a physical delete.</div></details>
+<details class="q"><summary>Q23. Referential integrity?</summary><div class="answer">Every fact key references a valid dimension row (or an approved unknown/inferred member). Delta doesn't enforce it, so check with anti-joins.</div></details>
+<details class="q"><summary>Q24. Data reconciliation?</summary><div class="answer">Comparing source and target counts, measures, and keys at the right grain to prove completeness and accuracy.</div></details>
+<details class="q"><summary>Q25. Materialized view?</summary><div class="answer">A view whose results are stored and refreshed, speeding up repeated expensive queries at the cost of storage and refresh.</div></details>
+<details class="q"><summary>Q26. How does Power BI connect to Databricks?</summary><div class="answer">Via the Azure Databricks connector using a SQL warehouse's hostname and HTTP path with approved authentication.</div></details>
+<details class="q"><summary>Q27. Why can SCD Type 2 still give wrong historical reports?</summary><div class="answer">If facts are joined to the current version instead of the version valid at transaction time, or if first versions start too late so lookups fail (exactly the bug fixed in this project).</div></details>
+<details class="q"><summary>Q28. View vs materialized view?</summary><div class="answer">A view stores the query and recomputes on read; a materialized view stores maintained results.</div></details>
+<details class="q"><summary>Q29. Why must loads be idempotent?</summary><div class="answer">Retries and reruns are routine; idempotency stops them from duplicating or corrupting data.</div></details>
+<details class="q"><summary>Q30. Biggest risk in an SCD Type 2 implementation?</summary><div class="answer">Wrong change detection, key assignment, effective-date boundaries, or fact-to-version resolution. These corrupt history silently while the pipeline "succeeds".</div></details>
+
+<!-- ===================== 17.9 ===================== -->
+<h2 id="s17-9"><span class="num">17.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>OLTP/OLAP, facts, dimensions, schemas</td><td>Design a retail star schema</td></tr>
+<tr><td>2</td><td>Keys, grain, conformed dimensions</td><td>Create dimension and fact tables</td></tr>
+<tr><td>3</td><td>SCD Types 0, 1, 2</td><td>Implement customer Type 2 history</td></tr>
+<tr><td>4</td><td>Incremental loading, MERGE, CDC</td><td>Incremental product load</td></tr>
+<tr><td>5</td><td>Deletes, integrity, reconciliation</td><td>Build quality-check queries</td></tr>
+<tr><td>6</td><td>Databricks SQL, views, MVs, optimization</td><td>Sales summary view and MV</td></tr>
+<tr><td>7</td><td>Power BI and end-to-end testing</td><td>Build a retail sales report</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://docs.databricks.com/aws/en/sql/" target="_blank" rel="noopener">Databricks SQL</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/merge" target="_blank" rel="noopener">Delta Lake MERGE INTO</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/delta-change-data-feed" target="_blank" rel="noopener">Delta Change Data Feed</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/dbsql/materialized" target="_blank" rel="noopener">Materialized views</a></li>
+<li><a href="https://docs.databricks.com/aws/en/partners/bi/power-bi" target="_blank" rel="noopener">Power BI integration</a></li>
+<li><a href="https://docs.databricks.com/aws/en/compute/sql-warehouse/" target="_blank" rel="noopener">SQL warehouses</a></li>
+</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch17-checklist">
+<label><input type="checkbox"> <span><strong>OLTP</strong> runs operations; <strong>OLAP</strong> serves analytics.</span></label>
+<label><input type="checkbox"> <span><strong>Facts</strong> record events; <strong>dimensions</strong> give context.</span></label>
+<label><input type="checkbox"> <span>A <strong>star schema</strong> is the practical default for BI.</span></label>
+<label><input type="checkbox"> <span>Define <strong>fact grain</strong> before choosing columns.</span></label>
+<label><input type="checkbox"> <span><strong>Business keys</strong> identify entities; <strong>surrogate keys</strong> identify rows/versions.</span></label>
+<label><input type="checkbox"> <span><strong>Type 1</strong> overwrites; <strong>Type 2</strong> preserves history.</span></label>
+<label><input type="checkbox"> <span><strong>Effective dates and current flags</strong> manage versions; first versions must cover early facts.</span></label>
+<label><input type="checkbox"> <span><strong>Incremental loading and CDC</strong> propagate changes efficiently.</span></label>
+<label><input type="checkbox"> <span><strong>MERGE INTO</strong> needs deduplicated sources, safe keys, and retry safety.</span></label>
+<label><input type="checkbox"> <span><strong>Referential integrity and reconciliation</strong> make data trustworthy.</span></label>
+<label><input type="checkbox"> <span><strong>Databricks SQL and Power BI</strong> serve curated tables.</span></label>
+<label><input type="checkbox"> <span>Correct history needs facts linked to the <strong>right SCD2 version</strong>.</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch17-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch17-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 18!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Next step</span><p>Extend the project with three more customer scenarios: another Type 2 change, an unchanged record (should produce no new version), and a late-arriving historical correction. After each run, check dimension history, fact keys, and reconciliation.</p></div>
+
+<div class="next">
+<h3>Next chapter: Data Quality, Testing, and Reconciliation</h3>
+<p>Chapter 18 turns the checks you've been writing by hand into a discipline: the dimensions of data quality (completeness, accuracy, consistency, validity, uniqueness, timeliness), reusable validation frameworks, testing pipelines, and systematic reconciliation.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-16.html"><span>← Previous</span><strong>Chapter 16: Streaming</strong></a>
+  <a class="pager-link" href="databricks-chapter-18.html"><span>Next →</span><strong>Chapter 18: Data Quality &amp; Testing</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 6 · Chapter 17 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

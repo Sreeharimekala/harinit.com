@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 12: Data Ingestion</title>
+<meta name="description" content="Chapter 12 of a Databricks learning path: batch, incremental and streaming ingestion, COPY INTO, Auto Loader, JDBC, Lakeflow Connect, CDC, and a daily file-ingestion project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 12 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s12-1">12.1 Fundamentals</a></li>
+    <li class="lvl2"><a href="#s12-1-1">What is ingestion?</a></li>
+    <li class="lvl2"><a href="#s12-1-2">ETL vs ELT</a></li>
+    <li class="lvl2"><a href="#s12-1-3">Batch ingestion</a></li>
+    <li class="lvl2"><a href="#s12-1-4">Incremental ingestion</a></li>
+    <li class="lvl2"><a href="#s12-1-5">Streaming ingestion</a></li>
+    <li class="lvl2"><a href="#s12-1-6">Full vs delta loads</a></li>
+    <li class="lvl2"><a href="#s12-1-7">Source-to-target mapping</a></li>
+    <li class="lvl1"><a href="#s12-2">12.2 File-Based Ingestion</a></li>
+    <li class="lvl2"><a href="#s12-2-1">Uploading files</a></li>
+    <li class="lvl2"><a href="#s12-2-2">Reading files</a></li>
+    <li class="lvl2"><a href="#s12-2-3">COPY INTO</a></li>
+    <li class="lvl2"><a href="#s12-2-4">Auto Loader</a></li>
+    <li class="lvl2"><a href="#s12-2-5">File discovery</a></li>
+    <li class="lvl2"><a href="#s12-2-6">Schema inference</a></li>
+    <li class="lvl2"><a href="#s12-2-7">Schema evolution</a></li>
+    <li class="lvl2"><a href="#s12-2-8">Tracking processed files</a></li>
+    <li class="lvl2"><a href="#s12-2-9">Handling new files</a></li>
+    <li class="lvl1"><a href="#s12-3">12.3 Database Ingestion</a></li>
+    <li class="lvl2"><a href="#s12-3-1">SQL Server</a></li>
+    <li class="lvl2"><a href="#s12-3-2">Oracle</a></li>
+    <li class="lvl2"><a href="#s12-3-3">Azure SQL Database</a></li>
+    <li class="lvl2"><a href="#s12-3-4">Connection properties</a></li>
+    <li class="lvl2"><a href="#s12-3-5">Parallel extraction</a></li>
+    <li class="lvl2"><a href="#s12-3-6">Incremental extraction</a></li>
+    <li class="lvl2"><a href="#s12-3-7">JDBC limitations</a></li>
+    <li class="lvl1"><a href="#s12-4">12.4 Lakeflow Connect</a></li>
+    <li class="lvl2"><a href="#s12-4-1">Introduction</a></li>
+    <li class="lvl2"><a href="#s12-4-2">Managed connectors</a></li>
+    <li class="lvl2"><a href="#s12-4-3">Connector types</a></li>
+    <li class="lvl2"><a href="#s12-4-4">Pipeline lifecycle</a></li>
+    <li class="lvl2"><a href="#s12-4-5">Initial &amp; incremental</a></li>
+    <li class="lvl2"><a href="#s12-4-6">Schema changes</a></li>
+    <li class="lvl2"><a href="#s12-4-7">Monitoring</a></li>
+    <li class="lvl1"><a href="#s12-5">12.5 Advanced Ingestion</a></li>
+    <li class="lvl2"><a href="#s12-5-1">What is CDC?</a></li>
+    <li class="lvl2"><a href="#s12-5-2">Initial snapshot</a></li>
+    <li class="lvl2"><a href="#s12-5-3">Incremental sync</a></li>
+    <li class="lvl2"><a href="#s12-5-4">Inserts &amp; updates</a></li>
+    <li class="lvl2"><a href="#s12-5-5">Deletes</a></li>
+    <li class="lvl2"><a href="#s12-5-6">Late-arriving records</a></li>
+    <li class="lvl2"><a href="#s12-5-7">Reconciliation</a></li>
+    <li class="lvl2"><a href="#s12-5-8">Recovery</a></li>
+    <li class="lvl1"><a href="#s12-6">12.6 Project: Daily Files</a></li>
+    <li class="lvl2"><a href="#s12-6-2">Steps 1–2: Setup</a></li>
+    <li class="lvl2"><a href="#s12-6-4">Steps 3–4: Auto Loader</a></li>
+    <li class="lvl2"><a href="#s12-6-6">Steps 5–8: Test</a></li>
+    <li class="lvl2"><a href="#s12-6-10">Steps 9–11: Operate</a></li>
+    <li class="lvl1"><a href="#s12-7">12.7 Production Checklist</a></li>
+    <li class="lvl1"><a href="#s12-8">12.8 Knowledge Check</a></li>
+    <li class="lvl1"><a href="#s12-9">12.9 Final Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 5 · Chapter 12 · Data Engineering &amp; Pipeline Development</span>
+  <h1>Data Ingestion in Databricks</h1>
+  <p class="lead">Getting data in reliably: batch, incremental, and streaming patterns; <code>COPY INTO</code> and Auto Loader for files; JDBC for SQL Server, Oracle, and Azure SQL; Lakeflow Connect managed connectors; and change data capture. The chapter ends with a daily file pipeline that never loads the same file twice.</p>
+  <p class="ref">This chapter fixes the shortcut from Chapter 11, where the Bronze loader duplicated data every time it was rerun.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Understand ingestion patterns and ETL versus ELT.</li>
+    <li>Choose between batch, incremental, and streaming ingestion.</li>
+    <li>Distinguish full loads from delta loads.</li>
+    <li>Ingest CSV, JSON, and Parquet files into Databricks.</li>
+    <li>Use <code>COPY INTO</code> and Auto Loader for file ingestion.</li>
+    <li>Understand schema inference, schema evolution, and file tracking.</li>
+    <li>Connect SQL Server, Oracle, and Azure SQL Database using JDBC.</li>
+    <li>Understand Lakeflow Connect and managed ingestion connectors.</li>
+    <li>Explain CDC, snapshots, and incremental synchronization.</li>
+    <li>Design ingestion processes that recover safely from failures.</li>
+    <li>Build a file pipeline that avoids reprocessing and handles approved schema changes.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s12-1"><span>12.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s12-2"><span>12.2</span><strong>Files</strong></a>
+    <a class="chip" href="#s12-3"><span>12.3</span><strong>Databases</strong></a>
+    <a class="chip" href="#s12-4"><span>12.4</span><strong>Lakeflow Connect</strong></a>
+    <a class="chip" href="#s12-5"><span>12.5</span><strong>CDC &amp; Recovery</strong></a>
+    <a class="chip" href="#s12-6"><span>12.6</span><strong>Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 12.1 ===================== -->
+<h2 id="s12-1"><span class="num">12.1</span>Ingestion Fundamentals</h2>
+
+<h3 id="s12-1-1"><span class="num">12.1.1</span>What Is Data Ingestion?</h3>
+<p>Data ingestion moves data from a source system into a target platform so it can be stored, processed, analyzed, or reported.</p>
+<div class="grid-2">
+  <div class="card"><h4>Common sources</h4><ul style="margin-bottom:0"><li>CSV, JSON, Parquet, and Avro files.</li><li>SQL Server, Oracle, Azure SQL Database.</li><li>REST APIs and event streams.</li><li>Enterprise applications.</li><li>Cloud object storage.</li></ul></div>
+  <div class="card"><h4>Common targets</h4><ul style="margin-bottom:0"><li>Bronze Delta tables.</li><li>Streaming tables.</li><li>Lakehouse tables governed by Unity Catalog.</li><li>Curated datasets for downstream transformations.</li></ul></div>
+</div>
+<pre class="diagram">          Source Systems
+                |
+      +---------+---------+
+      |                   |
+      v                   v
+  CSV Files         SQL Databases
+      |                   |
+      v                   v
+File Ingestion    JDBC / Connectors
+      |                   |
+      +---------+---------+
+                |
+                v
+      Bronze Delta Tables
+                |
+                v
+     Silver Transformations
+                |
+                v
+      Gold Reporting Tables
+                |
+                v
+            Power BI</pre>
+<div class="callout key"><span class="label">The ingestion layer's job</span><p>Move data reliably, and record enough to know <strong>what</strong> was received, <strong>when</strong>, and whether processing <strong>completed</strong>.</p></div>
+
+<h3 id="s12-1-2"><span class="num">12.1.2</span>ETL Versus ELT</h3>
+<div class="grid-2">
+  <div class="card"><h4>ETL: Extract, Transform, Load</h4><p><code>Source → Extract → Transform → Load</code></p><ol style="margin-bottom:0"><li>Extract customers from SQL Server.</li><li>Remove duplicates.</li><li>Standardize city names.</li><li>Load the cleansed data into the target.</li></ol></div>
+  <div class="card"><h4>ELT: Extract, Load, Transform</h4><p><code>Source → Extract → Load → Transform</code></p><ol style="margin-bottom:0"><li>Read a customer CSV.</li><li>Store it in a Bronze Delta table.</li><li>Clean and validate in Silver.</li><li>Build dimensions and facts in Gold.</li></ol></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>ETL</th><th>ELT</th></tr></thead>
+<tbody>
+<tr><td>Transformation timing</td><td>Before loading the final target</td><td>After loading into the target</td></tr>
+<tr><td>Raw data preservation</td><td>Depends on design</td><td>Commonly preserved in Bronze</td></tr>
+<tr><td>Processing location</td><td>Often an external engine</td><td>Commonly the target platform</td></tr>
+<tr><td>Reprocessing</td><td>May need re-extraction if raw data wasn't kept</td><td>Often possible from persisted raw data</td></tr>
+<tr><td>Typical Databricks pattern</td><td>External processing, then load</td><td>Bronze → Silver → Gold</td></tr>
+</tbody></table></div>
+<p class="ref">ELT is common in lakehouses because it preserves source data and uses the platform's engine for transformation. ETL and ELT are patterns, not products, and one pipeline can combine both.</p>
+
+<h3 id="s12-1-3"><span class="num">12.1.3</span>Batch Ingestion</h3>
+<p>Batch ingestion processes a group of records at a time: a CSV every morning, an hourly database extract, an end-of-day order file, yesterday's transactions.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_path = (
+    "/Volumes/retail_dev/landing/orders/"
+    "orders_20261025.csv"
+)
+
+orders_df = (
+    spark.read
+    .option("header", True)
+    .csv(source_path)
+)
+
+display(orders_df)</code></pre></div>
+<div class="grid-2">
+  <div class="card"><h4>Advantages</h4><ul style="margin-bottom:0"><li>Simple operational model.</li><li>Easy to reconcile with row counts.</li><li>Convenient for historical backfills.</li><li>Often economical.</li></ul></div>
+  <div class="card"><h4>Limitations</h4><ul style="margin-bottom:0"><li>Data unavailable until the next batch.</li><li>Large batches create processing spikes.</li><li>Retry and duplicate handling must be designed carefully.</li></ul></div>
+</div>
+
+<h3 id="s12-1-4"><span class="num">12.1.4</span>Incremental Ingestion</h3>
+<p>Incremental ingestion processes only new or changed data. If a source table has 10 million rows and 20,000 changed since the last load, a full load extracts all 10 million; an incremental load extracts the 20,000, <em>provided the source can identify those changes reliably</em>.</p>
+<p><strong>Techniques:</strong> watermark columns, Change Tracking, CDC, transaction logs, file-arrival tracking, Auto Loader checkpoints, connector-managed sync.</p>
+<div class="code-wrap"><span class="lang">SQL Server · illustrative</span><pre class="code"><code>SELECT
+    CustomerID,
+    CustomerName,
+    City,
+    LastModifiedDate
+FROM dbo.Customers
+WHERE LastModifiedDate &gt; @LastSuccessfulWatermark;</code></pre></div>
+<div class="callout"><span class="label">Use an overlap window</span><p>Rather than a bare <code>&gt;</code> on the last watermark (say <code>2026-10-24 23:00:00</code>), deliberately reread a short preceding period, then deduplicate or <code>MERGE</code> into the target. That guards against delayed updates and timestamp-boundary problems.</p></div>
+<div class="callout warn"><span class="label">Timestamp extraction can miss changes when</span><ul style="margin-bottom:0"><li>The source doesn't update the timestamp reliably.</li><li>Records share a timestamp and the boundary is handled wrongly.</li><li>A transaction commits late with an older timestamp.</li><li>Rows are physically deleted, leaving nothing to find.</li></ul><p>When inserts, updates, <em>and deletes</em> must be captured reliably, use CDC or change tracking.</p></div>
+
+<h3 id="s12-1-5"><span class="num">12.1.5</span>Streaming Ingestion</h3>
+<p>Streaming processes events continuously or in small, frequent batches: application events, IoT telemetry, payments, inventory updates, Kafka or Event Hubs messages.</p>
+<div class="grid-2">
+<pre class="diagram">Event Producer
+      |
+      v
+Kafka / Event Hubs
+      |
+      v
+Structured Streaming
+      |
+      v
+Bronze Delta Table
+      |
+      v
+Silver and Gold</pre>
+<div class="code-wrap"><span class="lang">Python · demo</span><pre class="code"><code>streaming_df = (
+    spark.readStream
+    .format("rate")
+    .option("rowsPerSecond", 10)
+    .load()
+)
+
+query = (
+    streaming_df.writeStream
+    .format("delta")
+    .option("checkpointLocation",
+            "/Volumes/retail_dev/checkpoints/rate_demo")
+    .trigger(availableNow=True)
+    .toTable("retail_dev.bronze.streaming_demo")
+)</code></pre></div>
+</div>
+<div class="callout"><span class="label">About this demo</span><p>The <code>rate</code> source generates synthetic rows and doesn't connect to a real broker. I added <code>.trigger(availableNow=True)</code> so it processes what's available and stops, because serverless compute only supports this kind of trigger. On classic compute without a trigger, the stream runs until you call <code>query.stop()</code>. (Verified on Spark 4: the availableNow run processed 150 rows and stopped.)</p></div>
+<p class="ref">Structured Streaming gives fault-tolerant semantics when source, checkpoint, and sink are configured correctly. Don't assume every external side effect is automatically exactly-once.</p>
+
+<h3 id="s12-1-6"><span class="num">12.1.6</span>Full Load Versus Delta Load</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Full load</th><th>Delta load</th></tr></thead>
+<tbody>
+<tr><td>Data extracted</td><td>Entire dataset</td><td>New or changed data</td></tr>
+<tr><td>Processing cost</td><td>Often higher for large datasets</td><td>Often lower</td></tr>
+<tr><td>Implementation</td><td>Usually simpler</td><td>Needs reliable change detection</td></tr>
+<tr><td>Recovery</td><td>Reload the source snapshot</td><td>Resume or replay changes correctly</td></tr>
+<tr><td>Deletes</td><td>Naturally reflected when fully replaced</td><td>Must be captured explicitly</td></tr>
+<tr><td>Common use</td><td>Small reference tables, initial snapshots</td><td>Large operational tables</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · full load</span><pre class="code"><code>(
+    source_df.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("retail_dev.bronze.customers_snapshot")
+)
+# Only if source_df is the complete,
+# authoritative snapshot</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · delta load</span><pre class="code"><code>MERGE INTO retail_dev.silver.customers AS target
+USING retail_dev.silver.customers_staging AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED THEN UPDATE SET
+    target.CustomerName = source.CustomerName,
+    target.City = source.City
+
+WHEN NOT MATCHED THEN INSERT (
+    CustomerID, CustomerName, City
+)
+VALUES (
+    source.CustomerID, source.CustomerName, source.City
+);</code></pre></div>
+</div>
+<p class="ref">The merge handles inserts and updates but not deletes, since no deletion rule is defined. Make sure the source has at most one row per key first.</p>
+
+<h3 id="s12-1-7"><span class="num">12.1.7</span>Source-to-Target Mapping</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Source field</th><th>Target field</th><th>Source type</th><th>Target type</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td><code>customer_id</code></td><td><code>CustomerID</code></td><td>String</td><td>String</td><td>Trim spaces</td></tr>
+<tr><td><code>customer_name</code></td><td><code>CustomerName</code></td><td>String</td><td>String</td><td>Trim spaces</td></tr>
+<tr><td><code>email_address</code></td><td><code>Email</code></td><td>String</td><td>String</td><td>Normalize per policy</td></tr>
+<tr><td><code>city_name</code></td><td><code>City</code></td><td>String</td><td>String</td><td>Standardize approved values</td></tr>
+<tr><td><code>last_updated</code></td><td><code>SourceUpdatedAt</code></td><td>Timestamp text</td><td>Timestamp</td><td>Parse using source format</td></tr>
+</tbody></table></div>
+<p>A mapping specification also documents mandatory fields, null rules, business keys, defaults, transformation expressions, rejection criteria, schema-change policy, and sensitivity classification. It's the backbone of any reusable ingestion framework.</p>
+
+<!-- ===================== 12.2 ===================== -->
+<h2 id="s12-2"><span class="num">12.2</span>File-Based Ingestion</h2>
+
+<h3 id="s12-2-1"><span class="num">12.2.1</span>Uploading Files to Databricks</h3>
+<p>Files go into a storage location Databricks can read: Unity Catalog volumes, ADLS Gen2, Azure Blob Storage, Amazon S3, or Google Cloud Storage. For learning, volumes are the easiest, e.g. <code>/Volumes/retail_dev/landing/retail/customers.csv</code>. The volume must exist and you need privileges on it.</p>
+<p class="ref">In production, prefer governed cloud storage and service identities over manual uploads through the UI.</p>
+
+<h3 id="s12-2-2"><span class="num">12.2.2</span>Reading Files from Cloud Storage</h3>
+<div class="code-wrap"><span class="lang">Python · CSV, JSON, Parquet</span><pre class="code"><code>csv_df = (
+    spark.read
+    .format("csv")
+    .option("header", True)
+    .option("inferSchema", True)
+    .load("/Volumes/retail_dev/landing/retail/customers.csv")
+)
+
+json_df = (
+    spark.read
+    .format("json")
+    .load("/Volumes/retail_dev/landing/retail/customers.json")
+)
+
+# Parquet is columnar and stores its own schema
+parquet_df = (
+    spark.read
+    .format("parquet")
+    .load("/Volumes/retail_dev/landing/retail/customers/")
+)</code></pre></div>
+<h4>Schema inference versus explicit schema</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Inferred: Spark guesses types from the data
+inferred_df = (
+    spark.read
+    .option("header", True)
+    .option("inferSchema", True)
+    .csv(source_path)
+)
+
+# Explicit: you define the expected columns and types
+from pyspark.sql.types import StructType, StructField, StringType
+
+customer_schema = StructType([
+    StructField("CustomerID", StringType(), True),
+    StructField("CustomerName", StringType(), True),
+    StructField("Email", StringType(), True),
+    StructField("City", StringType(), True)
+])
+
+customers_df = (
+    spark.read
+    .schema(customer_schema)
+    .option("header", True)
+    .csv(source_path)
+)</code></pre></div>
+<p class="ref">Explicit schemas improve predictability but don't guarantee business validity. Define schemas intentionally and validate unexpected columns and values.</p>
+
+<h3 id="s12-2-3"><span class="num">12.2.3</span>COPY INTO</h3>
+<p><code>COPY INTO</code> is a SQL command that loads files from a storage location into a Delta table and <strong>remembers which files it has already loaded</strong>, so rerunning it skips them.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Use a NEW table, not Chapter 11's customers_raw.
+-- A schemaless placeholder lets mergeSchema define the columns.
+CREATE TABLE IF NOT EXISTS retail_dev.bronze.customers_copy_raw;
+
+COPY INTO retail_dev.bronze.customers_copy_raw
+FROM (
+    SELECT
+        *,
+        _metadata.file_path  AS _source_file,
+        current_timestamp()  AS _ingested_at
+    FROM '/Volumes/retail_dev/landing/retail/customers/'
+)
+FILEFORMAT = CSV
+FORMAT_OPTIONS ('header' = 'true')
+COPY_OPTIONS ('mergeSchema' = 'true');</code></pre></div>
+<p class="ref">The <code>SELECT</code> form adds ingestion metadata during the load. Run it twice: the second run reports 0 rows inserted, because the files are already tracked.</p>
+<div class="grid-2">
+<div class="card"><h4>Important considerations</h4><ul style="margin-bottom:0"><li>File tracking is tied to the target table and command.</li><li>Changing targets may need a deliberate replay strategy.</li><li>Moving files, editing them in place, or changing settings may not behave as you expect.</li><li><code>'force' = 'true'</code> in <code>COPY_OPTIONS</code> reloads files regardless; use it only for a planned replay.</li><li>File tracking doesn't replace batch audit and reconciliation.</li></ul></div>
+<div class="card"><h4>Use COPY INTO when</h4><ul style="margin-bottom:0"><li>Files arrive in a cloud storage location.</li><li>The pattern is straightforward.</li><li>SQL-based ingestion is enough.</li><li>File tracking is useful.</li><li>You don't need a customized streaming pipeline.</li></ul></div>
+</div>
+
+<h3 id="s12-2-4"><span class="num">12.2.4</span>Auto Loader</h3>
+<p>Auto Loader incrementally ingests new files from cloud storage as they arrive, continuously or on a schedule. It uses the <code>cloudFiles</code> streaming source.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+source_path     = "/Volumes/retail_dev/landing/retail/customers/"
+checkpoint_path = "/Volumes/retail_dev/checkpoints/customers/"
+schema_path     = "/Volumes/retail_dev/schemas/customers/"
+
+customer_stream = (
+    spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "csv")
+    .option("cloudFiles.schemaLocation", schema_path)
+    .option("header", True)
+    .load(source_path)
+)
+
+bronze_stream = (
+    customer_stream
+    .withColumn("_source_file", F.col("_metadata.file_path"))
+    .withColumn("_ingested_at", F.current_timestamp())
+)
+
+query = (
+    bronze_stream.writeStream
+    .format("delta")
+    .option("checkpointLocation", checkpoint_path)
+    .option("mergeSchema", "true")
+    .trigger(availableNow=True)
+    .toTable("retail_dev.bronze.customers_autoloader_raw")
+)</code></pre></div>
+<div class="callout"><span class="label">Changes from older examples</span><p><code>F.input_file_name()</code> is replaced by <code>_metadata.file_path</code> (unsupported on serverless and shared compute, as in Chapters 8 and 11), and <code>availableNow</code> makes it run as a scheduled batch that stops when done.</p></div>
+<div class="grid-2">
+<div class="card"><h4>Why Auto Loader?</h4><ul style="margin-bottom:0"><li>Incremental file discovery.</li><li>Persistent state tracking discovered and processed files.</li><li>Scales to millions of files.</li><li>Schema inference and evolution.</li><li>Integrates with Structured Streaming and Delta Lake.</li></ul></div>
+<div class="callout warn" style="margin:0"><span class="label">Protect the state folders</span><p>The checkpoint and schema locations <em>are</em> Auto Loader's memory. Delete them and files get rediscovered and reloaded, or schema behavior changes.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>COPY INTO</th><th>Auto Loader</th></tr></thead>
+<tbody>
+<tr><td>Interface</td><td>SQL command</td><td>Python/SQL streaming source</td></tr>
+<tr><td>File tracking</td><td>Per target table</td><td>Checkpoint location</td></tr>
+<tr><td>Scale</td><td>Thousands of files</td><td>Millions of files; optional notification mode</td></tr>
+<tr><td>Schema evolution</td><td><code>mergeSchema</code></td><td>Schema location + evolution modes</td></tr>
+<tr><td>Good for</td><td>Simple, SQL-first recurring loads</td><td>Scalable, scheduled or continuous ingestion</td></tr>
+</tbody></table></div>
+
+<h3 id="s12-2-5"><span class="num">12.2.5</span>File Discovery</h3>
+<p>Given <code>customers_20261023.csv</code>, <code>…24.csv</code>, <code>…25.csv</code>, the next run should pick up only files not yet successfully processed. Approaches: <code>COPY INTO</code> tracking, Auto Loader's checkpoint state, explicit manifests, storage event notifications (where configured), or comparing a listing against a custom ledger.</p>
+<p class="ref">Avoid repeatedly scanning a very large directory without considering listing cost and scalability.</p>
+
+<h3 id="s12-2-6"><span class="num">12.2.6</span>Schema Inference</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = (
+    spark.read
+    .option("header", True)
+    .option("inferSchema", True)
+    .csv(source_path)
+)
+
+df.printSchema()</code></pre></div>
+<div class="code-wrap"><span class="lang">Possible output</span><pre class="code"><code>root
+ |-- CustomerID: string
+ |-- CustomerName: string
+ |-- Age: integer
+ |-- CreditLimit: double</code></pre></div>
+</div>
+<p>Inference is handy for exploration but risky in production: a column of integer-looking values today may hold decimals tomorrow. Note how <code>CreditLimit</code> became <code>double</code>, an imprecise type for money.</p>
+<div class="callout key"><span class="label">Best practice</span><p>Use explicit or controlled schemas for production contracts, especially for financial values, identifiers, and timestamps.</p></div>
+
+<h3 id="s12-2-7"><span class="num">12.2.7</span>Schema Evolution</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Before → after</span><pre class="code"><code>CustomerID,CustomerName,City
+C001,Ravi,Hyderabad
+
+CustomerID,CustomerName,City,Country
+C002,Priya,Chennai,India</code></pre></div>
+<div class="card"><h4>Possible policies</h4><ol style="margin-bottom:0"><li>Reject the file until the change is approved.</li><li>Add the column; older rows get nulls.</li><li>Capture unexpected columns in a raw/rescued column.</li><li>Route the file to schema-change review.</li></ol></div>
+</div>
+<p>Auto Loader controls this with <code>cloudFiles.schemaEvolutionMode</code>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Mode</th><th>When a new column appears</th></tr></thead>
+<tbody>
+<tr><td><code>addNewColumns</code> (default without a schema)</td><td>The stream <strong>stops</strong> with an error, records the new column, and includes it when restarted</td></tr>
+<tr><td><code>rescue</code></td><td>Schema stays fixed; unexpected data goes into the <code>_rescued_data</code> column</td></tr>
+<tr><td><code>failOnNewColumns</code></td><td>The stream fails until you update the schema or remove the file</td></tr>
+<tr><td><code>none</code> (default with a provided schema)</td><td>New columns are ignored</td></tr>
+</tbody></table></div>
+<p class="ref">Exact behavior depends on runtime and format. Schema evolution isn't business validation: a new <code>Country</code> column can be structurally fine and still need quality checks.</p>
+
+<h3 id="s12-2-8"><span class="num">12.2.8</span>Tracking Processed Files</h3>
+<div class="grid-2">
+<div class="card"><h4>The failure scenario</h4><ol style="margin-bottom:0"><li><code>customers_20261025.csv</code> arrives.</li><li>The job reads it.</li><li>The data is written to Bronze.</li><li>The job fails <em>before</em> recording success.</li><li>The next run tries the file again → duplicates, unless tracking is reliable.</li></ol></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Source file</th><th>Batch</th><th>Status</th><th>Rows</th></tr></thead>
+<tbody>
+<tr><td>customers_20261024.csv</td><td>B001</td><td>SUCCESS</td><td>1,000</td></tr>
+<tr><td>customers_20261025.csv</td><td>B002</td><td>SUCCESS</td><td>1,250</td></tr>
+<tr><td>customers_20261026.csv</td><td>B003</td><td>FAILED</td><td>0</td></tr>
+</tbody></table></div>
+</div>
+<p><strong>Solutions:</strong> Auto Loader checkpoints, <code>COPY INTO</code> tracking, a custom ingestion ledger, or a file manifest with processing status.</p>
+<div class="code-wrap"><span class="lang">Ledger columns</span><pre class="code"><code>source_file           batch_id            start_time
+source_file_id        pipeline_run_id     end_time
+source_path           processing_status   source_row_count
+source_modified_time                      target_row_count
+file_size                                 error_message</code></pre></div>
+<p class="ref">A ledger should distinguish <em>discovered</em>, <em>started</em>, <em>committed</em>, and <em>task succeeded</em>, and retries after partial failure must not duplicate committed data.</p>
+
+<h3 id="s12-2-9"><span class="num">12.2.9</span>Handling New Files</h3>
+<p>Day 1, 2, 3 files should each be added to Bronze exactly once. Auto Loader: keep a persistent checkpoint and stable schema location. <code>COPY INTO</code>: keep a consistent configuration. Custom framework: a manifest with a defined recovery policy.</p>
+<div class="callout warn"><span class="label">File name isn't always identity</span><p>If a corrected file is resent under the same name, decide whether it's a new version, a replacement, a duplicate to ignore, or a correction that needs targeted reprocessing. (By default Auto Loader won't reload a file it has seen; <code>cloudFiles.allowOverwrites</code> changes that.)</p></div>
+
+<!-- ===================== 12.3 ===================== -->
+<h2 id="s12-3"><span class="num">12.3</span>Database Ingestion</h2>
+<p class="section-intro">Two broad approaches: <strong>JDBC extraction</strong> and <strong>managed connectors</strong> (12.4). JDBC is general connectivity. It isn't CDC and doesn't give efficient incremental extraction by itself.</p>
+
+<h3 id="s12-3-1"><span class="num">12.3.1</span>SQL Server to Databricks</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>jdbc_url = (
+    "jdbc:sqlserver://sqlserver-host.example.com:1433;"
+    "databaseName=RetailSourceDB;"
+    "encrypt=true;"
+    "trustServerCertificate=false;"
+)
+
+connection_properties = {
+    "user": dbutils.secrets.get(scope="retail-secrets", key="sqlserver-user"),
+    "password": dbutils.secrets.get(scope="retail-secrets", key="sqlserver-password"),
+    "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+customers_df = spark.read.jdbc(
+    url=jdbc_url,
+    table="dbo.Customers",
+    properties=connection_properties
+)</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Prerequisites</h4><ul style="margin-bottom:0"><li>Replace host, database, secret scope, and table.</li><li>A JDBC driver on the compute (Databricks Runtime includes the SQL Server driver).</li><li>Network path and firewall rules from Databricks to the database.</li><li>TLS settings and source permissions.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Secrets</span><p><code>dbutils.secrets.get</code> reads credentials from a secret scope, and Databricks redacts them in notebook output. Prefer identity-based authentication where available. Unity Catalog <strong>connections</strong> (Lakehouse Federation) are another governed option for querying these databases.</p></div>
+</div>
+
+<h3 id="s12-3-2"><span class="num">12.3.2</span>Oracle to Databricks</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>oracle_url = "jdbc:oracle:thin:@//oracle-host.example.com:1521/RETAIL_DW"
+
+oracle_properties = {
+    "user": dbutils.secrets.get(scope="retail-secrets", key="oracle-user"),
+    "password": dbutils.secrets.get(scope="retail-secrets", key="oracle-password"),
+    "driver": "oracle.jdbc.OracleDriver"
+}
+
+orders_df = spark.read.jdbc(
+    url=oracle_url,
+    table="RETAIL_DW.ORDERS",
+    properties=oracle_properties
+)</code></pre></div>
+<div class="card"><h4>Oracle considerations</h4><ul style="margin-bottom:0"><li>Install an appropriate Oracle JDBC driver library on the cluster if it isn't available.</li><li>Connection strings differ for service name (<code>//host:port/SERVICE</code>) vs SID; confirm with the DBA.</li><li>Confirm network connectivity and schema/table privileges.</li><li>Review Oracle-to-Spark type mappings (e.g. <code>NUMBER</code> precision).</li><li>Handle timestamps and time zones carefully.</li><li>Use bounded extraction queries; avoid uncontrolled full scans of production.</li></ul></div>
+
+<h3 id="s12-3-3"><span class="num">12.3.3</span>Azure SQL Database to Databricks</h3>
+<p>Azure SQL Database uses SQL Server-compatible JDBC.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>azure_sql_url = (
+    "jdbc:sqlserver://myserver.database.windows.net:1433;"
+    "databaseName=RetailDB;"
+    "encrypt=true;"
+    "trustServerCertificate=false;"
+)
+
+azure_sql_properties = {
+    "user": dbutils.secrets.get(scope="retail-secrets", key="azure-sql-user"),
+    "password": dbutils.secrets.get(scope="retail-secrets", key="azure-sql-password"),
+    "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+products_df = spark.read.jdbc(
+    url=azure_sql_url,
+    table="dbo.Products",
+    properties=azure_sql_properties
+)</code></pre></div>
+<p class="ref">Username/password is for illustration; Microsoft Entra ID authentication is usually preferred. Connectivity depends on private endpoints, firewall rules, and your Databricks deployment.</p>
+
+<h3 id="s12-3-4"><span class="num">12.3.4</span>JDBC Connection Properties</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Property</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>JDBC URL</td><td>Database endpoint and database</td></tr>
+<tr><td>Driver class</td><td>Which JDBC driver to use</td></tr>
+<tr><td>User</td><td>The database principal</td></tr>
+<tr><td>Password or token</td><td>Authenticates the connection</td></tr>
+<tr><td>TLS settings</td><td>Secure the network connection</td></tr>
+<tr><td>Query timeout</td><td>Limits query run time, where supported</td></tr>
+<tr><td>Fetch size</td><td>Rows fetched per round trip</td></tr>
+<tr><td>Partition settings</td><td>Parallel extraction through Spark</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Never hard-code passwords</span><p>Not in notebooks, repositories, or job parameters that may appear in logs. Use secret scopes, and restrict access to the identities that need them.</p></div>
+
+<h3 id="s12-3-5"><span class="num">12.3.5</span>JDBC Parallel Extraction</h3>
+<p>A single JDBC connection can be slow for big tables. Spark reads in parallel when given a partition column and bounds:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>large_table_df = spark.read.jdbc(
+    url=jdbc_url,
+    table="dbo.LargeTransactions",
+    column="TransactionID",
+    lowerBound=1,
+    upperBound=10000000,
+    numPartitions=8,
+    properties=connection_properties
+)</code></pre></div>
+<div class="callout warn"><span class="label">Bounds don't filter</span><p><code>lowerBound</code>/<code>upperBound</code> only set the partition stride. Rows outside the range still get read (by the first and last partitions). Also, <code>numPartitions=8</code> means <strong>8 concurrent connections</strong> to the source, so agree on that with the database owner.</p></div>
+<p>For a strict extraction window, filter in the source query:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_query = """
+(
+    SELECT TransactionID, CustomerID, Amount, LastModifiedDate
+    FROM dbo.LargeTransactions
+    WHERE LastModifiedDate &gt;= '2026-10-01'
+      AND LastModifiedDate &lt;  '2026-10-26'
+) AS source_data
+"""
+
+incremental_df = spark.read.jdbc(
+    url=jdbc_url,
+    table=source_query,
+    properties=connection_properties
+)</code></pre></div>
+<p class="ref">A subquery passed as <code>table</code> needs an alias (<code>AS source_data</code>). Parameterize the dates in production.</p>
+
+<h3 id="s12-3-6"><span class="num">12.3.6</span>Incremental Database Extraction</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT OrderID, CustomerID, OrderDate, LastModifiedDate
+FROM dbo.Orders
+WHERE LastModifiedDate &gt;= @StartTime
+  AND LastModifiedDate &lt;  @EndTime;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Watermark strategy</h4><ol class="steps">
+<li>Read the last successfully committed watermark.</li>
+<li>Define a bounded extraction window.</li>
+<li>Extract source records.</li>
+<li>Validate the batch.</li>
+<li>Write it to durable staging or Bronze.</li>
+<li>Apply idempotent target processing.</li>
+<li>Commit the new watermark only after all required stages succeed.</li>
+</ol></div>
+<div class="card"><h4>Source-side impact</h4><ul style="margin-bottom:0"><li>Indexes on filter columns.</li><li>Query execution plans.</li><li>Transaction isolation.</li><li>Extraction concurrency.</li><li>Source workload and bandwidth.</li><li>Data volume.</li><li>Availability of reliable change tracking.</li></ul><p style="margin:8px 0 0">Don't run large repeated full scans on busy systems without the owner's agreement.</p></div>
+</div>
+<div class="callout key"><span class="label">The watermark rule</span><p>Don't advance the watermark just because the source query finished. Advance it only at a clearly defined success boundary, or a failure can silently skip data.</p></div>
+
+<h3 id="s12-3-7"><span class="num">12.3.7</span>JDBC Limitations</h3>
+<p>JDBC alone doesn't give you a durable CDC stream, reliable delete capture, a managed ingestion control plane, schema governance, a recovery ledger, or exactly-once behavior across external systems. Those need extra design, or a managed connector.</p>
+
+<!-- ===================== 12.4 ===================== -->
+<h2 id="s12-4"><span class="num">12.4</span>Lakeflow Connect</h2>
+
+<h3 id="s12-4-1"><span class="num">12.4.1</span>Introduction to Lakeflow Connect</h3>
+<p>Lakeflow Connect is the ingestion part of Databricks Lakeflow. It provides managed connectors, so you don't hand-build every extraction, checkpoint, schema-change rule, and monitor yourself.</p>
+<pre class="diagram">Supported Source System
+          |
+          v
+   Lakeflow Connect
+          |
+          v
+Managed Ingestion Pipeline
+          |
+          v
+ Bronze / Target Tables
+          |
+          v
+Downstream Transformations</pre>
+
+<h3 id="s12-4-2"><span class="num">12.4.2</span>Managed Connectors</h3>
+<p>A managed connector may provide authentication and connectivity, initial loading, incremental sync, schema handling, scheduling or continuous processing, monitoring, and integration with Unity Catalog. Capabilities vary by connector. Don't assume every one supports every source feature, CDC mode, or topology.</p>
+
+<h3 id="s12-4-3"><span class="num">12.4.3</span>Connector Types</h3>
+<div class="grid-2">
+<div class="card"><h4>Categories</h4><ul style="margin-bottom:0"><li>Relational databases (e.g. SQL Server).</li><li>SaaS applications (e.g. Salesforce, Workday).</li><li>Business applications.</li><li>Other enterprise sources.</li></ul><p style="margin:8px 0 0" class="ref">Availability changes over time and depends on source, cloud, region, edition, permissions, and configuration.</p></div>
+<div class="card"><h4>Before choosing, verify</h4><ol style="margin-bottom:0"><li>Exact source system and version are supported.</li><li>Your authentication method is supported.</li><li>Network requirements can be met.</li><li>The required ingestion mode is supported.</li><li>Inserts, updates, and deletes are handled.</li><li>Schema-change behavior fits.</li><li>Target and governance needs are supported.</li><li>Pricing and limits are acceptable.</li></ol></div>
+</div>
+
+<h3 id="s12-4-4"><span class="num">12.4.4</span>Ingestion Pipeline Lifecycle</h3>
+<div class="card"><ol class="steps">
+<li>Configure the source connection.</li>
+<li>Grant the necessary source privileges.</li>
+<li>Configure networking and authentication.</li>
+<li>Select source tables or objects.</li>
+<li>Configure the destination and settings.</li>
+<li>Create the ingestion pipeline.</li>
+<li>Run the initial load.</li>
+<li>Monitor incremental updates.</li>
+<li>Review schema changes and quality results.</li>
+<li>Configure alerts and recovery procedures.</li>
+</ol></div>
+
+<h3 id="s12-4-5"><span class="num">12.4.5</span>Initial and Incremental Ingestion</h3>
+<div class="grid-2">
+<div class="card"><h4>Initial load</h4><p style="margin-bottom:0">Captures the existing data, e.g. the 5 million customers present when ingestion starts.</p></div>
+<div class="code-wrap"><span class="lang">Then: incremental sync</span><pre class="code"><code>Initial snapshot: 5,000,000 records
+New records:          5,000
+Updated records:      2,000
+Deleted records:        100</code></pre></div>
+</div>
+<p class="ref">Connectors may use change tracking, transaction logs, or other mechanisms. Verify how each handles deletes, snapshot consistency, and changes made during the initial load.</p>
+
+<h3 id="s12-4-6"><span class="num">12.4.6</span>Schema Changes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Change</th><th>Suggested policy</th></tr></thead>
+<tbody>
+<tr><td>New optional column</td><td>Review and allow where supported</td></tr>
+<tr><td>New mandatory column</td><td>Review source contract and downstream impact</td></tr>
+<tr><td>Removed column</td><td>Investigate dependencies before applying</td></tr>
+<tr><td>Type change</td><td>Validate conversion and compatibility</td></tr>
+<tr><td>Key change</td><td>Treat as potentially breaking</td></tr>
+<tr><td>Column rename</td><td>Review mapping and downstream dependencies</td></tr>
+</tbody></table></div>
+<p class="ref">Automatic schema evolution doesn't replace impact analysis.</p>
+
+<h3 id="s12-4-7"><span class="num">12.4.7</span>Monitoring Connectors</h3>
+<div class="grid-2">
+<div class="card"><h4>Monitor at least</h4><ul style="margin-bottom:0"><li>Execution status and source connectivity.</li><li>Initial-load and incremental progress.</li><li>Last successful update time.</li><li>Source and target record counts.</li><li>Schema-change events and rejected records.</li><li>Permission and network errors.</li><li>Lag between source change and target availability.</li></ul></div>
+<div class="card"><h4>Use Lakeflow Connect when</h4><ul style="margin-bottom:0"><li>Your source has a supported connector.</li><li>Managed ingestion reduces operational effort.</li><li>Incremental sync is required.</li><li>You want a managed ingestion lifecycle.</li><li>It meets security and networking needs.</li></ul><p style="margin:8px 0 0">Otherwise, use JDBC or a custom solution.</p></div>
+</div>
+
+<!-- ===================== 12.5 ===================== -->
+<h2 id="s12-5"><span class="num">12.5</span>Advanced Ingestion</h2>
+
+<h3 id="s12-5-1"><span class="num">12.5.1</span>What Is Change Data Capture?</h3>
+<p>CDC identifies changes to source data: inserts, updates, and deletes.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>C001</td><td>Ravi</td><td>Hyderabad</td></tr><tr><td>C002</td><td>Priya</td><td>Chennai</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">Initial state. Then: C003 inserted, C002 moves to Bengaluru, C001 deleted.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Operation</th><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>INSERT</td><td>C003</td><td>Arun</td><td>Hyderabad</td></tr><tr><td>UPDATE</td><td>C002</td><td>Priya</td><td>Bengaluru</td></tr><tr><td>DELETE</td><td>C001</td><td>—</td><td>—</td></tr></tbody></table></div>
+</div>
+
+<h3 id="s12-5-2"><span class="num">12.5.2</span>Initial Snapshot</h3>
+<div class="grid-2">
+<pre class="diagram">Source database
+      |
+      v
+Initial snapshot
+      |
+      v
+Bronze Delta table
+      |
+      v
+Incremental change processing</pre>
+<div class="callout warn" style="margin:0"><span class="label">The snapshot gap</span><p>Changes made <em>while</em> the snapshot runs must not be lost or misapplied. Reliable CDC coordinates the snapshot with a log position or connector mechanism. Don't just run a full query and then start reading changes.</p></div>
+</div>
+
+<h3 id="s12-5-3"><span class="num">12.5.3</span>Incremental Synchronization</h3>
+<p>Mechanisms include SQL Server CDC, SQL Server Change Tracking, Oracle log-based CDC or replication, connector-managed sync, and modification timestamps (with their limits). These aren't interchangeable.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>SQL Server CDC</th><th>SQL Server Change Tracking</th></tr></thead>
+<tbody><tr><td>Records the change operations and column values, per its configuration</td><td>Identifies <em>which</em> rows changed, not a full history of intermediate values</td></tr></tbody></table></div>
+<p class="ref">Choose based on required detail, retention, latency, and source configuration.</p>
+
+<h3 id="s12-5-4"><span class="num">12.5.4</span>Applying Inserts and Updates</h3>
+<p>Assuming the staging table holds the latest change per customer:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO retail_dev.silver.customers AS target
+USING retail_dev.bronze.customer_changes_latest AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED AND source.operation = 'UPDATE'
+THEN UPDATE SET
+    target.CustomerName = source.CustomerName,
+    target.City = source.City
+
+WHEN NOT MATCHED AND source.operation = 'INSERT'
+THEN INSERT (CustomerID, CustomerName, City)
+VALUES (source.CustomerID, source.CustomerName, source.City);</code></pre></div>
+<div class="card"><h4>A real CDC pipeline must also handle</h4><ul style="margin-bottom:0"><li>Multiple changes to one key in a batch.</li><li>Change ordering and transaction boundaries.</li><li>Deletes.</li><li>Replayed and duplicate events.</li><li>Schema changes and late records.</li><li>Initial-snapshot consistency.</li></ul><p style="margin:8px 0 0">Reduce the changes to one per key by a defined ordering rule (e.g. a <code>row_number()</code> window, as in Chapter 11) before merging.</p></div>
+
+<h3 id="s12-5-5"><span class="num">12.5.5</span>Handling Deletes</h3>
+<p>Physically deleted rows leave nothing for a timestamp query to find; CDC or change tracking supplies delete information.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO retail_dev.silver.customers AS target
+USING retail_dev.bronze.customer_changes_latest AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED AND source.operation = 'DELETE'
+THEN DELETE
+
+WHEN MATCHED AND source.operation = 'UPDATE'
+THEN UPDATE SET
+    target.CustomerName = source.CustomerName,
+    target.City = source.City
+
+WHEN NOT MATCHED AND source.operation = 'INSERT'
+THEN INSERT (CustomerID, CustomerName, City)
+VALUES (source.CustomerID, source.CustomerName, source.City);</code></pre></div>
+<div class="grid-2">
+<div class="callout" style="margin:0"><span class="label">One change per key</span><p>If a batch has both an update and a delete for one customer, determine the correct final state before merging.</p></div>
+<div class="callout" style="margin:0"><span class="label">Soft deletes</span><p>Some models shouldn't physically delete. Set a flag instead: <code>WHEN MATCHED AND source.operation = 'DELETE' THEN UPDATE SET target.IsDeleted = true</code>.</p></div>
+</div>
+<p class="ref">Chapter 13's <code>AUTO CDC</code> handles ordering, deletes, and SCD history declaratively.</p>
+
+<h3 id="s12-5-6"><span class="num">12.5.6</span>Late-Arriving Records</h3>
+<div class="grid-2">
+<div class="card"><h4>Examples</h4><ul style="margin-bottom:0"><li>Yesterday's file arrives today.</li><li>A transaction commits after the window closes.</li><li>A CDC event is delayed.</li><li>A correction arrives for a closed month.</li></ul></div>
+<div class="card"><h4>Strategies</h4><ul style="margin-bottom:0"><li>Overlap windows for timestamp extraction.</li><li>Reconcile source and target watermarks.</li><li>Durable CDC offsets.</li><li>Process late files by source identity and version.</li><li>Reprocess affected partitions; recalculate Gold.</li></ul></div>
+</div>
+<p class="ref">E.g. a daily pipeline processes yesterday but accepts corrections for the previous seven days. The right overlap depends on source behavior and business needs.</p>
+
+<h3 id="s12-5-7"><span class="num">12.5.7</span>Data Reconciliation</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Row counts (compare with the source count for the same batch)
+SELECT COUNT(*) AS BronzeRows
+FROM retail_dev.bronze.orders_raw;
+
+-- Business-key uniqueness
+SELECT OrderID, COUNT(*) AS RecordCount
+FROM retail_dev.silver.orders
+GROUP BY OrderID
+HAVING COUNT(*) &gt; 1;
+
+-- Amount totals (compare with the source over the same window)
+SELECT SUM(Amount) AS TotalAmount
+FROM retail_dev.silver.orders;
+
+-- Missing records (source_snapshot_view = a placeholder source extract)
+SELECT s.OrderID
+FROM source_snapshot_view s
+LEFT ANTI JOIN retail_dev.silver.orders t
+    ON s.OrderID = t.OrderID;</code></pre></div>
+<div class="callout warn"><span class="label">A count match isn't enough</span><p>Two datasets can have equal row counts and different records. For financial data, also reconcile distinct keys, amount totals, min/max timestamps, insert/update/delete counts, and hashes or checksums where appropriate.</p></div>
+
+<h3 id="s12-5-8"><span class="num">12.5.8</span>Recovery After Ingestion Failures</h3>
+<p>If a file was written to Bronze but the job failed before updating status, the next run must work out whether the first write committed.</p>
+<div class="grid-2">
+<div class="card"><h4>Recovery strategies</h4><ul style="margin-bottom:0"><li>Reuse Auto Loader's existing checkpoint.</li><li>Rely on <code>COPY INTO</code> file tracking.</li><li>An ingestion ledger with idempotent writes.</li><li>Stable batch IDs.</li><li>Stage and validate before publishing.</li><li>Advance watermarks only at the success boundary.</li><li>Reconcile after recovery.</li></ul></div>
+<div class="callout warn" style="margin:0"><span class="label">Don't reset state blindly</span><p>Never delete checkpoints, reset offsets, or change ingestion state during recovery without understanding the replay consequences. For CDC, recovery must keep the source change position aligned with the target's committed state.</p></div>
+</div>
+
+<!-- ===================== 12.6 ===================== -->
+<h2 id="s12-6"><span class="num">12.6</span>Hands-On Project: Daily File Ingestion into Bronze</h2>
+<p class="section-intro">Build an Auto Loader pipeline that reads daily CSVs, loads them into a Bronze Delta table with metadata, never reprocesses a file during normal operation, handles a new column safely, recovers from restarts, and can be monitored.</p>
+<pre class="diagram">Landing Volume
+      |
+      v
+ Auto Loader ----+-- Schema state     (what columns exist)
+      |          +-- Checkpoint state (which files are done)
+      v
+Bronze Delta Table
+      |
+      v
+Audit / Monitoring</pre>
+
+<h3 id="s12-6-2"><span class="num">12.6.2</span>Step 1: Prepare the Environment</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
+
+CREATE VOLUME IF NOT EXISTS retail_dev.bronze.landing;
+CREATE VOLUME IF NOT EXISTS retail_dev.bronze.ingestion_state;</code></pre></div>
+<div class="code-wrap"><span class="lang">Paths used</span><pre class="code"><code>/Volumes/retail_dev/bronze/landing/orders/                    -- incoming files
+/Volumes/retail_dev/bronze/ingestion_state/orders_schema/     -- schema state
+/Volumes/retail_dev/bronze/ingestion_state/orders_checkpoint/ -- checkpoint state</code></pre></div>
+<div class="callout"><span class="label">Notes</span><p>Create the <code>orders</code> folder inside the landing volume from Catalog Explorer (or <code>dbutils.fs.mkdirs</code>). If Chapter 11's <code>orders_raw</code> table exists, it has different columns, so drop it first or use a new name such as <code>orders_autoloader_raw</code>. On Free Edition, replace <code>retail_dev</code> with a catalog you own (e.g. <code>workspace</code>).</p></div>
+
+<h4>Step 2: Create sample files</h4>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">orders_20261025.csv</span><pre class="code"><code>OrderID,CustomerID,OrderDate,Amount
+1001,C001,2026-10-25,1500.50
+1002,C002,2026-10-25,2500.00
+1003,C003,2026-10-25,700.00</code></pre></div>
+<div class="code-wrap"><span class="lang">orders_20261026.csv</span><pre class="code"><code>OrderID,CustomerID,OrderDate,Amount,SalesChannel
+1004,C004,2026-10-26,1800.00,Online
+1005,C005,2026-10-26,2200.00,Store</code></pre></div>
+</div>
+<p>The second file adds a new column, <code>SalesChannel</code>. <strong>Upload only the first file now.</strong> You'll upload the second after the first is processed, to watch new files and a new column arrive.</p>
+
+<h3 id="s12-6-4"><span class="num">12.6.4</span>Step 3: Configure Auto Loader</h3>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+source_path = "/Volumes/retail_dev/bronze/landing/orders/"
+schema_path = "/Volumes/retail_dev/bronze/ingestion_state/orders_schema/"
+checkpoint_path = "/Volumes/retail_dev/bronze/ingestion_state/orders_checkpoint/"
+
+orders_stream_df = (
+    spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "csv")
+    .option("cloudFiles.schemaLocation", schema_path)
+    .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
+    .option("cloudFiles.schemaHints", "Amount DECIMAL(18,2)")
+    .option("header", True)
+    .load(source_path)
+)</code></pre></div>
+<div class="callout warn"><span class="label">Why schema hints instead of .schema(...)</span><p>The original version passed an explicit <code>.schema(initial_schema)</code> together with <code>addNewColumns</code>. Auto Loader doesn't allow that combination: providing a full schema switches evolution off (mode <code>none</code>), and <code>addNewColumns</code> with a provided schema raises an error. <strong>Schema hints</strong> pin the types you care about (here <code>Amount</code>) while still letting Auto Loader discover new columns.</p></div>
+<div class="grid-2">
+<div class="card"><h4>What Auto Loader infers</h4><ul style="margin-bottom:0"><li>CSV columns are inferred as <strong>strings</strong> by default, which suits Bronze (Chapter 11 kept raw values as strings).</li><li>The hint makes <code>Amount</code> a <code>DECIMAL(18,2)</code>.</li><li>A <code>_rescued_data</code> column is added automatically for values that don't fit the schema.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Strict-contract alternative</span><p>For tightly controlled sources, use <code>"failOnNewColumns"</code> (or <code>"rescue"</code>) so unapproved columns stop the pipeline or land in <code>_rescued_data</code> until approved.</p></div>
+</div>
+
+<h4>Step 4: Add metadata and write to Bronze</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_bronze_stream_df = (
+    orders_stream_df
+    .withColumn("_source_file", F.col("_metadata.file_path"))
+    .withColumn("_ingested_at", F.current_timestamp())
+    .withColumn("_source_system", F.lit("RETAIL_CSV"))
+)
+
+query = (
+    orders_bronze_stream_df.writeStream
+    .format("delta")
+    .option("checkpointLocation", checkpoint_path)
+    .option("mergeSchema", "true")
+    .trigger(availableNow=True)
+    .toTable("retail_dev.bronze.orders_raw")
+)
+
+query.awaitTermination()   # wait until all available files are processed</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>availableNow=True</h4><p style="margin-bottom:0">Processes everything available, then <strong>stops</strong>. It isn't a permanently running stream, which makes it ideal for scheduled jobs. <code>awaitTermination()</code> keeps the cell running until it finishes, so later cells see the data.</p></div>
+<div class="callout key" style="margin:0"><span class="label">Avoid duplicate ingestion</span><p>Reuse the <strong>same</strong> checkpoint path on every normal run. A new checkpoint path means a fresh memory, so every file gets reloaded. For a deliberate full replay, use a controlled backfill procedure, not casual deletion of state.</p></div>
+</div>
+
+<h3 id="s12-6-6"><span class="num">12.6.6</span>Step 5: Verify Bronze Data</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT OrderID, CustomerID, OrderDate, Amount,
+       _source_file, _ingested_at, _source_system
+FROM retail_dev.bronze.orders_raw
+ORDER BY OrderID;
+
+SELECT COUNT(*) AS TotalRows
+FROM retail_dev.bronze.orders_raw;
+-- Expected: 3</code></pre></div>
+
+<h4>Step 6: Test duplicate prevention</h4>
+<p>Run the notebook again with the same checkpoint path, then check:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT OrderID, COUNT(*) AS RecordCount
+FROM retail_dev.bronze.orders_raw
+GROUP BY OrderID
+HAVING COUNT(*) &gt; 1;
+-- Expected: no rows, and TotalRows is still 3</code></pre></div>
+<p>Compare this with Chapter 11, where a second run doubled every table.</p>
+<div class="callout"><span class="label">File-level, not business-level</span><p>Auto Loader tracks <strong>files</strong>, not duplicate business records. If the same order appears in two different files, both are validly ingested. Business deduplication belongs in Silver.</p></div>
+
+<h4>Step 7: Test new files (and the schema change)</h4>
+<p>Upload <code>orders_20261026.csv</code> and run the notebook again with the same paths.</p>
+<div class="callout warn"><span class="label">Expect the first run to stop, which is normal</span><p>With <code>addNewColumns</code>, when Auto Loader meets <code>SalesChannel</code> it <strong>stops the stream with an <code>UnknownFieldException</code></strong> and records the new column in the schema location. Nothing from that batch is committed. <strong>Run the notebook again</strong> and the file is ingested with the new column. In a scheduled job, a retry policy handles this automatically. Never reset the checkpoint just to silence the error.</p></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT OrderID, CustomerID, OrderDate, Amount, SalesChannel,
+       _source_file, _ingested_at
+FROM retail_dev.bronze.orders_raw
+ORDER BY OrderID;</code></pre></div>
+
+<h4>Step 8: Validate schema evolution</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE TABLE retail_dev.bronze.orders_raw;   -- SalesChannel should now exist
+
+SELECT OrderID, SalesChannel
+FROM retail_dev.bronze.orders_raw
+ORDER BY OrderID;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>OrderID</th><th>SalesChannel</th><th>From file</th></tr></thead>
+<tbody>
+<tr><td>1001</td><td>NULL</td><td>orders_20261025.csv</td></tr>
+<tr><td>1002</td><td>NULL</td><td>orders_20261025.csv</td></tr>
+<tr><td>1003</td><td>NULL</td><td>orders_20261025.csv</td></tr>
+<tr><td>1004</td><td>Online</td><td>orders_20261026.csv</td></tr>
+<tr><td>1005</td><td>Store</td><td>orders_20261026.csv</td></tr>
+</tbody></table></div>
+<p class="ref">5 rows total. Older records have <code>NULL</code> for the new optional column, which is usually expected but should be documented. Confirm the Silver transformations can handle the new column.</p>
+
+<h3 id="s12-6-10"><span class="num">12.6.10</span>Step 9: Add Data-Quality Checks</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    COUNT(*) AS TotalRows,
+    SUM(CASE WHEN OrderID IS NULL OR TRIM(OrderID) = ''
+             THEN 1 ELSE 0 END) AS MissingOrderIDs,
+    SUM(CASE WHEN CustomerID IS NULL OR TRIM(CustomerID) = ''
+             THEN 1 ELSE 0 END) AS MissingCustomerIDs,
+    SUM(CASE WHEN _rescued_data IS NOT NULL
+             THEN 1 ELSE 0 END) AS RowsWithRescuedData
+FROM retail_dev.bronze.orders_raw;</code></pre></div>
+<p class="ref">I added the <code>_rescued_data</code> count: it catches values that didn't fit the schema (e.g. a non-numeric <code>Amount</code>). A production process also validates numeric and date conversion, key uniqueness, source/target counts, unexpected schema changes, file-level failures, and reconciliation with the source manifest. Bronze keeps the source values even when they fail validation.</p>
+
+<h4>Step 10: Schedule the pipeline</h4>
+<div class="grid-2">
+<div class="card"><h4>Job configuration</h4><ul style="margin-bottom:0"><li>A schedule matching file-arrival frequency (or a file-arrival trigger).</li><li>The same checkpoint and schema locations every run.</li><li>Retries for transient failures, which also absorbs the schema-change restart.</li><li>Failure notifications.</li><li>Permissions for the job identity.</li><li>A documented schema-change and reprocessing procedure.</li></ul></div>
+<div class="card"><h4>Record per run</h4><ul style="margin-bottom:0"><li>Pipeline run ID.</li><li>Processing batch or execution date.</li><li>Files processed and records ingested (<code>query.lastProgress</code> gives <code>numInputRows</code>).</li><li>Schema changes observed.</li><li>Start and end times.</li><li>Final status and error details.</li></ul></div>
+</div>
+<p class="ref">You'll build the job itself in Chapter 14.</p>
+
+<h4>Step 11: Recovery test</h4>
+<p>Stop the job mid-run (or introduce a controlled failure), then rerun with the same checkpoint path. Verify that:</p>
+<ol class="steps">
+<li>Previously committed data isn't duplicated.</li>
+<li>Pending files are eventually processed.</li>
+<li>The pipeline reports its final status accurately.</li>
+<li>Schema-change errors follow the documented procedure.</li>
+<li>Source and target counts reconcile.</li>
+</ol>
+<div class="callout key"><span class="label">Why this matters</span><p>A pipeline that works on the first run can still fail during retries or partial failures. Test recovery, not just success.</p></div>
+
+<!-- ===================== 12.7 ===================== -->
+<h2 id="s12-7"><span class="num">12.7</span>Production Ingestion Design Checklist</h2>
+<div class="grid-2">
+  <div class="card"><h4>Source connectivity</h4><ul style="margin-bottom:0"><li>Is the source supported?</li><li>Network routes and firewall rules configured?</li><li>Authentication secure?</li><li>Privileges sufficient but limited?</li><li>Source protected from excessive load?</li></ul></div>
+  <div class="card"><h4>Ingestion strategy</h4><ul style="margin-bottom:0"><li>Full, incremental, or streaming?</li><li>How are new records identified?</li><li>How are updates detected?</li><li>How are deletes captured?</li><li>Expected latency?</li><li>Late-arriving records?</li></ul></div>
+  <div class="card"><h4>Schema management</h4><ul style="margin-bottom:0"><li>Explicit or inferred schema?</li><li>New column appears?</li><li>Column disappears?</li><li>Type changes?</li><li>Who approves breaking changes?</li></ul></div>
+  <div class="card"><h4>Reliability</h4><ul style="margin-bottom:0"><li>How are processed files tracked?</li><li>Checkpoints stored durably?</li><li>Writes idempotent?</li><li>Partial failures recovered how?</li><li>Backfills performed how?</li><li>When is a watermark committed?</li></ul></div>
+  <div class="card"><h4>Data quality</h4><ul style="margin-bottom:0"><li>Required fields validated?</li><li>Keys unique at the expected grain?</li><li>Source and target counts reconciled?</li><li>Invalid records retained or quarantined?</li><li>Quality thresholds documented?</li></ul></div>
+  <div class="card"><h4>Monitoring &amp; governance</h4><ul style="margin-bottom:0"><li>Failures alerted; freshness monitored?</li><li>File and row counts recorded?</li><li>Latest successful ingestion visible?</li><li>Access controls and secrets secure?</li><li>Sensitive fields protected; retention documented?</li><li>Audit and lineage available?</li></ul></div>
+</div>
+
+<!-- ===================== 12.8 ===================== -->
+<h2 id="s12-8"><span class="num">12.8</span>Knowledge Check</h2>
+<p>Try answering each question before revealing the answer.</p>
+<details class="q"><summary>1. What is the difference between ETL and ELT?</summary><div class="answer">ETL transforms data before loading the final target; ELT loads data first (e.g. into Bronze) and transforms it afterwards on the target platform.</div></details>
+<details class="q"><summary>2. When should you use batch ingestion rather than streaming?</summary><div class="answer">When the business can tolerate data arriving on a schedule rather than within seconds or minutes. Batch is simpler and often cheaper.</div></details>
+<details class="q"><summary>3. What is the difference between a full load and a delta load?</summary><div class="answer">A full load processes the complete dataset (deletes are reflected naturally); a delta load processes only new or changed data and must capture deletes explicitly.</div></details>
+<details class="q"><summary>4. Why can timestamp-based extraction miss changes?</summary><div class="answer">Timestamps may not be updated reliably, can collide at boundaries, can belong to transactions that commit late, and can't represent physical deletes.</div></details>
+<details class="q"><summary>5. What is the difference between <code>COPY INTO</code> and Auto Loader?</summary><div class="answer"><code>COPY INTO</code> is a SQL command that tracks loaded files per target table; Auto Loader is a scalable streaming source (<code>cloudFiles</code>) that tracks files in a checkpoint and supports schema evolution modes.</div></details>
+<details class="q"><summary>6. Why must Auto Loader's checkpoint location stay stable across normal runs?</summary><div class="answer">The checkpoint records which files have been processed. A new or deleted checkpoint makes Auto Loader rediscover and reload everything.</div></details>
+<details class="q"><summary>7. What is schema evolution?</summary><div class="answer">The controlled handling of changes to source columns and types, such as adding a new column, under an explicit policy.</div></details>
+<details class="q"><summary>8. Why is JDBC not equivalent to CDC?</summary><div class="answer">JDBC is connectivity and extraction; CDC captures inserts, updates, and deletes through a change-tracking mechanism. JDBC alone can't see deletes or guarantee complete incremental capture.</div></details>
+<details class="q"><summary>9. How should a pipeline handle inserts, updates, and deletes?</summary><div class="answer">Order and reduce changes to one per key, then apply them with a strategy such as Delta <code>MERGE</code> with explicit <code>WHEN MATCHED … THEN DELETE</code> (or soft-delete) handling.</div></details>
+<details class="q"><summary>10. Why commit a watermark only after the defined success boundary?</summary><div class="answer">If it advances before the data is safely committed and a failure occurs, the next run starts after the lost data and silently skips it.</div></details>
+<details class="q"><summary>11. What is the purpose of an initial snapshot in a CDC pipeline?</summary><div class="answer">It loads the existing source data before incremental change synchronization begins, coordinated so changes made during the snapshot aren't lost.</div></details>
+<details class="q"><summary>12. Why is row-count reconciliation insufficient on its own?</summary><div class="answer">Two datasets can have the same row count but different records, duplicated keys, or wrong values. Also compare keys, totals, and checksums.</div></details>
+
+<!-- ===================== 12.9 ===================== -->
+<h2 id="s12-9"><span class="num">12.9</span>Final Summary</h2>
+<p>Tick each lesson once you're confident with it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch12-checklist">
+<label><input type="checkbox"> Choose the ingestion pattern based on latency, volume, source capabilities, and recovery needs.</label>
+<label><input type="checkbox"> Use full loads for snapshots and incremental loads when change detection is reliable.</label>
+<label><input type="checkbox"> Use <code>COPY INTO</code> for suitable recurring file ingestion.</label>
+<label><input type="checkbox"> Use Auto Loader for scalable incremental file discovery and streaming integration.</label>
+<label><input type="checkbox"> Use JDBC for database extraction, but design incremental extraction and CDC separately.</label>
+<label><input type="checkbox"> Consider Lakeflow Connect when a supported managed connector fits.</label>
+<label><input type="checkbox"> Treat schema evolution as a governed process.</label>
+<label><input type="checkbox"> Preserve durable checkpoints and track ingestion batches.</label>
+<label><input type="checkbox"> Design ingestion to be restartable, idempotent, and reconcilable.</label>
+<label><input type="checkbox"> Test recovery, schema changes, and duplicate prevention, not just the first run.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch12-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch12-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 13!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Key takeaway</span><p>A production-ready ingestion pipeline does more than load data. It knows <strong>what it loaded, what changed, what failed, what needs retrying</strong>, and how to recover without silently losing or duplicating data.</p></div>
+
+<div class="next">
+<h3>Next chapter: Lakeflow Spark Declarative Pipelines</h3>
+<p>Chapter 13 shows a different way to build what you've written by hand in Chapters 11–12. You declare <strong>streaming tables</strong> and <strong>materialized views</strong>, and Databricks manages dependencies, checkpoints, and incremental processing. You'll add data-quality <strong>expectations</strong> (drop or fail on bad records), and use <code>AUTO CDC INTO</code> for change data capture and slowly changing dimensions (formerly Delta Live Tables).</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-11.html"><span>← Previous</span><strong>Chapter 11: Medallion Architecture</strong></a>
+  <a class="pager-link" href="databricks-chapter-13.html"><span>Next →</span><strong>Chapter 13: Declarative Pipelines</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 5 · Chapter 12 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

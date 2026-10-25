@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 21: DevOps & CI/CD</title>
+<meta name="description" content="Chapter 21 of a Databricks learning path: Git workflows, environment configuration, Databricks Asset Bundles, GitHub Actions and Azure DevOps pipelines, approvals and rollback, and Terraform, with a tested example project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 21 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s21-1">21.1 Version Control</a></li>
+    <li class="lvl2"><a href="#s21-1-2">Git fundamentals</a></li>
+    <li class="lvl2"><a href="#s21-1-3">Repository layout</a></li>
+    <li class="lvl2"><a href="#s21-1-4">Branches &amp; commits</a></li>
+    <li class="lvl2"><a href="#s21-1-6">Pull requests</a></li>
+    <li class="lvl2"><a href="#s21-1-7">Notebook changes</a></li>
+    <li class="lvl1"><a href="#s21-2">21.2 Deployment</a></li>
+    <li class="lvl2"><a href="#s21-2-2">Dev, test, prod</a></li>
+    <li class="lvl2"><a href="#s21-2-5">Configuration</a></li>
+    <li class="lvl2"><a href="#s21-2-6">Parameters</a></li>
+    <li class="lvl2"><a href="#s21-2-7">Secrets</a></li>
+    <li class="lvl1"><a href="#s21-3">21.3 Asset Bundles</a></li>
+    <li class="lvl2"><a href="#s21-3-3">Project structure</a></li>
+    <li class="lvl2"><a href="#s21-3-4">CLI setup</a></li>
+    <li class="lvl2"><a href="#s21-3-5">databricks.yml</a></li>
+    <li class="lvl2"><a href="#s21-3-6">Job definition</a></li>
+    <li class="lvl2"><a href="#s21-3-7">Pipeline code &amp; tests</a></li>
+    <li class="lvl2"><a href="#s21-3-8">Validate, deploy, run</a></li>
+    <li class="lvl1"><a href="#s21-4">21.4 CI/CD Pipelines</a></li>
+    <li class="lvl2"><a href="#s21-4-1">CI vs CD</a></li>
+    <li class="lvl2"><a href="#s21-4-4">GitHub Actions</a></li>
+    <li class="lvl2"><a href="#s21-4-5">Azure DevOps</a></li>
+    <li class="lvl2"><a href="#s21-4-6">Approvals</a></li>
+    <li class="lvl2"><a href="#s21-4-7">Rollback &amp; releases</a></li>
+    <li class="lvl1"><a href="#s21-5">21.5 Infrastructure as Code</a></li>
+    <li class="lvl2"><a href="#s21-5-2">Terraform basics</a></li>
+    <li class="lvl2"><a href="#s21-5-4">Example configuration</a></li>
+    <li class="lvl2"><a href="#s21-5-5">Provisioning &amp; state</a></li>
+    <li class="lvl1"><a href="#s21-6">21.6 Hands-On Project</a></li>
+    <li class="lvl1"><a href="#s21-7">21.7 Common Mistakes</a></li>
+    <li class="lvl1"><a href="#s21-8">21.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s21-9">21.9 Plan &amp; Docs</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 7 · Chapter 21 · Security, Monitoring, and DevOps</span>
+  <h1>Databricks DevOps and CI/CD</h1>
+  <p class="lead">Manage Databricks code with Git, deploy the same job to development, test, and production with Databricks Asset Bundles, automate testing and deployment with GitHub Actions or Azure DevOps, and provision platform resources with Terraform.</p>
+  <div class="grid-2">
+  <div class="card"><h4>Don't do this</h4><p style="margin-bottom:0">Your customer pipeline works in development. Someone copies the notebooks into production, edits table names by hand, and hopes it works. Nobody can later say which version ran when something broke.</p></div>
+  <div class="card"><h4>Do this</h4><ol style="margin-bottom:0"><li>Store code in Git.</li><li>Review and test changes.</li><li>Validate the deployment configuration.</li><li>Deploy to test.</li><li>Get approval for production.</li><li>Deploy with automation.</li><li>Verify the production job.</li><li>Roll back or recover if needed.</li></ol></div>
+  </div>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Manage Databricks projects with Git.</li>
+    <li>Organize notebook and Python code for deployment.</li>
+    <li>Create dev, test, and prod configurations.</li>
+    <li>Define and deploy jobs with Asset Bundles.</li>
+    <li>Automate tests and deployments with GitHub Actions or Azure DevOps.</li>
+    <li>Manage parameters and secrets securely.</li>
+    <li>Provision resources with Terraform.</li>
+    <li>Build an end-to-end deployment pipeline.</li>
+  </ol></div>
+  <div class="callout"><span class="label">What was actually tested</span><p>The complete example project in this chapter was built and checked locally: <strong>6 unit tests pass</strong> (and fail when the logic is broken), both bundle YAML files pass the official bundle schema from Databricks CLI v1.22.1, both GitHub workflows pass <code>actionlint</code>, and the Terraform configuration passes <code>validate</code> and produces a real <code>plan</code> with Databricks provider v1.95.0. Deploying to a workspace wasn't possible from here. The project is attached as a zip so you can push it to your own repository.</p></div>
+  <div class="chips">
+    <a class="chip" href="#s21-1"><span>21.1</span><strong>Git</strong></a>
+    <a class="chip" href="#s21-2"><span>21.2</span><strong>Deployment</strong></a>
+    <a class="chip" href="#s21-3"><span>21.3</span><strong>Bundles</strong></a>
+    <a class="chip" href="#s21-4"><span>21.4</span><strong>CI/CD</strong></a>
+    <a class="chip" href="#s21-5"><span>21.5</span><strong>Terraform</strong></a>
+    <a class="chip" href="#s21-6"><span>21.6</span><strong>Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 21.1 ===================== -->
+<h2 id="s21-1"><span class="num">21.1</span>Version Control</h2>
+
+<h3 id="s21-1-1"><span class="num">21.1.1</span>What Is Version Control?</h3>
+<p>Version control tracks changes to code and configuration over time. It answers: who changed the pipeline, what changed, why, which version is in production, can we restore an earlier one, and what is waiting for approval? In a Databricks project, Git manages Python and SQL files, tests, bundle configuration, job definitions, deployment scripts, and documentation.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · version 1</span><pre class="code"><code>df = spark.read.table("retail_dev.bronze.customers")
+df.write.mode("append").saveAsTable("retail_dev.silver.customers")
+# Rerunning appends everything again: duplicates</code></pre></div>
+<div class="card"><h4>With Git</h4><p style="margin-bottom:0">When you replace the append with a MERGE, Git shows exactly what changed, reviewers approve it, tests run, and the release is traceable. Without it, you can't establish which code was running when a failure occurred.</p></div>
+</div>
+
+<h3 id="s21-1-2"><span class="num">21.1.2</span>Git Fundamentals</h3>
+<div class="grid-2">
+<pre class="diagram">Working directory
+      |  edit files
+      v
+Staging area        (git add)
+      |
+      v
+Commit              (git commit)
+      |
+      v
+Remote repository   (git push)
+      |
+      v
+Pull request -&gt; merge into main</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Repository</td><td>A project and its history</td></tr>
+<tr><td>Working directory</td><td>Files you are editing</td></tr>
+<tr><td>Staging area</td><td>Changes chosen for the next commit</td></tr>
+<tr><td>Commit</td><td>A saved snapshot</td></tr>
+<tr><td>Branch</td><td>An independent line of work</td></tr>
+<tr><td>Remote</td><td>Hosted copy (GitHub, Azure Repos)</td></tr>
+<tr><td>Merge</td><td>Combine branches</td></tr>
+<tr><td>Pull request</td><td>Request to review and merge</td></tr>
+<tr><td>Tag</td><td>Named commit, used for releases</td></tr>
+</tbody></table></div>
+</div>
+<div class="code-wrap"><span class="lang">Bash · one-time setup</span><pre class="code"><code>git config --global user.name "Your Name"
+git config --global user.email "your.email@company.com"   # your approved corporate identity
+git config --list</code></pre></div>
+<p class="ref">Authenticate with SSH or your organization's HTTPS method (e.g. the GitHub CLI or Git Credential Manager). Never put tokens in Git config or scripts. Docs: <a href="https://git-scm.com/doc" target="_blank" rel="noopener">Git documentation</a>.</p>
+
+<h3 id="s21-1-3"><span class="num">21.1.3</span>Repository Layout</h3>
+<p>This is the layout of the example project used throughout the chapter (and in the attached zip):</p>
+<div class="grid-2">
+<pre class="diagram">retail-databricks/
+├── databricks.yml            bundle + targets
+├── resources/
+│   └── customer_job.yml      the job
+├── src/
+│   ├── customer_load.py      notebook (entry point)
+│   └── retail/
+│       ├── __init__.py
+│       └── transformations.py   testable logic
+├── tests/
+│   ├── conftest.py           Spark fixture
+│   └── test_transformations.py
+├── infra/                    Terraform (21.5)
+├── .github/workflows/
+│   ├── ci.yml                on pull requests
+│   └── deploy.yml            on merge to main
+├── azure-pipelines.yml       Azure DevOps option
+├── pyproject.toml            pytest settings
+├── requirements-dev.txt
+└── .gitignore</pre>
+<div class="card"><h4>Separate concerns</h4><ul style="margin-bottom:0"><li><strong>Notebook:</strong> thin entry point: read parameters, call functions.</li><li><strong>Python package:</strong> reusable, testable transformation logic.</li><li><strong>Tests:</strong> automated checks.</li><li><strong>YAML:</strong> deployment configuration.</li><li><strong>README:</strong> setup and operations.</li></ul><p style="margin:8px 0 0" class="ref">Bundles don't require this exact layout, but separating code, config, tests, and docs makes everything easier to review.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">.gitignore</span><pre class="code"><code>.databricks/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.tfstate
+*.tfstate.*
+.terraform/</code></pre></div>
+<p class="ref"><code>.databricks/</code> is the bundle's local working folder; Terraform state files can contain secrets. Neither belongs in Git.</p>
+
+<h3 id="s21-1-4"><span class="num">21.1.4</span>Branches and Commits</h3>
+<div class="grid-2">
+<pre class="diagram">main                       approved, releasable
+ |
+ +-- feature/customer-dedup
+ +-- feature/sales-validation
+ +-- bugfix/schema-mismatch
+ +-- hotfix/prod-null-keys  urgent prod fix</pre>
+<div class="code-wrap"><span class="lang">Bash · a feature from start to PR</span><pre class="code"><code>git switch main &amp;&amp; git pull
+git switch -c feature/customer-dedup
+
+# ... edit code, run tests ...
+git status
+git diff                     # review before staging
+git add src tests
+git diff --staged            # review what will be committed
+git commit -m "Keep latest customer version during dedup"
+git push -u origin feature/customer-dedup
+# then open a pull request</code></pre></div>
+</div>
+<div class="grid-2">
+<div class="card"><h4>Good commits</h4><ul style="margin-bottom:0"><li>Small and focused on one change.</li><li>Tested where practical.</li><li>Message explains the purpose: "Add duplicate customer key validation", not "Updated code".</li><li>No credentials, no large generated files.</li></ul></div>
+<div class="card"><h4>Branch strategy</h4><p style="margin-bottom:0"><code>main</code> plus short-lived <code>feature/*</code>, <code>bugfix/*</code>, and <code>hotfix/*</code> branches is enough for most data teams. Long-lived branches drift apart and make merging painful. Protect <code>main</code>: require a PR, passing CI, and at least one approval.</p></div>
+</div>
+
+<h3 id="s21-1-6"><span class="num">21.1.5</span>Pull Requests and Code Reviews</h3>
+<div class="grid-2">
+<pre class="diagram">Feature branch
+      |
+Local tests
+      |
+Open pull request
+      |
+Automated CI (tests + bundle validate)
+      |
+Peer review
+      |
+Merge to main
+      |
+Deploy to test (automatic)
+      |
+Production approval
+      |
+Deploy to production</pre>
+<div class="card"><h4>Review data pipelines for more than syntax</h4><ul style="margin-bottom:0"><li>Does the transformation produce the right data?</li><li>Is it safe to rerun? Could it duplicate rows?</li><li>Are business rules preserved?</li><li>Are nulls and invalid values handled?</li><li>Are schema changes intentional?</li><li>Are tests included?</li><li>Are environment values externalized?</li><li>Does the config target the right resources?</li><li>Are any secrets exposed?</li></ul></div>
+</div>
+
+<h3 id="s21-1-7"><span class="num">21.1.6</span>Managing Notebook Changes</h3>
+<p>Notebooks can be versioned, but outputs and metadata make diffs noisy. Keep business logic in Python modules and notebooks thin. In Databricks, a <strong>Git folder</strong> (Workspace → Create → Git folder) clones your repository into the workspace so you can branch, commit, and pull from the UI.</p>
+<div class="callout"><span class="label">Source-format notebooks</span><p>A <code>.py</code> file whose first line is <code># Databricks notebook source</code> is a notebook in source format: plain Python that diffs cleanly, with cells separated by <code># COMMAND ----------</code>. The project's <code>src/customer_load.py</code> uses it, which matters because a bundle's <code>notebook_task</code> must point at a notebook.</p></div>
+<p class="ref">Best practices: no secrets or production config in notebooks; keep them focused; reuse shared functions; remove exploratory cells before release; test logic outside notebooks. Treat production notebooks and deployment configuration as software.</p>
+
+<!-- ===================== 21.2 ===================== -->
+<h2 id="s21-2"><span class="num">21.2</span>Deployment</h2>
+<p class="section-intro">Deployment publishes code and configuration (notebooks, Python, job definitions, task dependencies, parameters, compute, pipelines, permissions, libraries) into an environment. Uploading code isn't the end: the deployed job must be configured correctly and verified.</p>
+
+<h3 id="s21-2-2"><span class="num">21.2.1</span>Development, Test, and Production</h3>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>Development</th><th>Test</th><th>Production</th></tr></thead>
+<tbody>
+<tr><td>Workspace</td><td><code>adb-retail-dev</code></td><td><code>adb-retail-test</code></td><td><code>adb-retail-prod</code></td></tr>
+<tr><td>Catalog</td><td><code>dev_catalog</code></td><td><code>test_catalog</code></td><td><code>prod_catalog</code></td></tr>
+<tr><td>Job name (bundle)</td><td><code>[dev you] retail-customer-load-dev</code></td><td><code>retail-customer-load-test</code></td><td><code>retail-customer-load-prod</code></td></tr>
+<tr><td>Purpose</td><td>Build, experiment, debug</td><td>Integration, data quality, schema, permissions, performance</td><td>Approved releases only</td></tr>
+<tr><td>Data</td><td>Sample or synthetic</td><td>Synthetic, masked, or approved</td><td>Authorized production data</td></tr>
+<tr><td>Deployed by</td><td>Each developer</td><td>CI on merge to main</td><td>CI after approval</td></tr>
+<tr><td>Runs as</td><td>The developer</td><td>Test service principal</td><td>Prod service principal</td></tr>
+</tbody></table></div>
+<p class="ref">A successful dev run isn't proof of production readiness. Production deployments must be <strong>repeatable</strong>: deploying the same release twice should update the existing job, not create a duplicate. Bundles behave this way because they track what they deployed.</p>
+
+<h3 id="s21-2-5"><span class="num">21.2.2</span>Environment-Specific Configuration</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · fragile</span><pre class="code"><code># Works in prod... and silently writes prod
+# data when someone runs it in development
+target_table = "prod_catalog.silver.customers"</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · better</span><pre class="code"><code># Code receives its tables; deployment config
+# supplies the right ones per environment
+def run_pipeline(spark, source_table, target_table):
+    ...</code></pre></div>
+</div>
+<p>The original kept separate <code>config/dev.yml</code> and <code>config/prod.yml</code> files <em>and</em> bundle variables, two sources of truth for the same values. In this chapter's project, the <strong>bundle target is the single source</strong>: each target sets one variable, <code>catalog</code>, and every table name is derived from it (21.3.5).</p>
+
+<h3 id="s21-2-6"><span class="num">21.2.3</span>Parameter Management</h3>
+<p>Parameters let a pipeline receive values (environment, tables, business date, batch ID, mode, paths) without code changes. For a notebook task, <strong>job parameters arrive as widgets</strong>, so the notebook only needs <code>dbutils.widgets.get</code>.</p>
+<div class="callout warn"><span class="label">Validate parameters; don't trust them</span><p>A production job shouldn't accept any target table it's given. The project's <code>validate_parameters</code> rejects unknown environments, a catalog that doesn't match the environment, and tables outside that catalog, so a dev job can't be pointed at <code>prod_catalog</code>. All three rejection cases are unit-tested (21.3.7).</p></div>
+
+<h3 id="s21-2-7"><span class="num">21.2.4</span>Secrets During Deployment</h3>
+<div class="grid-2">
+<div class="card"><h4>Secrets must never be in</h4><ul style="margin-bottom:0"><li>Git repositories.</li><li>Bundle configuration.</li><li>Notebook source.</li><li>Plain job parameters (visible in run details).</li><li>Build logs or deployment output.</li></ul></div>
+<div class="card"><h4>Where they go</h4><ul style="margin-bottom:0"><li><strong>Runtime secrets</strong> (database passwords): secret scopes / Key Vault, read with <code>dbutils.secrets.get(scope, key)</code>. The scope and key are references, not the secret.</li><li><strong>Deployment credentials</strong> (the CI service principal): GitHub environment secrets or Azure DevOps variable groups, or no secret at all with workload identity federation.</li><li>Prefer managed identities wherever supported.</li></ul></div>
+</div>
+
+<!-- ===================== 21.3 ===================== -->
+<h2 id="s21-3"><span class="num">21.3</span>Databricks Asset Bundles</h2>
+<p class="section-intro">The most important topic in this chapter. A bundle defines Databricks resources (jobs, pipelines, their code, environment targets, variables, permissions) as files in Git, and the Databricks CLI deploys them. Recent documentation calls them <strong>Declarative Automation Bundles</strong>; the commands are the same.</p>
+
+<div class="grid-2">
+<div class="card"><h4>Without bundles</h4><ol style="margin-bottom:0"><li>Create the job by hand in dev.</li><li>Recreate it by hand in test.</li><li>Recreate it by hand in prod.</li><li>Set parameters separately each time.</li><li>Check permissions and compute manually.</li></ol><p style="margin:8px 0 0">Environments drift apart.</p></div>
+<div class="card"><h4>With bundles</h4><ol style="margin-bottom:0"><li>Define the job once.</li><li>Define environment targets.</li><li>Validate.</li><li>Deploy to dev and test.</li><li>Deploy the same definition to prod.</li></ol><p style="margin:8px 0 0">Consistent, reviewable, repeatable.</p></div>
+</div>
+
+<h3 id="s21-3-3"><span class="num">21.3.1</span>Bundle Project Structure</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>File</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>databricks.yml</code></td><td>Bundle name, includes, variables, targets</td></tr>
+<tr><td><code>resources/customer_job.yml</code></td><td>The job definition</td></tr>
+<tr><td><code>src/customer_load.py</code></td><td>Notebook entry point</td></tr>
+<tr><td><code>src/retail/transformations.py</code></td><td>Logic, unit-tested</td></tr>
+<tr><td><code>tests/</code></td><td>Automated tests</td></tr>
+</tbody></table></div>
+<p class="ref"><code>databricks bundle init</code> can generate a starter project from a template, which is a good way to see the current recommended layout.</p>
+
+<h3 id="s21-3-4"><span class="num">21.3.2</span>Install and Configure the Databricks CLI</h3>
+<div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code># macOS / Linux (Homebrew); Windows: winget install Databricks.DatabricksCLI
+brew tap databricks/tap &amp;&amp; brew install databricks
+databricks version                       # e.g. Databricks CLI v1.22.1
+
+# Developer machine: browser-based OAuth login (U2M), saved as a profile
+databricks auth login --host https://adb-1111111111111111.11.azuredatabricks.net
+databricks auth profiles                 # check it worked</code></pre></div>
+<p class="ref">For CI/CD use a service principal with OAuth M2M: set <code>DATABRICKS_CLIENT_ID</code> and <code>DATABRICKS_CLIENT_SECRET</code> as protected secrets (Chapter 19). Never put a person's token on a shared build agent. On Free Edition, log in to your own workspace URL and use only the <code>dev</code> target. Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" target="_blank" rel="noopener">Install the CLI</a>.</p>
+
+<h3 id="s21-3-5"><span class="num">21.3.3</span>The Bundle Configuration: <code>databricks.yml</code></h3>
+<div class="code-wrap"><span class="lang">YAML · databricks.yml</span><pre class="code"><code>bundle:
+  name: retail-customer-pipeline
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for this environment
+  run_as_sp:
+    description: Application ID of the service principal that runs the job
+    default: ""
+
+targets:
+  dev:
+    mode: development          # prefixes names with [dev &lt;you&gt;], pauses schedules
+    default: true
+    workspace:
+      host: https://adb-1111111111111111.11.azuredatabricks.net
+    variables:
+      catalog: dev_catalog
+
+  test:
+    mode: production
+    workspace:
+      host: https://adb-2222222222222222.12.azuredatabricks.net
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: test_catalog
+      run_as_sp: 00000000-0000-0000-0000-000000000002
+    run_as:
+      service_principal_name: ${var.run_as_sp}
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-3333333333333333.13.azuredatabricks.net
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: prod_catalog
+      run_as_sp: 00000000-0000-0000-0000-000000000003
+    run_as:
+      service_principal_name: ${var.run_as_sp}
+    permissions:
+      - group_name: dbx-production-support
+        level: CAN_VIEW
+      - group_name: dbx-platform-admins
+        level: CAN_MANAGE</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>How the targets differ</h4><ul style="margin-bottom:0"><li><strong><code>mode: development</code></strong> (dev): prefixes resource names with <code>[dev your.name]</code>, pauses schedules, deploys to your own folder. Several developers can share a workspace without clashing.</li><li><strong><code>mode: production</code></strong> (test, prod): real names, active schedules, plus safety checks on the deployment.</li><li><strong><code>root_path</code></strong>: a shared folder, so deployments don't depend on whoever ran them.</li><li><strong><code>run_as</code></strong>: the job runs as a service principal, never as the deployer.</li><li><strong><code>permissions</code></strong> (prod): support can view, admins manage.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Changes from the original, and why</span><p>The original declared three variables (<code>catalog</code>, <code>source_table</code>, <code>target_table</code>) per target, and nothing stopped them disagreeing (e.g. a test catalog with prod tables). Here each target sets only <code>catalog</code>, and tables are derived from it. Test and prod also gained <code>run_as</code>, <code>root_path</code>, and permissions, which the original didn't have, so its prod job would have run as whoever deployed it.</p><p style="margin-bottom:0">Replace the hosts and service-principal application IDs with yours. Mode settings don't replace workspace isolation or approvals (Chapter 19).</p></div>
+</div>
+
+<h3 id="s21-3-6"><span class="num">21.3.4</span>Define the Job</h3>
+<div class="code-wrap"><span class="lang">YAML · resources/customer_job.yml</span><pre class="code"><code>resources:
+  jobs:
+    retail_customer_load:
+      name: retail-customer-load-${bundle.target}
+
+      parameters:
+        - name: environment
+          default: ${bundle.target}
+        - name: catalog
+          default: ${var.catalog}
+        - name: source_table
+          default: ${var.catalog}.bronze.customers
+        - name: target_table
+          default: ${var.catalog}.silver.customers
+        - name: run_id
+          default: "{{job.run_id}}"
+
+      tasks:
+        - task_key: load_customers
+          notebook_task:
+            notebook_path: ../src/customer_load.py   # relative to this YAML file
+          max_retries: 1
+          min_retry_interval_millis: 120000
+          retry_on_timeout: false
+
+      email_notifications:
+        on_failure:
+          - data-support@example.com
+
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"       # 02:00 daily
+        timezone_id: Asia/Kolkata</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Points to notice</h4><ul style="margin-bottom:0"><li><strong>Job parameters</strong> (not task <code>base_parameters</code>) are visible on the job and passed to the notebook as widgets.</li><li><code>${bundle.target}</code> and <code>${var.catalog}</code> are resolved per target.</li><li><code>{{job.run_id}}</code> is resolved at <em>run</em> time (it feeds Chapter 20's monitoring).</li><li>No cluster is defined, so the task runs on <strong>serverless</strong> compute (works on Free Edition). Add <code>job_clusters</code> for classic compute.</li><li>One retry, two minutes apart, for transient failures only (Chapter 20).</li></ul></div>
+<div class="card"><h4>Path resolution</h4><p style="margin-bottom:0">Paths in a resource file are relative to <strong>that file</strong>, so <code>../src/customer_load.py</code> goes up from <code>resources/</code>. During deploy the bundle uploads <code>src/</code> to the target's workspace folder and rewrites the path. A wrong path is one of the most common validation errors.</p></div>
+</div>
+
+<h3 id="s21-3-7"><span class="num">21.3.5</span>The Pipeline Code and Its Tests</h3>
+<div class="code-wrap"><span class="lang">Python · src/retail/transformations.py</span><pre class="code"><code>from pyspark.sql import Window, functions as F
+
+
+def clean_customers(df):
+    """Drop rows without an ID; keep the latest version of each customer."""
+    latest_first = Window.partitionBy("customer_id").orderBy(
+        F.col("updated_at").desc(), F.col("customer_name").desc())   # name breaks exact ties
+    return (
+        df.filter(F.col("customer_id").isNotNull())
+          .withColumn("_rn", F.row_number().over(latest_first))
+          .filter("_rn = 1")
+          .drop("_rn")
+    )
+
+
+ALLOWED_ENVIRONMENTS = {"dev", "test", "prod"}
+
+
+def validate_parameters(environment, catalog, source_table, target_table):
+    """Refuse to run with inconsistent settings, e.g. a dev job writing to prod."""
+    if environment not in ALLOWED_ENVIRONMENTS:
+        raise ValueError(f"Unsupported environment: {environment!r}")
+    if catalog != f"{environment}_catalog":
+        raise ValueError(f"Catalog {catalog!r} does not belong to environment {environment!r}")
+    for table in (source_table, target_table):
+        if not table.startswith(f"{catalog}."):
+            raise ValueError(f"Table {table!r} is outside catalog {catalog!r}")</code></pre></div>
+<div class="code-wrap"><span class="lang">Python · src/customer_load.py (notebook in source format)</span><pre class="code"><code># Databricks notebook source
+# The line above makes Databricks treat this .py file as a notebook,
+# which notebook_task requires.
+
+# COMMAND ----------
+
+from retail.transformations import clean_customers, validate_parameters
+
+environment = dbutils.widgets.get("environment")      # job parameters arrive as widgets
+catalog = dbutils.widgets.get("catalog")
+source_table = dbutils.widgets.get("source_table")
+target_table = dbutils.widgets.get("target_table")
+
+validate_parameters(environment, catalog, source_table, target_table)
+print(f"Environment={environment} source={source_table} target={target_table}")
+
+# COMMAND ----------
+
+cleaned_df = clean_customers(spark.table(source_table))
+
+# Full refresh by design; incremental pipelines would MERGE instead (Chapter 17)
+cleaned_df.write.mode("overwrite").saveAsTable(target_table)
+
+print(f"Rows written: {spark.table(target_table).count()}")</code></pre></div>
+<div class="callout"><span class="label">Fixes to the original pipeline file</span><p><strong>1. It wasn't a notebook.</strong> The original <code>customer_pipeline.py</code> lacked the <code># Databricks notebook source</code> header but was deployed with <code>notebook_task</code>, which needs a notebook. <strong>2. Widgets were re-declared.</strong> Calling <code>dbutils.widgets.text(…)</code> isn't needed when job parameters supply the values. <strong>3. Fragile imports.</strong> <code>from transformations import …</code> relied on the working directory; the logic is now a package (<code>retail</code>) that both the notebook and the tests import the same way. <strong>4. Arbitrary dedup.</strong> <code>dropDuplicates</code> kept a random row; the latest version now wins, with a tie-breaker.</p></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · tests/conftest.py</span><pre class="code"><code>import pytest
+from pyspark.sql import SparkSession
+
+
+@pytest.fixture(scope="session")
+def spark():
+    session = (SparkSession.builder.master("local[1]")
+               .appName("unit-tests")
+               .config("spark.sql.shuffle.partitions", "1")
+               .getOrCreate())
+    yield session
+    session.stop()</code></pre></div>
+<div class="code-wrap"><span class="lang">TOML · pyproject.toml</span><pre class="code"><code>[tool.pytest.ini_options]
+pythonpath = ["src"]      # lets tests import the "retail" package
+testpaths = ["tests"]</code></pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Python · tests/test_transformations.py</span><pre class="code"><code>from datetime import datetime
+
+import pytest
+
+from retail.transformations import clean_customers, validate_parameters
+
+SCHEMA = "customer_id INT, customer_name STRING, updated_at TIMESTAMP"
+
+
+def test_removes_null_ids_and_keeps_latest_version(spark):
+    rows = [
+        (1, "Alice",   datetime(2026, 10, 1)),
+        (2, "Bob",     datetime(2026, 10, 1)),
+        (2, "Bob K.",  datetime(2026, 10, 5)),      # newer version of customer 2
+        (None, "Unknown", datetime(2026, 10, 1)),
+    ]
+    result = clean_customers(spark.createDataFrame(rows, SCHEMA))
+
+    assert {r.customer_id: r.customer_name for r in result.collect()} == {
+        1: "Alice", 2: "Bob K."}
+
+
+def test_empty_input(spark):
+    assert clean_customers(spark.createDataFrame([], SCHEMA)).isEmpty()
+
+
+def test_accepts_matching_parameters():
+    validate_parameters("dev", "dev_catalog",
+                        "dev_catalog.bronze.customers", "dev_catalog.silver.customers")
+
+
+@pytest.mark.parametrize("env, catalog, target", [
+    ("dev",  "prod_catalog", "prod_catalog.silver.customers"),   # dev job pointed at prod
+    ("dev",  "dev_catalog",  "prod_catalog.silver.customers"),   # target outside catalog
+    ("qa",   "qa_catalog",   "qa_catalog.silver.customers"),     # unknown environment
+])
+def test_rejects_unsafe_parameters(env, catalog, target):
+    with pytest.raises(ValueError):
+        validate_parameters(env, catalog, f"{catalog}.bronze.customers", target)</code></pre></div>
+<div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>$ pip install -r requirements-dev.txt
+$ pytest
+6 passed
+
+# Regression check: sort updated_at ascending instead of descending
+E   AssertionError: assert {1: 'Alice', 2: 'Bob'} == {1: 'Alice', 2: 'Bob K.'}</code></pre></div>
+<div class="callout warn"><span class="label">The original CI would have failed on its first run</span><p>The original test did <code>from src.transformations import clean_customers</code> and ran with <code>pytest tests -q</code>, with no <code>spark</code> fixture defined. I reproduced it: collection stops with <code>ModuleNotFoundError: No module named 'src'</code> (pytest puts <code>tests/</code>, not the repository root, on the import path), and even after that the missing fixture would fail every test. The <code>pythonpath</code> setting in <code>pyproject.toml</code> plus <code>conftest.py</code> fix both, and plain <code>pytest</code> now works from the repository root.</p></div>
+
+<h3 id="s21-3-8"><span class="num">21.3.6</span>Validate, Deploy, and Run</h3>
+<div class="code-wrap"><span class="lang">Bash · development cycle</span><pre class="code"><code>databricks bundle validate -t dev      # check config, resolve variables
+databricks bundle deploy -t dev        # upload code, create/update the job
+databricks bundle run -t dev retail_customer_load   # run it and wait for the result
+databricks bundle summary -t dev       # what's deployed, with links
+
+databricks bundle destroy -t dev       # remove your dev copy when finished</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Validation catches</h4><ul style="margin-bottom:0"><li>YAML indentation errors.</li><li>Unknown or misspelled keys.</li><li>Missing required properties.</li><li>Wrong file paths.</li><li>Undefined variables.</li><li>Authentication and workspace problems.</li></ul><p style="margin:8px 0 0" class="ref"><code>validate</code> contacts the workspace, so it needs credentials. It doesn't prove the logic is right; tests and a real run do.</p></div>
+<div class="card"><h4>After deploy and run, verify</h4><ol style="margin-bottom:0"><li>The job exists with the expected name.</li><li>Tasks and parameters are correct.</li><li>Source and target tables are this environment's.</li><li>The deployed code is the intended commit.</li><li>Run-as identity and permissions are right.</li><li>The run succeeds and data checks pass.</li><li>Audit rows are recorded (Chapter 20).</li></ol></div>
+</div>
+<p><strong>Schema check, done here:</strong> without a workspace, I validated both YAML files against the official bundle JSON schema (<code>databricks bundle schema</code>, CLI v1.22.1): 0 errors for each, while a deliberately misspelled key (<code>max_retires</code>) was rejected. Your editor can use the same schema for autocomplete.</p>
+<p>Then promote: <code>validate</code> and <code>deploy</code> with <code>-t test</code>, run and test there, and after approval <code>-t prod</code>. Never use the prod target as a test environment. The deploying identity needs permission to deploy, and the "Service Principal User" role on the run-as service principal.</p>
+<p class="ref">Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" target="_blank" rel="noopener">Declarative Automation Bundles</a>.</p>
+
+<!-- ===================== 21.4 ===================== -->
+<h2 id="s21-4"><span class="num">21.4</span>CI/CD Pipelines</h2>
+
+<h3 id="s21-4-1"><span class="num">21.4.1</span>Continuous Integration, Delivery, and Deployment</h3>
+<div class="grid-2">
+<pre class="diagram">Pull request
+     |
+CI: unit tests + bundle validate
+     |
+Merge to main
+     |
+Deploy to test + smoke test
+     |
+Approval
+     |
+Deploy to production
+     |
+Post-deployment validation</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Continuous Integration</td><td>Every change is automatically tested and validated before merging</td></tr>
+<tr><td>Continuous Delivery</td><td>Changes are always deployable; production release needs approval</td></tr>
+<tr><td>Continuous Deployment</td><td>Production release is automatic once checks pass</td></tr>
+</tbody></table></div>
+</div>
+<p class="ref">Most enterprises use continuous <em>delivery</em>: automatic to test, approved to production. Choose what your governance requires.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Test type</th><th>Example</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td>Unit</td><td>A PySpark transformation on tiny data</td><td>CI, every PR</td></tr>
+<tr><td>Schema</td><td>Required columns and types</td><td>CI and pipeline</td></tr>
+<tr><td>Data quality</td><td>No null business keys</td><td>Every run (Chapter 18)</td></tr>
+<tr><td>Integration</td><td>Read test source, write test target</td><td>Test workspace</td></tr>
+<tr><td>Reconciliation</td><td>Source and target keys match</td><td>Test and prod</td></tr>
+<tr><td>Deployment</td><td>The expected job was deployed</td><td>After deploy</td></tr>
+<tr><td>Smoke</td><td>A small approved run succeeds</td><td>After deploy</td></tr>
+<tr><td>Regression</td><td>Previously correct behavior still works</td><td>CI</td></tr>
+</tbody></table></div>
+
+<h3 id="s21-4-4"><span class="num">21.4.2</span>GitHub Actions</h3>
+<p>Two workflows: <strong>CI</strong> on every pull request, <strong>Deploy</strong> on every merge to main.</p>
+<div class="code-wrap"><span class="lang">YAML · .github/workflows/ci.yml</span><pre class="code"><code>name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-java@v4          # PySpark 4 needs Java 17+
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run unit tests
+        run: pytest
+
+  validate-bundle:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    environment: dev                         # holds the dev service principal's secrets
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main      # pin to a release tag or commit SHA in real use
+      - name: Validate bundle against the dev workspace
+        run: databricks bundle validate -t dev</code></pre></div>
+<div class="code-wrap"><span class="lang">YAML · .github/workflows/deploy.yml</span><pre class="code"><code>name: Deploy
+
+on:
+  push:
+    branches: [main]                         # every merge to main
+  workflow_dispatch:                         # manual runs, e.g. redeploy a release tag
+
+concurrency:
+  group: deploy                              # never two deployments at once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t test
+      - run: databricks bundle deploy -t test
+      - name: Smoke test (waits; fails this workflow if the job run fails)
+        run: databricks bundle run -t test retail_customer_load
+
+  deploy-prod:
+    needs: deploy-test
+    runs-on: ubuntu-latest
+    environment: production                  # required reviewers must approve first
+    env:
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t prod
+      - run: databricks bundle deploy -t prod
+      - name: Record what was deployed
+        run: |
+          echo "Deployed commit ${{ github.sha }} to prod" &gt;&gt; "$GITHUB_STEP_SUMMARY"
+          databricks bundle summary -t prod &gt;&gt; "$GITHUB_STEP_SUMMARY"</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>One-time GitHub setup</h4><ol style="margin-bottom:0"><li><strong>Settings → Environments:</strong> create <code>dev</code>, <code>test</code>, <code>production</code>.</li><li>In each, add secrets <code>DATABRICKS_CLIENT_ID</code> and <code>DATABRICKS_CLIENT_SECRET</code> for <em>that</em> environment's deployment service principal.</li><li>On <code>production</code>: add <strong>required reviewers</strong> and restrict it to the <code>main</code> branch.</li><li><strong>Branch protection</strong> on main: require PRs and the CI checks.</li></ol></div>
+<div class="card"><h4>Why it's built this way</h4><ul style="margin-bottom:0"><li>Environment-scoped secrets: the test job can't read prod credentials.</li><li><code>bundle run</code> waits and fails the workflow if the job fails, so a broken release stops before prod.</li><li><code>concurrency</code> prevents overlapping deployments.</li><li>The step summary records which commit reached prod.</li><li><code>permissions: contents: read</code>: least privilege for the workflow token.</li></ul></div>
+</div>
+<p class="ref">Both workflows pass <code>actionlint</code>. The original CI installed unpinned <code>pyspark</code> and had the import problem above; this one installs pinned versions from <code>requirements-dev.txt</code> and sets up Java explicitly. Pin <code>databricks/setup-cli</code> to a release or commit SHA in real use. To avoid storing a client secret at all, use GitHub OIDC workload identity federation. Docs: <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions</a>.</p>
+
+<h3 id="s21-4-5"><span class="num">21.4.3</span>Azure DevOps</h3>
+<p>The same flow with Azure Repos and Azure Pipelines: a CI stage, then deployment jobs bound to <strong>environments</strong>, where approvals and checks live.</p>
+<div class="code-wrap"><span class="lang">YAML · azure-pipelines.yml</span><pre class="code"><code>trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: CI
+    jobs:
+      - job: unit_tests
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.11"
+          - script: pip install -r requirements-dev.txt
+            displayName: Install test dependencies
+          - script: pytest
+            displayName: Run unit tests
+
+  - stage: Deploy_Test
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: databricks-test                 # variable group holding the test SP secret
+    jobs:
+      - deployment: deploy_test
+        environment: retail-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - script: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
+                  displayName: Install Databricks CLI
+                - script: |
+                    databricks bundle validate -t test
+                    databricks bundle deploy -t test
+                    databricks bundle run -t test retail_customer_load
+                  displayName: Validate, deploy, smoke test
+                  env:
+                    DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+                    DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)   # secrets must be mapped explicitly
+
+  - stage: Deploy_Prod
+    dependsOn: Deploy_Test
+    variables:
+      - group: databricks-prod
+    jobs:
+      - deployment: deploy_prod
+        environment: retail-prod               # approvals and checks are configured on this environment
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - script: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
+                  displayName: Install Databricks CLI
+                - script: |
+                    databricks bundle validate -t prod
+                    databricks bundle deploy -t prod
+                  displayName: Validate and deploy
+                  env:
+                    DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+                    DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)</code></pre></div>
+<p class="ref">Create variable groups <code>databricks-test</code> and <code>databricks-prod</code> (ideally linked to Key Vault) and environments <code>retail-test</code> and <code>retail-prod</code>, with an approval check on <code>retail-prod</code>. Secret variables aren't visible to scripts unless mapped in <code>env:</code>, as above. Deployment jobs don't check out code automatically, hence <code>checkout: self</code>. This file was syntax-checked only. Docs: <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" target="_blank" rel="noopener">Azure Pipelines</a>.</p>
+
+<h3 id="s21-4-6"><span class="num">21.4.4</span>Deployment Approvals</h3>
+<div class="grid-2">
+<div class="card"><h4>Who approves</h4><p style="margin-bottom:0">A data platform owner, release manager, production support lead, business owner, or designated change approver, configured as GitHub required reviewers or Azure DevOps environment approvals.</p></div>
+<div class="card"><h4>What they confirm</h4><ul style="margin-bottom:0"><li>Tests passed and the change was reviewed.</li><li>The right target environment.</li><li>Release notes are complete.</li><li>The rollback and recovery plan is understood.</li><li>The change is authorized.</li></ul></div>
+</div>
+<p class="ref">Automation doesn't remove the approval; it enforces it.</p>
+
+<h3 id="s21-4-7"><span class="num">21.4.5</span>Rollback and Release Management</h3>
+<p>A release can bring wrong transformations, missing config, bad permissions, slowdowns, wrong table names, failed runs, or bad data. Rollback must cover <strong>code and data</strong>.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Bash · tag releases, roll back code</span><pre class="code"><code># Tag every production release
+git tag -a v1.1.0 -m "Keep latest customer version"
+git push origin v1.1.0
+
+# Roll back option A: revert the bad commit;
+# the normal PR + deploy flow ships the fix
+git revert &amp;lt;bad-commit-sha&amp;gt;
+
+# Option B: redeploy a known-good tag
+# (GitHub: Actions → Deploy → Run workflow →
+#  choose tag v1.0.0; approval still applies)</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · recover data with Delta</span><pre class="code"><code>-- Which version was written before the release?
+DESCRIBE HISTORY prod_catalog.silver.customers;
+
+-- Restore it (a new commit; history is kept)
+RESTORE TABLE prod_catalog.silver.customers
+  TO VERSION AS OF 41;
+
+-- Then rebuild downstream tables that read
+-- the bad data</code></pre></div>
+</div>
+<p class="ref">Time travel only works while the old files still exist: <code>VACUUM</code> removes them after the retention period (7 days by default). Data recovery may instead mean rerunning a corrected pipeline or reprocessing a batch. Release steps: identify the version, capture the config, validate in test, deploy, run checks, monitor, redeploy last-good if needed, recover data, record the incident.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Release</th><th>Change</th><th>Environment</th><th>Commit</th><th>Approved by</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>v1.0.0</code></td><td>Initial customer pipeline</td><td>Production</td><td><code>3f2a91c</code></td><td>Platform owner</td><td>Success</td></tr>
+<tr><td><code>v1.1.0</code></td><td>Latest-version dedup</td><td>Test</td><td><code>8b7d0e4</code></td><td>(automatic)</td><td>Success</td></tr>
+<tr><td><code>v1.1.0</code></td><td>Latest-version dedup</td><td>Production</td><td><code>8b7d0e4</code></td><td>Release manager</td><td>Success</td></tr>
+</tbody></table></div>
+<p class="ref">A release record holds version or commit, description, environment, test results, approvals, timestamp, deploying identity, post-deployment status, and recovery reference. During an incident, knowing the exact deployed commit saves hours.</p>
+
+<!-- ===================== 21.5 ===================== -->
+<h2 id="s21-5"><span class="num">21.5</span>Infrastructure as Code</h2>
+<p class="section-intro">Infrastructure as Code (IaC) defines infrastructure in version-controlled files rather than by clicking: workspaces, Unity Catalog metastores and assignments, access configuration, compute policies, SQL warehouses, storage, and supporting cloud resources. Manual setup leads to drift, missing resources, inconsistent permissions, and untracked changes.</p>
+
+<h3 id="s21-5-2"><span class="num">21.5.1</span>Terraform Fundamentals</h3>
+<div class="grid-2">
+<pre class="diagram">Write configuration (.tf)
+          |
+   terraform init        download providers, set up state
+          |
+   terraform validate
+          |
+   terraform plan        preview: create / change / destroy
+          |
+   Review and approve
+          |
+   terraform apply
+          |
+   Verify resources</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Provider</td><td>Plugin for a platform (Azure, Databricks)</td></tr>
+<tr><td>Resource</td><td>An object Terraform manages</td></tr>
+<tr><td>Variable</td><td>A configurable input</td></tr>
+<tr><td>Output</td><td>A value the configuration returns</td></tr>
+<tr><td>State</td><td>Record of what Terraform manages</td></tr>
+<tr><td>Plan</td><td>Preview of proposed changes</td></tr>
+<tr><td>Apply</td><td>Make the changes</td></tr>
+</tbody></table></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Tool</th><th>Typical role in this course</th></tr></thead>
+<tbody>
+<tr><td>Git</td><td>Version control for everything</td></tr>
+<tr><td>Terraform</td><td>Platform: workspaces, metastores, compute policies, warehouses, groups, permissions</td></tr>
+<tr><td>Asset Bundles</td><td>Application: jobs, pipelines, and their code</td></tr>
+<tr><td>CI/CD</td><td>Automate validation, tests, approvals, and deployments for both</td></tr>
+</tbody></table></div>
+<p class="ref">A common split, not a rule. Whatever you choose, <strong>never manage the same resource with two tools</strong>; they'll keep overwriting each other. Docs: <a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener">Terraform</a> · <a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" target="_blank" rel="noopener">Databricks provider</a>.</p>
+
+<h3 id="s21-5-4"><span class="num">21.5.2</span>Example Configuration</h3>
+<p>The original example declared a provider, a variable, and an output, but no resources, so applying it would do nothing. This one manages the Chapter 19 compute policy and who may use it, for any environment:</p>
+<div class="code-wrap"><span class="lang">HCL · infra/main.tf</span><pre class="code"><code>terraform {
+  required_version = "&gt;= 1.6"
+  required_providers {
+    databricks = {
+      source  = "databricks/databricks"
+      version = "~&gt; 1.95" # pin a minor range; upgrade deliberately
+    }
+  }
+
+  # Shared, locked, encrypted state (never commit .tfstate files)
+  backend "azurerm" {
+    resource_group_name  = "rg-retail-platform"
+    storage_account_name = "stretailtfstate"
+    container_name       = "tfstate"
+    key                  = "databricks-workspace.tfstate" # override per environment
+  }
+}
+
+# Authentication comes from the environment (e.g. ARM_CLIENT_ID / ARM_TENANT_ID with
+# OIDC in CI, or DATABRICKS_CLIENT_ID / DATABRICKS_CLIENT_SECRET), never from this file
+provider "databricks" {
+  host = var.databricks_host
+}
+
+variable "databricks_host" {
+  description = "Workspace URL, e.g. https://adb-1111111111111111.11.azuredatabricks.net"
+  type        = string
+}
+
+variable "environment" {
+  description = "dev, test or prod"
+  type        = string
+  validation {
+    condition     = contains(["dev", "test", "prod"], var.environment)
+    error_message = "environment must be dev, test or prod."
+  }
+}
+
+variable "max_workers" {
+  description = "Upper limit for autoscaling job clusters"
+  type        = number
+  default     = 4
+}
+
+# A compute policy (Chapter 19), managed as code
+resource "databricks_cluster_policy" "jobs" {
+  name = "retail-${var.environment}-jobs"
+  definition = jsonencode({
+    "autotermination_minutes" = { type = "range", minValue = 10, maxValue = 60, defaultValue = 30 }
+    "autoscale.max_workers"   = { type = "range", maxValue = var.max_workers, defaultValue = 2 }
+    "spark_version"           = { type = "allowlist", values = ["auto:latest-lts"], defaultValue = "auto:latest-lts" }
+    "custom_tags.Environment" = { type = "fixed", value = var.environment }
+    "custom_tags.CostCenter"  = { type = "fixed", value = "CC-RETAIL-01" }
+  })
+}
+
+# Who may use it
+resource "databricks_permissions" "jobs_policy_usage" {
+  cluster_policy_id = databricks_cluster_policy.jobs.id
+
+  access_control {
+    group_name       = "dbx-data-engineers"
+    permission_level = "CAN_USE"
+  }
+}
+
+output "jobs_policy_id" {
+  value = databricks_cluster_policy.jobs.id
+}</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">HCL · infra/dev.tfvars</span><pre class="code"><code>databricks_host = "https://adb-1111111111111111.11.azuredatabricks.net"
+environment     = "dev"
+max_workers     = 4</code></pre></div>
+<div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code>cd infra
+terraform init -backend-config="key=retail-dev.tfstate"
+terraform validate
+terraform plan -var-file=dev.tfvars -out=dev.plan
+# review the plan, then:
+terraform apply dev.plan</code></pre></div>
+</div>
+<div class="code-wrap"><span class="lang">Output · plan (verified with Databricks provider v1.95.0, trimmed)</span><pre class="code"><code>  # databricks_cluster_policy.jobs will be created
+  + resource "databricks_cluster_policy" "jobs" {
+      + definition = jsonencode({
+          + "autoscale.max_workers"   = { maxValue = 4, defaultValue = 2, type = "range" }
+          + autotermination_minutes   = { minValue = 10, maxValue = 60, defaultValue = 30, type = "range" }
+          + "custom_tags.Environment" = { type = "fixed", value = "dev" }
+          ...
+        })
+      + name       = "retail-dev-jobs"
+    }
+
+  # databricks_permissions.jobs_policy_usage will be created
+  + resource "databricks_permissions" "jobs_policy_usage" {
+      + access_control {
+          + group_name       = "dbx-data-engineers"
+          + permission_level = "CAN_USE"
+        }
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.
+
+# And with -var environment=qa:
+Error: Invalid value for variable
+environment must be dev, test or prod.</code></pre></div>
+<p class="ref">I ran this with OpenTofu 1.8.5 (the open-source Terraform fork; same language and commands) because the Terraform download site wasn't reachable from here. <code>validate</code> passed and the plan above is real; <code>apply</code> needs a workspace. Saving the plan with <code>-out</code> guarantees that what was reviewed is exactly what gets applied.</p>
+
+<h3 id="s21-5-5"><span class="num">21.5.3</span>Workspace Provisioning and State</h3>
+<div class="grid-2">
+<pre class="diagram">Terraform (azurerm + databricks providers)
+   |
+   +--&gt; Resource group
+   +--&gt; VNet + subnets (Chapter 19)
+   +--&gt; Azure Databricks workspace
+   +--&gt; Access connector (managed identity)
+   +--&gt; Storage account for Unity Catalog
+   |
+   +--&gt; Metastore assignment
+   +--&gt; Groups, compute policies, warehouses
+   +--&gt; Catalogs, schemas, grants</pre>
+<div class="card"><h4>Automated environment setup</h4><p>With variables per environment, the same configuration creates dev, test, and prod identically, so a new environment is a new <code>.tfvars</code> file plus a reviewed plan. Some identity and workspace settings still need extra automation or admin steps; check the provider docs for each resource.</p><p style="margin-bottom:0" class="ref">Separate state per environment (a different backend <code>key</code>), so a dev change can never plan against prod.</p></div>
+</div>
+<div class="callout warn"><span class="label">Protect the state</span><p>State records every managed resource and can contain secrets. Keep it in a remote backend (Azure Storage, as configured above) with locking, encryption, and restricted access; never commit <code>.tfstate</code> files. Run production <code>apply</code> only from the CI/CD pipeline after plan review, not from laptops.</p></div>
+
+<!-- ===================== 21.6 ===================== -->
+<h2 id="s21-6"><span class="num">21.6</span>Hands-On Project: Deploy a Job from Development to Production</h2>
+<p class="section-intro">Take the customer pipeline from a Git repository through dev, test, and an approved production release. Every file is shown above and included in the attached zip.</p>
+<pre class="diagram">          Git repository (feature branch)
+                     |
+                Pull request
+                     |
+        CI: pytest (6 tests) + bundle validate -t dev
+                     |
+                Merge to main
+                     |
+     Deploy: validate + deploy -t test + smoke run
+                     |
+         Approval (production environment)
+                     |
+         validate + deploy -t prod + summary
+                     |
+          Production verification (Chapter 20)</pre>
+<div>
+<div class="card"><h4>Step 1: Create the repository</h4><p style="margin-bottom:0">Unzip the attached project, run <code>git init</code>, commit, and push to a new GitHub (or Azure Repos) repository named <code>retail-databricks</code>.</p></div>
+<div class="card"><h4>Step 2: Run the tests locally</h4><p style="margin-bottom:0"><code>pip install -r requirements-dev.txt</code> then <code>pytest</code>. Expect <code>6 passed</code> (needs Java 17+). Break the sort order and watch a test fail.</p></div>
+<div class="card"><h4>Step 3: Configure the bundle</h4><p style="margin-bottom:0">In <code>databricks.yml</code>, set your workspace hosts and service-principal application IDs. On Free Edition, keep only the <code>dev</code> target and point it at a catalog you can write to: create <code>dev_catalog</code> if your workspace allows it, or set <code>catalog: workspace</code> and relax the catalog check in <code>validate_parameters</code>.</p></div>
+<div class="card"><h4>Step 4: Validate and deploy to dev</h4><p style="margin-bottom:0"><code>databricks bundle validate -t dev</code>, <code>deploy -t dev</code>, then <code>run -t dev retail_customer_load</code>. Confirm the job is named <code>[dev you] retail-customer-load-dev</code>, reads <code>dev_catalog</code>, and its schedule is paused.</p></div>
+<div class="card"><h4>Step 5: Set up CI</h4><p style="margin-bottom:0">Create the GitHub environments and secrets (21.4.2). Open a PR: both CI jobs should pass. Try a PR that breaks a test and confirm it can't merge.</p></div>
+<div class="card"><h4>Step 6: Deploy to test</h4><p style="margin-bottom:0">Merge. The Deploy workflow validates, deploys, and runs the job in test. Verify the tables, output rows, no duplicate keys, run-as identity, and permissions.</p></div>
+<div class="card"><h4>Step 7: Approve and deploy to production</h4><p style="margin-bottom:0">The workflow pauses at <code>production</code>. Before approving, check the commit, CI and test results, expected impact, and recovery plan. After approval it deploys and records the commit in the run summary. Never use personal credentials for this.</p></div>
+<div class="card"><h4>Step 8: Verify production</h4><p style="margin-bottom:0">The job exists, runs as the prod service principal, targets <code>prod_catalog</code>, has monitoring on (Chapter 20), and its first run passes data-quality checks (Chapter 18).</p></div>
+<div class="card"><h4>Step 9: Practice a rollback (in test)</h4><p style="margin-bottom:0">Merge a deliberately bad change, then roll back by reverting it or redeploying the previous tag. Re-run the tests, check the job configuration, and use <code>RESTORE</code> if data was affected. Document the steps.</p></div>
+</div>
+
+<!-- ===================== 21.7 ===================== -->
+<h2 id="s21-7"><span class="num">21.7</span>Common Mistakes in Databricks DevOps</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Mistake</th><th>Why it's dangerous</th><th>Better practice</th></tr></thead>
+<tbody>
+<tr><td>Copying notebooks into production</td><td>Configuration drift</td><td>Version-controlled automated deployment</td></tr>
+<tr><td>Hard-coded production table names</td><td>Accidental production writes</td><td>Target-driven config plus parameter validation</td></tr>
+<tr><td>Duplicated config (YAML files and bundle variables)</td><td>Values disagree</td><td>One source of truth per value</td></tr>
+<tr><td>Secrets in Git</td><td>Exposed credentials</td><td>Secret scopes, CI secrets, federation</td></tr>
+<tr><td>Committing <code>.databricks/</code> or <code>.tfstate</code></td><td>Noise; leaked secrets</td><td><code>.gitignore</code></td></tr>
+<tr><td>Deploying without tests</td><td>Defects reach production</td><td>Required CI checks</td></tr>
+<tr><td>CI that never actually ran</td><td>False confidence</td><td>Run it locally first; break a test on purpose</td></tr>
+<tr><td>Personal credentials in CI/CD</td><td>Breaks when they leave</td><td>Service principal (OAuth M2M)</td></tr>
+<tr><td>Prod job running as the deployer</td><td>Person-dependent, over-privileged</td><td><code>run_as</code> service principal</td></tr>
+<tr><td>Deploying from unreviewed branches</td><td>Bypasses change control</td><td>Protected main, environment branch rules</td></tr>
+<tr><td>Assuming deploy success = job success</td><td>Runtime failures unseen</td><td>Smoke run and post-deploy checks</td></tr>
+<tr><td>Blind retries</td><td>Duplicate or corrupt data</td><td>Classify failures; idempotent writes</td></tr>
+<tr><td>Applying Terraform without reviewing the plan</td><td>Destroyed resources</td><td>Reviewed saved plan, applied by CI</td></tr>
+<tr><td>Same resource in Terraform and bundles</td><td>Tools overwrite each other</td><td>Clear ownership per resource</td></tr>
+<tr><td>Rolling back code but not data</td><td>Bad data stays</td><td>Data recovery plan (<code>RESTORE</code>, reprocess)</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 21.8 ===================== -->
+<h2 id="s21-8"><span class="num">21.8</span>Interview Questions and Answers</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. What is CI/CD?</summary><div class="answer">Automating validation, testing, and deployment. CI validates every change; continuous delivery keeps changes releasable through approval; continuous deployment releases automatically once checks pass.</div></details>
+<details class="q"><summary>Q2. Why use Git for Databricks projects?</summary><div class="answer">History, collaboration, code review, and the ability to say exactly which version was deployed when an incident occurred, and to restore an earlier one.</div></details>
+<details class="q"><summary>Q3. What are Databricks Asset Bundles?</summary><div class="answer">Configuration-as-code for Databricks resources (jobs, pipelines, their code, targets, variables, permissions), deployed repeatably with the Databricks CLI. Now also called Declarative Automation Bundles.</div></details>
+<details class="q"><summary>Q4. Bundle vs CI/CD pipeline?</summary><div class="answer">The bundle defines what gets deployed; the CI/CD pipeline automates when and how: testing, validating, approving, and deploying it.</div></details>
+<details class="q"><summary>Q5. Deploying the same job to dev and prod?</summary><div class="answer">Define the job once with variables, set per-environment values in bundle targets, validate, deploy to dev, test in test, and deploy the same approved commit to prod.</div></details>
+<details class="q"><summary>Q6. Development vs production mode in bundles?</summary><div class="answer">Development mode prefixes names with the user, pauses schedules, and deploys to a personal folder; production mode keeps real names and schedules and adds deployment safety checks.</div></details>
+<details class="q"><summary>Q7. Why externalize configuration?</summary><div class="answer">So identical code runs in every environment, with environment values supplied by deployment rather than edited into code.</div></details>
+<details class="q"><summary>Q8. Managing secrets in CI/CD?</summary><div class="answer">Environment-scoped CI secrets or workload identity federation for deployment credentials, secret scopes or managed identities at runtime; never in Git, bundle files, job parameters, or logs.</div></details>
+<details class="q"><summary>Q9. Testing PySpark transformations in CI?</summary><div class="answer">pytest with a local SparkSession fixture, small controlled DataFrames, assertions on business behavior (nulls, duplicates, rules, empty input), plus integration tests in a test workspace.</div></details>
+<details class="q"><summary>Q10. Who should a production job run as?</summary><div class="answer">A dedicated service principal set with run_as, never the person or pipeline that deployed it.</div></details>
+<details class="q"><summary>Q11. What is Terraform used for?</summary><div class="answer">Declaring and managing infrastructure: cloud resources and Databricks platform objects such as workspaces, policies, warehouses, groups, and permissions.</div></details>
+<details class="q"><summary>Q12. Terraform and bundles together?</summary><div class="answer">Yes: Terraform for platform resources, bundles for application jobs and pipelines, with each resource owned by exactly one tool.</div></details>
+<details class="q"><summary>Q13. Why is Terraform state important?</summary><div class="answer">It maps configuration to real resources so plans are correct; it can hold secrets, so it needs a locked, encrypted, access-controlled remote backend.</div></details>
+<details class="q"><summary>Q14. A rollback strategy?</summary><div class="answer">Redeploy a known-good tagged release (or revert), and recover affected data with RESTORE or reprocessing, then document the incident.</div></details>
+<details class="q"><summary>Q15. Preventing dev code from writing prod tables?</summary><div class="answer">Separate workspaces and catalogs with bindings, target-driven config, parameter validation that rejects mismatched catalogs, and restricted prod permissions.</div></details>
+<details class="q"><summary>Q16. Deployment vs execution?</summary><div class="answer">Deployment publishes the job definition and code; execution runs it. A deployment can succeed and the run still fail, so smoke-test after deploying.</div></details>
+<details class="q"><summary>Q17. Securing a production deployment pipeline?</summary><div class="answer">Dedicated deployment identity, environment-scoped secrets, protected branches, required reviews and approvals, bundle validation, automated tests, recorded versions, and post-deployment checks.</div></details>
+
+<!-- ===================== 21.9 ===================== -->
+<h2 id="s21-9"><span class="num">21.9</span>Seven-Day Learning Plan and Documentation</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topics</th><th>Practical activity</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Git fundamentals</td><td>Repository, branch, commit, pull request</td></tr>
+<tr><td>2</td><td>Project organization</td><td>Move logic into a package; get <code>pytest</code> green</td></tr>
+<tr><td>3</td><td>Environment configuration</td><td>Targets, variables, parameter validation</td></tr>
+<tr><td>4</td><td>Asset Bundles</td><td>Validate, deploy, and run in dev</td></tr>
+<tr><td>5</td><td>CI/CD</td><td>GitHub Actions or Azure Pipelines with approvals</td></tr>
+<tr><td>6</td><td>Terraform</td><td>Provider, variables, plan, remote state</td></tr>
+<tr><td>7</td><td>End-to-end</td><td>Dev → test → approved prod; practice a rollback</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
+<li><a href="https://git-scm.com/doc" target="_blank" rel="noopener">Git documentation</a></li>
+<li><a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" target="_blank" rel="noopener">Declarative Automation Bundles (Asset Bundles)</a></li>
+<li><a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" target="_blank" rel="noopener">Install the Databricks CLI</a></li>
+<li><a href="https://docs.databricks.com/aws/en/repos/" target="_blank" rel="noopener">Databricks Git folders</a></li>
+<li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" target="_blank" rel="noopener">Azure Pipelines</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener">Terraform</a></li>
+<li><a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" target="_blank" rel="noopener">Databricks Terraform provider</a></li>
+</ul><p style="margin:8px 0 0" class="ref">Some Databricks pages use AWS paths for platform-neutral features; use the Azure Databricks docs for Azure-specific authentication, networking, and provisioning.</p></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch21-checklist">
+<label><input type="checkbox"> <span><strong>Git</strong> tracks code and configuration changes.</span></label>
+<label><input type="checkbox"> <span><strong>Branches and pull requests</strong> enable review before merging.</span></label>
+<label><input type="checkbox"> <span><strong>Environment configuration</strong> lets the same code run safely everywhere.</span></label>
+<label><input type="checkbox"> <span><strong>Asset Bundles</strong> define and deploy jobs as code, per target.</span></label>
+<label><input type="checkbox"> <span><strong>CI/CD pipelines</strong> automate validation, tests, and deployment.</span></label>
+<label><input type="checkbox"> <span><strong>Automated tests</strong> catch defects before release, and must actually run.</span></label>
+<label><input type="checkbox"> <span><strong>Approvals</strong> govern production changes.</span></label>
+<label><input type="checkbox"> <span><strong>Rollback</strong> restores known-good code and repairs data.</span></label>
+<label><input type="checkbox"> <span><strong>Terraform</strong> manages infrastructure through reviewed plans and protected state.</span></label>
+<label><input type="checkbox"> <span><strong>Production deployment</strong> needs the right identity, validation, monitoring, and verification.</span></label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch21-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch21-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 22!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="callout key"><span class="label">Recommended production pattern</span><p><strong>Git</strong> for version control, <strong>Asset Bundles</strong> for Databricks application deployment, <strong>CI/CD</strong> for tests and release governance, and <strong>Terraform</strong> for infrastructure. Keep responsibilities clear, and make every production deployment repeatable, auditable, and recoverable.</p></div>
+
+<div class="next">
+<h3>Next chapter: Databricks Cost Optimization</h3>
+<p>Chapter 22 completes Phase 7 with cost: DBUs and how compute is billed, serverless versus classic pricing, SQL warehouse and storage costs, choosing and sizing compute, scheduling, auto-termination and autoscaling, query optimization, and using system tables to find and cut waste.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-20.html"><span>← Previous</span><strong>Chapter 20: Monitoring &amp; Troubleshooting</strong></a>
+  <a class="pager-link" href="databricks-chapter-22.html"><span>Next →</span><strong>Chapter 22: Cost Optimization</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 7 · Chapter 21 of 24</footer>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

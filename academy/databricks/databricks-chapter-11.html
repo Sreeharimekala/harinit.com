@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 11: Medallion Architecture</title>
+<meta name="description" content="Chapter 11 of a Databricks learning path: Medallion Architecture (Bronze, Silver, Gold), data quality, idempotent pipelines, and an end-to-end retail project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 11 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s11-1">11.1 Introduction</a></li>
+    <li class="lvl2"><a href="#s11-1-1">What is Medallion?</a></li>
+    <li class="lvl2"><a href="#s11-1-2">Why layers?</a></li>
+    <li class="lvl2"><a href="#s11-1-3">Raw vs curated</a></li>
+    <li class="lvl2"><a href="#s11-1-4">Data lineage</a></li>
+    <li class="lvl2"><a href="#s11-1-5">Responsibilities</a></li>
+    <li class="lvl1"><a href="#s11-2">11.2 Bronze Layer</a></li>
+    <li class="lvl2"><a href="#s11-2-1">What is Bronze?</a></li>
+    <li class="lvl2"><a href="#s11-2-2">Raw ingestion</a></li>
+    <li class="lvl2"><a href="#s11-2-3">Bronze Delta table</a></li>
+    <li class="lvl2"><a href="#s11-2-4">Preserving source data</a></li>
+    <li class="lvl2"><a href="#s11-2-5">Schema changes</a></li>
+    <li class="lvl2"><a href="#s11-2-6">Bad CSV records</a></li>
+    <li class="lvl2"><a href="#s11-2-7">Ingestion monitoring</a></li>
+    <li class="lvl1"><a href="#s11-3">11.3 Silver Layer</a></li>
+    <li class="lvl2"><a href="#s11-3-1">What is Silver?</a></li>
+    <li class="lvl2"><a href="#s11-3-2">Cleansing</a></li>
+    <li class="lvl2"><a href="#s11-3-3">Type conversion</a></li>
+    <li class="lvl2"><a href="#s11-3-4">Deduplication</a></li>
+    <li class="lvl2"><a href="#s11-3-5">Validation</a></li>
+    <li class="lvl2"><a href="#s11-3-6">Business keys</a></li>
+    <li class="lvl2"><a href="#s11-3-7">Invalid records</a></li>
+    <li class="lvl2"><a href="#s11-3-8">Incremental transforms</a></li>
+    <li class="lvl1"><a href="#s11-4">11.4 Gold Layer</a></li>
+    <li class="lvl2"><a href="#s11-4-1">What is Gold?</a></li>
+    <li class="lvl2"><a href="#s11-4-2">Fact tables</a></li>
+    <li class="lvl2"><a href="#s11-4-3">Dimension tables</a></li>
+    <li class="lvl2"><a href="#s11-4-4">Building a fact</a></li>
+    <li class="lvl2"><a href="#s11-4-5">Aggregated tables</a></li>
+    <li class="lvl2"><a href="#s11-4-6">KPIs</a></li>
+    <li class="lvl2"><a href="#s11-4-7">Reporting views</a></li>
+    <li class="lvl2"><a href="#s11-4-8">Power BI</a></li>
+    <li class="lvl1"><a href="#s11-5">11.5 Pipeline Design</a></li>
+    <li class="lvl2"><a href="#s11-5-1">Bronze → Silver</a></li>
+    <li class="lvl2"><a href="#s11-5-2">Silver → Gold</a></li>
+    <li class="lvl2"><a href="#s11-5-3">Dependencies</a></li>
+    <li class="lvl2"><a href="#s11-5-4">Idempotency</a></li>
+    <li class="lvl2"><a href="#s11-5-5">Restartability</a></li>
+    <li class="lvl2"><a href="#s11-5-6">Reprocessing</a></li>
+    <li class="lvl2"><a href="#s11-5-7">Error recovery</a></li>
+    <li class="lvl1"><a href="#s11-6">11.6 Project: Retail Pipeline</a></li>
+    <li class="lvl2"><a href="#s11-6-1">Objective &amp; stack</a></li>
+    <li class="lvl2"><a href="#s11-6-3">Steps 1–4: Bronze</a></li>
+    <li class="lvl2"><a href="#s11-6-7">Steps 5–9: Silver</a></li>
+    <li class="lvl2"><a href="#s11-6-12">Steps 10–13: Gold</a></li>
+    <li class="lvl2"><a href="#s11-6-16">Steps 14–15: BI &amp; jobs</a></li>
+    <li class="lvl1"><a href="#s11-7">11.7 Best Practices</a></li>
+    <li class="lvl1"><a href="#s11-8">11.8 Knowledge Check</a></li>
+    <li class="lvl1"><a href="#s11-9">11.9 Final Checklist</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 5 · Chapter 11 · Data Engineering &amp; Pipeline Development</span>
+  <h1>Medallion Architecture</h1>
+  <p class="lead">Bronze, Silver, Gold: how to land raw data with its source context, turn it into clean, validated, deduplicated records, and publish business-ready facts, dimensions, and KPIs. You'll also design pipelines that survive retries and failures, then build a complete retail pipeline end to end.</p>
+  <p class="ref">Examples use Unity Catalog names such as <code>retail_dev.silver.orders</code>. Adapt catalog names, paths, and permissions to your workspace.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain the Medallion Architecture and its purpose in Databricks.</li>
+    <li>Design Bronze, Silver, and Gold data layers.</li>
+    <li>Ingest raw data while preserving source information.</li>
+    <li>Clean, validate, standardize, and deduplicate data using PySpark.</li>
+    <li>Build fact tables, dimension tables, and aggregated reporting datasets.</li>
+    <li>Implement incremental processing using Delta Lake.</li>
+    <li>Design pipelines that are restartable, idempotent, and recoverable.</li>
+    <li>Understand how Databricks data products integrate with Power BI.</li>
+    <li>Build an end-to-end retail pipeline for customers, products, orders, and sales.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s11-1"><span>11.1</span><strong>Introduction</strong></a>
+    <a class="chip" href="#s11-2"><span>11.2</span><strong>Bronze</strong></a>
+    <a class="chip" href="#s11-3"><span>11.3</span><strong>Silver</strong></a>
+    <a class="chip" href="#s11-4"><span>11.4</span><strong>Gold</strong></a>
+    <a class="chip" href="#s11-5"><span>11.5</span><strong>Pipeline Design</strong></a>
+    <a class="chip" href="#s11-6"><span>11.6</span><strong>Retail Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 11.1 ===================== -->
+<h2 id="s11-1"><span class="num">11.1</span>Introduction to Medallion Architecture</h2>
+
+<h3 id="s11-1-1"><span class="num">11.1.1</span>What Is Medallion Architecture?</h3>
+<p>Medallion Architecture is a data design pattern that organizes data into processing layers, each representing a higher level of quality, transformation, and business readiness. Data generally moves from Bronze to Silver, then from Silver to Gold.</p>
+<div class="grid-2">
+<pre class="diagram">          SOURCE SYSTEMS
+   CSV files · Databases · APIs
+      Business applications
+                 |
+                 v
+ +-------------------------------+
+ |  BRONZE  - raw data           |
+ |  Raw source data              |
+ |  Ingestion metadata           |
+ |  Source file tracking         |
+ |  Minimal transformation       |
+ +-------------------------------+
+                 |
+                 v
+ +-------------------------------+
+ |  SILVER  - cleaned, validated |
+ |  Correct data types           |
+ |  Deduplicated records         |
+ |  Validated business keys      |
+ +-------------------------------+
+                 |
+                 v
+ +-------------------------------+
+ |  GOLD  - business-ready       |
+ |  Facts and dimensions         |
+ |  Business KPIs                |
+ |  Aggregated datasets          |
+ +-------------------------------+
+                 |
+                 v
+   Power BI · SQL analytics · Reports</pre>
+<div>
+  <div class="card"><h4>🥉 Bronze</h4><p style="margin-bottom:0">Emphasizes <strong>preservation and traceability</strong>.</p></div>
+  <div class="card"><h4>🥈 Silver</h4><p style="margin-bottom:0">Emphasizes <strong>quality and consistency</strong>.</p></div>
+  <div class="card"><h4>🥇 Gold</h4><p style="margin-bottom:0">Emphasizes <strong>business meaning and efficient consumption</strong>.</p></div>
+  <div class="callout key" style="margin-bottom:0"><span class="label">The core principle</span><p>Data becomes more refined as it moves through the layers.</p></div>
+</div>
+</div>
+
+<h3 id="s11-1-2"><span class="num">11.1.2</span>Why Use Layered Data Processing?</h3>
+<p>Imagine a retail company receiving daily CSV files of customers, products, orders, and sales. The files may contain duplicate customers, missing IDs, invalid prices, inconsistent date formats, amounts stored as strings, orders referencing nonexistent customers or products, and inconsistent status values.</p>
+<p>If every report consumes the raw files directly, each one implements its own cleansing logic, which leads to duplicated work and reports that disagree. Medallion Architecture separates the responsibilities instead:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Bronze</th><th>Silver</th><th>Gold</th></tr></thead>
+<tbody>
+<tr><td>Preserve source records</td><td>Primary responsibility</td><td>Not the primary purpose</td><td>No</td></tr>
+<tr><td>Add ingestion metadata</td><td>Yes</td><td>Optional inherited metadata</td><td>Usually not required</td></tr>
+<tr><td>Convert data types</td><td>Limited</td><td>Yes</td><td>Final business-specific types</td></tr>
+<tr><td>Remove duplicates</td><td>Preserve raw evidence; optionally detect</td><td>Yes, by defined rules</td><td>Consume curated records</td></tr>
+<tr><td>Validate business keys</td><td>Record observations</td><td>Yes</td><td>Enforce model relationships</td></tr>
+<tr><td>Apply business rules</td><td>Minimal</td><td>Reusable standardization</td><td>Business calculations, reporting logic</td></tr>
+<tr><td>Create fact tables</td><td>No</td><td>Possible intermediate entities</td><td>Yes</td></tr>
+<tr><td>Calculate KPIs</td><td>Generally no</td><td>Usually no</td><td>Yes</td></tr>
+<tr><td>Support Power BI</td><td>Indirectly</td><td>Sometimes</td><td>Primary reporting layer</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>C001</td><td>Ravi</td><td>Hyderabad</td></tr><tr><td>C002</td><td>Priya</td><td>Chennai</td></tr><tr><td>C002</td><td>Priya</td><td>Chennai</td></tr><tr><td>C003</td><td>NULL</td><td>Bengaluru</td></tr></tbody></table></div>
+<div class="card"><h4>What each layer does with it</h4><ul style="margin-bottom:0"><li><strong>Bronze</strong> keeps all four rows and their source context.</li><li><strong>Silver</strong> removes the duplicate C002 and flags C003 (missing name) as invalid, per the business rules.</li><li><strong>Gold</strong> uses valid customers to produce sales by city.</li></ul></div>
+</div>
+<p class="ref">The raw data stays available for investigation instead of being overwritten by cleansing logic. Layering makes pipelines easier to understand, test, troubleshoot, and maintain.</p>
+
+<h3 id="s11-1-3"><span class="num">11.1.3</span>Raw Data Versus Curated Data</h3>
+<p><strong>Raw data</strong> is data as received from the source, possibly with ingestion metadata. <strong>Curated data</strong> has been processed according to defined technical and business rules.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">CSV</span><pre class="code"><code>OrderID,CustomerID,OrderDate,Amount
+1001,C001,2026-10-01,1500.50
+1002,C002,01-10-2026,2500
+1003,C003,INVALID,500</code></pre></div>
+<div class="card"><h4>Silver may</h4><ul style="margin-bottom:0"><li>Convert OrderID to an integer and Amount to a decimal.</li><li>Keep CustomerID as a string.</li><li>Parse OrderDate into a date.</li><li>Identify the invalid date.</li><li>Quarantine records that can't be corrected safely.</li></ul></div>
+</div>
+<p>Bronze retains the values as received; Gold calculates total sales by month, city, or category. Notice that row 1002 uses a different date format: parsing it with <code>yyyy-MM-dd</code> gives <code>NULL</code>, so Silver has to treat it as a format problem, not silently guess.</p>
+<div class="callout warn"><span class="label">Important</span><p>Preserving raw data doesn't mean keeping every file forever without controls. Retention, access, privacy, and storage policies still apply.</p></div>
+
+<h3 id="s11-1-4"><span class="num">11.1.4</span>Data Lineage</h3>
+<p>Lineage describes where data came from, how it was transformed, and which downstream objects depend on it.</p>
+<div class="grid-2">
+<pre class="diagram">orders_2026_10.csv
+        |
+        v
+bronze.orders_raw
+        |
+        v
+silver.orders
+        |
+        v
+gold.fact_sales
+        |
+        v
+gold.monthly_sales_summary
+        |
+        v
+Power BI Sales Dashboard</pre>
+<div class="card"><h4>Questions lineage answers</h4><ul style="margin-bottom:0"><li>Which source file produced this sales record?</li><li>Which transformation calculated this revenue figure?</li><li>Which reports depend on this table?</li><li>Why did a report change after a run?</li><li>Which downstream datasets need refreshing after a correction?</li></ul></div>
+</div>
+<p><strong>Implementing lineage:</strong> at ingestion, record the source file name, source system, ingestion timestamp, pipeline run ID, batch ID, and source record identifier where available. Unity Catalog also captures lineage for supported operations (Chapter 10).</p>
+<p class="ref">Application-level metadata and platform lineage complement each other. Platform lineage may not capture every external process or business rule.</p>
+
+<h3 id="s11-1-5"><span class="num">11.1.5</span>Separation of Responsibilities</h3>
+<div class="grid-2">
+  <div class="card"><h4>Bronze</h4><ul style="margin-bottom:0"><li>Read data from source systems.</li><li>Preserve source values.</li><li>Add ingestion metadata.</li><li>Track source files and batches.</li><li>Handle schema changes safely.</li><li>Record ingestion failures.</li></ul></div>
+  <div class="card"><h4>Silver</h4><ul style="margin-bottom:0"><li>Clean and standardize data.</li><li>Convert data types.</li><li>Apply deduplication rules.</li><li>Validate business keys.</li><li>Separate valid and invalid records.</li><li>Reusable, business-independent transformations.</li></ul></div>
+  <div class="card"><h4>Gold</h4><ul style="margin-bottom:0"><li>Create fact and dimension tables.</li><li>Calculate business metrics.</li><li>Aggregate data for reporting.</li><li>Implement reporting-specific definitions.</li><li>Prepare efficient datasets for BI tools.</li></ul></div>
+  <div class="callout key" style="margin:0"><span class="label">Design rule</span><p>Avoid putting every transformation in one notebook. Separate stages so each can be tested, rerun, and maintained independently.</p></div>
+</div>
+
+<!-- ===================== 11.2 ===================== -->
+<h2 id="s11-2"><span class="num">11.2</span>Bronze Layer</h2>
+
+<h3 id="s11-2-1"><span class="num">11.2.1</span>What Is the Bronze Layer?</h3>
+<p>Bronze is the first persisted layer in the lakehouse. It captures source data reliably while preserving enough information to investigate ingestion and quality issues. Bronze tables are usually Delta tables.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Names</span><pre class="code"><code>bronze.customers_raw
+bronze.products_raw
+bronze.orders_raw
+bronze.sales_raw</code></pre></div>
+<div class="code-wrap"><span class="lang">Unity Catalog names</span><pre class="code"><code>-- catalog.schema.table
+retail_dev.bronze.customers_raw
+retail_dev.bronze.products_raw
+retail_dev.bronze.orders_raw
+retail_dev.bronze.sales_raw</code></pre></div>
+</div>
+<p class="ref">The catalog and schema must exist, and the executing identity needs the required privileges.</p>
+
+<h3 id="s11-2-2"><span class="num">11.2.2</span>Raw Data Ingestion</h3>
+<p>Suppose this file arrives at <code>/Volumes/retail_dev/landing/customers/customers_20261025.csv</code>:</p>
+<div class="code-wrap"><span class="lang">CSV</span><pre class="code"><code>CustomerID,CustomerName,Email,City
+C001,Ravi,ravi@example.com,Hyderabad
+C002,Priya,priya@example.com,Chennai
+C003,Arun,arun@example.com,Bengaluru</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+source_path = (
+    "/Volumes/retail_dev/landing/customers/"
+    "customers_20261025.csv"
+)
+
+customers_df = (
+    spark.read
+    .option("header", True)
+    .option("inferSchema", False)
+    .csv(source_path)
+)
+
+display(customers_df)</code></pre></div>
+<p>With <code>inferSchema</code> set to <code>False</code>, every value stays a string. That preserves the source representation and postpones type validation until Silver.</p>
+<p class="ref">CSV doesn't enforce a schema. Column names, delimiters, quoting, encoding, and malformed rows must be handled according to the source contract.</p>
+
+<h3 id="s11-2-3"><span class="num">11.2.3</span>Creating a Bronze Delta Table</h3>
+<p>Add ingestion metadata to the DataFrame:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>bronze_customers_df = (
+    customers_df
+    .withColumn("_source_file", F.col("_metadata.file_path"))
+    .withColumn("_ingested_at", F.current_timestamp())
+    .withColumn("_source_system", F.lit("RETAIL_CSV"))
+    .withColumn("_batch_id", F.lit("retail_batch_20261025_001"))
+)
+
+display(bronze_customers_df)</code></pre></div>
+<div class="callout"><span class="label">Why _metadata.file_path?</span><p>Older examples use <code>F.input_file_name()</code>, which isn't supported on Unity Catalog shared and serverless compute. The hidden <code>_metadata</code> column works on file sources everywhere (you used it in Chapter 8).</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>_source_file</code></td><td>The source file path</td></tr>
+<tr><td><code>_ingested_at</code></td><td>The ingestion timestamp</td></tr>
+<tr><td><code>_source_system</code></td><td>The source system</td></tr>
+<tr><td><code>_batch_id</code></td><td>The ingestion batch</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL + Python</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
+
+(
+    bronze_customers_df.write
+    .format("delta")
+    .mode("append")
+    .saveAsTable("retail_dev.bronze.customers_raw")
+)</code></pre></div>
+<div class="callout warn"><span class="label">append is not duplicate-safe</span><p><code>append</code> adds rows; it doesn't stop the same file being loaded twice. In production, use a durable batch ID, a source-file manifest, Auto Loader file tracking (Chapter 12), or another ingestion ledger so retries don't duplicate data.</p></div>
+
+<h3 id="s11-2-4"><span class="num">11.2.4</span>Preserving Source Data</h3>
+<p>Avoid destructive business transformations in Bronze. Don't replace <code>"  hyderabad "</code> with <code>"Hyderabad"</code> in the only persisted copy. Keep the source value in Bronze and standardize it in Silver, so the team can still investigate source formatting changes, unexpected values, conversion failures, source-system defects, and incorrect mappings.</p>
+<p>Adding technical metadata to Bronze is fine; changing business values isn't.</p>
+<p class="ref">For strict audit requirements, also keep the original files in immutable or access-controlled storage. A Delta table doesn't preserve the exact bytes or serialization of every source file.</p>
+
+<h3 id="s11-2-5"><span class="num">11.2.5</span>Handling Source Schema Changes</h3>
+<div class="grid-2">
+<pre class="diagram">Before:
+CustomerID,CustomerName,City
+
+After:
+CustomerID,CustomerName,City,Country</pre>
+<div class="card"><h4>Before accepting a new column, check</h4><ul style="margin-bottom:0"><li>Is the new field expected?</li><li>Has the source contract changed?</li><li>Can downstream transformations handle it?</li><li>Does it need validation or masking?</li><li>Is the change backward-compatible?</li></ul></div>
+</div>
+<p>For a Delta append, schema evolution can be enabled explicitly:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
+    bronze_customers_df.write
+    .format("delta")
+    .mode("append")
+    .option("mergeSchema", "true")
+    .saveAsTable("retail_dev.bronze.customers_raw")
+)</code></pre></div>
+<div class="callout warn"><span class="label">Use deliberately</span><p>Don't turn on <code>mergeSchema</code> in every pipeline: unexpected source columns become permanent table columns. Define an approved schema policy and record schema changes.</p></div>
+
+<h3 id="s11-2-6"><span class="num">11.2.6</span>Handling Bad CSV Records</h3>
+<p>Malformed records include missing or extra fields, invalid quoting, unexpected delimiters, and bad encoding. Spark's CSV reader has <code>PERMISSIVE</code>, <code>DROPMALFORMED</code>, and <code>FAILFAST</code> modes. To capture bad rows in <code>PERMISSIVE</code> mode, give Spark an explicit schema that includes the corrupt-record column:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import StructType, StructField, StringType
+
+customers_schema = StructType([
+    StructField("CustomerID", StringType()),
+    StructField("CustomerName", StringType()),
+    StructField("Email", StringType()),
+    StructField("City", StringType()),
+    StructField("_corrupt_record", StringType()),   # receives bad rows
+])
+
+raw_df = (
+    spark.read
+    .format("csv")
+    .option("header", True)
+    .schema(customers_schema)
+    .option("mode", "PERMISSIVE")
+    .option("columnNameOfCorruptRecord", "_corrupt_record")
+    .load(source_path)
+)
+
+display(raw_df.filter(F.col("_corrupt_record").isNotNull()))</code></pre></div>
+<p>Tested with a file containing one row with an extra field and one row with missing fields: both were flagged, and the full original line appeared in <code>_corrupt_record</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>Email</th><th>City</th><th>_corrupt_record</th></tr></thead>
+<tbody>
+<tr><td>C002</td><td>Priya</td><td>priya@example.com</td><td>Chennai</td><td>C002,Priya,priya@example.com,Chennai,EXTRA</td></tr>
+<tr><td>C003</td><td>Arun</td><td>NULL</td><td>NULL</td><td>C003,Arun</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">PERMISSIVE doesn't catch everything</span><p>Unexpected business values aren't parsing errors. For important pipelines, keep separate controls for: (1) file-level failures, (2) parsing failures, (3) schema validation failures, and (4) business data-quality failures. Never silently discard invalid source records.</p></div>
+
+<h3 id="s11-2-7"><span class="num">11.2.7</span>Bronze Ingestion Monitoring</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Batch ID</td><td>retail_batch_20261025_001</td></tr>
+<tr><td>Source file</td><td>customers_20261025.csv</td></tr>
+<tr><td>Rows received</td><td>10,000</td></tr>
+<tr><td>Rows written</td><td>10,000</td></tr>
+<tr><td>Rejected rows</td><td>0</td></tr>
+<tr><td>Start / end</td><td>10:00 / 10:02</td></tr>
+<tr><td>Status</td><td>SUCCESS</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Audit table fields</span><pre class="code"><code>batch_id
+pipeline_run_id
+source_file
+source_system
+target_table
+start_time
+end_time
+source_row_count
+inserted_row_count
+rejected_row_count
+status
+error_message</code></pre></div>
+</div>
+<p class="ref">Store these in an ingestion audit table. Distinguish rows read from rows written; filtering or parallel processing can make them differ.</p>
+
+<!-- ===================== 11.3 ===================== -->
+<h2 id="s11-3"><span class="num">11.3</span>Silver Layer</h2>
+
+<h3 id="s11-3-1"><span class="num">11.3.1</span>What Is the Silver Layer?</h3>
+<p>Silver holds cleaned, standardized, validated, and deduplicated data (<code>silver.customers</code>, <code>silver.products</code>, <code>silver.orders</code>, <code>silver.sales</code>) with defined quality rules and predictable types. Records that fail validation should be clearly identified and isolated, never silently mixed into trusted datasets.</p>
+
+<h3 id="s11-3-2"><span class="num">11.3.2</span>Data Cleansing</h3>
+<p>Common operations: trimming spaces, normalizing case, converting empty strings to nulls, standardizing dates, validating numbers, applying approved code mappings, and handling invalid records.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+customers_clean_df = (
+    spark.table("retail_dev.bronze.customers_raw")
+    .withColumn("CustomerID", F.trim(F.col("CustomerID")))
+    .withColumn("CustomerName", F.trim(F.col("CustomerName")))
+    .withColumn("Email", F.lower(F.trim(F.col("Email"))))
+    .withColumn("City", F.initcap(F.trim(F.col("City"))))
+    .withColumn(
+        "City",
+        F.when(F.col("City") == "", None)
+         .otherwise(F.col("City"))
+    )
+)</code></pre></div>
+<div class="callout"><span class="label">Notes</span><p>In production, convert empty strings to null for every relevant field, not only City. Be careful with case normalization: right for cities and emails, wrong for case-sensitive identifiers or source codes.</p></div>
+
+<h3 id="s11-3-3"><span class="num">11.3.3</span>Data Type Conversion</h3>
+<p>Bronze values are strings; Silver converts them to proper types.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_raw_df = spark.table("retail_dev.bronze.orders_raw")
+
+orders_typed_df = (
+    orders_raw_df
+    .withColumn("OrderID", F.expr("try_cast(OrderID AS BIGINT)"))
+    .withColumn("OrderDate", F.expr("try_cast(OrderDate AS DATE)"))
+    .withColumn("Amount", F.expr("try_cast(Amount AS DECIMAL(18,2))"))
+)</code></pre></div>
+<p><code>try_cast</code> returns <code>NULL</code> when a value can't be converted, instead of failing the whole query. For dates in a specific format, use an explicit parser, and use its <strong>try_</strong> version:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_typed_df = orders_raw_df.withColumn(
+    "OrderDate",
+    F.expr("try_to_date(OrderDate, 'yyyy-MM-dd')")
+)</code></pre></div>
+<div class="callout warn"><span class="label">to_date vs try_to_date</span><p>Databricks runs Spark SQL in ANSI mode by default on serverless and SQL warehouses (and Spark 4 everywhere). In ANSI mode, <code>F.to_date("INVALID", "yyyy-MM-dd")</code> <strong>fails the whole job</strong> with <code>CANNOT_PARSE_TIMESTAMP</code>. <code>try_to_date</code> returns <code>NULL</code> instead, so the row can be quarantined. Verified on Spark 4.</p></div>
+<p class="ref">Use the date format in the source contract. Never guess ambiguous dates like <code>01-02-2026</code>.</p>
+
+<h3 id="s11-3-4"><span class="num">11.3.4</span>Deduplication</h3>
+<p>Duplicates appear when a source exports a record twice, a file is resent, a pipeline retries an append, or incremental loads overlap.</p>
+<div class="code-wrap"><span class="lang">Python · simple</span><pre class="code"><code>customers_dedup_df = customers_clean_df.dropDuplicates(["CustomerID"])</code></pre></div>
+<p>But <code>dropDuplicates(["CustomerID"])</code> doesn't define <em>which</em> record wins when duplicates differ. Production code needs a deterministic rule: latest source update timestamp, highest sequence number, most recently ingested (if approved), or source-system priority.</p>
+<div class="code-wrap"><span class="lang">Python · deterministic</span><pre class="code"><code>from pyspark.sql import Window
+from pyspark.sql import functions as F
+
+dedup_window = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("SourceUpdatedAt").desc_nulls_last(),
+        F.col("_ingested_at").desc_nulls_last()
+    )
+)
+
+customers_dedup_df = (
+    customers_clean_df
+    .withColumn("_row_number", F.row_number().over(dedup_window))
+    .filter(F.col("_row_number") == 1)
+    .drop("_row_number")
+)</code></pre></div>
+<p class="ref">Assumes a <code>SourceUpdatedAt</code> column exists. Add a tie-breaker in case two rows have identical ordering values.</p>
+<div class="callout warn"><span class="label">Don't dedupe on full rows when you know the key</span><p>Two rows with the same business key but different attributes may be a real update, not a duplicate.</p></div>
+
+<h3 id="s11-3-5"><span class="num">11.3.5</span>Data Validation</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Rule</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Customer ID must exist</td><td><code>CustomerID IS NOT NULL</code></td></tr>
+<tr><td>Product ID must exist</td><td><code>ProductID IS NOT NULL</code></td></tr>
+<tr><td>Price must be nonnegative</td><td><code>Price &gt;= 0</code></td></tr>
+<tr><td>Quantity must be positive</td><td><code>Quantity &gt; 0</code></td></tr>
+<tr><td>Order date must be valid</td><td><code>OrderDate IS NOT NULL</code></td></tr>
+<tr><td>Order references a valid customer</td><td>Customer exists in Silver customers</td></tr>
+<tr><td>Product references a valid product</td><td>Product exists in Silver products</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_orders_df = orders_typed_df.filter(
+    F.col("OrderID").isNotNull()
+    &amp; F.col("CustomerID").isNotNull()
+    &amp; F.col("OrderDate").isNotNull()
+    &amp; F.col("Amount").isNotNull()
+    &amp; (F.col("Amount") &gt;= 0)
+)
+
+invalid_orders_df = orders_typed_df.filter(
+    F.col("OrderID").isNull()
+    | F.col("CustomerID").isNull()
+    | F.col("OrderDate").isNull()
+    | F.col("Amount").isNull()
+    | (F.col("Amount") &lt; 0)
+)</code></pre></div>
+<p class="ref">Keep the two conditions logically consistent so no record falls out of both outputs. The single <code>rejection_reason</code> column in 11.3.7 makes that automatic.</p>
+
+<h3 id="s11-3-6"><span class="num">11.3.6</span>Business-Key Validation</h3>
+<p>A business key identifies a real-world entity: Customer → <code>CustomerID</code>, Product → <code>ProductID</code>, Order → <code>OrderID</code>, Order line → <code>OrderID + ProductID + LineNumber</code>. It isn't the same as a generated surrogate key in a dimensional model.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Required keys
+valid_customers_df = customers_dedup_df.filter(
+    F.col("CustomerID").isNotNull()
+    &amp; (F.col("CustomerID") != "")
+)
+
+# Duplicate keys
+duplicate_customer_keys_df = (
+    customers_clean_df
+    .groupBy("CustomerID")
+    .count()
+    .filter(F.col("count") &gt; 1)
+)
+
+# Orders referencing unknown customers
+customers_keys_df = (
+    spark.table("retail_dev.silver.customers")
+    .select("CustomerID")
+    .distinct()
+)
+
+orphan_orders_df = orders_typed_df.join(
+    customers_keys_df,
+    on="CustomerID",
+    how="left_anti"
+)</code></pre></div>
+<p>A <strong>left-anti join</strong> returns rows from the left side with no match on the right side, which is exactly what you need to find orphaned orders.</p>
+
+<h3 id="s11-3-7"><span class="num">11.3.7</span>Handling Invalid Records</h3>
+<div class="grid-2">
+<div class="card"><h4>Strategies</h4><ol style="margin-bottom:0"><li><strong>Reject:</strong> exclude from trusted Silver data.</li><li><strong>Quarantine:</strong> store with the rejection reason.</li><li><strong>Correct:</strong> apply a documented, deterministic fix.</li><li><strong>Default:</strong> only when business rules allow it.</li><li><strong>Fail the pipeline:</strong> when a critical threshold is breached.</li></ol></div>
+<div class="callout" style="margin:0"><span class="label">Record vs batch problems</span><p>A missing customer name is a record-level issue. A completely missing OrderID <em>column</em> is a batch-level schema failure that should stop the run.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · minimal quarantine table</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.silver.orders_quarantine
+USING DELTA
+AS
+SELECT
+    CAST(NULL AS STRING) AS OrderID,
+    CAST(NULL AS STRING) AS CustomerID,
+    CAST(NULL AS STRING) AS OrderDate,
+    CAST(NULL AS STRING) AS Amount,
+    CAST(NULL AS STRING) AS rejection_reason,
+    CAST(NULL AS TIMESTAMP) AS quarantined_at
+WHERE 1 = 0;</code></pre></div>
+<p class="ref">A real quarantine schema should keep all relevant source columns <em>as received</em>, plus source metadata, batch ID, and error details.</p>
+<div class="code-wrap"><span class="lang">Python · assign a reason</span><pre class="code"><code>orders_classified_df = orders_typed_df.withColumn(
+    "rejection_reason",
+    F.when(F.col("OrderID").isNull(), "INVALID_ORDER_ID")
+     .when(F.col("CustomerID").isNull(), "MISSING_CUSTOMER_ID")
+     .when(F.col("OrderDate").isNull(), "INVALID_ORDER_DATE")
+     .when(F.col("Amount").isNull(), "INVALID_AMOUNT")
+     .when(F.col("Amount") &lt; 0, "NEGATIVE_AMOUNT")
+     .otherwise(None)
+)</code></pre></div>
+<div class="callout warn"><span class="label">Two writes aren't one transaction</span><p>Writing valid rows to Silver and invalid rows to quarantine are two separate table writes. If both must succeed or fail together, design an explicit transaction or orchestration strategy.</p></div>
+
+<h3 id="s11-3-8"><span class="num">11.3.8</span>Incremental Transformations</h3>
+<p>Incremental pipelines process new or changed records instead of recomputing all history. Approaches: process newly arrived files, filter by source update timestamp, use source-system change tracking, Change Data Feed (where enabled), Auto Loader, or a batch ledger.</p>
+<div class="code-wrap"><span class="lang">Python · teaching example</span><pre class="code"><code>incremental_df = (
+    spark.table("retail_dev.bronze.orders_raw")
+    .filter(
+        F.col("_ingested_at") &gt;=
+        F.lit("2026-10-25 00:00:00").cast("timestamp")
+    )
+)</code></pre></div>
+<div class="callout"><span class="label">Not a production watermark</span><p>A real watermark accounts for late-arriving data, retry windows, timestamp precision, and the difference between ingestion time and source update time. Store it in a persisted checkpoint or batch ledger instead of hard-coding it.</p></div>
+
+<!-- ===================== 11.4 ===================== -->
+<h2 id="s11-4"><span class="num">11.4</span>Gold Layer</h2>
+
+<h3 id="s11-4-1"><span class="num">11.4.1</span>What Is the Gold Layer?</h3>
+<p>Gold holds datasets designed for analysis and reporting, with clear business definitions, stable types, documented grain, and appropriate access controls.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Typical tables</span><pre class="code"><code>gold.dim_customer
+gold.dim_product
+gold.dim_date
+gold.fact_sales
+gold.daily_sales_summary
+gold.monthly_sales_summary</code></pre></div>
+<div class="card"><h4>Grain = what one row represents</h4><ul style="margin-bottom:0"><li><code>dim_customer</code>: one row per customer (or per version).</li><li><code>dim_product</code>: one row per product (or per version).</li><li><code>fact_sales</code>: one row per order line.</li><li><code>daily_sales_summary</code>: one row per date (plus any other dimensions).</li></ul></div>
+</div>
+<div class="callout key"><span class="label">Rule</span><p>Document the grain before you build a fact table.</p></div>
+
+<h3 id="s11-4-2"><span class="num">11.4.2</span>Fact Tables</h3>
+<p>A fact table stores measurable business events: sales transactions, order lines, payments, returns, inventory movements.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>OrderID</th><th>ProductID</th><th>CustomerID</th><th>OrderDate</th><th>Quantity</th><th>UnitPrice</th><th>SalesAmount</th></tr></thead>
+<tbody>
+<tr><td>1001</td><td>P001</td><td>C001</td><td>2026-10-01</td><td>2</td><td>500.00</td><td>1000.00</td></tr>
+<tr><td>1001</td><td>P002</td><td>C001</td><td>2026-10-01</td><td>1</td><td>500.00</td><td>500.00</td></tr>
+<tr><td>1002</td><td>P003</td><td>C002</td><td>2026-10-02</td><td>3</td><td>300.00</td><td>900.00</td></tr>
+</tbody></table></div>
+<p>One row per order line, with <code>SalesAmount = Quantity × UnitPrice</code>. If the source has discounts, taxes, returns, or other adjustments, the business definition of "sales" must handle them explicitly.</p>
+
+<h3 id="s11-4-3"><span class="num">11.4.3</span>Dimension Tables</h3>
+<p>Dimensions describe the entities you analyze facts by.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">gold.dim_customer</span><pre class="code"><code>CustomerKey    -- surrogate key
+CustomerID     -- business key
+CustomerName
+City
+Country</code></pre></div>
+<div class="code-wrap"><span class="lang">gold.dim_product</span><pre class="code"><code>ProductKey     -- surrogate key
+ProductID      -- business key
+ProductName
+Category
+Brand</code></pre></div>
+</div>
+<p>Surrogate keys are especially useful for <strong>Slowly Changing Dimensions</strong> (SCDs), such as tracking a customer's city changes over time. For a simple current-state model, one row per business key may be enough; for historical reporting, decide between Type 1 (overwrite) and Type 2 (keep history) behavior.</p>
+
+<h3 id="s11-4-4"><span class="num">11.4.4</span>Creating a Gold Fact Table</h3>
+<p>Assuming Silver has <code>orders</code>, <code>order_items</code>, <code>customers</code>, and <code>products</code>:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.fact_sales
+USING DELTA
+AS
+SELECT
+    oi.OrderID,
+    oi.ProductID,
+    o.CustomerID,
+    CAST(o.OrderDate AS DATE) AS OrderDate,
+    CAST(oi.Quantity AS BIGINT) AS Quantity,
+    CAST(oi.UnitPrice AS DECIMAL(18,2)) AS UnitPrice,
+    CAST(oi.Quantity * oi.UnitPrice AS DECIMAL(18,2)) AS SalesAmount
+FROM retail_dev.silver.order_items oi
+INNER JOIN retail_dev.silver.orders o
+    ON oi.OrderID = o.OrderID;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Validate before production</h4><ul style="margin-bottom:0"><li>OrderID is unique at the order grain.</li><li>Order items have the expected line grain.</li><li>The join doesn't multiply rows.</li><li>Quantity and price are valid.</li><li>Currency and discount rules are correct.</li></ul></div>
+<div class="callout warn" style="margin:0"><span class="label">CREATE OR REPLACE = full refresh</span><p>It rebuilds the whole table from the query. Fine for full refreshes, not for blindly maintaining large incremental production tables (use <code>MERGE</code> there; see 11.5.4).</p></div>
+</div>
+
+<h3 id="s11-4-5"><span class="num">11.4.5</span>Aggregated Tables</h3>
+<p>Aggregates make common reporting queries simpler and often faster.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.daily_sales_summary
+USING DELTA
+AS
+SELECT
+    OrderDate,
+    ProductID,
+    SUM(SalesAmount) AS TotalSales,
+    SUM(Quantity) AS TotalQuantity,
+    COUNT(DISTINCT OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales
+GROUP BY
+    OrderDate,
+    ProductID;</code></pre></div>
+<p class="ref">This groups by product ID; to group by category, join the product dimension and group by its category.</p>
+<div class="callout warn"><span class="label">Watch out for non-additive measures</span><p>Never average daily averages. Recalculate average selling price from total revenue ÷ total quantity. Likewise, <code>TotalOrders</code> (a distinct count) can't be summed across days or products.</p></div>
+
+<h3 id="s11-4-6"><span class="num">11.4.6</span>KPI Calculations</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Total sales
+SELECT SUM(SalesAmount) AS TotalSales
+FROM retail_dev.gold.fact_sales;
+
+-- Total quantity sold
+SELECT SUM(Quantity) AS TotalQuantitySold
+FROM retail_dev.gold.fact_sales;
+
+-- Number of orders
+SELECT COUNT(DISTINCT OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales;
+
+-- Average order value
+SELECT
+    SUM(SalesAmount) / NULLIF(COUNT(DISTINCT OrderID), 0) AS AverageOrderValue
+FROM retail_dev.gold.fact_sales;
+
+-- Sales by month
+SELECT
+    DATE_TRUNC('MONTH', OrderDate) AS SalesMonth,
+    SUM(SalesAmount) AS TotalSales
+FROM retail_dev.gold.fact_sales
+GROUP BY DATE_TRUNC('MONTH', OrderDate)
+ORDER BY SalesMonth;</code></pre></div>
+<p class="ref"><code>NULLIF(…, 0)</code> avoids division by zero. Every production KPI needs a written definition: does "sales" include tax, shipping, cancelled orders, returns, discounts?</p>
+
+<h3 id="s11-4-7"><span class="num">11.4.7</span>Reporting Views</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW retail_dev.gold.vw_sales_by_customer AS
+SELECT
+    c.CustomerID,
+    c.CustomerName,
+    c.City,
+    SUM(f.SalesAmount) AS TotalSales,
+    COUNT(DISTINCT f.OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales f
+INNER JOIN retail_dev.gold.dim_customer c
+    ON f.CustomerID = c.CustomerID
+GROUP BY
+    c.CustomerID,
+    c.CustomerName,
+    c.City;</code></pre></div>
+<p>Views give reporting a stable interface and avoid duplicated logic. A standard view doesn't store results; performance depends on the underlying tables and query plan.</p>
+
+<h3 id="s11-4-8"><span class="num">11.4.8</span>Power BI Integration</h3>
+<div class="grid-2">
+<pre class="diagram">Source CSV files
+       |
+       v
+Bronze Delta tables
+       |
+       v
+Silver Delta tables
+       |
+       v
+Gold facts and dimensions
+       |
+       v
+Databricks SQL warehouse
+       |
+       v
+Power BI semantic model
+       |
+       v
+Reports and dashboards</pre>
+<div class="card"><h4>Recommended practices</h4><ol style="margin-bottom:0"><li>Expose curated Gold tables and views.</li><li>Don't connect reports to Bronze without a specific reason.</li><li>Define fact–dimension relationships.</li><li>Keep KPI definitions consistent between Databricks and Power BI.</li><li>Give the BI identity appropriate permissions.</li><li>Choose Import or DirectQuery deliberately.</li><li>Monitor refreshes and query performance.</li><li>Don't expose sensitive data unnecessarily.</li></ol></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Mode</th><th>How it works</th><th>Trade-off</th></tr></thead>
+<tbody>
+<tr><td><strong>Import</strong></td><td>Data is loaded into the Power BI semantic model</td><td>Fast queries, but data is only as fresh as the last refresh</td></tr>
+<tr><td><strong>DirectQuery</strong></td><td>Power BI sends queries to Databricks</td><td>Fresher data; performance depends on the warehouse, caching, and connector</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Practical starting point</span><p>A well-designed Gold model + a Databricks SQL warehouse + Power BI Import mode suits many reporting solutions. Adjust for data volume, freshness, concurrency, and cost.</p></div>
+
+<!-- ===================== 11.5 ===================== -->
+<h2 id="s11-5"><span class="num">11.5</span>Pipeline Design</h2>
+<p class="section-intro">A correct transformation is only part of a production pipeline. It must also manage dependencies, retries, reprocessing, and failure recovery.</p>
+
+<h3 id="s11-5-1"><span class="num">11.5.1</span>Bronze-to-Silver Transformations</h3>
+<div class="card"><h4>Typical steps</h4><ol class="steps">
+<li>Read new or changed Bronze data.</li>
+<li>Validate the source schema.</li>
+<li>Normalize strings and null values.</li>
+<li>Convert data types.</li>
+<li>Detect duplicate business keys.</li>
+<li>Apply deterministic deduplication.</li>
+<li>Validate relationships and business rules.</li>
+<li>Write valid records to Silver.</li>
+<li>Write rejected records to quarantine.</li>
+<li>Record batch metrics and status.</li>
+</ol></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+bronze_orders_df = spark.table("retail_dev.bronze.orders_raw")
+
+typed_orders_df = (
+    bronze_orders_df
+    .withColumn("OrderID", F.expr("try_cast(OrderID AS BIGINT)"))
+    .withColumn("CustomerID", F.trim(F.col("CustomerID")))
+    .withColumn("OrderDate", F.expr("try_cast(OrderDate AS DATE)"))
+    .withColumn("Amount", F.expr("try_cast(Amount AS DECIMAL(18,2))"))
+)
+
+classified_orders_df = typed_orders_df.withColumn(
+    "rejection_reason",
+    F.when(F.col("OrderID").isNull(), "INVALID_ORDER_ID")
+     .when(F.col("CustomerID").isNull(), "MISSING_CUSTOMER_ID")
+     .when(F.col("OrderDate").isNull(), "INVALID_ORDER_DATE")
+     .when(F.col("Amount").isNull(), "INVALID_AMOUNT")
+     .when(F.col("Amount") &lt; 0, "NEGATIVE_AMOUNT")
+     .otherwise(None)
+)
+
+valid_orders_df = classified_orders_df.filter(F.col("rejection_reason").isNull())
+invalid_orders_df = classified_orders_df.filter(F.col("rejection_reason").isNotNull())</code></pre></div>
+<p class="ref">Next, write both outputs using a defined retry and audit strategy.</p>
+
+<h3 id="s11-5-2"><span class="num">11.5.2</span>Silver-to-Gold Transformations</h3>
+<div class="grid-2">
+<div class="card"><h4>Typical steps</h4><ol style="margin-bottom:0"><li>Read validated orders and order items.</li><li>Join to validated customers and products where required.</li><li>Enforce the intended grain.</li><li>Calculate measures such as sales amount.</li><li>Generate or look up dimension keys.</li><li>Apply business-specific rules.</li><li>Write fact and dimension tables.</li><li>Recalculate affected aggregates.</li><li>Run reconciliation checks.</li></ol></div>
+<div class="callout warn" style="margin:0"><span class="label">Protect the grain</span><p>If the fact is at order-line level, a one-to-many join must never produce multiple fact rows for one order line.</p></div>
+</div>
+
+<h3 id="s11-5-3"><span class="num">11.5.3</span>Dependency Management</h3>
+<pre class="diagram">Ingest Customers   --&gt; Clean Customers   --+
+Ingest Products    --&gt; Clean Products    --+
+Ingest Orders      --&gt; Clean Orders      --+--&gt; Build Fact Sales
+Ingest Order Items --&gt; Clean Order Items --+          |
+                                                      v
+                                            Build Sales Summary
+                                                      |
+                                                      v
+                                              Refresh Power BI</pre>
+<p>The fact-building task mustn't start until every required Silver dataset is ready. <strong>Lakeflow Jobs</strong> (formerly Databricks Workflows, covered in Chapter 14) orchestrate tasks with explicit dependencies: ingestion, data-quality validation, transformation, reconciliation, notification, and downstream refresh tasks. Configure dependencies explicitly instead of relying on manual run order.</p>
+
+<h3 id="s11-5-4"><span class="num">11.5.4</span>Idempotent Processing</h3>
+<p>An operation is <strong>idempotent</strong> when repeating it with the same inputs produces the same intended final result.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Run</th><th>Rows for OrderID 1001</th></tr></thead>
+<tbody><tr><td>After run 1 (append)</td><td>1</td></tr><tr><td>After run 2 (same file appended)</td><td>2 ✗</td></tr><tr><td>After run 2 (MERGE on OrderID)</td><td>1 ✓</td></tr></tbody></table></div>
+<div class="card"><h4>Ways to achieve idempotency</h4><ul style="margin-bottom:0"><li>Track processed files and batches.</li><li>Use a stable source record identifier.</li><li>Deduplicate by business key and ordering rule.</li><li>Use Delta <code>MERGE</code> to insert new and update changed records.</li><li>Replace a well-defined partition when reprocessing it.</li><li>Make aggregates deterministic.</li><li>Persist checkpoints and status.</li></ul></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO retail_dev.silver.customers AS target
+USING retail_dev.silver.customers_staging AS source
+ON target.CustomerID = source.CustomerID
+
+WHEN MATCHED THEN UPDATE SET
+    target.CustomerName = source.CustomerName,
+    target.Email = source.Email,
+    target.City = source.City
+
+WHEN NOT MATCHED THEN INSERT (
+    CustomerID, CustomerName, Email, City
+)
+VALUES (
+    source.CustomerID, source.CustomerName, source.Email, source.City
+);</code></pre></div>
+<div class="callout warn"><span class="label">MERGE isn't automatically safe</span><p>It needs a proper match key and exactly one source row per key. Deduplicate the source first, or the merge fails with multiple matching source rows (Chapter 9). Handle source deletions explicitly if they occur.</p></div>
+
+<h3 id="s11-5-5"><span class="num">11.5.5</span>Restartability</h3>
+<div class="grid-2">
+<pre class="diagram">Task 1: Ingest customers    ✓
+Task 2: Ingest products     ✓
+Task 3: Ingest orders       ✓
+Task 4: Build fact sales    ✓
+Task 5: Build sales summary ✗ failed
+
+-&gt; rerun Task 5 only</pre>
+<div class="card"><h4>A restartable design</h4><ul style="margin-bottom:0"><li>Persists completed Bronze data.</li><li>Makes each transformation repeatable.</li><li>Tracks task and batch status.</li><li>Stores metadata identifying the failed stage.</li><li>Supports rerunning failed tasks.</li><li>Avoids publishing incomplete Gold data.</li><li>Ensures retries don't duplicate records.</li></ul></div>
+</div>
+<p class="ref">Restartability means a pipeline can resume or rerun after failure without corrupting data. The right restart boundary depends on the source, transformation, and write strategy.</p>
+
+<h3 id="s11-5-6"><span class="num">11.5.6</span>Reprocessing Historical Data</h3>
+<p>Needed when a business rule changes, source data is corrected, a conversion defect is fixed, columns are added, history was missing, or a reporting definition changes. Parameterize the processing range:</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>start_date = "2026-10-01"
+end_date = "2026-10-25"
+
+orders_to_reprocess_df = (
+    spark.table("retail_dev.silver.orders")
+    .filter(
+        (F.col("OrderDate") &gt;= F.lit(start_date).cast("date"))
+        &amp; (F.col("OrderDate") &lt;= F.lit(end_date).cast("date"))
+    )
+)</code></pre></div>
+<p class="ref">This only selects existing Silver records. A real reprocessing pipeline reads the authoritative source, recalculates, and identifies every dependent fact, dimension, aggregate, and report that must be rebuilt. In a job, pass the dates as job parameters (Chapter 14).</p>
+
+<h3 id="s11-5-7"><span class="num">11.5.7</span>Error Recovery</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Error</th><th>Example response</th></tr></thead>
+<tbody>
+<tr><td>Temporary network failure</td><td>Retry with backoff</td></tr>
+<tr><td>Temporary service unavailability</td><td>Retry within configured limits</td></tr>
+<tr><td>Invalid source file</td><td>Quarantine or reject the file</td></tr>
+<tr><td>Unexpected schema change</td><td>Fail validation and notify the owner</td></tr>
+<tr><td>Invalid individual record</td><td>Quarantine the record</td></tr>
+<tr><td>Missing critical business key</td><td>Reject or fail according to policy</td></tr>
+<tr><td>Duplicate source keys in a merge</td><td>Deduplicate deterministically or fail</td></tr>
+<tr><td>Target permission failure</td><td>Stop and notify the administrator</td></tr>
+<tr><td>Insufficient storage</td><td>Stop processing and alert the owner</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Diagnostic fields</span><pre class="code"><code>pipeline_run_id
+task_name
+batch_id
+source_file
+target_table
+error_type
+error_message
+attempt_number
+start_time
+end_time</code></pre></div>
+<div>
+<div class="callout warn"><span class="label">Don't retry everything</span><p>Retrying a permanent schema or permission problem won't fix it; it just delays the alert.</p></div>
+<div class="callout warn" style="margin-bottom:0"><span class="label">Keep logs clean</span><p>Never log passwords, access tokens, or sensitive personal information.</p></div>
+</div>
+</div>
+
+<!-- ===================== 11.6 ===================== -->
+<h2 id="s11-6"><span class="num">11.6</span>Hands-On Project: Retail Medallion Pipeline</h2>
+
+<h3 id="s11-6-1"><span class="num">11.6.1</span>Objective and Technology Stack</h3>
+<p>Build an end-to-end retail pipeline: ingest CSV files, preserve raw records in Bronze, clean and validate in Silver, and publish business-ready Gold tables for Power BI.</p>
+<pre class="diagram">customers.csv   -&gt; Bronze customers   -&gt; Silver customers   --+
+products.csv    -&gt; Bronze products    -&gt; Silver products    --+
+orders.csv      -&gt; Bronze orders      -&gt; Silver orders      --+--&gt; Gold fact_sales
+order_items.csv -&gt; Bronze order items -&gt; Silver order items --+         |
+                                                                       v
+                                                              Gold sales summary
+                                                                       |
+                                                                       v
+                                                                   Power BI</pre>
+<div class="grid-2">
+<div class="card"><h4>Stack</h4><ul style="margin-bottom:0"><li>Azure Databricks or another Databricks environment.</li><li>PySpark and Delta Lake.</li><li>Unity Catalog, where available.</li><li>Lakeflow Jobs (Workflows).</li><li>Databricks SQL.</li><li>Power BI.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Before you start</span><p>The code assumes Unity Catalog and a volume for source files. If you can't create the <code>retail_dev</code> catalog (common on Free Edition), use an existing catalog you own, e.g. <code>workspace</code>, and replace <code>retail_dev</code> throughout.</p></div>
+</div>
+
+<h3 id="s11-6-3"><span class="num">11.6.3</span>Step 1: Prepare the Source Data</h3>
+<p>Create four CSV files.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">customers.csv</span><pre class="code"><code>CustomerID,CustomerName,Email,City
+C001,Ravi,ravi@example.com,Hyderabad
+C002,Priya,priya@example.com,Chennai
+C003,Arun,arun@example.com,Bengaluru
+C004,Meena,meena@example.com,Hyderabad
+C004,Meena,meena@example.com,Hyderabad</code></pre></div>
+<div class="code-wrap"><span class="lang">products.csv</span><pre class="code"><code>ProductID,ProductName,Category,UnitPrice
+P001,Laptop,Electronics,55000.00
+P002,Mouse,Accessories,800.00
+P003,Keyboard,Accessories,1500.00
+P004,Monitor,Electronics,12000.00</code></pre></div>
+<div class="code-wrap"><span class="lang">orders.csv</span><pre class="code"><code>OrderID,CustomerID,OrderDate,OrderStatus
+1001,C001,2026-10-01,Completed
+1002,C002,2026-10-02,Completed
+1003,C003,2026-10-03,Pending
+1004,C001,INVALID,Completed</code></pre></div>
+<div class="code-wrap"><span class="lang">order_items.csv</span><pre class="code"><code>OrderID,ProductID,Quantity,UnitPrice
+1001,P001,1,55000.00
+1001,P002,2,800.00
+1002,P003,1,1500.00
+1003,P004,2,12000.00
+1004,P002,1,800.00</code></pre></div>
+</div>
+<p class="ref">Planted problems: the last two customer rows are duplicates, and order 1004 has an invalid date. Together the files exercise ingestion, deduplication, validation, joins, and aggregation.</p>
+
+<h4>Step 2: Create the schemas and a landing volume</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
+CREATE SCHEMA IF NOT EXISTS retail_dev.silver;
+CREATE SCHEMA IF NOT EXISTS retail_dev.gold;
+
+CREATE VOLUME IF NOT EXISTS retail_dev.bronze.landing;</code></pre></div>
+<p>Upload the four files (Catalog Explorer → the volume → <strong>Upload to this volume</strong>):</p>
+<div class="code-wrap"><span class="lang">Paths</span><pre class="code"><code>/Volumes/retail_dev/bronze/landing/customers.csv
+/Volumes/retail_dev/bronze/landing/products.csv
+/Volumes/retail_dev/bronze/landing/orders.csv
+/Volumes/retail_dev/bronze/landing/order_items.csv</code></pre></div>
+<p class="ref">In production, a separate landing volume or schema is often preferable. Keep landing-file and table permissions aligned with security requirements.</p>
+
+<h4>Step 3: Ingest all files into Bronze</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+
+landing_path = "/Volumes/retail_dev/bronze/landing"
+
+def ingest_csv_to_bronze(file_name, table_name, batch_id):
+    source_path = f"{landing_path}/{file_name}"
+
+    source_df = (
+        spark.read
+        .option("header", True)
+        .option("inferSchema", False)
+        .csv(source_path)
+    )
+
+    bronze_df = (
+        source_df
+        .withColumn("_source_file", F.col("_metadata.file_path"))
+        .withColumn("_ingested_at", F.current_timestamp())
+        .withColumn("_source_system", F.lit("RETAIL_CSV"))
+        .withColumn("_batch_id", F.lit(batch_id))
+    )
+
+    (
+        bronze_df.write
+        .format("delta")
+        .mode("append")
+        .saveAsTable(table_name)
+    )
+
+    print(f"Ingested {file_name} into {table_name}")
+
+
+batch_id = "retail_batch_20261025_001"
+
+ingest_csv_to_bronze("customers.csv",   "retail_dev.bronze.customers_raw",   batch_id)
+ingest_csv_to_bronze("products.csv",    "retail_dev.bronze.products_raw",    batch_id)
+ingest_csv_to_bronze("orders.csv",      "retail_dev.bronze.orders_raw",      batch_id)
+ingest_csv_to_bronze("order_items.csv", "retail_dev.bronze.order_items_raw", batch_id)</code></pre></div>
+<div class="callout warn"><span class="label">Exercise limitation: run it once</span><p>This function appends every time, so it isn't idempotent yet. A second run doubles every Bronze table. If that happens, run <code>DROP TABLE</code> on the four <code>_raw</code> tables and ingest again. Chapter 12 fixes this properly with Auto Loader and <code>COPY INTO</code>, which track processed files.</p></div>
+
+<h4>Step 4: Validate Bronze ingestion</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT 'customers' AS source_name, COUNT(*) AS row_count
+FROM retail_dev.bronze.customers_raw
+UNION ALL
+SELECT 'products', COUNT(*) FROM retail_dev.bronze.products_raw
+UNION ALL
+SELECT 'orders', COUNT(*) FROM retail_dev.bronze.orders_raw
+UNION ALL
+SELECT 'order_items', COUNT(*) FROM retail_dev.bronze.order_items_raw;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Expected rows</th></tr></thead>
+<tbody><tr><td>customers_raw</td><td>5</td></tr><tr><td>products_raw</td><td>4</td></tr><tr><td>orders_raw</td><td>4</td></tr><tr><td>order_items_raw</td><td>5</td></tr></tbody></table></div>
+<p>Run <code>SELECT * FROM retail_dev.bronze.customers_raw;</code> and confirm the duplicate customer and invalid order date are still visible in Bronze.</p>
+
+<h3 id="s11-6-7"><span class="num">11.6.7</span>Step 5: Clean Customers into Silver</h3>
+<p>Trim strings, normalize email and city, and remove duplicate customer IDs with a deterministic rule.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
+from pyspark.sql import Window
+
+customers_bronze_df = spark.table("retail_dev.bronze.customers_raw")
+
+customers_clean_df = (
+    customers_bronze_df
+    .withColumn("CustomerID", F.trim(F.col("CustomerID")))
+    .withColumn("CustomerName", F.trim(F.col("CustomerName")))
+    .withColumn("Email", F.lower(F.trim(F.col("Email"))))
+    .withColumn("City", F.initcap(F.trim(F.col("City"))))
+)
+
+customer_window = (
+    Window
+    .partitionBy("CustomerID")
+    .orderBy(
+        F.col("_ingested_at").desc(),
+        F.col("_source_file").desc()
+    )
+)
+
+customers_dedup_df = (
+    customers_clean_df
+    .withColumn("_rn", F.row_number().over(customer_window))
+    .filter(F.col("_rn") == 1)
+    .drop("_rn")
+)
+
+valid_customers_df = customers_dedup_df.filter(
+    F.col("CustomerID").isNotNull()
+    &amp; (F.col("CustomerID") != "")
+    &amp; F.col("CustomerName").isNotNull()
+    &amp; (F.col("CustomerName") != "")
+)
+
+(
+    valid_customers_df.write
+    .format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("retail_dev.silver.customers")
+)</code></pre></div>
+<p class="ref">Here the duplicate rows are identical (same batch, same file), so either one may win. In production, order by a source update timestamp or another approved tie-breaker. This is a full refresh from Bronze, and keeping customer history would need a different (SCD) design.</p>
+<div class="code-wrap"><span class="lang">SQL · validate</span><pre class="code"><code>SELECT CustomerID, COUNT(*) AS record_count
+FROM retail_dev.silver.customers
+GROUP BY CustomerID
+HAVING COUNT(*) &gt; 1;
+-- Expected: no rows (silver.customers has 4 customers)</code></pre></div>
+
+<h4>Step 6: Clean products into Silver</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_bronze_df = spark.table("retail_dev.bronze.products_raw")
+
+products_clean_df = (
+    products_bronze_df
+    .withColumn("ProductID", F.trim(F.col("ProductID")))
+    .withColumn("ProductName", F.trim(F.col("ProductName")))
+    .withColumn("Category", F.initcap(F.trim(F.col("Category"))))
+    .withColumn("UnitPrice", F.expr("try_cast(UnitPrice AS DECIMAL(18,2))"))
+)
+
+valid_products_df = products_clean_df.filter(
+    F.col("ProductID").isNotNull()
+    &amp; (F.col("ProductID") != "")
+    &amp; F.col("ProductName").isNotNull()
+    &amp; (F.col("ProductName") != "")
+    &amp; F.col("UnitPrice").isNotNull()
+    &amp; (F.col("UnitPrice") &gt;= 0)
+)
+
+(
+    valid_products_df.dropDuplicates(["ProductID"])
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("retail_dev.silver.products")
+)</code></pre></div>
+<p class="ref">Product IDs are unique in this sample. In production, use a deterministic rule if duplicate IDs carry conflicting attributes.</p>
+
+<h4>Step 7: Clean orders into Silver</h4>
+<p>Parse the date safely, classify invalid records, and keep the original date text so quarantined rows show what was received.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_bronze_df = spark.table("retail_dev.bronze.orders_raw")
+
+orders_typed_df = (
+    orders_bronze_df
+    .withColumn("OrderDateRaw", F.col("OrderDate"))          # keep source text
+    .withColumn("OrderID", F.expr("try_cast(OrderID AS BIGINT)"))
+    .withColumn("CustomerID", F.trim(F.col("CustomerID")))
+    .withColumn("OrderDate", F.expr("try_to_date(OrderDate, 'yyyy-MM-dd')"))
+    .withColumn("OrderStatus", F.upper(F.trim(F.col("OrderStatus"))))
+)
+
+orders_classified_df = orders_typed_df.withColumn(
+    "rejection_reason",
+    F.when(F.col("OrderID").isNull(), "INVALID_ORDER_ID")
+     .when(F.col("CustomerID").isNull(), "MISSING_CUSTOMER_ID")
+     .when(F.col("OrderDate").isNull(), "INVALID_ORDER_DATE")
+     .otherwise(None)
+)
+
+valid_orders_df = orders_classified_df.filter(F.col("rejection_reason").isNull())
+invalid_orders_df = orders_classified_df.filter(F.col("rejection_reason").isNotNull())
+
+# Valid orders -&gt; Silver
+(
+    valid_orders_df.drop("rejection_reason", "OrderDateRaw")
+    .dropDuplicates(["OrderID"])
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("retail_dev.silver.orders")
+)
+
+# Invalid orders -&gt; quarantine (full refresh, like the rest of this exercise)
+(
+    invalid_orders_df
+    .select("OrderID", "CustomerID", "OrderDateRaw", "OrderStatus",
+            "rejection_reason", "_source_file", "_batch_id")
+    .withColumn("quarantined_at", F.current_timestamp())
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("retail_dev.silver.orders_rejected")
+)
+
+display(spark.table("retail_dev.silver.orders_rejected"))</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>OrderID</th><th>CustomerID</th><th>OrderDateRaw</th><th>OrderStatus</th><th>rejection_reason</th></tr></thead>
+<tbody><tr><td>1004</td><td>C001</td><td>INVALID</td><td>COMPLETED</td><td>INVALID_ORDER_DATE</td></tr></tbody></table></div>
+<div class="callout warn"><span class="label">Why try_to_date, not to_date</span><p>With <code>F.to_date(...)</code>, the "INVALID" date crashes this step in ANSI mode instead of being rejected. Verified: <code>to_date</code> raised <code>CANNOT_PARSE_TIMESTAMP</code>, and <code>try_to_date</code> produced the single rejected row above.</p></div>
+<p class="ref">The quarantine table is named <code>orders_rejected</code> so it doesn't clash with the differently-typed <code>orders_quarantine</code> example in 11.3.7.</p>
+
+<h4>Step 8: Clean order items into Silver</h4>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_items_bronze_df = spark.table("retail_dev.bronze.order_items_raw")
+
+order_items_typed_df = (
+    order_items_bronze_df
+    .withColumn("OrderID", F.expr("try_cast(OrderID AS BIGINT)"))
+    .withColumn("ProductID", F.trim(F.col("ProductID")))
+    .withColumn("Quantity", F.expr("try_cast(Quantity AS INT)"))
+    .withColumn("UnitPrice", F.expr("try_cast(UnitPrice AS DECIMAL(18,2))"))
+)
+
+valid_order_items_df = order_items_typed_df.filter(
+    F.col("OrderID").isNotNull()
+    &amp; F.col("ProductID").isNotNull()
+    &amp; (F.col("ProductID") != "")
+    &amp; F.col("Quantity").isNotNull()
+    &amp; (F.col("Quantity") &gt; 0)
+    &amp; F.col("UnitPrice").isNotNull()
+    &amp; (F.col("UnitPrice") &gt;= 0)
+)
+
+(
+    valid_order_items_df.write
+    .format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("retail_dev.silver.order_items")
+)</code></pre></div>
+<p class="ref">There's no explicit order-line ID here. A production order-items table should have a stable line identifier or a clearly defined composite key.</p>
+
+<h4>Step 9: Validate relationships</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- 1. Orders referencing unknown customers
+SELECT o.*
+FROM retail_dev.silver.orders o
+LEFT ANTI JOIN retail_dev.silver.customers c
+    ON o.CustomerID = c.CustomerID;
+-- Expected: no rows
+
+-- 2. Order items referencing unknown orders
+SELECT oi.*
+FROM retail_dev.silver.order_items oi
+LEFT ANTI JOIN retail_dev.silver.orders o
+    ON oi.OrderID = o.OrderID;
+-- Expected: ONE row (OrderID 1004, P002)
+
+-- 3. Order items referencing unknown products
+SELECT oi.*
+FROM retail_dev.silver.order_items oi
+LEFT ANTI JOIN retail_dev.silver.products p
+    ON oi.ProductID = p.ProductID;
+-- Expected: no rows</code></pre></div>
+<div class="callout key"><span class="label">Read check 2 carefully</span><p>Order 1004 was rejected in Step 7, but its order item (1004, P002, qty 1) is still valid on its own, so it now points to an order that isn't in Silver. This is exactly the kind of orphan the check exists to catch. The Step 11 inner join will silently drop it, so record it, either by quarantining it or under an approved "unknown member" strategy, rather than letting it vanish.</p></div>
+
+<h3 id="s11-6-12"><span class="num">11.6.12</span>Step 10: Create Gold Dimensions</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.dim_customer
+USING DELTA
+AS
+SELECT CustomerID, CustomerName, Email, City
+FROM retail_dev.silver.customers;
+
+CREATE OR REPLACE TABLE retail_dev.gold.dim_product
+USING DELTA
+AS
+SELECT ProductID, ProductName, Category, UnitPrice
+FROM retail_dev.silver.products;</code></pre></div>
+<p class="ref">Simple current-state dimensions on business keys. Larger models add surrogate keys, SCD handling, a date dimension, and an unknown-member strategy.</p>
+
+<h4>Step 11: Create the Gold fact table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.fact_sales
+USING DELTA
+AS
+SELECT
+    o.OrderID,
+    oi.ProductID,
+    o.CustomerID,
+    o.OrderDate,
+    oi.Quantity,
+    oi.UnitPrice,
+    CAST(oi.Quantity * oi.UnitPrice AS DECIMAL(18,2)) AS SalesAmount,
+    o.OrderStatus
+FROM retail_dev.silver.orders o
+INNER JOIN retail_dev.silver.order_items oi
+    ON o.OrderID = oi.OrderID;</code></pre></div>
+<p>One row per order line. Order 1004 is absent because it was rejected in Silver (and its orphaned item is dropped by the join, as flagged in Step 9).</p>
+
+<h4>Step 12: Create Gold reporting aggregates</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.daily_sales_summary
+USING DELTA
+AS
+SELECT
+    OrderDate,
+    SUM(SalesAmount) AS TotalSales,
+    SUM(Quantity) AS TotalQuantity,
+    COUNT(DISTINCT OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales
+WHERE OrderStatus = 'COMPLETED'
+GROUP BY OrderDate;
+
+CREATE OR REPLACE VIEW retail_dev.gold.vw_sales_by_category AS
+SELECT
+    p.Category,
+    SUM(f.SalesAmount) AS TotalSales,
+    SUM(f.Quantity) AS TotalQuantity,
+    COUNT(DISTINCT f.OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales f
+INNER JOIN retail_dev.gold.dim_product p
+    ON f.ProductID = p.ProductID
+WHERE f.OrderStatus = 'COMPLETED'
+GROUP BY p.Category;</code></pre></div>
+<p class="ref">Excluding pending orders is a business decision. If the company recognizes sales at shipment, invoice, or payment, the filter should reflect that. <code>'COMPLETED'</code> is uppercase because Step 7 normalized the status.</p>
+
+<h4>Step 13: Validate Gold results</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT * FROM retail_dev.gold.fact_sales ORDER BY OrderID, ProductID;
+
+SELECT SUM(SalesAmount) AS TotalCompletedSales
+FROM retail_dev.gold.fact_sales
+WHERE OrderStatus = 'COMPLETED';
+
+-- Reconciliation
+SELECT
+    COUNT(*) AS FactRows,
+    SUM(SalesAmount) AS TotalSales,
+    SUM(Quantity) AS TotalQuantity,
+    COUNT(DISTINCT OrderID) AS TotalOrders
+FROM retail_dev.gold.fact_sales;</code></pre></div>
+<p>Expected results (verified by running the pipeline):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>OrderID</th><th>ProductID</th><th>CustomerID</th><th>OrderDate</th><th>Quantity</th><th>UnitPrice</th><th>SalesAmount</th><th>OrderStatus</th></tr></thead>
+<tbody>
+<tr><td>1001</td><td>P001</td><td>C001</td><td>2026-10-01</td><td>1</td><td>55000.00</td><td>55000.00</td><td>COMPLETED</td></tr>
+<tr><td>1001</td><td>P002</td><td>C001</td><td>2026-10-01</td><td>2</td><td>800.00</td><td>1600.00</td><td>COMPLETED</td></tr>
+<tr><td>1002</td><td>P003</td><td>C002</td><td>2026-10-02</td><td>1</td><td>1500.00</td><td>1500.00</td><td>COMPLETED</td></tr>
+<tr><td>1003</td><td>P004</td><td>C003</td><td>2026-10-03</td><td>2</td><td>12000.00</td><td>24000.00</td><td>PENDING</td></tr>
+</tbody></table></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Completed order</th><th>Calculation</th><th>Amount</th></tr></thead>
+<tbody>
+<tr><td>1001</td><td>1 × 55,000 + 2 × 800</td><td>56,600.00</td></tr>
+<tr><td>1002</td><td>1 × 1,500</td><td>1,500.00</td></tr>
+<tr><td><strong>Total</strong></td><td></td><td><strong>58,100.00</strong></td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Reconciliation (all statuses)</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>FactRows</td><td>4</td></tr>
+<tr><td>TotalSales</td><td>82,100.00</td></tr>
+<tr><td>TotalQuantity</td><td>6</td></tr>
+<tr><td>TotalOrders</td><td>3</td></tr>
+</tbody></table></div>
+</div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>daily_sales_summary</th><th>TotalSales</th><th>Qty</th><th>Orders</th></tr></thead>
+<tbody><tr><td>2026-10-01</td><td>56,600.00</td><td>3</td><td>1</td></tr><tr><td>2026-10-02</td><td>1,500.00</td><td>1</td><td>1</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>vw_sales_by_category</th><th>TotalSales</th><th>Qty</th><th>Orders</th></tr></thead>
+<tbody><tr><td>Electronics</td><td>55,000.00</td><td>1</td><td>1</td></tr><tr><td>Accessories</td><td>3,100.00</td><td>3</td><td>2</td></tr></tbody></table></div>
+</div>
+<div class="callout"><span class="label">Reconcile end to end</span><p>Source → Gold: 4 orders received, 1 rejected (1004) → 3 orders in the fact. 5 order items received, 1 orphaned (1004/P002) → 4 fact rows. Order 1003 (24,000) is in the fact but excluded from the completed KPI. Every row is accounted for, which is what a production reconciliation should prove.</p></div>
+
+<h3 id="s11-6-16"><span class="num">11.6.16</span>Step 14: Connect Power BI</h3>
+<div class="grid-2">
+<div class="card"><h4>In Power BI Desktop</h4><ol class="steps">
+<li>Select <strong>Get Data</strong>.</li>
+<li>Choose the <strong>Azure Databricks</strong> connector.</li>
+<li>Enter the SQL warehouse's server hostname and HTTP path (warehouse → <strong>Connection details</strong>).</li>
+<li>Authenticate with an approved method.</li>
+<li>Select the catalog and schema.</li>
+<li>Import or query the Gold tables and views.</li>
+<li>Build the semantic model and relationships.</li>
+<li>Create measures and visuals.</li>
+<li>Publish the report.</li>
+<li>Configure refresh and monitoring.</li>
+</ol></div>
+<div>
+<div class="code-wrap"><span class="lang">Gold objects</span><pre class="code"><code>retail_dev.gold.dim_customer
+retail_dev.gold.dim_product
+retail_dev.gold.fact_sales
+retail_dev.gold.daily_sales_summary
+retail_dev.gold.vw_sales_by_category</code></pre></div>
+<div class="code-wrap"><span class="lang">DAX</span><pre class="code"><code>Total Sales =
+SUM ( fact_sales[SalesAmount] )
+
+Total Quantity =
+SUM ( fact_sales[Quantity] )
+
+Total Orders =
+DISTINCTCOUNT ( fact_sales[OrderID] )
+
+Average Order Value =
+DIVIDE ( [Total Sales], [Total Orders] )</code></pre></div>
+</div>
+</div>
+<div class="callout warn"><span class="label">Count orders, not lines</span><p><code>fact_sales</code> has several lines per order (1001 has two), so <code>DISTINCTCOUNT</code> is essential. A row count gives 4 "orders" instead of 3.</p></div>
+
+<h4>Step 15: Orchestrate the pipeline</h4>
+<p>Create a Lakeflow Job (Workflow) with tasks like these. You'll build one properly in Chapter 14.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Responsibility</th><th>Depends on</th></tr></thead>
+<tbody>
+<tr><td><code>ingest_customers</code></td><td>Load customer CSV</td><td>None</td></tr>
+<tr><td><code>ingest_products</code></td><td>Load product CSV</td><td>None</td></tr>
+<tr><td><code>ingest_orders</code></td><td>Load order CSV</td><td>None</td></tr>
+<tr><td><code>ingest_order_items</code></td><td>Load order-item CSV</td><td>None</td></tr>
+<tr><td><code>validate_bronze</code></td><td>Validate files and counts</td><td>All ingestion tasks</td></tr>
+<tr><td><code>transform_customers</code></td><td>Build Silver customers</td><td><code>validate_bronze</code></td></tr>
+<tr><td><code>transform_products</code></td><td>Build Silver products</td><td><code>validate_bronze</code></td></tr>
+<tr><td><code>transform_orders</code></td><td>Build Silver orders</td><td><code>validate_bronze</code></td></tr>
+<tr><td><code>transform_order_items</code></td><td>Build Silver order items</td><td><code>validate_bronze</code></td></tr>
+<tr><td><code>validate_silver</code></td><td>Validate keys and relationships</td><td>All Silver tasks</td></tr>
+<tr><td><code>build_gold</code></td><td>Build dimensions and fact</td><td><code>validate_silver</code></td></tr>
+<tr><td><code>build_aggregates</code></td><td>Build reporting tables</td><td><code>build_gold</code></td></tr>
+<tr><td><code>reconcile_gold</code></td><td>Validate counts and totals</td><td><code>build_aggregates</code></td></tr>
+</tbody></table></div>
+<div class="card"><h4>For production, configure</h4><ul style="margin-bottom:0"><li>Retry policies for transient failures.</li><li>Maximum task duration.</li><li>Failure notifications.</li><li>Job parameters such as processing date and batch ID.</li><li>Run history and audit records.</li><li>Permissions for the job's execution identity (a service principal; see Chapter 10).</li><li>A defined process for backfills and historical corrections.</li></ul><p style="margin:8px 0 0">The pipeline should fail clearly when critical validation checks fail.</p></div>
+
+<!-- ===================== 11.7 ===================== -->
+<h2 id="s11-7"><span class="num">11.7</span>Production Best Practices</h2>
+<div class="grid-2">
+<div class="card"><h4>1. Naming conventions</h4>
+<pre class="diagram" style="margin:0">bronze.customers_raw
+bronze.orders_raw
+silver.customers
+silver.orders
+gold.dim_customer
+gold.dim_product
+gold.fact_sales
+gold.daily_sales_summary</pre>
+<p style="margin:8px 0 0">Don't mix raw and curated datasets in one schema without a clear reason.</p></div>
+<div class="card"><h4>2. Metadata standards</h4><p><strong>Bronze:</strong> <code>_source_system</code>, <code>_source_file</code>, <code>_ingested_at</code>, <code>_batch_id</code>, <code>_pipeline_run_id</code></p><p><strong>Silver/Gold:</strong> <code>_created_at</code>, <code>_updated_at</code>, <code>_record_status</code>, <code>_source_updated_at</code></p><p style="margin-bottom:0">Only include columns with a clear operational or business purpose.</p></div>
+<div class="card"><h4>3. Data-quality rules</h4><ul style="margin-bottom:0"><li>Customer IDs can't be null.</li><li>Product IDs unique at the chosen grain.</li><li>Order dates valid; quantities positive; prices nonnegative.</li><li>Order items reference valid products and orders.</li><li>Sales totals reconcile within tolerance.</li></ul><p style="margin:8px 0 0">Count failures, and decide whether each rule warns, quarantines, or fails.</p></div>
+<div class="card"><h4>4. Performance</h4><ul style="margin-bottom:0"><li>Select only required columns; filter early when safe.</li><li>Avoid unnecessary shuffles; inspect plans.</li><li>Prefer incremental over repeated full rebuilds.</li><li>Use Delta maintenance based on measured query patterns.</li><li>Right-size compute; watch for skew and small files.</li><li>Don't partition every table automatically.</li></ul></div>
+<div class="card"><h4>5. Security and governance</h4><ul style="margin-bottom:0"><li>Grant consumers Gold, not raw data, by default.</li><li>Least privilege; restrict sensitive fields.</li><li>Masks and row filters where needed.</li><li>No credentials in notebooks or code.</li><li>Managed identities / service principals.</li><li>Review audit logs; define retention and deletion.</li></ul></div>
+<div class="card"><h4>6. Monitoring and alerting</h4><ul style="margin-bottom:0"><li>Job status, task duration, file arrival.</li><li>Row counts, rejected counts, freshness.</li><li>Duplicate-key and orphan-record counts.</li><li>Reconciliation differences.</li><li>Gold update time and Power BI refresh status.</li></ul><p style="margin:8px 0 0">A job can succeed technically and still produce incomplete business data, so monitor quality too.</p></div>
+</div>
+
+<h3>7. Common Mistakes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Mistake</th><th>Consequence</th><th>Better approach</th></tr></thead>
+<tbody>
+<tr><td>Transforming everything directly into Gold</td><td>Hard troubleshooting, duplicated logic</td><td>Separate responsibilities into layers</td></tr>
+<tr><td>Overwriting Bronze data</td><td>Loss of source evidence</td><td>Preserve raw data and control retention</td></tr>
+<tr><td>Appending the same file repeatedly</td><td>Duplicate records</td><td>Track batches; design idempotent ingestion</td></tr>
+<tr><td>Removing duplicates without a rule</td><td>Unpredictable surviving record</td><td>Use deterministic ordering</td></tr>
+<tr><td>Ignoring invalid records</td><td>Silent quality issues</td><td>Quarantine and measure rejects</td></tr>
+<tr><td>Inner joins without reconciliation</td><td>Unmatched records disappear</td><td>Validate keys before joins</td></tr>
+<tr><td>Rebuilding every table every run</td><td>Unnecessary processing and cost</td><td>Incremental processing where appropriate</td></tr>
+<tr><td>Aggregates without defined grain</td><td>Incorrect metrics</td><td>Document grain and measures</td></tr>
+<tr><td>Unreviewed schema evolution</td><td>Unexpected downstream failures</td><td>Define a schema-change policy</td></tr>
+<tr><td>Power BI connected to Bronze</td><td>Inconsistent business logic</td><td>Prefer curated Gold data</td></tr>
+<tr><td>Retrying permanent failures forever</td><td>Wasted resources, delayed alerts</td><td>Classify failures; limit retries</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 11.8 ===================== -->
+<h2 id="s11-8"><span class="num">11.8</span>Knowledge Check</h2>
+<p>Try answering each question before revealing the answer.</p>
+<details class="q"><summary>1. What are the three layers of Medallion Architecture?</summary><div class="answer">Bronze (raw), Silver (cleaned and validated), and Gold (business-ready).</div></details>
+<details class="q"><summary>2. Why should Bronze preserve source values?</summary><div class="answer">It keeps source evidence for investigation, replay, and auditing, so cleansing mistakes can be found and fixed by reprocessing.</div></details>
+<details class="q"><summary>3. What is the difference between a business key and a surrogate key?</summary><div class="answer">A business key identifies an entity in the business domain (e.g. <code>CustomerID</code>); a surrogate key is an internal identifier generated for the data model (e.g. <code>CustomerKey</code>), useful for SCDs.</div></details>
+<details class="q"><summary>4. Why is <code>dropDuplicates()</code> insufficient for conflicting records?</summary><div class="answer">It doesn't define which record wins when rows share a key but have different attributes. Use a window with deterministic ordering instead.</div></details>
+<details class="q"><summary>5. What is a quarantine table?</summary><div class="answer">A table that stores rejected or invalid records along with diagnostic information such as the rejection reason, source file, and batch ID.</div></details>
+<details class="q"><summary>6. What does idempotency mean in a data pipeline?</summary><div class="answer">Repeating the same processing with the same inputs produces the same intended final state, with no duplicate side effects.</div></details>
+<details class="q"><summary>7. Why should a fact table have a documented grain?</summary><div class="answer">Grain defines what one row represents, which prevents joins from multiplying rows and aggregations from double counting.</div></details>
+<details class="q"><summary>8. When would you use Delta <code>MERGE</code> instead of a full-table overwrite?</summary><div class="answer">For controlled inserts and updates on a large or incrementally maintained table, when there's a stable match key and the source has been deduplicated to one row per key.</div></details>
+<details class="q"><summary>9. Why is an inner join potentially dangerous when validating foreign keys?</summary><div class="answer">Unmatched records disappear silently instead of being flagged. In the project, order item 1004/P002 vanishes from the fact unless the Step 9 anti-join check catches it.</div></details>
+<details class="q"><summary>10. What is the difference between Power BI Import and DirectQuery?</summary><div class="answer">Import stores data in the Power BI semantic model and needs refreshes; DirectQuery sends queries to Databricks at report time.</div></details>
+<details class="q"><summary>11. Why should a pipeline record batch IDs and source filenames?</summary><div class="answer">They support traceability, duplicate prevention, troubleshooting, and targeted reprocessing.</div></details>
+<details class="q"><summary>12. What should happen if a critical data-quality rule fails?</summary><div class="answer">Follow a defined policy: reject or quarantine records, notify owners, or fail the affected stage. Never silently continue.</div></details>
+
+<!-- ===================== 11.9 ===================== -->
+<h2 id="s11-9"><span class="num">11.9</span>Final Checklist</h2>
+<p>Before considering the project complete, confirm you can do each of these. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch11-checklist">
+<label><input type="checkbox"> Explain the Bronze, Silver, and Gold layers.</label>
+<label><input type="checkbox"> Read CSV files using PySpark.</label>
+<label><input type="checkbox"> Write raw data to Delta tables.</label>
+<label><input type="checkbox"> Add source filenames and ingestion metadata.</label>
+<label><input type="checkbox"> Convert strings into appropriate data types.</label>
+<label><input type="checkbox"> Deduplicate records using a defined rule.</label>
+<label><input type="checkbox"> Validate business keys and relationships.</label>
+<label><input type="checkbox"> Quarantine invalid records.</label>
+<label><input type="checkbox"> Build Gold fact and dimension tables.</label>
+<label><input type="checkbox"> Calculate sales and order KPIs.</label>
+<label><input type="checkbox"> Reconcile the output with source data.</label>
+<label><input type="checkbox"> Explain idempotency and restartability.</label>
+<label><input type="checkbox"> Configure a dependency-based Databricks job.</label>
+<label><input type="checkbox"> Connect Gold data to Power BI.</label>
+<label><input type="checkbox"> Explain how the pipeline should recover from failures.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch11-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch11-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 12!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="grid-2">
+  <div class="card"><h4>🥉 Bronze</h4><p style="margin-bottom:0">Preserves ingested source data and ingestion context.</p></div>
+  <div class="card"><h4>🥈 Silver</h4><p style="margin-bottom:0">Provides clean, standardized, validated data.</p></div>
+  <div class="card"><h4>🥇 Gold</h4><p style="margin-bottom:0">Provides business-ready tables and metrics for analytics and reporting.</p></div>
+  <div class="card"><h4>➕ Plus</h4><p style="margin-bottom:0">Data-quality rules, incremental processing, Delta Lake, governance, monitoring, and explicit recovery procedures.</p></div>
+</div>
+<div class="callout key"><span class="label">Key takeaway</span><p>The goal isn't merely to move data through three layers. It's to make the whole process <strong>traceable, repeatable, reliable, and trustworthy</strong> for business reporting.</p></div>
+
+<div class="next">
+<h3>Next chapter: Data Ingestion in Databricks</h3>
+<p>Chapter 12 fixes this chapter's biggest shortcut: the Bronze loader that duplicates data when rerun. You'll learn batch, incremental, and streaming ingestion; <code>COPY INTO</code> and Auto Loader, which track processed files so reruns are safe; schema inference and evolution; JDBC ingestion from SQL Server, Oracle, and Azure SQL; Lakeflow Connect; and change data capture.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-10.html"><span>← Previous</span><strong>Chapter 10: Unity Catalog</strong></a>
+  <a class="pager-link" href="databricks-chapter-12.html"><span>Next →</span><strong>Chapter 12: Data Ingestion</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 5 · Chapter 11 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

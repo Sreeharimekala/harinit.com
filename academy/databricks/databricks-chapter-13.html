@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 13: Declarative Pipelines</title>
+<meta name="description" content="Chapter 13 of a Databricks learning path: Lakeflow Spark Declarative Pipelines, streaming tables, materialized views, expectations, AUTO CDC, event logs, and an orders pipeline project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 13 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s13-1">13.1 Fundamentals</a></li>
+    <li class="lvl2"><a href="#s13-1-1">What is a declarative pipeline?</a></li>
+    <li class="lvl2"><a href="#s13-1-2">Declarative vs imperative</a></li>
+    <li class="lvl2"><a href="#s13-1-3">Pipeline architecture</a></li>
+    <li class="lvl2"><a href="#s13-1-4">Components</a></li>
+    <li class="lvl2"><a href="#s13-1-5">Configuration</a></li>
+    <li class="lvl2"><a href="#s13-1-6">Data dependencies</a></li>
+    <li class="lvl2"><a href="#s13-1-7">Execution modes</a></li>
+    <li class="lvl1"><a href="#s13-2">13.2 Building Pipelines</a></li>
+    <li class="lvl2"><a href="#s13-2-1">Creating a pipeline</a></li>
+    <li class="lvl2"><a href="#s13-2-2">SQL pipelines</a></li>
+    <li class="lvl2"><a href="#s13-2-3">Python pipelines</a></li>
+    <li class="lvl2"><a href="#s13-2-4">Streaming tables</a></li>
+    <li class="lvl2"><a href="#s13-2-5">Materialized views</a></li>
+    <li class="lvl2"><a href="#s13-2-6">Temporary views</a></li>
+    <li class="lvl2"><a href="#s13-2-7">Incremental processing</a></li>
+    <li class="lvl1"><a href="#s13-3">13.3 Data Quality</a></li>
+    <li class="lvl2"><a href="#s13-3-1">Expectations</a></li>
+    <li class="lvl2"><a href="#s13-3-2">Tracking violations</a></li>
+    <li class="lvl2"><a href="#s13-3-3">Dropping records</a></li>
+    <li class="lvl2"><a href="#s13-3-4">Failing updates</a></li>
+    <li class="lvl2"><a href="#s13-3-5">Quality metrics</a></li>
+    <li class="lvl2"><a href="#s13-3-6">Invalid source data</a></li>
+    <li class="lvl1"><a href="#s13-4">13.4 Advanced Development</a></li>
+    <li class="lvl2"><a href="#s13-4-1">CDC</a></li>
+    <li class="lvl2"><a href="#s13-4-2">Slowly changing dimensions</a></li>
+    <li class="lvl2"><a href="#s13-4-3">AUTO CDC INTO</a></li>
+    <li class="lvl2"><a href="#s13-4-4">Incremental transforms</a></li>
+    <li class="lvl2"><a href="#s13-4-5">Event logs</a></li>
+    <li class="lvl2"><a href="#s13-4-6">Dependency graphs</a></li>
+    <li class="lvl2"><a href="#s13-4-7">Troubleshooting</a></li>
+    <li class="lvl1"><a href="#s13-5">13.5 Operations</a></li>
+    <li class="lvl2"><a href="#s13-5-1">Config management</a></li>
+    <li class="lvl2"><a href="#s13-5-2">Pipeline updates</a></li>
+    <li class="lvl2"><a href="#s13-5-3">Dev &amp; production</a></li>
+    <li class="lvl2"><a href="#s13-5-4">Monitoring</a></li>
+    <li class="lvl2"><a href="#s13-5-5">Failure recovery</a></li>
+    <li class="lvl2"><a href="#s13-5-6">Performance tuning</a></li>
+    <li class="lvl1"><a href="#s13-6">13.6 Project: Orders Pipeline</a></li>
+    <li class="lvl2"><a href="#s13-6-1">Steps 1–2: Data &amp; Bronze</a></li>
+    <li class="lvl2"><a href="#s13-6-3">Steps 3–5: Silver &amp; Gold</a></li>
+    <li class="lvl2"><a href="#s13-6-6">Steps 6–8: Run &amp; verify</a></li>
+    <li class="lvl1"><a href="#s13-7">13.7 Enhancements</a></li>
+    <li class="lvl1"><a href="#s13-8">13.8 Interview Questions</a></li>
+    <li class="lvl1"><a href="#s13-9">13.9 Practice Plan</a></li>
+    <li class="lvl1"><a href="#s13-10">13.10 Documentation</a></li>
+    <li class="lvl1"><a href="#summary">Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 5 · Chapter 13 · Data Engineering &amp; Pipeline Development</span>
+  <h1>Lakeflow Spark Declarative Pipelines</h1>
+  <p class="lead">Declare <em>what</em> each dataset should contain and let Databricks work out the order, the incremental updates, and the recovery. This chapter covers streaming tables, materialized views, data-quality expectations, <code>AUTO CDC</code> for change data and slowly changing dimensions, event logs, and an orders pipeline from raw JSON to a Gold sales table.</p>
+  <p class="ref">Formerly <strong>Delta Live Tables (DLT)</strong>. You'll still see that name and the old <code>import dlt</code> module in older material. Level: intermediate to advanced.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain declarative versus imperative pipelines.</li>
+    <li>Build pipelines in SQL and Python with streaming tables, materialized views, and temporary views.</li>
+    <li>Apply data-quality expectations that track, drop, or fail on invalid records.</li>
+    <li>Use <code>AUTO CDC</code> for change data capture and SCD Type 1/2.</li>
+    <li>Read event logs and dependency graphs to troubleshoot.</li>
+    <li>Manage configuration, environments, monitoring, recovery, and performance.</li>
+    <li>Build an orders pipeline that validates, deduplicates, and produces Gold sales.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s13-1"><span>13.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s13-2"><span>13.2</span><strong>Building</strong></a>
+    <a class="chip" href="#s13-3"><span>13.3</span><strong>Data Quality</strong></a>
+    <a class="chip" href="#s13-4"><span>13.4</span><strong>CDC &amp; Advanced</strong></a>
+    <a class="chip" href="#s13-5"><span>13.5</span><strong>Operations</strong></a>
+    <a class="chip" href="#s13-6"><span>13.6</span><strong>Project</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 13.1 ===================== -->
+<h2 id="s13-1"><span class="num">13.1</span>Fundamentals</h2>
+
+<h3 id="s13-1-1"><span class="num">13.1.1</span>What Is a Declarative Pipeline?</h3>
+<p>An e-commerce company wants to read orders, validate them, remove duplicates, calculate sales metrics, and store the results for Power BI. Traditionally you write code for each step <em>and</em> manage the run order, scheduling, retries, and dependencies yourself, as you did in Chapters 11 and 12.</p>
+<p>A <strong>declarative pipeline</strong> flips this around: you define the datasets you want and how they relate, and the framework manages execution.</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python · traditional</span><pre class="code"><code>from pyspark.sql import functions as F
+
+orders = spark.read.table("retail_dev.bronze.orders")
+
+valid_orders = orders.filter(
+    F.col("order_id").isNotNull()
+)
+
+deduplicated_orders = valid_orders.dropDuplicates(
+    ["order_id"]
+)
+
+(deduplicated_orders.write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable("sales_silver"))
+
+# ...plus scheduling, dependencies,
+# retries, and orchestration</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · declarative</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW valid_orders AS
+SELECT *
+FROM orders
+WHERE order_id IS NOT NULL;
+
+-- The framework decides when and how
+-- to build and refresh this dataset.</code></pre></div>
+</div>
+<p class="ref">The declarative snippet is a single dataset definition; a complete pipeline also needs a source and pipeline configuration.</p>
+<div class="grid-2">
+<div class="card"><h4>What it provides</h4><ul style="margin-bottom:0"><li>Declarative transformations.</li><li>Automatic dependency management.</li><li>Streaming and batch processing.</li><li>Built-in data-quality expectations.</li><li>Incremental processing.</li><li>Event logs for every run.</li><li>Managed updates and failure recovery.</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Use case</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Ingestion</td><td>Load orders from cloud storage</td></tr>
+<tr><td>Cleansing</td><td>Remove invalid customer records</td></tr>
+<tr><td>Deduplication</td><td>Eliminate duplicate transactions</td></tr>
+<tr><td>Incremental</td><td>Process newly arriving orders</td></tr>
+<tr><td>CDC</td><td>Apply inserts, updates, deletes</td></tr>
+<tr><td>Warehousing</td><td>Build Silver and Gold datasets</td></tr>
+<tr><td>Data quality</td><td>Reject invalid order amounts</td></tr>
+<tr><td>Analytics</td><td>Sales summaries for Power BI</td></tr>
+</tbody></table></div>
+</div>
+
+<h3 id="s13-1-2"><span class="num">13.1.2</span>Declarative Versus Imperative Programming</h3>
+<div class="grid-2">
+<div class="card"><h4>Imperative = <em>how</em></h4><p>You define each step and control execution: read, filter, dedupe, write.</p>
+<pre class="diagram" style="margin:0">orders = spark.read.table(...)
+filtered = orders.filter(...)
+deduped = filtered.dropDuplicates(...)
+deduped.write.saveAsTable(...)</pre></div>
+<div class="card"><h4>Declarative = <em>what</em></h4><p>You define what the result should contain.</p>
+<pre class="diagram" style="margin:0">CREATE OR REFRESH MATERIALIZED VIEW silver_orders AS
+SELECT DISTINCT *
+FROM bronze_orders
+WHERE order_id IS NOT NULL;</pre></div>
+</div>
+<p class="ref"><code>DISTINCT</code> removes identical <em>rows</em>, not duplicate order IDs. Business-key deduplication needs an explicit rule (see the project).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Imperative</th><th>Declarative</th></tr></thead>
+<tbody>
+<tr><td>Main focus</td><td>How to process data</td><td>What data should look like</td></tr>
+<tr><td>Execution steps</td><td>Developer specifies them</td><td>Framework manages them</td></tr>
+<tr><td>Dependencies</td><td>Orchestration code</td><td>Derived from dataset references</td></tr>
+<tr><td>Data quality</td><td>Custom logic</td><td>Built-in expectations</td></tr>
+<tr><td>Incremental processing</td><td>Design it yourself</td><td>Supported for eligible patterns</td></tr>
+<tr><td>Monitoring</td><td>Depends on your framework</td><td>Integrated event log</td></tr>
+<tr><td>Recovery</td><td>Application logic</td><td>Managed updates and recovery</td></tr>
+<tr><td>Example</td><td>PySpark batch script</td><td>Lakeflow dataset definitions</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Does declarative mean no code?</span><p>No. You still write SQL or Python. The difference is that you describe datasets and relationships instead of implementing the whole orchestration lifecycle. You still need to understand data modeling, schema changes, data quality, and performance.</p></div>
+
+<h3 id="s13-1-3"><span class="num">13.1.3</span>Pipeline Architecture</h3>
+<p>A typical pipeline follows the Medallion Architecture from Chapter 11.</p>
+<div class="grid-2">
+<pre class="diagram">     SOURCE SYSTEMS
+   CSV / JSON / Parquet
+            |
+            v
+ +----------------------+
+ |  BRONZE              |
+ |  Raw order records   |
+ +----------------------+
+            |
+            v
+ +----------------------+
+ |  SILVER              |
+ |  Validate records    |
+ |  Remove duplicates   |
+ |  Standardize data    |
+ +----------------------+
+            |
+            v
+ +----------------------+
+ |  GOLD                |
+ |  Sales aggregations  |
+ |  Business metrics    |
+ +----------------------+
+            |
+            v
+    POWER BI / REPORTS</pre>
+<div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="4">Bronze: duplicate + missing ID preserved</th></tr></thead>
+<tbody><tr><td><strong>order_id</strong></td><td><strong>customer_id</strong></td><td><strong>amount</strong></td><td><strong>status</strong></td></tr><tr><td>1001</td><td>C101</td><td>2500</td><td>COMPLETED</td></tr><tr><td>1002</td><td>C102</td><td>1800</td><td>COMPLETED</td></tr><tr><td>1002</td><td>C102</td><td>1800</td><td>COMPLETED</td></tr><tr><td>NULL</td><td>C103</td><td>900</td><td>COMPLETED</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="4">Silver: cleaned</th></tr></thead>
+<tbody><tr><td>1001</td><td>C101</td><td>2500</td><td>COMPLETED</td></tr><tr><td>1002</td><td>C102</td><td>1800</td><td>COMPLETED</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_status</th><th>order_count</th><th>total_sales</th></tr></thead>
+<tbody><tr><td>COMPLETED</td><td>2</td><td>4300</td></tr></tbody></table></div>
+</div>
+</div>
+<p class="ref">Bronze preserves the original records for investigation; Silver validates, deduplicates, and standardizes; Gold is business-ready.</p>
+
+<h3 id="s13-1-4"><span class="num">13.1.4</span>Pipeline Architecture Components</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Component</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Source</td><td>Cloud files, Delta tables, streams, database ingestion</td></tr>
+<tr><td>2</td><td>Dataset definitions</td><td>Streaming tables, materialized views, temporary views</td></tr>
+<tr><td>3</td><td>Dependencies</td><td>Which dataset reads which (<code>orders_bronze → orders_silver → sales_gold</code>)</td></tr>
+<tr><td>4</td><td>Execution engine</td><td>Evaluates definitions and runs the required transformations</td></tr>
+<tr><td>5</td><td>Storage</td><td>Delta tables / Delta-backed objects in Unity Catalog</td></tr>
+<tr><td>6</td><td>Event log</td><td>Execution, errors, data quality, operational events</td></tr>
+<tr><td>7</td><td>Monitoring</td><td>Pipeline UI, event logs, and metrics</td></tr>
+</tbody></table></div>
+
+<h3 id="s13-1-5"><span class="num">13.1.5</span>Pipeline Configuration</h3>
+<p>Configuration defines how a pipeline runs and where its datasets live: name, default catalog and schema, compute (serverless or classic), triggered or continuous mode, development or production mode, configuration parameters, notifications, and permissions.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Property</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Pipeline name</td><td><code>orders_pipeline</code></td></tr>
+<tr><td>Source</td><td><code>retail_dev.bronze</code></td></tr>
+<tr><td>Default catalog / schema</td><td><code>retail_dev.analytics</code></td></tr>
+<tr><td>Execution mode</td><td>Triggered</td></tr>
+<tr><td>Development mode</td><td>Enabled</td></tr>
+<tr><td>Data quality</td><td>Expectations enabled</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Development vs production mode</h4><p><strong>Development:</strong> faster iteration; compute is reused between updates and failures aren't retried automatically, so you see errors quickly.</p><p style="margin-bottom:0"><strong>Production:</strong> reproducibility, controlled deployment, automatic retries, and strict access control.</p></div>
+</div>
+<div class="callout warn"><span class="label">Keep environments out of code</span><p>Don't hard-code environment-specific paths or credentials in transformation code. Use pipeline parameters (13.5.1).</p></div>
+
+<h3 id="s13-1-6"><span class="num">13.1.6</span>Data Dependencies</h3>
+<p>A dataset depends on another when it reads that dataset. The framework reads those references and works out the run order. You never write "run Silver, then Gold".</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver AS
+SELECT order_id, customer_id, amount
+FROM orders_bronze
+WHERE order_id IS NOT NULL;
+
+CREATE OR REFRESH MATERIALIZED VIEW sales_gold AS
+SELECT
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_sales
+FROM orders_silver;</code></pre></div>
+<pre class="diagram">Derived automatically:
+
+orders_bronze
+      |
+      v
+orders_silver
+      |
+      v
+sales_gold</pre>
+</div>
+<p>If <code>orders_silver</code> fails, <code>sales_gold</code> can't refresh correctly. The update status and graph show which downstream datasets were affected.</p>
+<div class="card"><h4>Best practices</h4><ol style="margin-bottom:0"><li>Keep transformations logically separated.</li><li>Avoid unnecessary dependencies.</li><li>Use meaningful dataset names.</li><li>Validate schemas at important boundaries.</li><li>Understand the graph before changing upstream definitions.</li></ol></div>
+
+<h3 id="s13-1-7"><span class="num">13.1.7</span>Pipeline Execution</h3>
+<div class="grid-2">
+<div class="card"><h4>Triggered</h4><p>Processes available work, then completes. For daily batches, hourly transforms, scheduled refreshes, periodic reporting.</p>
+<pre class="diagram" style="margin:0">1:00 AM  Ingest source files
+1:05 AM  Validate Silver data
+1:15 AM  Refresh Gold tables
+1:20 AM  Update completes</pre></div>
+<div class="card"><h4>Continuous</h4><p style="margin-bottom:0">Stays active and processes new data as it arrives. For near-real-time analytics, continuous events, streaming ingestion, low-latency transforms. Compute keeps running, so cost differs.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Triggered</th><th>Continuous</th></tr></thead>
+<tbody>
+<tr><td>Execution</td><td>Runs an update and completes</td><td>Remains active</td></tr>
+<tr><td>Typical use</td><td>Batch and scheduled processing</td><td>Ongoing data processing</td></tr>
+<tr><td>Compute lifecycle</td><td>Tied to the update</td><td>May stay active between events</td></tr>
+<tr><td>Latency</td><td>Trigger frequency + run time</td><td>Lower latency possible</td></tr>
+<tr><td>Cost</td><td>Suits periodic workloads</td><td>Consider always-on compute cost</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Key takeaway</span><p>Choose the mode by required freshness, source characteristics, operational needs, and cost.</p></div>
+
+<!-- ===================== 13.2 ===================== -->
+<h2 id="s13-2"><span class="num">13.2</span>Building Pipelines</h2>
+
+<h3 id="s13-2-1"><span class="num">13.2.1</span>Creating a Pipeline</h3>
+<div class="grid-2">
+<div class="card"><h4>You need</h4><ul style="margin-bottom:0"><li>A Databricks workspace.</li><li>Permission to create pipelines.</li><li>Access to the target catalog and schema.</li><li>Compute (serverless is simplest).</li><li>Source data, or permission to read it.</li></ul></div>
+<div class="card"><h4>In the workspace</h4><ol style="margin-bottom:0"><li>Open <strong>Jobs &amp; Pipelines</strong> → <strong>Create</strong> → <strong>ETL pipeline</strong>.</li><li>Name it and choose the default catalog and schema.</li><li>Add SQL or Python source files.</li><li>Configure compute and execution mode.</li><li>Validate (<strong>Dry run</strong>), then run an update.</li><li>Inspect the graph and output datasets.</li></ol><p class="ref" style="margin:8px 0 0">UI labels change between releases.</p></div>
+</div>
+<p>The examples in 13.2–13.5 assume a source table <code>retail_dev.bronze.orders_raw</code>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>order_id</td><td>STRING</td><td>Unique order identifier</td></tr>
+<tr><td>customer_id</td><td>STRING</td><td>Customer identifier</td></tr>
+<tr><td>order_date</td><td>DATE</td><td>Order date</td></tr>
+<tr><td>amount</td><td>DECIMAL(18,2)</td><td>Order amount</td></tr>
+<tr><td>status</td><td>STRING</td><td>Order status</td></tr>
+<tr><td>updated_at</td><td>TIMESTAMP</td><td>Last source update time</td></tr>
+</tbody></table></div>
+<p class="ref">This differs from Chapter 12's CSV-based <code>orders_raw</code>. The hands-on project (13.6) creates its own source from JSON files, so you don't need this table to follow along.</p>
+
+<h3 id="s13-2-2"><span class="num">13.2.2</span>SQL-Based Pipelines</h3>
+<p>SQL suits transformations expressed as relational operations: filtering, joins, aggregations, window functions, standardization, and data-quality rules.</p>
+<div class="code-wrap"><span class="lang">SQL · Silver</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver
+AS
+SELECT
+    order_id,
+    customer_id,
+    order_date,
+    amount,
+    UPPER(TRIM(status)) AS status,
+    updated_at
+FROM retail_dev.bronze.orders_raw
+WHERE order_id IS NOT NULL
+  AND customer_id IS NOT NULL
+  AND amount &gt;= 0;</code></pre></div>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · Gold</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW sales_gold
+AS
+SELECT
+    order_date,
+    status,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_sales,
+    AVG(amount) AS average_order_value
+FROM orders_silver
+GROUP BY order_date, status;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · completed only</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW completed_sales_gold
+AS
+SELECT
+    order_date,
+    COUNT(*) AS completed_order_count,
+    SUM(amount) AS completed_sales
+FROM orders_silver
+WHERE status = 'COMPLETED'
+GROUP BY order_date;</code></pre></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_date</th><th>status</th><th>order_count</th><th>total_sales</th><th>average_order_value</th></tr></thead>
+<tbody>
+<tr><td>2026-10-20</td><td>COMPLETED</td><td>120</td><td>240000</td><td>2000</td></tr>
+<tr><td>2026-10-20</td><td>CANCELLED</td><td>8</td><td>12000</td><td>1500</td></tr>
+<tr><td>2026-10-21</td><td>COMPLETED</td><td>145</td><td>319000</td><td>2200</td></tr>
+</tbody></table></div>
+<p class="ref">Illustrative values. Notice <code>orders_silver</code> is referenced by its short name: inside a pipeline, datasets resolve against the pipeline's default catalog and schema.</p>
+
+<h3 id="s13-2-3"><span class="num">13.2.3</span>Python-Based Pipelines</h3>
+<p>Python combines PySpark transformations with the pipeline API. For new work, use <code>from pyspark import pipelines as dp</code>, not the legacy <code>import dlt</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Decorator</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>@dp.table</code></td><td>Defines a table; returning a streaming DataFrame creates a streaming table</td></tr>
+<tr><td><code>@dp.materialized_view</code></td><td>Defines a materialized view</td></tr>
+<tr><td><code>@dp.temporary_view</code></td><td>Defines a temporary view used within the pipeline</td></tr>
+<tr><td><code>@dp.expect</code></td><td>Records quality metrics, keeps the rows</td></tr>
+<tr><td><code>@dp.expect_or_drop</code></td><td>Drops violating rows</td></tr>
+<tr><td><code>@dp.expect_or_fail</code></td><td>Fails the update on violation</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark import pipelines as dp
+from pyspark.sql import functions as F
+
+
+@dp.materialized_view(name="orders_silver")
+def orders_silver():
+    return (
+        spark.read.table("retail_dev.bronze.orders_raw")
+        .filter(F.col("order_id").isNotNull())
+        .filter(F.col("customer_id").isNotNull())
+        .filter(F.col("amount") &gt;= 0)
+        .withColumn("status", F.upper(F.trim(F.col("status"))))
+    )
+
+
+@dp.materialized_view(name="sales_gold")
+def sales_gold():
+    return (
+        spark.read.table("orders_silver")
+        .groupBy("order_date", "status")
+        .agg(
+            F.count("*").alias("order_count"),
+            F.sum("amount").alias("total_sales"),
+            F.avg("amount").alias("average_order_value")
+        )
+    )</code></pre></div>
+<div class="callout warn"><span class="label">Pipeline files aren't normal notebooks</span><ul style="margin-bottom:0"><li><code>spark</code> is provided by the pipeline runtime.</li><li>Each definition <strong>returns a DataFrame</strong>; never call <code>saveAsTable()</code> or <code>.write</code> for a pipeline dataset.</li><li>You can't run these cells interactively like a notebook; run them through a pipeline update.</li><li>Inspect outputs afterwards from a separate notebook or SQL query.</li></ul></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Recommended</th></tr></thead>
+<tbody>
+<tr><td>Simple filtering and aggregation</td><td>SQL</td></tr>
+<tr><td>Complex PySpark transformations</td><td>Python</td></tr>
+<tr><td>Reusable relational transformations</td><td>SQL or Python</td></tr>
+<tr><td>Custom Python libraries</td><td>Python (runtime permitting)</td></tr>
+<tr><td>Data-quality expectations</td><td>SQL or Python</td></tr>
+<tr><td>SQL-first team</td><td>SQL</td></tr>
+</tbody></table></div>
+<p class="ref">One pipeline can mix SQL and Python files.</p>
+
+<h3 id="s13-2-4"><span class="num">13.2.4</span>Streaming Tables</h3>
+<p>A streaming table processes each input record once, tracking what it has already seen rather than rebuilding everything. It's ideal for ingesting files that keep arriving (<code>orders_001.json</code>, <code>orders_002.json</code>, …).</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark import pipelines as dp
+
+
+@dp.table(name="orders_bronze")
+def orders_bronze():
+    return (
+        spark.readStream
+        .format("cloudFiles")
+        .option("cloudFiles.format", "json")
+        .schema("""
+            order_id STRING,
+            customer_id STRING,
+            order_date DATE,
+            amount DECIMAL(18,2),
+            status STRING,
+            updated_at TIMESTAMP
+        """)
+        .load("/Volumes/retail_dev/bronze/orders_json/")
+    )</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL equivalent</span><pre class="code"><code>CREATE OR REFRESH STREAMING TABLE orders_bronze
+AS
+SELECT *
+FROM STREAM read_files(
+    '/Volumes/retail_dev/bronze/orders_json/',
+    format =&gt; 'json',
+    schema =&gt; 'order_id STRING, customer_id STRING,
+               order_date DATE, amount DECIMAL(18,2),
+               status STRING, updated_at TIMESTAMP'
+);</code></pre></div>
+</div>
+<div class="callout key"><span class="label">Auto Loader, managed for you</span><p>This is Auto Loader from Chapter 12, but inside a pipeline you <strong>don't</strong> set <code>checkpointLocation</code> or <code>cloudFiles.schemaLocation</code>. The pipeline manages that state. In SQL, <code>STREAM read_files(...)</code> uses Auto Loader too.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Streaming table</th><th>Materialized view</th></tr></thead>
+<tbody>
+<tr><td>Main purpose</td><td>Ingestion and append-style transformations</td><td>Query-defined results</td></tr>
+<tr><td>Source</td><td>Streaming sources (<code>STREAM</code>, <code>readStream</code>)</td><td>Batch reads of tables/datasets</td></tr>
+<tr><td>Processing</td><td>Each new row processed once</td><td>Result kept correct as sources change</td></tr>
+<tr><td>Handles joins, aggregations, window functions</td><td>Limited (stateful streaming rules)</td><td>Yes</td></tr>
+<tr><td>Example</td><td>Raw order ingestion</td><td>Daily sales summary</td></tr>
+</tbody></table></div>
+
+<h3 id="s13-2-5"><span class="num">13.2.5</span>Materialized Views</h3>
+<p>A materialized view stores its query result and keeps it up to date through managed refreshes. A report that sums 500 million orders on every open is expensive; a materialized view stores the daily totals and maintains them as the source changes.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW daily_sales
+AS
+SELECT
+    order_date,
+    SUM(amount) AS total_sales,
+    COUNT(*) AS order_count
+FROM orders_silver
+GROUP BY order_date;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Regular view</th><th>Materialized view</th></tr></thead>
+<tbody>
+<tr><td>Stores results</td><td>Generally no</td><td>Yes</td></tr>
+<tr><td>Evaluates query</td><td>When queried</td><td>During managed refresh</td></tr>
+<tr><td>Query performance</td><td>Depends on underlying query</td><td>Can speed up repeated analytics</td></tr>
+<tr><td>Storage</td><td>Minimal</td><td>Stores maintained results</td></tr>
+<tr><td>Maintenance</td><td>Runs against underlying data</td><td>Platform maintains results</td></tr>
+</tbody></table></div>
+<p class="ref">Common uses: daily sales, customer purchase summaries, product metrics, monthly financials, Power BI datasets. The actual benefit depends on the query and refresh behavior.</p>
+
+<h3 id="s13-2-6"><span class="num">13.2.6</span>Temporary Views</h3>
+<p>A temporary view is a reusable intermediate result inside the pipeline, so several downstream datasets don't repeat the same logic. It is <strong>not</strong> published as a table.</p>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark import pipelines as dp
+from pyspark.sql import functions as F
+
+
+@dp.temporary_view(name="valid_orders_temp")
+def valid_orders_temp():
+    return (
+        spark.read.table("retail_dev.bronze.orders_raw")
+        .filter(F.col("order_id").isNotNull())
+        .filter(F.col("amount") &gt;= 0)
+    )
+
+
+@dp.materialized_view(name="sales_gold")
+def sales_gold():
+    return (
+        spark.read.table("valid_orders_temp")
+        .groupBy("order_date")
+        .agg(F.sum("amount").alias("total_sales"))
+    )</code></pre></div>
+<div class="callout"><span class="label">Important distinction</span><p>Don't treat a temporary view as a durable Bronze, Silver, or Gold table, and don't assume it's cached. Use a streaming table or materialized view when you need persistence.</p></div>
+
+<h3 id="s13-2-7"><span class="num">13.2.7</span>Incremental Processing</h3>
+<div class="grid-2">
+<pre class="diagram">Full load:
+  Source records:     100 million
+  Records processed:  100 million
+
+Incremental load:
+  Existing records:   100 million
+  New today:              200,000
+  Records processed:      200,000</pre>
+<div class="card"><h4>Incremental patterns in Lakeflow</h4><ul style="margin-bottom:0"><li>Streaming ingestion and Auto Loader.</li><li>Streaming tables.</li><li>Incremental materialized-view refresh (where supported).</li><li><code>AUTO CDC</code> processing.</li></ul></div>
+</div>
+<div class="code-wrap"><span class="lang">SQL · concept only</span><pre class="code"><code>SELECT *
+FROM source_orders
+WHERE updated_at &gt; :last_successful_watermark;</code></pre></div>
+<p class="ref">Lakeflow doesn't fill in this placeholder for you. Watermarks need careful handling of late records, old timestamps, deletes, and retries (Chapter 12). Streaming tables avoid the problem by tracking progress themselves.</p>
+<div class="callout warn"><span class="label">Not always incremental</span><p>Declaring a materialized view doesn't guarantee incremental refresh. Depending on the query and source changes, the framework may recompute fully. (On serverless pipelines, incremental refresh is attempted when the query supports it.)</p></div>
+
+<!-- ===================== 13.3 ===================== -->
+<h2 id="s13-3"><span class="num">13.3</span>Data Quality</h2>
+<p class="section-intro">A pipeline can run successfully and still produce wrong results: missing IDs, duplicates, negative amounts, invalid customers or dates, unsupported statuses. Expectations validate records during processing.</p>
+
+<h3 id="s13-3-1"><span class="num">13.3.1</span>Data Quality Expectations</h3>
+<p>An expectation is a Boolean condition each record should satisfy, e.g. <code>order_id IS NOT NULL</code>, <code>amount &gt;= 0</code>, <code>status IN ('COMPLETED', 'CANCELLED', 'PENDING')</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>SQL</th><th>Python</th><th>On violation</th></tr></thead>
+<tbody>
+<tr><td><code>EXPECT (…)</code></td><td><code>@dp.expect</code></td><td>Record the metric, <strong>keep</strong> the row</td></tr>
+<tr><td><code>EXPECT (…) ON VIOLATION DROP ROW</code></td><td><code>@dp.expect_or_drop</code></td><td><strong>Drop</strong> the row</td></tr>
+<tr><td><code>EXPECT (…) ON VIOLATION FAIL UPDATE</code></td><td><code>@dp.expect_or_fail</code></td><td><strong>Fail</strong> the update</td></tr>
+</tbody></table></div>
+
+<h3 id="s13-3-2"><span class="num">13.3.2</span>Validating Records: Track Violations</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr></thead>
+<tbody><tr><td>1001</td><td>C101</td><td>2500</td></tr><tr><td>1002</td><td>C102</td><td>1800</td></tr><tr><td>NULL</td><td>C103</td><td>900</td></tr><tr><td>1004</td><td>NULL</td><td>1200</td></tr><tr><td>1005</td><td>C105</td><td>-500</td></tr></tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_checked (
+    CONSTRAINT valid_order_id
+        EXPECT (order_id IS NOT NULL),
+    CONSTRAINT valid_customer_id
+        EXPECT (customer_id IS NOT NULL),
+    CONSTRAINT valid_amount
+        EXPECT (amount &gt;= 0)
+)
+AS
+SELECT *
+FROM retail_dev.bronze.orders_raw;</code></pre></div>
+</div>
+<p>All five rows stay in the dataset, and the event log records how many violated each rule. That's useful when a source starts producing missing IDs, a business team must investigate negative amounts, or a migration changed a field's behavior. You see the problem without losing data.</p>
+
+<h3 id="s13-3-3"><span class="num">13.3.3</span>Dropping Invalid Records</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver (
+    CONSTRAINT valid_order_id
+        EXPECT (order_id IS NOT NULL) ON VIOLATION DROP ROW,
+    CONSTRAINT valid_customer_id
+        EXPECT (customer_id IS NOT NULL) ON VIOLATION DROP ROW,
+    CONSTRAINT valid_amount
+        EXPECT (amount &gt;= 0) ON VIOLATION DROP ROW
+)
+AS
+SELECT *
+FROM retail_dev.bronze.orders_raw;</code></pre></div>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th colspan="3">Input</th></tr></thead>
+<tbody><tr><td>1001</td><td>C101</td><td>2500</td></tr><tr><td>NULL</td><td>C103</td><td>900</td></tr><tr><td>1003</td><td>C104</td><td>-500</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th colspan="3">Output</th></tr></thead>
+<tbody><tr><td>1001</td><td>C101</td><td>2500</td></tr></tbody></table></div>
+</div>
+<div class="callout warn"><span class="label">Dropped means gone</span><p>Dropping doesn't create a quarantine table. If you need to investigate or replay invalid rows, build a separate invalid-records dataset (Enhancement 1 in 13.7 includes a worked solution).</p></div>
+
+<h3 id="s13-3-4"><span class="num">13.3.4</span>Failing Pipelines for Invalid Records</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_strict (
+    CONSTRAINT valid_order_id
+        EXPECT (order_id IS NOT NULL) ON VIOLATION FAIL UPDATE,
+    CONSTRAINT valid_amount
+        EXPECT (amount &gt;= 0) ON VIOLATION FAIL UPDATE
+)
+AS
+SELECT *
+FROM retail_dev.bronze.orders_raw;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Policy</th><th>Use when</th></tr></thead>
+<tbody>
+<tr><td><strong>Fail</strong></td><td>Bad records cause financial discrepancies; the data contract is broken; a critical dataset can't tolerate invalid rows; continuing would mislead downstream users</td></tr>
+<tr><td><strong>Drop</strong></td><td>The rule is well understood; excluding rows is acceptable; invalid data is monitored or captured separately</td></tr>
+<tr><td><strong>Track</strong></td><td>You're evaluating source quality; no rejection rule is agreed yet; you need violation rates; the pipeline must keep running during investigation</td></tr>
+</tbody></table></div>
+
+<h3 id="s13-3-5"><span class="num">13.3.5</span>Tracking Data Quality Metrics</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Rule (100,000 records)</th><th>Violations</th></tr></thead>
+<tbody><tr><td>Order ID is not null</td><td>120</td></tr><tr><td>Customer ID is not null</td><td>75</td></tr><tr><td>Amount is nonnegative</td><td>25</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">One record can break several rules, so don't add these up as unique invalid records.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Dashboard metric</th><th>Example</th></tr></thead>
+<tbody><tr><td>Total source records</td><td>100,000</td></tr><tr><td>Valid records</td><td>99,780</td></tr><tr><td>Invalid records</td><td>220</td></tr><tr><td>Success rate</td><td>99.78%</td></tr><tr><td>Update status</td><td>Completed</td></tr></tbody></table></div>
+</div>
+<p>Monitor total records, passed, violated, dropped, failed updates, and <strong>trends over time</strong>. Expectation results appear on each dataset in the pipeline UI and in the event log (query in 13.4.5).</p>
+
+<h3 id="s13-3-6"><span class="num">13.3.6</span>Handling Invalid Source Data</h3>
+<div class="grid-2">
+<div class="card"><h4>Four approaches</h4><ol style="margin-bottom:0"><li><strong>Reject:</strong> exclude from Silver.</li><li><strong>Quarantine:</strong> keep invalid records in a separate dataset for correction and replay.</li><li><strong>Fail:</strong> stop on critical violations.</li><li><strong>Correct:</strong> apply a deterministic, approved fix such as <code>UPPER(TRIM(status))</code>, which turns <code>completed</code>, <code>Completed</code>, and <code>COMPLETED</code> into one value. Never "fix" ambiguous values.</li></ol></div>
+<pre class="diagram">       orders_bronze
+             |
+     +-------+--------+
+     |                |
+     v                v
+valid_orders    invalid_orders
+     |                |
+     v                v
+orders_silver   Data investigation</pre>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Issue (orders project)</th><th>Treatment</th></tr></thead>
+<tbody>
+<tr><td>Missing order ID</td><td>Quarantine or drop</td></tr>
+<tr><td>Missing customer ID</td><td>Quarantine or drop</td></tr>
+<tr><td>Negative order amount</td><td>Quarantine for investigation</td></tr>
+<tr><td>Duplicate order</td><td>Deduplicate by a defined business rule</td></tr>
+<tr><td>Invalid status</td><td>Quarantine or track</td></tr>
+<tr><td>Malformed source file</td><td>Ingestion error management</td></tr>
+</tbody></table></div>
+
+<!-- ===================== 13.4 ===================== -->
+<h2 id="s13-4"><span class="num">13.4</span>Advanced Pipeline Development</h2>
+
+<h3 id="s13-4-1"><span class="num">13.4.1</span>Change Data Capture (CDC)</h3>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>customer_name</th><th>city</th></tr></thead>
+<tbody><tr><td>C101</td><td>Ravi</td><td>Hyderabad</td></tr><tr><td>C102</td><td>Priya</td><td>Chennai</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">Initial data. Then C101 moves to Bengaluru, and C102 is deleted.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>operation</th><th>city</th></tr></thead>
+<tbody><tr><td>C101</td><td>UPDATE</td><td>Bengaluru</td></tr><tr><td>C102</td><td>DELETE</td><td>Chennai</td></tr></tbody></table></div>
+</div>
+<p>CDC applies just these changes instead of reloading the table. A robust implementation needs a stable business key, the operation type, a reliable ordering (sequence or commit time), and handling for duplicate events, late changes, deletes, and schema evolution.</p>
+
+<h3 id="s13-4-2"><span class="num">13.4.2</span>Slowly Changing Dimensions (SCD)</h3>
+<p>When Ravi (C101) moves from Hyderabad to Bengaluru, what should the customer dimension show?</p>
+<div class="grid-2">
+<div class="card"><h4>SCD Type 1: overwrite</h4>
+<div class="table-wrap" style="margin:0"><table><thead><tr><th>customer_id</th><th>name</th><th>city</th></tr></thead><tbody><tr><td>C101</td><td>Ravi</td><td>Bengaluru</td></tr></tbody></table></div>
+<p style="margin:8px 0 0">The old city is gone. Use when history isn't needed.</p></div>
+<div class="card"><h4>SCD Type 2: keep history</h4>
+<div class="table-wrap" style="margin:0"><table><thead><tr><th>city</th><th>start</th><th>end</th><th>current</th></tr></thead><tbody><tr><td>Hyderabad</td><td>2025-01-01</td><td>2026-07-01</td><td>false</td></tr><tr><td>Bengaluru</td><td>2026-07-01</td><td>NULL</td><td>true</td></tr></tbody></table></div>
+<p style="margin:8px 0 0">A new row per change. Use when reports must show history ("sales by the city the customer lived in at the time").</p></div>
+</div>
+
+<h3 id="s13-4-3"><span class="num">13.4.3</span>AUTO CDC INTO</h3>
+<p><code>AUTO CDC</code> (formerly <code>APPLY CHANGES INTO</code>) applies a change feed to a target streaming table. It orders changes by a sequence column, keeps the latest state, handles deletes, and can maintain SCD Type 1 or 2 for you. That's everything you'd otherwise hand-write with <code>MERGE</code> and window functions in Chapter 12.</p>
+<div class="grid-2">
+<pre class="diagram">Source change records
+        |
+        v
+  Order by sequence
+        |
+        v
+ Apply insert / update
+     / delete
+        |
+        v
+   Target table</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>customer_id</th><th>customer_name</th><th>city</th><th>sequence</th></tr></thead>
+<tbody><tr><td>C101</td><td>Ravi</td><td>Hyderabad</td><td>1</td></tr><tr><td>C102</td><td>Priya</td><td>Chennai</td><td>2</td></tr><tr><td>C101</td><td>Ravi</td><td>Bengaluru</td><td>3</td></tr></tbody></table>
+<p class="ref" style="padding:0 12px">Type 1 result: C101 → Bengaluru (sequence 3 wins), C102 → Chennai.</p></div>
+</div>
+<div class="code-wrap"><span class="lang">Python · SCD Type 1 with deletes</span><pre class="code"><code>from pyspark import pipelines as dp
+from pyspark.sql import functions as F
+
+dp.create_streaming_table(name="customers_current")
+
+dp.create_auto_cdc_flow(
+    target="customers_current",
+    source="customer_changes",               # a streaming dataset of change rows
+    keys=["customer_id"],
+    sequence_by=F.col("sequence"),
+    apply_as_deletes=F.expr("operation = 'DELETE'"),
+    except_column_list=["operation", "sequence"],
+    stored_as_scd_type=1
+)</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · SCD Type 2</span><pre class="code"><code>CREATE OR REFRESH STREAMING TABLE customers_history;
+
+CREATE FLOW customers_history_flow AS
+AUTO CDC INTO customers_history
+FROM STREAM(customer_changes)
+KEYS (customer_id)
+APPLY AS DELETE WHEN operation = 'DELETE'
+SEQUENCE BY sequence
+COLUMNS * EXCEPT (operation, sequence)
+STORED AS SCD TYPE 2;</code></pre></div>
+<p class="ref">For SCD Type 2, the target automatically gets <code>__START_AT</code> and <code>__END_AT</code> columns; the current row is the one where <code>__END_AT IS NULL</code>. I added the delete handling and column exclusion that the original example left out.</p>
+<div class="callout warn"><span class="label">Important considerations</span><ul style="margin-bottom:0"><li>The source needs a reliable key and sequence field, and sequence values must reflect true change order.</li><li>Deletes must be represented in the feed to be applied.</li><li>Plan for duplicate and late-arriving changes.</li><li>Source change format and target schema must be compatible.</li><li>Check current docs for the options your runtime supports.</li></ul></div>
+
+<h3 id="s13-4-4"><span class="num">13.4.4</span>Incremental Transformations</h3>
+<p>With 200 million historical transactions and 100,000 new ones a day, recomputing everything daily is wasteful. A streaming ingestion table processes just each day's new files (100,000 → 120,000 → 95,000), and a materialized view like <code>SELECT order_date, SUM(amount) … GROUP BY order_date</code> may be maintained incrementally when supported.</p>
+<div class="grid-2">
+<div class="card"><h4>Most valuable when</h4><ul style="margin-bottom:0"><li>History is large.</li><li>Changes are small relative to the total.</li><li>The source identifies changes reliably.</li><li>Transformations support incremental maintenance.</li></ul></div>
+<div class="card"><h4>Less benefit when</h4><ul style="margin-bottom:0"><li>Most historical records change often.</li><li>The transformation needs global recomputation.</li><li>The source can't reliably identify changes.</li></ul></div>
+</div>
+
+<h3 id="s13-4-5"><span class="num">13.4.5</span>Pipeline Event Logs</h3>
+<p>The event log records update status, dataset progress, expectation results, errors, and operational metadata. It's especially useful when the visible error message doesn't explain the root cause.</p>
+<div class="code-wrap"><span class="lang">SQL · starting points</span><pre class="code"><code>-- Recent events (pipeline ID is in the pipeline's details panel)
+SELECT timestamp, event_type, level, message
+FROM event_log('&lt;pipeline-id&gt;')
+ORDER BY timestamp DESC
+LIMIT 100;
+
+-- Errors only
+SELECT timestamp, message, details
+FROM event_log('&lt;pipeline-id&gt;')
+WHERE level = 'ERROR'
+ORDER BY timestamp DESC;
+
+-- Data-quality results per dataset
+SELECT
+    timestamp,
+    origin.flow_name,
+    details:flow_progress.data_quality.expectations
+FROM event_log('&lt;pipeline-id&gt;')
+WHERE event_type = 'flow_progress'
+  AND details:flow_progress.data_quality IS NOT NULL
+ORDER BY timestamp DESC;</code></pre></div>
+<p class="ref"><code>details</code> is JSON; the <code>:</code> syntax extracts nested fields. Availability and schema of <code>event_log()</code> can vary, so start with <code>SELECT *</code> to inspect the columns.</p>
+<div class="card"><h4>Investigating a failed update (e.g. schema mismatch)</h4><ol class="steps"><li>Identify the failed update.</li><li>Find the related error event.</li><li>Inspect the affected dataset.</li><li>Identify the incompatible source field.</li><li>Correct the schema or transformation.</li><li>Rerun the update.</li><li>Verify downstream datasets complete.</li></ol></div>
+
+<h3 id="s13-4-6"><span class="num">13.4.6</span>Dependency Graphs</h3>
+<div class="grid-2">
+<pre class="diagram">     orders_bronze
+           |
+           v
+     orders_silver
+           |
+     +-----+--------+
+     |              |
+     v              v
+sales_gold    customer_sales</pre>
+<div class="card"><h4>The graph helps you</h4><ul style="margin-bottom:0"><li>Understand data flow.</li><li>Identify upstream dependencies.</li><li>See the blast radius of a failure.</li><li>Find unnecessary transformations.</li><li>Investigate downstream failures.</li></ul></div>
+</div>
+<p>If <code>orders_bronze</code> succeeds but <code>orders_silver</code> fails, both Gold datasets are affected. Focus on the Silver transformation instead of debugging each Gold dataset.</p>
+
+<h3 id="s13-4-7"><span class="num">13.4.7</span>Pipeline Troubleshooting</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Problem</th><th>Possible cause</th><th>Investigation</th></tr></thead>
+<tbody>
+<tr><td>Update fails</td><td>Transformation error</td><td>Inspect the failed dataset and error event</td></tr>
+<tr><td>Source data missing</td><td>File arrival delay</td><td>Check source availability and ingestion config</td></tr>
+<tr><td>Schema mismatch</td><td>New or changed source columns</td><td>Compare source and expected schemas</td></tr>
+<tr><td>Invalid records</td><td>Expectation failure</td><td>Inspect expectation metrics and invalid records</td></tr>
+<tr><td>Duplicates</td><td>Missing/incorrect dedup rule</td><td>Validate the business key and logic</td></tr>
+<tr><td>Slow pipeline</td><td>Large scans, expensive transforms</td><td>Inspect metrics and query plans</td></tr>
+<tr><td>Wrong CDC state</td><td>Bad sequencing or key logic</td><td>Validate source ordering and CDC config</td></tr>
+<tr><td>Stale Gold</td><td>Upstream failure</td><td>Inspect dependency status and update details</td></tr>
+</tbody></table></div>
+<p><strong>Example:</strong> <code>sales_gold</code> has fewer orders than expected. Trace it layer by layer:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- 1. Source
+SELECT COUNT(*) FROM retail_dev.bronze.orders_raw;
+
+-- 2. Silver
+SELECT COUNT(*) FROM orders_silver;
+
+-- 3. Missing IDs (dropped by expectations)
+SELECT COUNT(*) FROM retail_dev.bronze.orders_raw WHERE order_id IS NULL;
+
+-- 4. Duplicate order IDs (collapsed by dedup)
+SELECT order_id, COUNT(*) AS record_count
+FROM retail_dev.bronze.orders_raw
+WHERE order_id IS NOT NULL
+GROUP BY order_id
+HAVING COUNT(*) &gt; 1;
+
+-- 5. Gold totals
+SELECT SUM(order_count) AS aggregated_orders,
+       SUM(total_sales) AS aggregated_sales
+FROM sales_gold;</code></pre></div>
+<p class="ref">Gold should reconcile with Silver when both use the same filters and grain. If not, check for intentional filters or a different grain. Outside the pipeline, qualify dataset names with the pipeline's catalog and schema.</p>
+
+<!-- ===================== 13.5 ===================== -->
+<h2 id="s13-5"><span class="num">13.5</span>Operational Management</h2>
+
+<h3 id="s13-5-1"><span class="num">13.5.1</span>Pipeline Configuration Management</h3>
+<p>Dev, QA, and production differ in catalogs, storage, source connections, permissions, compute, and operational needs, e.g. <code>retail_dev.bronze.orders_raw</code> vs <code>retail_prod.bronze.orders_raw</code>. Production should use its own configuration <strong>without editing transformation code</strong>.</p>
+<p>Add a key-value pair under the pipeline's <strong>Configuration</strong> settings (e.g. <code>source_catalog = retail_dev</code>) and reference it:</p>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver AS
+SELECT *
+FROM ${source_catalog}.bronze.orders_raw
+WHERE order_id IS NOT NULL;</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>source_catalog = spark.conf.get("source_catalog")
+
+@dp.materialized_view(name="orders_silver")
+def orders_silver():
+    return spark.read.table(
+        f"{source_catalog}.bronze.orders_raw"
+    ).filter("order_id IS NOT NULL")</code></pre></div>
+</div>
+<p class="ref">For repeatable multi-environment deployments, keep pipeline code in Git and deploy with Databricks Asset Bundles (Chapter 21).</p>
+
+<h3 id="s13-5-2"><span class="num">13.5.2</span>Pipeline Updates</h3>
+<div class="grid-2">
+<pre class="diagram">Update starts
+     |
+     v
+Definitions evaluated
+     |
+     v
+Dependencies + plan determined
+     |
+     v
+Datasets processed
+     |
+     v
+Expectations evaluated
+     |
+     v
+Outputs updated
+     |
+     v
+Update completes or fails</pre>
+<div class="card"><h4>Changing a transformation</h4><p>Change <code>SUM(amount) AS total_sales</code> to <code>SUM(amount) * 1.05 AS total_sales</code>, and the framework determines what must be recomputed downstream.</p><p><strong>Before deploying:</strong></p><ol style="margin-bottom:0"><li>Validate the code.</li><li>Check types and schemas.</li><li>Review the dependency graph.</li><li>Test with representative data.</li><li>Run the update.</li><li>Validate counts and totals.</li><li>Confirm downstream reports.</li></ol></div>
+</div>
+<p class="ref">To rebuild a streaming table from scratch (e.g. after a logic fix), use <strong>Full refresh</strong> on that table, which reprocesses all source data. Use it deliberately: it can be expensive, and sources that no longer retain old data can't be replayed.</p>
+
+<h3 id="s13-5-3"><span class="num">13.5.3</span>Development and Production Environments</h3>
+<div class="grid-2">
+<div class="card"><h4>Purpose per environment</h4><p><strong>Development:</strong> write transformations, test expectations, experiment with schema changes, investigate failures.</p><p><strong>QA:</strong> reconciliation, regression, performance, CDC validation, end-to-end tests.</p><p style="margin-bottom:0"><strong>Production:</strong> scheduled execution, controlled releases, monitoring, incident handling.</p></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Check</th><th>Dev</th><th>QA</th><th>Prod</th></tr></thead>
+<tbody>
+<tr><td>Code validation</td><td>Required</td><td>Required</td><td>Required</td></tr>
+<tr><td>Schema validation</td><td>Required</td><td>Required</td><td>Required</td></tr>
+<tr><td>Data-quality tests</td><td>Required</td><td>Required</td><td>Required</td></tr>
+<tr><td>Reconciliation</td><td>Recommended</td><td>Required</td><td>Required</td></tr>
+<tr><td>Performance tests</td><td>Recommended</td><td>Required</td><td>Monitored</td></tr>
+<tr><td>Permissions</td><td>Basic</td><td>Validated</td><td>Strict</td></tr>
+<tr><td>Monitoring</td><td>Basic</td><td>Validated</td><td>Required</td></tr>
+</tbody></table></div>
+</div>
+
+<h3 id="s13-5-4"><span class="num">13.5.4</span>Monitoring Execution</h3>
+<div class="grid-2">
+<div class="card"><h4>Execution</h4><ul style="margin-bottom:0"><li>Update status and duration.</li><li>Failed datasets and retries.</li><li>Source ingestion delays.</li><li>Compute failures.</li><li>Downstream impact.</li></ul></div>
+<div class="card"><h4>Data</h4><ul style="margin-bottom:0"><li>Source and Silver counts.</li><li>Invalid and duplicate records.</li><li>Gold sales totals.</li><li>Unexpected volume changes.</li><li>Freshness.</li></ul></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Metric</th><th>Expected condition</th></tr></thead>
+<tbody>
+<tr><td>Pipeline status</td><td>Completed</td></tr>
+<tr><td>Source record count</td><td>Within expected range</td></tr>
+<tr><td>Invalid record %</td><td>Below agreed threshold</td></tr>
+<tr><td>Duplicate order IDs</td><td>Zero after deduplication</td></tr>
+<tr><td>Gold sales total</td><td>Reconciles with eligible Silver records</td></tr>
+<tr><td>Freshness</td><td>Within SLA</td></tr>
+</tbody></table></div>
+<p class="ref">Base thresholds on business requirements. A 50% drop in daily orders might be an ingestion failure or a real business event, so alert people to investigate rather than assume.</p>
+
+<h3 id="s13-5-5"><span class="num">13.5.5</span>Failure Recovery</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Scenario</th><th>Examples</th><th>Response</th></tr></thead>
+<tbody>
+<tr><td>1. Transient infrastructure</td><td>Compute failure, service blip, source connectivity</td><td>Inspect → confirm transient → retry → verify output</td></tr>
+<tr><td>2. Invalid source data</td><td>Missing fields, bad types, unexpected values</td><td>Identify → decide quarantine/drop/reject → correct → rerun → reconcile</td></tr>
+<tr><td>3. Transformation bug</td><td>Wrong aggregation, join, key, or conversion</td><td>Identify dataset → fix code → validate in dev → run → compare</td></tr>
+<tr><td>4. Incorrect business results</td><td>Totals too high, duplicates, wrong history</td><td>Restrict consumption → find affected period → trace graph → fix → reprocess → validate with stakeholders</td></tr>
+</tbody></table></div>
+<div class="callout warn"><span class="label">Important</span><p>Retrying doesn't fix bad source data or logic. A successful update is not proof of correct output.</p></div>
+
+<h3 id="s13-5-6"><span class="num">13.5.6</span>Performance Tuning</h3>
+<div class="grid-2">
+<div class="code-wrap"><span class="lang">SQL · select only what you need</span><pre class="code"><code>-- Instead of
+SELECT * FROM orders_silver;
+
+-- Prefer
+SELECT order_id, order_date, amount
+FROM orders_silver;</code></pre></div>
+<div class="code-wrap"><span class="lang">SQL · filter early</span><pre class="code"><code>SELECT order_date, SUM(amount) AS total_sales
+FROM orders_silver
+WHERE status = 'COMPLETED'
+GROUP BY order_date;</code></pre></div>
+</div>
+<div class="card"><ol style="margin-bottom:0" start="3"><li><strong>Avoid unnecessary shuffles:</strong> large joins, <code>GROUP BY</code>, <code>DISTINCT</code>. Check plans and metrics.</li><li><strong>Choose good layouts:</strong> liquid clustering, file sizes, data skipping, statistics. Don't partition on high-cardinality columns.</li><li><strong>Use incremental processing</strong> where eligible.</li><li><strong>Avoid needless full recomputation:</strong> does the requirement really need all history?</li><li><strong>Monitor skew:</strong> a few heavy keys slow joins and aggregations.</li><li><strong>Right-size compute</strong> for volume, complexity, concurrency, frequency, and latency. Bigger isn't always proportionally faster.</li></ol></div>
+
+<!-- ===================== 13.6 ===================== -->
+<h2 id="s13-6"><span class="num">13.6</span>Hands-On Project: Orders Ingestion and Gold Sales Pipeline</h2>
+<p class="section-intro">Build a pipeline that ingests order files, preserves raw records, validates mandatory fields, removes duplicates, produces Silver and Gold datasets, supports incremental ingestion, and tracks data quality.</p>
+<pre class="diagram">     ORDER JSON FILES (volume)
+               |
+               v
+  +--------------------------+
+  | orders_bronze            |  streaming table (Auto Loader)
+  +--------------------------+
+               |
+               v
+  +--------------------------+
+  | orders_silver            |  materialized view
+  | validate · normalize     |  expectations: DROP ROW
+  | dedupe (latest version)  |
+  +--------------------------+
+               |
+               v
+  +--------------------------+
+  | sales_gold               |  materialized view
+  | daily sales · counts     |
+  +--------------------------+
+               |
+               v
+         POWER BI REPORTS</pre>
+
+<h3 id="s13-6-1"><span class="num">13.6.1</span>Step 1: Create the Source Data</h3>
+<div class="code-wrap"><span class="lang">SQL · run in a notebook or SQL editor</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
+CREATE SCHEMA IF NOT EXISTS retail_dev.analytics;      -- pipeline target
+CREATE VOLUME IF NOT EXISTS retail_dev.bronze.orders_json;</code></pre></div>
+<p>Save this as <code>orders_20261020.json</code> (one JSON object per line) and upload it to the <code>orders_json</code> volume:</p>
+<div class="code-wrap"><span class="lang">orders_20261020.json</span><pre class="code"><code>{"order_id": "O1001", "customer_id": "C101", "order_date": "2026-10-20", "amount": 2500.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:00:00"}
+{"order_id": "O1002", "customer_id": "C102", "order_date": "2026-10-20", "amount": 1800.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:05:00"}
+{"order_id": "O1003", "customer_id": "C103", "order_date": "2026-10-20", "amount": 900.00, "status": " cancelled ", "updated_at": "2026-10-20T09:10:00"}
+{"order_id": "O1002", "customer_id": "C102", "order_date": "2026-10-20", "amount": 1800.00, "status": "COMPLETED", "updated_at": "2026-10-20T11:30:00"}
+{"order_id": null, "customer_id": "C104", "order_date": "2026-10-20", "amount": 1200.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:20:00"}
+{"order_id": "O1005", "customer_id": "C105", "order_date": "2026-10-20", "amount": -500.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:25:00"}</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>Planted problems</h4><ul style="margin-bottom:0"><li><strong>O1002</strong> appears twice (a later version at 11:30).</li><li>One order has a <strong>missing order_id</strong>.</li><li><strong>O1005</strong> has a negative amount.</li><li><strong>O1003</strong>'s status is <code>" cancelled "</code> (messy case and spaces).</li></ul></div>
+<div class="card"><h4>Business rules</h4><ul style="margin-bottom:0"><li><code>order_id</code> uniquely identifies an order.</li><li>For duplicates, keep the latest <code>updated_at</code>.</li><li>Missing IDs and negative amounts don't enter Silver.</li><li>Invalid records stay in Bronze for investigation.</li><li>Allowed statuses: COMPLETED, CANCELLED, PENDING.</li></ul></div>
+</div>
+<p class="ref">On Free Edition, replace <code>retail_dev</code> with a catalog you own (e.g. <code>workspace</code>) throughout.</p>
+
+<h4>Step 2: Create the pipeline and the Bronze streaming table</h4>
+<p>Create an ETL pipeline (13.2.1) with default catalog <code>retail_dev</code> and schema <code>analytics</code>. Add one SQL file to it. Steps 2, 4, and 5 all go in this file:</p>
+<div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH STREAMING TABLE orders_bronze
+COMMENT 'Raw order records ingested from JSON files'
+AS
+SELECT
+    *,
+    _metadata.file_path AS _source_file,
+    current_timestamp() AS _ingested_at
+FROM STREAM read_files(
+    '/Volumes/retail_dev/bronze/orders_json/',
+    format =&gt; 'json',
+    schema =&gt; 'order_id STRING, customer_id STRING, order_date DATE,
+               amount DECIMAL(18,2), status STRING, updated_at TIMESTAMP'
+);</code></pre></div>
+<p class="ref">Prefer Python? The <code>@dp.table</code> version in 13.2.4 is equivalent; pipelines can mix languages. The explicit schema assumes valid JSON; for production, configure rescued data and error handling.</p>
+
+<h3 id="s13-6-3"><span class="num">13.6.3</span>Step 3: Why Silver Isn't a Streaming Table</h3>
+<p>The tempting design is a streaming Silver dataset with a <code>row_number()</code> window to keep the latest version of each order. <strong>That doesn't work:</strong> Structured Streaming doesn't support ranking window functions like <code>row_number()</code> over an unbounded stream. The query fails to start. The source document's own correction says the same, so the broken code isn't repeated here.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Option</th><th>How</th><th>Fits when</th></tr></thead>
+<tbody>
+<tr><td><strong>A. Batch Silver materialized view</strong> ✓ used here</td><td>Read Bronze in batch; rank with <code>ROW_NUMBER()</code></td><td>Learning, moderate volumes, clear business logic</td></tr>
+<tr><td>B. Streaming deduplication</td><td><code>dropDuplicatesWithinWatermark</code> on a reliable event key</td><td>Append-only events; first-arrival wins; late data bounded</td></tr>
+<tr><td>C. CDC</td><td><code>AUTO CDC</code> keyed on <code>order_id</code>, sequenced by <code>updated_at</code></td><td>Orders get updated and the latest version must win, at scale</td></tr>
+</tbody></table></div>
+
+<h4>Step 4: Create the Silver dataset</h4>
+<p>Add to the same pipeline file. It reads the Bronze streaming table in batch mode (no <code>STREAM</code>):</p>
+<div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver (
+    CONSTRAINT valid_order_id
+        EXPECT (order_id IS NOT NULL) ON VIOLATION DROP ROW,
+    CONSTRAINT valid_customer_id
+        EXPECT (customer_id IS NOT NULL) ON VIOLATION DROP ROW,
+    CONSTRAINT valid_amount
+        EXPECT (amount &gt;= 0) ON VIOLATION DROP ROW,
+    CONSTRAINT valid_order_status
+        EXPECT (status IN ('COMPLETED', 'CANCELLED', 'PENDING'))
+        ON VIOLATION DROP ROW
+)
+COMMENT 'Validated orders, one row per order_id (latest version)'
+AS
+WITH normalized_orders AS (
+    SELECT
+        order_id,
+        customer_id,
+        order_date,
+        amount,
+        UPPER(TRIM(status)) AS status,
+        updated_at
+    FROM orders_bronze
+),
+ranked_orders AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY order_id
+            ORDER BY updated_at DESC NULLS LAST
+        ) AS row_num
+    FROM normalized_orders
+    WHERE order_id IS NOT NULL
+)
+SELECT order_id, customer_id, order_date, amount, status, updated_at
+FROM ranked_orders
+WHERE row_num = 1;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>What it does</h4><ul style="margin-bottom:0"><li><strong>Normalizes</strong> status (<code>" cancelled "</code> → <code>CANCELLED</code>).</li><li><strong>Deduplicates</strong>: one row per <code>order_id</code>, the latest <code>updated_at</code> wins.</li><li><strong>Validates</strong>: the expectations drop rows that break any rule and record the counts.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Notes</span><p>The <code>WHERE order_id IS NOT NULL</code> keeps all null-ID rows from being ranked together as one "order"; the expectation still records them. Ranking runs <em>before</em> validation, so if an order's latest version is invalid, the order is dropped rather than falling back to an older version. If two versions share a timestamp, add a tie-breaker such as a source sequence number.</p></div>
+</div>
+
+<h4>Step 5: Create the Gold sales table</h4>
+<div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW sales_gold
+COMMENT 'Daily sales by order status'
+AS
+SELECT
+    order_date,
+    status,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_sales,
+    AVG(amount) AS average_order_value
+FROM orders_silver
+GROUP BY order_date, status;</code></pre></div>
+<p>Expected output (verified by running the same Silver and Gold logic in Spark on the sample file):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>order_date</th><th>status</th><th>order_count</th><th>total_sales</th><th>average_order_value</th></tr></thead>
+<tbody>
+<tr><td>2026-10-20</td><td>COMPLETED</td><td>2</td><td>4,300.00</td><td>2,150.00</td></tr>
+<tr><td>2026-10-20</td><td>CANCELLED</td><td>1</td><td>900.00</td><td>900.00</td></tr>
+</tbody></table></div>
+<p class="ref">O1002 counted once (the 11:30 version), the null-ID order and O1005 excluded, O1003 normalized to CANCELLED.</p>
+
+<h3 id="s13-6-6"><span class="num">13.6.6</span>Step 6: Run the Pipeline</h3>
+<div class="grid-2">
+<div class="card"><ol class="steps"><li>Click <strong>Dry run</strong> to validate definitions without processing data.</li><li>Click <strong>Run pipeline</strong> to start an update.</li><li>Watch the graph: Bronze, then Silver, then Gold.</li><li>Click <code>orders_silver</code> to see expectation results: 1 row failing <code>valid_order_id</code>, 1 failing <code>valid_amount</code>.</li><li>Inspect the output tables.</li></ol></div>
+<pre class="diagram">Expected graph:
+
+orders_bronze
+     |
+     v
+orders_silver
+     |
+     v
+sales_gold</pre>
+</div>
+
+<h4>Step 7: Validate the results</h4>
+<p>Run in a separate notebook or SQL editor, using full names:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Silver row count (expected: 3)
+SELECT COUNT(*) AS silver_record_count
+FROM retail_dev.analytics.orders_silver;
+
+-- Duplicate order IDs (expected: no rows)
+SELECT order_id, COUNT(*) AS record_count
+FROM retail_dev.analytics.orders_silver
+GROUP BY order_id
+HAVING COUNT(*) &gt; 1;
+
+-- Invalid records in Silver (expected: 0)
+SELECT COUNT(*) AS invalid_records
+FROM retail_dev.analytics.orders_silver
+WHERE order_id IS NULL
+   OR customer_id IS NULL
+   OR amount &lt; 0
+   OR status NOT IN ('COMPLETED', 'CANCELLED', 'PENDING');
+
+-- Reconcile Silver vs Gold (both expected: 3 orders, 5,200.00)
+SELECT COUNT(*) AS silver_order_count, SUM(amount) AS silver_sales
+FROM retail_dev.analytics.orders_silver;
+
+SELECT SUM(order_count) AS total_orders, SUM(total_sales) AS total_sales
+FROM retail_dev.analytics.sales_gold;</code></pre></div>
+<p class="ref">This reconciliation holds because each Silver row is one order and Gold includes every status with no extra filter. Bronze still holds all 6 raw rows for investigation.</p>
+<div class="callout key"><span class="label">Test incremental ingestion</span><p>Upload a second file (e.g. a new order O1006 and an update to O1001), then run the pipeline again. Bronze ingests <em>only</em> the new file, and Silver/Gold reflect the change. No file is read twice.</p></div>
+
+<h4>Step 8: Implement monitoring</h4>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Check</th><th>Expected</th></tr></thead>
+<tbody>
+<tr><td>Pipeline update</td><td>Completed</td></tr>
+<tr><td>Source ingestion</td><td>New files processed</td></tr>
+<tr><td>Silver duplicates</td><td>Zero</td></tr>
+<tr><td>Invalid Silver records</td><td>Zero</td></tr>
+<tr><td>Gold totals</td><td>Reconcile with Silver</td></tr>
+<tr><td>Freshness</td><td>Within SLA</td></tr>
+<tr><td>Volume</td><td>Within expected range</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    order_date,
+    SUM(order_count) AS total_orders,
+    SUM(total_sales) AS total_sales
+FROM retail_dev.analytics.sales_gold
+GROUP BY order_date
+ORDER BY order_date DESC;</code></pre></div>
+</div>
+<p class="ref">For automated monitoring, combine these with the event-log queries (13.4.5) and alerts. Scheduling the pipeline comes in Chapter 14.</p>
+
+<!-- ===================== 13.7 ===================== -->
+<h2 id="s13-7"><span class="num">13.7</span>Project Enhancements</h2>
+
+<h3>Enhancement 1: Add a quarantine dataset</h3>
+<p>Capture records with missing order IDs, missing customer IDs, negative amounts, or invalid statuses, with a reason for each.</p>
+<details class="q"><summary>Show a solution</summary><div class="answer">
+<div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_quarantine
+COMMENT 'Orders rejected by Silver validation, with reasons'
+AS
+SELECT
+    *,
+    CASE
+        WHEN order_id IS NULL THEN 'Missing order ID'
+        WHEN customer_id IS NULL THEN 'Missing customer ID'
+        WHEN amount &lt; 0 THEN 'Negative order amount'
+        ELSE 'Invalid status'
+    END AS rejection_reason
+FROM orders_bronze
+WHERE order_id IS NULL
+   OR customer_id IS NULL
+   OR amount &lt; 0
+   OR status IS NULL
+   OR UPPER(TRIM(status)) NOT IN ('COMPLETED', 'CANCELLED', 'PENDING');</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>order_id</th><th>amount</th><th>rejection_reason</th></tr></thead>
+<tbody><tr><td>NULL</td><td>1200.00</td><td>Missing order ID</td></tr><tr><td>O1005</td><td>-500.00</td><td>Negative order amount</td></tr></tbody></table></div>
+<p style="margin-bottom:0">Verified on the sample data. The conditions mirror Silver's expectations, so every Bronze row ends up in either Silver or quarantine (apart from duplicate versions, which are collapsed on purpose).</p>
+</div></details>
+
+<div class="grid-2">
+<div class="card"><h4>Enhancement 2: SCD Type 2 customers</h4><p style="margin-bottom:0">Build a customer dimension preserving historical locations: stable customer ID, correctly ordered changes, retained history, a current-record flag, and validated <code>__START_AT</code>/<code>__END_AT</code>. Use the <code>AUTO CDC … STORED AS SCD TYPE 2</code> pattern from 13.4.3.</p></div>
+<div class="card"><h4>Enhancement 3: Incremental processing</h4><p style="margin-bottom:0">Add daily files and confirm repeated updates don't re-ingest processed files. Remember: file-level and business-key deduplication solve different problems.</p></div>
+<div class="card"><h4>Enhancement 4: Event-log monitoring</h4><p style="margin-bottom:0">Build a dataset or dashboard with update status, duration, failed expectations, error events, record counts, and last successful processing time.</p></div>
+<div class="card"><h4>Enhancement 5: CDC for orders</h4><p style="margin-bottom:0">Replace the batch Silver with <code>AUTO CDC</code> keyed on <code>order_id</code>, sequenced by <code>updated_at</code> (option C). Handle deletes if required, and validate against the source change history.</p></div>
+</div>
+
+<!-- ===================== 13.8 ===================== -->
+<h2 id="s13-8"><span class="num">13.8</span>Common Interview Questions</h2>
+<p>Try answering each before revealing the answer.</p>
+<details class="q"><summary>Q1. What is Lakeflow Spark Declarative Pipelines?</summary><div class="answer">A Databricks capability (formerly Delta Live Tables) for defining and managing data pipelines with declarative SQL and Python dataset definitions; the framework handles dependencies, execution, incremental processing, and recovery.</div></details>
+<details class="q"><summary>Q2. Streaming table vs materialized view?</summary><div class="answer">A streaming table processes each new source record once (ideal for ingestion and append-style flows); a materialized view stores a query result that the platform keeps correct through managed refreshes (ideal for joins and aggregations).</div></details>
+<details class="q"><summary>Q3. Bronze, Silver, and Gold?</summary><div class="answer">Bronze preserves incoming data; Silver holds validated, standardized data; Gold holds business-ready datasets and aggregations.</div></details>
+<details class="q"><summary>Q4. What are data-quality expectations?</summary><div class="answer">Boolean rules declared on a dataset that validate each record, with a policy to track, drop, or fail on violations; results are recorded in the event log.</div></details>
+<details class="q"><summary>Q5. Dropping a record vs failing an update?</summary><div class="answer">Dropping excludes the violating record and continues; failing stops the update when a violation occurs.</div></details>
+<details class="q"><summary>Q6. What is incremental processing?</summary><div class="answer">Processing only new or changed data rather than recomputing all history.</div></details>
+<details class="q"><summary>Q7. What is CDC?</summary><div class="answer">Change Data Capture identifies inserts, updates, and deletes in source data and applies them downstream, in Lakeflow via <code>AUTO CDC</code>.</div></details>
+<details class="q"><summary>Q8. What is SCD Type 1?</summary><div class="answer">Overwrites dimension values without keeping previous versions.</div></details>
+<details class="q"><summary>Q9. What is SCD Type 2?</summary><div class="answer">Keeps historical versions as separate rows, with effective start/end timestamps and a way to identify the current row.</div></details>
+<details class="q"><summary>Q10. What is the pipeline event log for?</summary><div class="answer">Operational information about execution, data quality, errors, and related events, queryable with <code>event_log()</code>.</div></details>
+<details class="q"><summary>Q11. How do you troubleshoot a pipeline failure?</summary><div class="answer">Inspect the failed update, review error events, identify the affected dataset via the graph, validate its source and logic, fix, rerun, and reconcile outputs.</div></details>
+<details class="q"><summary>Q12. Does a materialized view always refresh incrementally?</summary><div class="answer">No. It depends on the query, source changes, and supported incrementalization; it may fully recompute.</div></details>
+<details class="q"><summary>Q13. Why preserve Bronze data?</summary><div class="answer">It's the raw reference for audits, source investigations, replay, and validating downstream transformations.</div></details>
+<details class="q"><summary>Q14. Why does business-key deduplication matter?</summary><div class="answer">Multiple records for the same order or entity must be resolved by a defined rule (e.g. latest version wins). <code>DISTINCT</code> only removes identical rows.</div></details>
+<details class="q"><summary>Q15. What should be monitored in production?</summary><div class="answer">Update status, duration, freshness, data quality, record counts, duplicates, source ingestion, and downstream business metrics.</div></details>
+<details class="q"><summary>Q16. Why can't the streaming Silver use <code>row_number()</code>?</summary><div class="answer">Ranking window functions over an unbounded stream aren't supported in Structured Streaming. Use a batch materialized view, streaming dedup with a watermark, or <code>AUTO CDC</code>.</div></details>
+
+<!-- ===================== 13.9 ===================== -->
+<h2 id="s13-9"><span class="num">13.9</span>Recommended Learning and Practice Plan</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Day</th><th>Topic</th><th>Practical exercise</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Fundamentals</td><td>Understand architecture and dependencies</td></tr>
+<tr><td>2</td><td>SQL pipelines</td><td>Create Silver and Gold datasets</td></tr>
+<tr><td>3</td><td>Python pipelines</td><td>Implement definitions with PySpark</td></tr>
+<tr><td>4</td><td>Data quality</td><td>Expectations and quarantine</td></tr>
+<tr><td>5</td><td>Incremental processing</td><td>Ingest new files with Auto Loader</td></tr>
+<tr><td>6</td><td>CDC and SCD</td><td>Current-state and historical dimensions</td></tr>
+<tr><td>7</td><td>Monitoring and troubleshooting</td><td>Event logs and simulated failures</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Final practical assignment</h4><ol style="margin-bottom:0"><li>Ingest JSON order files into Bronze.</li><li>Validate required fields.</li><li>Normalize order status.</li><li>Deduplicate with a deterministic business rule.</li><li>Quarantine invalid records.</li><li>Create a Gold sales aggregation.</li><li>Implement incremental ingestion.</li><li>Monitor data quality.</li><li>Investigate a simulated failure.</li><li>Reconcile Gold against Silver.</li></ol><p style="margin:8px 0 0"><strong>Done when</strong> the pipeline produces correct business results, preserves enough to investigate invalid records, supports incremental ingestion, and gives clear evidence when something goes wrong.</p></div>
+
+<!-- ===================== 13.10 ===================== -->
+<h2 id="s13-10"><span class="num">13.10</span>Official Documentation</h2>
+<p>The docs are the reference for current syntax, API support, and runtime behavior. These links use the AWS path; Azure and GCP versions are available from the same pages.</p>
+<div class="card"><ul style="margin-bottom:0">
+<li><a href="https://docs.databricks.com/aws/en/ldp/" target="_blank" rel="noopener">Lakeflow Spark Declarative Pipelines overview</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/developer/python-ref" target="_blank" rel="noopener">Develop pipelines with Python</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/developer/sql-ref" target="_blank" rel="noopener">Develop pipelines with SQL</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/expectations" target="_blank" rel="noopener">Manage data quality with expectations</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/cdc" target="_blank" rel="noopener">Change data capture (AUTO CDC)</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/" target="_blank" rel="noopener">Auto Loader</a></li>
+</ul></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Chapter Summary</h2>
+<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch13-checklist">
+<label><input type="checkbox"> <strong>Declarative programming</strong> defines the intended datasets and transformations.</label>
+<label><input type="checkbox"> <strong>Bronze, Silver, and Gold</strong> separate raw ingestion, data quality, and analytics.</label>
+<label><input type="checkbox"> <strong>Streaming tables and materialized views</strong> serve different, complementary purposes.</label>
+<label><input type="checkbox"> <strong>Expectations</strong> track, drop, or fail on invalid records.</label>
+<label><input type="checkbox"> <strong>CDC and SCD</strong> handle source changes and historical dimension data.</label>
+<label><input type="checkbox"> <strong>Incremental processing</strong> reduces computation when sources and transformations support it.</label>
+<label><input type="checkbox"> <strong>Event logs and monitoring</strong> are essential for diagnosing failures.</label>
+<label><input type="checkbox"> <strong>Reconciliation</strong> verifies business correctness, even when an update succeeds.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch13-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch13-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 14!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+
+<div class="next">
+<h3>Next chapter: Lakeflow Jobs and Workflow Orchestration</h3>
+<p>Chapter 14 puts everything on a schedule. You'll learn jobs versus pipelines; notebook, Python, SQL, and pipeline tasks; dependencies, parallel and conditional execution; retries, timeouts, notifications, job parameters, and task values; repairing failed runs; backfills; and integration with Azure Data Factory and the REST API.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-12.html"><span>← Previous</span><strong>Chapter 12: Data Ingestion</strong></a>
+  <a class="pager-link" href="databricks-chapter-14.html"><span>Next →</span><strong>Chapter 14: Lakeflow Jobs</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 5 · Chapter 13 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>

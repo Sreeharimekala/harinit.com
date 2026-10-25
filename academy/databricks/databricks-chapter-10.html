@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Databricks Chapter 10: Unity Catalog</title>
+<meta name="description" content="Chapter 10 of a Databricks learning path: Unity Catalog, permissions, row filters, column masks, lineage, auditing and Delta Sharing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
+  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
+  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
+  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
+  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
+  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
+  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+
+/* Top bar */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.top-actions{display:flex;gap:8px}
+.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
+.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.toc li a:hover{color:var(--text);background:var(--surface-2)}
+.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
+.toc .lvl2 a{padding-left:20px;font-size:13px}
+main{padding:40px 48px 80px;min-width:0}
+.content{max-width:780px}
+
+/* Hero */
+.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
+.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
+.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
+.chip strong{font-size:14px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+
+/* Typography */
+h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:10px}
+h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
+h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
+h4{font-size:17px;margin:28px 0 6px;font-weight:700}
+h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:3px 0}
+.section-intro{color:var(--muted);font-size:17px}
+
+/* Code & diagrams */
+pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
+pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
+pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+.code-wrap{position:relative}
+.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.16)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600}
+
+/* Callouts */
+.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
+.callout.key{border-color:var(--key);background:var(--key-bg)}
+.callout.key .label{color:var(--key)}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.warn .label{color:var(--warn)}
+
+/* Cards */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
+.card h4{margin-top:0}
+.card ul{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.ref{font-size:14px;color:var(--muted)}
+.ref a{font-weight:600}
+
+/* Practice */
+details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q ol{padding-bottom:10px}
+
+.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.next h3{margin-top:0}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+
+/* Chapter pager */
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
+.pager-link:last-child{text-align:right}
+.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.pager-link strong{font-size:14.5px;font-weight:600}
+.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+a.pager-link:hover{border-color:var(--accent)}
+.pager-link.disabled{opacity:.6}
+@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
+
+/* Code label spacing + revealable answers */
+pre.code{padding-top:32px}
+.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q .answer{padding:0 0 14px}
+details.q .answer > p{font-size:15px}
+details.q summary{line-height:1.5}
+
+/* Responsive */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr}
+  #menuBtn{display:inline-block}
+  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  aside.toc.open{transform:none}
+  main{padding:28px 16px 64px}
+  h2{font-size:25px}
+  h3{font-size:19px}
+}
+.code-wrap .lang{z-index:2;top:26px}
+/* Checklist */
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.checklist label:last-of-type{border-bottom:none}
+.checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+
+:not(pre) > code{overflow-wrap:anywhere}
+.content > .card{margin:16px 0 22px}
+/* Mobile header + drawer polish */
+.icon-btn{white-space:nowrap}
+@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
+@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
+
+@media print{
+  .topbar,aside.toc,#progress,.copy{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  pre.code{background:#f4f2ee;color:#1d1b19}
+  h2{page-break-before:always}
+}
+</style>
+<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
+    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>Chapter 10 contents</h4>
+  <ol>
+    <li class="lvl1"><a href="#s10-1">10.1 Fundamentals</a></li>
+    <li class="lvl2"><a href="#s10-1-1">What is Unity Catalog?</a></li>
+    <li class="lvl2"><a href="#s10-1-2">Why governance?</a></li>
+    <li class="lvl2"><a href="#s10-1-3">Architecture</a></li>
+    <li class="lvl2"><a href="#s10-1-4">Metastore</a></li>
+    <li class="lvl2"><a href="#s10-1-5">Catalog</a></li>
+    <li class="lvl2"><a href="#s10-1-6">Schema</a></li>
+    <li class="lvl2"><a href="#s10-1-7">Table</a></li>
+    <li class="lvl2"><a href="#s10-1-8">View</a></li>
+    <li class="lvl2"><a href="#s10-1-9">Volume</a></li>
+    <li class="lvl2"><a href="#s10-1-10">Function</a></li>
+    <li class="lvl2"><a href="#s10-1-11">Three-level namespace</a></li>
+    <li class="lvl1"><a href="#s10-2">10.2 Data Objects</a></li>
+    <li class="lvl2"><a href="#s10-2-1">Managed tables</a></li>
+    <li class="lvl2"><a href="#s10-2-2">External tables</a></li>
+    <li class="lvl2"><a href="#s10-2-3">Managed volumes</a></li>
+    <li class="lvl2"><a href="#s10-2-4">External volumes</a></li>
+    <li class="lvl2"><a href="#s10-2-5">Views</a></li>
+    <li class="lvl2"><a href="#s10-2-6">Materialized views</a></li>
+    <li class="lvl2"><a href="#s10-2-7">Functions</a></li>
+    <li class="lvl2"><a href="#s10-2-8">External locations</a></li>
+    <li class="lvl2"><a href="#s10-2-9">Storage credentials</a></li>
+    <li class="lvl1"><a href="#s10-3">10.3 Security &amp; Permissions</a></li>
+    <li class="lvl2"><a href="#s10-3-1">Security model</a></li>
+    <li class="lvl2"><a href="#s10-3-2">GRANT</a></li>
+    <li class="lvl2"><a href="#s10-3-3">REVOKE</a></li>
+    <li class="lvl2"><a href="#s10-3-4">Ownership</a></li>
+    <li class="lvl2"><a href="#s10-3-5">Core privileges</a></li>
+    <li class="lvl2"><a href="#s10-3-10">Privilege inheritance</a></li>
+    <li class="lvl2"><a href="#s10-3-11">Workspace permissions</a></li>
+    <li class="lvl2"><a href="#s10-3-12">Service principals</a></li>
+    <li class="lvl2"><a href="#s10-3-13">Identity &amp; access mgmt</a></li>
+    <li class="lvl1"><a href="#s10-4">10.4 Advanced Governance</a></li>
+    <li class="lvl2"><a href="#s10-4-1">Row filters</a></li>
+    <li class="lvl2"><a href="#s10-4-2">Column masks</a></li>
+    <li class="lvl2"><a href="#s10-4-3">Fine-grained access</a></li>
+    <li class="lvl2"><a href="#s10-4-4">Data lineage</a></li>
+    <li class="lvl2"><a href="#s10-4-5">Audit information</a></li>
+    <li class="lvl2"><a href="#s10-4-6">Data discovery</a></li>
+    <li class="lvl2"><a href="#s10-4-7">Tagging &amp; classification</a></li>
+    <li class="lvl2"><a href="#s10-4-8">Sensitive data</a></li>
+    <li class="lvl2"><a href="#s10-4-9">Across workspaces</a></li>
+    <li class="lvl1"><a href="#s10-5">10.5 Data Sharing</a></li>
+    <li class="lvl2"><a href="#s10-5-1">Delta Sharing</a></li>
+    <li class="lvl2"><a href="#s10-5-2">Sharing securely</a></li>
+    <li class="lvl2"><a href="#s10-5-3">External consumers</a></li>
+    <li class="lvl2"><a href="#s10-5-4">Access management</a></li>
+    <li class="lvl2"><a href="#s10-5-5">Sharing concepts</a></li>
+    <li class="lvl2"><a href="#s10-5-6">Best practices</a></li>
+    <li class="lvl1"><a href="#lab">Hands-on: Grant &amp; Verify</a></li>
+    <li class="lvl2"><a href="#practice">Practice exercises</a></li>
+    <li class="lvl1"><a href="#reference">Quick Reference</a></li>
+    <li class="lvl1"><a href="#summary">Final Summary</a></li>
+  </ol>
+</aside>
+
+<main id="top">
+<div class="content">
+
+<section class="hero">
+  <span class="eyebrow">Phase 4 · Chapter 10 · Delta Lake &amp; Data Management</span>
+  <h1>Unity Catalog and Data Governance</h1>
+  <p class="lead">Who can see what, and how you prove it: Unity Catalog's object model, managed and external data, GRANT and REVOKE, row filters and column masks, lineage, auditing, and Delta Sharing, ending with a hands-on grant-and-verify exercise.</p>
+  <p class="ref">Examples use the three-level namespace (e.g. <code>sales_prod.customers.customer_master</code>). Features and commands depend on your account configuration, Unity Catalog privileges, cloud provider, and runtime.</p>
+  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
+  <ol style="margin-bottom:0">
+    <li>Explain Unity Catalog's architecture and purpose.</li>
+    <li>Explain metastores, catalogs, schemas, tables, views, volumes, and functions.</li>
+    <li>Understand managed and external data objects.</li>
+    <li>Create catalogs, schemas, tables, and volumes.</li>
+    <li>Grant and revoke permissions with Databricks SQL.</li>
+    <li>Understand ownership and privilege inheritance.</li>
+    <li>Apply identity and access management principles.</li>
+    <li>Use row filters and column masks.</li>
+    <li>Explore lineage, audit information, and data discovery.</li>
+    <li>Apply classification and sensitive-data protection.</li>
+    <li>Understand governance across multiple workspaces.</li>
+    <li>Explain Delta Sharing and secure external access.</li>
+    <li>Complete a practical Unity Catalog security exercise.</li>
+  </ol></div>
+  <div class="chips">
+    <a class="chip" href="#s10-1"><span>10.1</span><strong>Fundamentals</strong></a>
+    <a class="chip" href="#s10-2"><span>10.2</span><strong>Data Objects</strong></a>
+    <a class="chip" href="#s10-3"><span>10.3</span><strong>Security &amp; Permissions</strong></a>
+    <a class="chip" href="#s10-4"><span>10.4</span><strong>Advanced Governance</strong></a>
+    <a class="chip" href="#s10-5"><span>10.5</span><strong>Data Sharing</strong></a>
+    <a class="chip" href="#lab"><span>Lab</span><strong>Grant &amp; Verify</strong></a>
+  </div>
+</section>
+
+<!-- ===================== 10.1 ===================== -->
+<h2 id="s10-1"><span class="num">10.1</span>Unity Catalog Fundamentals</h2>
+
+<h3 id="s10-1-1"><span class="num">10.1.1</span>What Is Unity Catalog?</h3>
+<div class="callout key"><span class="label">Simple definition</span><p>Unity Catalog is Databricks' centralized governance solution for data and AI assets: one governance layer across workspaces for metadata, access control, discovery, lineage, and auditing.</p></div>
+<div class="grid-2">
+  <div class="card"><h4>Without centralized governance</h4><ul><li>Inconsistent permissions across workspaces.</li><li>Uncontrolled access to sensitive data.</li><li>Duplicate governance configurations.</li><li>Hard-to-track data usage.</li><li>Limited lineage visibility.</li><li>Difficult auditing of critical data.</li></ul></div>
+  <div class="card"><h4>What it governs</h4><ul><li>Catalogs, schemas, tables, views.</li><li>Volumes and functions.</li><li>Models and other AI assets.</li><li>External locations and storage credentials.</li></ul><p style="margin-bottom:0">Plus fine-grained access control, lineage, discovery, auditing, sharing, and sensitive-data governance.</p></div>
+</div>
+<p><strong>Example:</strong> an organization with Finance, Sales, and Engineering keeps customer, transaction, and product data. Finance needs billing information, Sales needs customer and opportunity data, and Engineering needs operational datasets. Unity Catalog lets administrators organize these assets and grant privileges to <strong>groups</strong> instead of individual employees.</p>
+
+<h3 id="s10-1-2"><span class="num">10.1.2</span>Why Is Data Governance Required?</h3>
+<p>Data governance defines how data is accessed, managed, protected, discovered, and used, so people get the data their jobs need and nothing they aren't authorized to see.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>Email</th><th>CreditLimit</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>john@example.com</td><td>100000</td></tr><tr><td>102</td><td>David</td><td>david@example.com</td><td>150000</td></tr><tr><td>103</td><td>Smith</td><td>smith@example.com</td><td>75000</td></tr></tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>User group</th><th>Required access</th></tr></thead>
+<tbody><tr><td>Sales</td><td>ID, name, email</td></tr><tr><td>Finance</td><td>ID, credit limit</td></tr><tr><td>Engineering</td><td>Operational fields</td></tr><tr><td>External analysts</td><td>Approved, restricted info</td></tr></tbody></table></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Objective</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>1. Confidentiality</td><td>Prevent unauthorized access to sensitive information</td></tr>
+<tr><td>2. Integrity</td><td>Protect data against unauthorized changes</td></tr>
+<tr><td>3. Availability</td><td>Authorized users and applications can get the data they need</td></tr>
+<tr><td>4. Compliance</td><td>Support organizational and regulatory requirements</td></tr>
+<tr><td>5. Discoverability</td><td>Help users find relevant, approved data</td></tr>
+<tr><td>6. Accountability</td><td>Record relevant access and administrative activity</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="label">Governance versus security</span><p><strong>Security</strong> protects systems and data against unauthorized access or change. <strong>Governance</strong> includes security, plus ownership, classification, lineage, quality expectations, discovery, and appropriate use.</p></div>
+
+<h3 id="s10-1-3"><span class="num">10.1.3</span>Unity Catalog Architecture</h3>
+<div class="grid-2">
+<pre class="diagram">Databricks Account
+       |
+       v
+Unity Catalog Metastore
+       |
+       +------------------+
+       |                  |
+       v                  v
+   Catalog A          Catalog B
+       |                  |
+       v                  v
+    Schemas            Schemas
+       |                  |
+       v                  v
+ Tables / Views     Tables / Views
+ Volumes            Volumes
+ Functions          Functions</pre>
+<div class="callout" style="margin:0"><span class="label">Outside the hierarchy</span><p>External locations and storage credentials control access to cloud storage. They're governed securables, but they don't sit inside the catalog → schema → table hierarchy like tables and views do.</p></div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Metastore</td><td>Top-level Unity Catalog governance container</td></tr>
+<tr><td>Catalog</td><td>Groups related data assets</td></tr>
+<tr><td>Schema</td><td>Groups tables, views, functions, and other objects</td></tr>
+<tr><td>Table</td><td>Stores structured data</td></tr>
+<tr><td>View</td><td>A named query over data</td></tr>
+<tr><td>Volume</td><td>Governed access to non-tabular files</td></tr>
+<tr><td>Function</td><td>Encapsulates reusable logic</td></tr>
+<tr><td>External location</td><td>Governed access to a cloud storage path</td></tr>
+<tr><td>Storage credential</td><td>The cloud identity used for storage access</td></tr>
+</tbody></table></div>
+
+<h3 id="s10-1-4"><span class="num">10.1.4</span>Metastore</h3>
+<p>A metastore is the top-level container for governed metadata and access-control configuration. It manages catalog metadata, object permissions, ownership, lineage, discovery, and governance across the workspaces attached to it. A metastore is typically tied to a cloud region and assigned to selected workspaces.</p>
+<p class="ref">A metastore doesn't hold the data files themselves; those live in managed storage or external cloud storage.</p>
+<div class="callout warn"><span class="label">Important</span><p>Don't assume every workspace shares the same metastore. Workspace-to-metastore assignment and workspace-level catalog access must be configured.</p></div>
+
+<h3 id="s10-1-5"><span class="num">10.1.5</span>Catalog</h3>
+<p>A catalog is the primary logical container within a metastore, often organized by environment, business domain, department, data product, or security boundary.</p>
+<div class="grid-2">
+<pre class="diagram">development
+    |
+    +-- sales
+    +-- finance
+    +-- operations
+
+production
+    |
+    +-- sales
+    +-- finance
+    +-- operations</pre>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE CATALOG IF NOT EXISTS sales_prod;
+
+SHOW CATALOGS;
+
+USE CATALOG sales_prod;
+
+DESCRIBE CATALOG sales_prod;</code></pre></div>
+</div>
+<p class="ref">Creating a catalog needs metastore privileges. Some organizations use domain catalogs instead and separate environments by naming and governance conventions.</p>
+<div class="callout key"><span class="label">When to create a separate catalog</span><p>When there's a real governance boundary: production vs development, finance vs general analytics, highly restricted vs broadly accessible, or independently managed data products. Avoid creating many catalogs without a clear purpose.</p></div>
+
+<h3 id="s10-1-6"><span class="num">10.1.6</span>Schema</h3>
+<p>A schema is a logical container inside a catalog for tables, views, functions, and other objects, like a namespace in a traditional database.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS sales_prod.customers;
+
+SHOW SCHEMAS IN sales_prod;
+
+USE SCHEMA sales_prod.customers;
+
+CREATE TABLE sales_prod.customers.customer_master (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING
+)
+USING DELTA;</code></pre></div>
+<div class="grid-2">
+<div class="card"><h4>By medallion layer</h4><p style="margin-bottom:0"><code>sales_prod.bronze</code><br><code>sales_prod.silver</code><br><code>sales_prod.gold</code></p></div>
+<div class="card"><h4>By function</h4><p style="margin-bottom:0"><code>sales_prod.crm</code><br><code>sales_prod.reporting</code><br><code>sales_prod.reference</code></p></div>
+</div>
+<p class="ref">The right design depends on governance requirements and the team's architecture.</p>
+
+<h3 id="s10-1-7"><span class="num">10.1.7</span>Table</h3>
+<p>A table stores structured data in rows and columns. Unity Catalog governs Delta tables and other supported table types.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE sales_prod.customers.customer_master (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING,
+    Email STRING
+)
+USING DELTA;
+
+INSERT INTO sales_prod.customers.customer_master
+VALUES
+    (101, 'John', 'Hyderabad', 'john@example.com'),
+    (102, 'David', 'Chennai', 'david@example.com');
+
+SELECT *
+FROM sales_prod.customers.customer_master;</code></pre></div>
+<p class="ref">This replaces the three-column version created in 10.1.6. Every table has a name, schema, storage format, location or managed storage, metadata, an owner, and access permissions.</p>
+
+<h3 id="s10-1-8"><span class="num">10.1.8</span>View</h3>
+<p>A view is a named query over one or more objects; a standard view stores the query, not a copy of the results. To expose only IDs, names, and cities to a reporting group:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE VIEW sales_prod.customers.customer_summary AS
+SELECT
+    CustomerID,
+    CustomerName,
+    City
+FROM sales_prod.customers.customer_master;
+
+SELECT *
+FROM sales_prod.customers.customer_summary;</code></pre></div>
+<p><strong>Benefits:</strong> simpler queries, a controlled interface to the data, reusable logic, and abstraction over table structures.</p>
+<div class="callout warn"><span class="label">Security consideration</span><p>A view isn't automatically secure just because it omits sensitive columns. Underlying permissions, view type, and access-control behavior must be right. Test the view as the actual identity that will use it.</p></div>
+
+<h3 id="s10-1-9"><span class="num">10.1.9</span>Volume</h3>
+<p>A volume provides governed access to files that aren't necessarily tabular: CSV, JSON, XML, images, PDFs, configuration files, ML artifacts. For example, daily customer CSVs (<code>customers_20261023.csv</code>, …) can sit in a governed volume.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Managed volume
+CREATE VOLUME IF NOT EXISTS sales_prod.bronze.customer_files;
+
+-- External volume (needs storage credential + external location)
+CREATE EXTERNAL VOLUME sales_prod.bronze.external_customer_files
+LOCATION 'abfss://raw@myaccount.dfs.core.windows.net/customers/';</code></pre></div>
+<div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Path format: /Volumes/&lt;catalog&gt;/&lt;schema&gt;/&lt;volume&gt;/&lt;file&gt;
+df = spark.read.csv(
+    "/Volumes/sales_prod/bronze/customer_files/customers.csv",
+    header=True
+)</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Volume</th></tr></thead>
+<tbody>
+<tr><td>Organizes structured data</td><td>Provides access to files</td></tr>
+<tr><td>Supports SQL table operations</td><td>Supports file-level access</td></tr>
+<tr><td>Has a table schema</td><td>No inherent tabular schema</td></tr>
+<tr><td>Analytical datasets</td><td>Raw files and non-tabular assets</td></tr>
+</tbody></table></div>
+<p class="ref">A volume doesn't replace a Delta table. A common pipeline reads files from a volume, transforms them, and writes Delta tables, as you did in Chapter 8.</p>
+
+<h3 id="s10-1-10"><span class="num">10.1.10</span>Function</h3>
+<p>A function encapsulates reusable logic. Databricks supports SQL functions and other types.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE FUNCTION sales_prod.customers.calculate_discount(
+    amount DECIMAL(12, 2),
+    discount_percent DECIMAL(5, 2)
+)
+RETURNS DECIMAL(12, 2)
+RETURN amount * discount_percent / 100;
+
+SELECT
+    sales_prod.customers.calculate_discount(1000, 10) AS DiscountAmount;
+-- 100.00</code></pre></div>
+<p><strong>Why use functions?</strong> Reuse business logic, standardize calculations, simplify SQL, reduce duplicated expressions.</p>
+<div class="callout"><span class="label">Security consideration</span><p>Function privileges and execution behavior depend on the function type and security model. Don't assume every function runs with the same permissions or exposes data the same way.</p></div>
+
+<h3 id="s10-1-11"><span class="num">10.1.11</span>Three-Level Namespace</h3>
+<div class="grid-2">
+<div><pre class="diagram">catalog_name.schema_name.table_name
+
+sales_prod.customers.customer_master
+    |          |            |
+ catalog     schema       table</pre></div>
+<div class="code-wrap"><span class="lang">SQL + Python</span><pre class="code"><code>SELECT *
+FROM sales_prod.customers.customer_master;
+
+df = spark.table(
+    "sales_prod.customers.customer_master"
+)
+display(df)</code></pre></div>
+</div>
+<p>The namespace prevents ambiguity when several catalogs hold similarly named schemas or tables, and keeps organization clear across environments and domains.</p>
+<div class="callout key"><span class="label">Best practice</span><p>Use fully qualified names in production notebooks and pipelines. That's more predictable than relying on whichever catalog or schema is active in the session.</p></div>
+
+<!-- ===================== 10.2 ===================== -->
+<h2 id="s10-2"><span class="num">10.2</span>Data Objects</h2>
+
+<h3 id="s10-2-1"><span class="num">10.2.1</span>Managed Tables</h3>
+<p>A managed table's data lifecycle is managed by Databricks through the catalog, in the configured managed storage location.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE sales_prod.customers.managed_customers (
+    CustomerID INT,
+    CustomerName STRING
+)
+USING DELTA;
+
+-- Normally removes the table AND its managed data
+DROP TABLE sales_prod.customers.managed_customers;</code></pre></div>
+<p><strong>Characteristics:</strong> catalog-managed metadata and storage lifecycle, integrated governance, and full Delta support. Always verify the table type before dropping a production object.</p>
+
+<h3 id="s10-2-2"><span class="num">10.2.2</span>External Tables</h3>
+<p>An external table's metadata is registered in Unity Catalog while its data stays at a specified external location.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE sales_prod.customers.external_customers (
+    CustomerID INT,
+    CustomerName STRING
+)
+USING DELTA
+LOCATION 'abfss://silver@myaccount.dfs.core.windows.net/customers/';</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Managed table</th><th>External table</th></tr></thead>
+<tbody>
+<tr><td>Storage location</td><td>Managed by the platform</td><td>Specified external location</td></tr>
+<tr><td>Data lifecycle</td><td>Catalog-managed</td><td>Managed separately</td></tr>
+<tr><td>Drop behavior</td><td>Normally removes managed data</td><td>Normally removes only the registration</td></tr>
+<tr><td>Governance</td><td>Unity Catalog</td><td>Unity Catalog</td></tr>
+<tr><td>Common use</td><td>Curated platform-managed datasets</td><td>Data that must stay at a controlled location</td></tr>
+</tbody></table></div>
+<p class="ref">An external table isn't automatically more secure than a managed one; security depends on permissions and storage configuration.</p>
+
+<h3 id="s10-2-3"><span class="num">10.2.3</span>Managed Volumes</h3>
+<p>A managed volume's storage lifecycle is managed by Databricks. Use it for raw source files, ingestion, file-based ML inputs, documents and images, and other non-tabular assets.</p>
+<div class="code-wrap"><span class="lang">SQL + Python</span><pre class="code"><code>CREATE VOLUME IF NOT EXISTS sales_prod.bronze.raw_files;
+
+df = spark.read.csv(
+    "/Volumes/sales_prod/bronze/raw_files/customers.csv",
+    header=True
+)</code></pre></div>
+<div class="callout warn"><span class="label">Lifecycle</span><p>Dropping a managed volume normally deletes its contents too. Evaluate the implications before using one for data that must be independently managed.</p></div>
+
+<h3 id="s10-2-4"><span class="num">10.2.4</span>External Volumes</h3>
+<p>An external volume governs access to files at an externally managed cloud location: an existing data lake, shared storage, processing files in place, or storage maintained independently of the volume.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE EXTERNAL VOLUME sales_prod.bronze.external_raw_files
+LOCATION 'abfss://raw@myaccount.dfs.core.windows.net/files/';</code></pre></div>
+<p class="ref">Requires a storage credential and external location. The path must follow the platform's rules for external volumes and not overlap an existing governed storage object.</p>
+
+<h3 id="s10-2-5"><span class="num">10.2.5</span>Views</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Assumes the table has an IsActive column
+CREATE VIEW sales_prod.customers.active_customers AS
+SELECT
+    CustomerID,
+    CustomerName,
+    City
+FROM sales_prod.customers.customer_master
+WHERE IsActive = true;
+
+SELECT *
+FROM sales_prod.customers.active_customers;</code></pre></div>
+<p><strong>Benefits:</strong> simpler reporting, reusable logic, logical abstraction, and controlled exposure of selected columns and rows. Validate privileges and underlying access before using a view as a security boundary.</p>
+
+<h3 id="s10-2-6"><span class="num">10.2.6</span>Materialized Views</h3>
+<p>A materialized view stores query results and keeps them current through supported refresh mechanisms, which speeds up expensive, frequently reused queries.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE MATERIALIZED VIEW sales_prod.reporting.monthly_sales_summary
+AS
+SELECT
+    YEAR(OrderDate) AS OrderYear,
+    MONTH(OrderDate) AS OrderMonth,
+    SUM(TotalAmount) AS TotalSales
+FROM sales_prod.silver.orders
+GROUP BY
+    YEAR(OrderDate),
+    MONTH(OrderDate);</code></pre></div>
+<p class="ref">Illustrative. Availability, syntax, refresh behavior, and incremental-refresh eligibility depend on your environment.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Standard view</th><th>Materialized view</th></tr></thead>
+<tbody>
+<tr><td>Stores query definition</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Stores query results</td><td>Generally no</td><td>Yes</td></tr>
+<tr><td>Query execution</td><td>Evaluates the underlying query</td><td>Can use maintained results</td></tr>
+<tr><td>Refresh</td><td>Depends on underlying objects</td><td>Supported refresh behavior</td></tr>
+<tr><td>Storage</td><td>No separate result storage</td><td>Stores materialized results</td></tr>
+</tbody></table></div>
+<p class="ref">Not a universal replacement for a Delta table; choose by workload, update needs, and supported capabilities.</p>
+
+<h3 id="s10-2-7"><span class="num">10.2.7</span>Functions</h3>
+<p>Categories include built-in SQL functions (like <code>UPPER()</code>), SQL user-defined functions, Python UDFs, and other supported types.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
+    CustomerID,
+    UPPER(CustomerName) AS CustomerNameUpper
+FROM sales_prod.customers.customer_master;</code></pre></div>
+<div class="card"><h4>Governance considerations</h4><ul><li>Control who can create or modify functions.</li><li>Review logic in functions that access sensitive data.</li><li>Validate function privileges.</li><li>Prefer built-in functions over UDFs when they can do the job.</li></ul></div>
+
+<h3 id="s10-2-8"><span class="num">10.2.8</span>External Locations</h3>
+<p>An external location is a securable that pairs a cloud-storage path with a storage credential, controlling how Databricks accesses external storage.</p>
+<div class="grid-2">
+<pre class="diagram">External Location: raw_data_location
+    |
+    +-- Cloud storage URL
+    |
+    +-- Storage credential
+    |
+    +-- Access privileges</pre>
+<div class="card"><h4>Typical workflow</h4><ol><li>Configure the cloud identity or storage credential.</li><li>Define an external location.</li><li>Grant the necessary privileges.</li><li>Create an external table or volume at an eligible path.</li><li>Validate access with the intended identity.</li></ol></div>
+</div>
+<p>External locations manage approved storage paths, storage access privileges, access to external tables and volumes, and the separation between storage configuration and data objects. They're especially important in Azure Databricks with ADLS Gen2.</p>
+
+<h3 id="s10-2-9"><span class="num">10.2.9</span>Storage Credentials</h3>
+<p>A storage credential represents the identity used to access cloud storage through Unity Catalog. In Azure Databricks this is typically a managed identity (via an Access Connector) or another supported Azure identity.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Storage credential</th><th>External location</th></tr></thead>
+<tbody>
+<tr><td>Defines the storage identity or authentication</td><td>Defines a governed storage path</td></tr>
+<tr><td>Provides the identity used for access</td><td>Associates a path with a credential</td></tr>
+<tr><td>Establishes cloud-storage access</td><td>Governs access to a particular location</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="label">Best practice</span><p>Prefer managed identities and other identity-based methods over long-lived embedded secrets. Use least privilege and review storage access periodically.</p></div>
+
+<!-- ===================== 10.3 ===================== -->
+<h2 id="s10-3"><span class="num">10.3</span>Security and Permissions</h2>
+
+<h3 id="s10-3-1"><span class="num">10.3.1</span>Unity Catalog Security Model</h3>
+<p>Unity Catalog uses privilege-based access control: users and groups receive privileges on securable objects (metastore, catalog, schema, table, view, volume, function, external location, storage credential), and their effective permissions determine what they can discover, query, create, or modify.</p>
+<div class="callout key"><span class="label">Least privilege</span><p>Grant only what the task needs. Report consumers need read access; data engineers may need read and write on selected schemas; administrators get broader privileges only when their responsibilities require it.</p></div>
+
+<h3 id="s10-3-2"><span class="num">10.3.2</span>GRANT</h3>
+<p><code>GRANT</code> assigns a privilege to a user, group, or other principal.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Use the catalog
+GRANT USE CATALOG ON CATALOG sales_prod TO `sales_analysts`;
+
+-- Use the schema
+GRANT USE SCHEMA ON SCHEMA sales_prod.customers TO `sales_analysts`;
+
+-- Read the table
+GRANT SELECT ON TABLE sales_prod.customers.customer_master TO `sales_analysts`;
+
+-- Create tables in a schema
+GRANT CREATE TABLE ON SCHEMA sales_prod.customers TO `data_engineers`;</code></pre></div>
+<div class="grid-2">
+<pre class="diagram">To query a table, a group needs:
+
+  USE CATALOG   on the catalog
+       +
+  USE SCHEMA    on the schema
+       +
+  SELECT        on the table
+       +
+  access to a SQL warehouse
+  or other compute</pre>
+<div class="callout" style="margin:0"><span class="label">Important distinction</span><p><code>GRANT</code> assigns one privilege. It doesn't automatically grant the prerequisites needed to use an object; the group needs the right privileges at each level.</p></div>
+</div>
+
+<h3 id="s10-3-3"><span class="num">10.3.3</span>REVOKE</h3>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>REVOKE SELECT
+ON TABLE sales_prod.customers.customer_master
+FROM `sales_analysts`;</code></pre></div>
+<div class="callout warn"><span class="label">Revoking one grant may not remove all access</span><p>A user may still get in through another group, a broader inherited privilege, ownership, another grant, or a different authorized path. Review <strong>effective</strong> access rather than assuming one <code>REVOKE</code> closes every route.</p></div>
+
+<h3 id="s10-3-4"><span class="num">10.3.4</span>Ownership</h3>
+<p>The owner is the principal responsible for a securable, with important administrative authority, including managing permissions on what it owns.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>ALTER TABLE sales_prod.customers.customer_master
+OWNER TO `data_engineers`;</code></pre></div>
+<div class="card"><h4>Ownership best practices</h4><ul><li>Prefer groups or service principals for durable operational ownership.</li><li>Don't leave critical production objects owned by an individual's account.</li><li>Separate ownership from ordinary read access.</li><li>Review ownership when teams or applications change.</li><li>Use administrators only where broad authority is genuinely needed.</li></ul></div>
+
+<h3 id="s10-3-5"><span class="num">10.3.5</span>Core Privileges</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Privilege</th><th>Granted on</th><th>Allows</th><th>Doesn't allow on its own</th></tr></thead>
+<tbody>
+<tr><td><code>USE CATALOG</code></td><td>Catalog</td><td>Using the catalog to reach objects inside it</td><td>Querying any table in it</td></tr>
+<tr><td><code>USE SCHEMA</code></td><td>Schema</td><td>Using the schema to reach objects inside it</td><td>Querying any table in it</td></tr>
+<tr><td><code>SELECT</code></td><td>Table, view (or schema/catalog, inherited)</td><td>Reading data</td><td>Changing data</td></tr>
+<tr><td><code>MODIFY</code></td><td>Table</td><td>Inserts, updates, deletes</td><td>Should not go to read-only groups</td></tr>
+<tr><td><code>CREATE TABLE</code></td><td>Schema</td><td>Creating new tables in the schema</td><td>Reading or modifying existing tables</td></tr>
+</tbody></table></div>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>GRANT MODIFY
+ON TABLE sales_prod.customers.customer_master
+TO `data_engineers`;</code></pre></div>
+<div class="callout"><span class="label">Read and write are different responsibilities</span><p>A reporting group that only runs <code>SELECT</code> queries should never receive <code>MODIFY</code>. For sensitive data, combine <code>SELECT</code> with governed views, row filters, and column masks.</p></div>
+
+<h3 id="s10-3-10"><span class="num">10.3.6</span>Privilege Inheritance</h3>
+<p>Privileges granted at a catalog or schema apply to descendant objects, <strong>including objects created later</strong>.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>GRANT SELECT
+ON SCHEMA sales_prod.customers
+TO `sales_analysts`;</code></pre></div>
+<p>This gives read access to every current and future table and view in the schema. That saves repeating grants on each object, but broad grants can expose more than intended.</p>
+<div class="callout key"><span class="label">Best practice</span><p>Grant at the narrowest sensible level. For highly sensitive tables, consider whether schema-wide permissions are appropriate or whether per-object grants give better control.</p></div>
+
+<h3 id="s10-3-11"><span class="num">10.3.7</span>Workspace Permissions</h3>
+<p>Workspace permissions control what users can do inside a workspace (notebooks, jobs, SQL warehouses, folders, dashboards), separately from Unity Catalog data privileges. A user might open a notebook but not query a table, or hold <code>SELECT</code> on a table but lack permission to use the SQL warehouse needed to query it.</p>
+<div class="grid-2">
+  <div class="card"><h4>Two separate questions</h4><ol style="margin-bottom:0"><li>Can the user access the <strong>workspace resource</strong>?</li><li>Can the user access the <strong>underlying data</strong>?</li></ol><p style="margin:8px 0 0">Both must be evaluated.</p></div>
+  <div class="card"><h4>Workspace-catalog binding</h4><p style="margin-bottom:0">Restricts which workspaces can access particular catalogs. It complements object privileges rather than replacing them.</p></div>
+</div>
+
+<h3 id="s10-3-12"><span class="num">10.3.8</span>Service Principals</h3>
+<p>A service principal is a non-human identity for applications, scheduled jobs, CI/CD pipelines, automated ingestion, production transformations, and application integrations. It keeps production pipelines from depending on an employee's personal identity and supports controlled permissions and lifecycle management.</p>
+<div class="grid-2">
+<pre class="diagram">Databricks Job
+      |
+      v
+Service Principal
+      |
+      v
+Unity Catalog Permissions
+      |
+      v
+Delta Tables</pre>
+<div class="card"><h4>Best practices</h4><ul><li>Grant only required privileges.</li><li>Never share personal credentials.</li><li>Use identity-based authentication where possible.</li><li>Rotate credentials when applicable.</li><li>Monitor activity.</li><li>Review permissions periodically.</li></ul></div>
+</div>
+
+<h3 id="s10-3-13"><span class="num">10.3.9</span>Identity and Access Management</h3>
+<p>IAM defines how identities are created, authenticated, authorized, and managed. In Databricks it spans account users, groups, service principals, workspace assignments, Unity Catalog privileges, cloud-storage identities, and external application identities.</p>
+<div class="grid-2">
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>sales_analysts</td><td>Read approved sales datasets</td></tr>
+<tr><td>finance_analysts</td><td>Read approved financial datasets</td></tr>
+<tr><td>data_engineers</td><td>Develop and maintain pipelines</td></tr>
+<tr><td>data_platform_admins</td><td>Platform administration</td></tr>
+</tbody></table></div>
+<div class="card"><h4>Access review process</h4><ol><li>Identify each dataset's business owner.</li><li>Define access requirements.</li><li>Assign users to groups.</li><li>Grant the required privileges.</li><li>Test with representative identities.</li><li>Monitor usage and changes.</li><li>Remove access when no longer needed.</li></ol></div>
+</div>
+<p class="ref">Group names are illustrative. Manage permissions through groups of people with similar responsibilities.</p>
+
+<!-- ===================== 10.4 ===================== -->
+<h2 id="s10-4"><span class="num">10.4</span>Advanced Governance</h2>
+
+<h3 id="s10-4-1"><span class="num">10.4.1</span>Row Filters</h3>
+<p>Row filters restrict which rows each user sees, which is useful when groups need different subsets of one table. For example, the Hyderabad sales team should see only Hyderabad customers.</p>
+<p><strong>Step 1: Create the filter function</strong>, which returns <code>TRUE</code> for rows the current user may see:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE FUNCTION sales_prod.customers.region_access(region STRING)
+RETURNS BOOLEAN
+RETURN
+    CASE
+        WHEN is_account_group_member('sales_admins') THEN TRUE
+        WHEN is_account_group_member('hyderabad_sales')
+             AND region = 'Hyderabad' THEN TRUE
+        ELSE FALSE
+    END;</code></pre></div>
+<p><strong>Step 2: Attach it to the table</strong>, passing the column the function evaluates:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>ALTER TABLE sales_prod.customers.customer_master
+SET ROW FILTER sales_prod.customers.region_access ON (City);
+
+-- To remove it later
+ALTER TABLE sales_prod.customers.customer_master
+DROP ROW FILTER;</code></pre></div>
+<p class="ref">Here the table's <code>City</code> column carries the region. Every query against the table is now filtered automatically for each user.</p>
+<div class="callout warn"><span class="label">Important considerations</span><ul><li>Define how users and groups map to permitted rows.</li><li>Test with real non-administrator identities.</li><li>Make sure unauthorized rows can't leak through other objects.</li><li>Consider the effect on query performance.</li><li>Review how views, functions, and other paths interact with the filter.</li></ul><p>A row filter isn't a substitute for broader access-control design.</p></div>
+
+<h3 id="s10-4-2"><span class="num">10.4.2</span>Column Masks</h3>
+<p>Column masks control how a column's values appear to different users, protecting emails, phone numbers, tax IDs, bank details, and other sensitive identifiers.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Step 1: the masking function
+CREATE FUNCTION sales_prod.customers.mask_email(email STRING)
+RETURNS STRING
+RETURN
+    CASE
+        WHEN email IS NULL THEN NULL
+        WHEN is_account_group_member('customer_data_admins') THEN email
+        ELSE 'REDACTED'
+    END;
+
+-- Step 2: attach it to the column
+ALTER TABLE sales_prod.customers.customer_master
+ALTER COLUMN Email SET MASK sales_prod.customers.mask_email;
+
+-- To remove it later
+ALTER TABLE sales_prod.customers.customer_master
+ALTER COLUMN Email DROP MASK;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>Email (customer_data_admins)</th><th>Email (everyone else)</th></tr></thead>
+<tbody><tr><td>101</td><td>john@example.com</td><td>REDACTED</td></tr><tr><td>102</td><td>david@example.com</td><td>REDACTED</td></tr></tbody></table></div>
+<p><strong>Why column masks?</strong> They protect sensitive values, support role-based exposure, avoid maintaining multiple copies of a dataset, and help meet privacy requirements.</p>
+<div class="callout warn"><span class="label">Important</span><p>A masked value can still leak through other columns, joins, aggregates, or alternate access paths. Review the whole dataset and access model, not one column in isolation.</p></div>
+
+<h3 id="s10-4-3"><span class="num">10.4.3</span>Fine-Grained Access Control</h3>
+<p>Fine-grained access control goes beyond all-or-nothing table access by combining object privileges, governed views, row filters, column masks, and other supported policies.</p>
+<div class="grid-2">
+<pre class="diagram">customer table columns:
+  CustomerID
+  CustomerName
+  Region
+  Email
+  Phone
+  CreditLimit</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Access</th></tr></thead>
+<tbody>
+<tr><td>Sales</td><td>Name and region for assigned records</td></tr>
+<tr><td>Finance</td><td>Credit limit and billing attributes</td></tr>
+<tr><td>Support</td><td>Contact information for support</td></tr>
+<tr><td>Administrators</td><td>Broader access under approved controls</td></tr>
+</tbody></table></div>
+</div>
+<div class="callout key"><span class="label">Best practice</span><p>Implement the simplest access model that meets the requirements. Complex policies cost more to maintain and need thorough testing.</p></div>
+
+<h3 id="s10-4-4"><span class="num">10.4.4</span>Data Lineage</h3>
+<p>Lineage tracks relationships between data assets and processing operations: where a table came from, which sources feed a report, which pipelines modify a dataset, and what downstream objects a change might affect.</p>
+<div class="grid-2">
+<pre class="diagram">Source SQL Database
+        |
+        v
+Bronze Customer Table
+        |
+        v
+Silver Customer Table
+        |
+        v
+Gold Customer Summary
+        |
+        v
+Power BI Report</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Use</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Impact analysis</td><td>Find dependents before changing a table</td></tr>
+<tr><td>Troubleshooting</td><td>Trace incorrect values through the chain</td></tr>
+<tr><td>Compliance</td><td>Show how data moves through the platform</td></tr>
+<tr><td>Documentation</td><td>Understand asset relationships</td></tr>
+</tbody></table></div>
+</div>
+<p>View lineage in Catalog Explorer's <strong>Lineage</strong> tab, or query the <code>system.access.table_lineage</code> system table where system tables are enabled.</p>
+<p class="ref">Lineage depends on supported workloads, integrations, and permissions. Don't assume every external tool or arbitrary process appears automatically.</p>
+
+<h3 id="s10-4-5"><span class="num">10.4.5</span>Audit Information</h3>
+<p>Audit records capture platform activity such as authentication, object access, permission changes, administrative actions, job and workspace operations, and data sharing. They answer questions like: who changed permissions on a sensitive table? Which principal accessed a governed dataset? When was a catalog created?</p>
+<div class="code-wrap"><span class="lang">SQL · where system tables are enabled</span><pre class="code"><code>-- Recent Unity Catalog permission changes
+SELECT
+    event_time,
+    user_identity.email AS actor,
+    action_name,
+    request_params
+FROM system.access.audit
+WHERE service_name = 'unityCatalog'
+  AND action_name = 'updatePermissions'
+ORDER BY event_time DESC
+LIMIT 50;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Lineage</th><th>Audit information</th></tr></thead>
+<tbody>
+<tr><td>Tracks data relationships and flow</td><td>Records platform activities</td></tr>
+<tr><td>Supports dependency analysis</td><td>Supports security investigations</td></tr>
+<tr><td>Identifies upstream and downstream assets</td><td>Identifies actors and actions</td></tr>
+</tbody></table></div>
+<p class="ref">Audit coverage and retention depend on logging configuration, account settings, and platform capabilities. Reading system tables needs to be granted by an administrator.</p>
+
+<h3 id="s10-4-6"><span class="num">10.4.6</span>Data Discovery</h3>
+<p>With thousands of tables, users without good metadata create duplicates or pick the wrong source. Useful metadata includes name, description, column names, owner, business domain, classification, update frequency, quality expectations, and approved use cases.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>COMMENT ON TABLE sales_prod.customers.customer_master
+IS 'Curated customer master data for approved sales analytics.';
+
+ALTER TABLE sales_prod.customers.customer_master
+ALTER COLUMN CustomerID
+COMMENT 'Unique business identifier for a customer.';</code></pre></div>
+<div class="callout key"><span class="label">Every important production table should have</span><p>A meaningful name, a description, a defined owner, clear business meaning, documented key columns, and classification metadata.</p></div>
+
+<h3 id="s10-4-7"><span class="num">10.4.7</span>Tagging and Classification</h3>
+<p>Tags describe data assets and support governance workflows: identifying sensitive datasets, organizing assets, aiding discovery, and flagging objects that need special controls.</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Table-level tags
+ALTER TABLE sales_prod.customers.customer_master
+SET TAGS (
+    'data_domain' = 'sales',
+    'classification' = 'confidential',
+    'contains_pii' = 'true'
+);
+
+-- Column-level tag
+ALTER TABLE sales_prod.customers.customer_master
+ALTER COLUMN Email SET TAGS ('pii' = 'email');</code></pre></div>
+<p class="ref">A customer table holding personal data might be <code>confidential</code>; a public product-reference table, lower.</p>
+<div class="callout warn"><span class="label">Tags don't enforce security</span><p>Adding <code>classification = confidential</code> doesn't block anyone unless a governance mechanism uses that tag to implement or evaluate a policy. Enforce restrictions with access controls and policies.</p></div>
+
+<h3 id="s10-4-8"><span class="num">10.4.8</span>Sensitive Data Protection</h3>
+<p>Personal, financial, authentication-related, contact, and confidential business information needs appropriate access, handling, retention, and monitoring.</p>
+<div class="card"><h4>Recommended controls</h4><ol class="steps">
+<li>Identify sensitive fields.</li>
+<li>Classify the data.</li>
+<li>Limit access through groups and object privileges.</li>
+<li>Use row filters or column masks where appropriate.</li>
+<li>Avoid unnecessary copies of sensitive data.</li>
+<li>Use approved storage and transfer mechanisms.</li>
+<li>Audit relevant access and administrative activity.</li>
+<li>Define retention and deletion requirements.</li>
+<li>Review access periodically.</li>
+<li>Test controls with representative identities.</li>
+</ol></div>
+<p class="ref">An analyst counting customers by region doesn't need individual emails. Expose an aggregate or governed view instead of the full table.</p>
+
+<h3 id="s10-4-9"><span class="num">10.4.9</span>Governance Across Workspaces</h3>
+<p>Organizations often run separate workspaces for development, testing, production, or business teams. Unity Catalog can govern them centrally.</p>
+<div class="grid-2">
+<pre class="diagram">Unity Catalog Metastore
+        |
+        +-------------------+
+        |                   |
+        v                   v
+Development Workspace   Production Workspace
+        |                   |
+        v                   v
+Development Catalog     Production Catalog</pre>
+<div class="card"><h4>Workspace-catalog binding use cases</h4><ul><li>Restrict production data to approved workspaces.</li><li>Keep development away from sensitive production catalogs.</li><li>Separate regulated environments.</li><li>Apply different operational controls per workspace.</li></ul></div>
+</div>
+<div class="callout"><span class="label">Verify all layers</span><p>Workspace-to-metastore assignments, catalog bindings, object privileges, compute environment, and cloud-storage configuration. Test from both authorized and unauthorized workspaces. Binding doesn't replace object privileges or storage security.</p></div>
+
+<!-- ===================== 10.5 ===================== -->
+<h2 id="s10-5"><span class="num">10.5</span>Data Sharing</h2>
+
+<h3 id="s10-5-1"><span class="num">10.5.1</span>What Is Delta Sharing?</h3>
+<p>Delta Sharing is an open protocol for securely sharing data with other users and organizations, without handing over copies of your underlying storage. Recipients can use Databricks or supported non-Databricks clients. Instead of exporting and emailing files to an analytics partner, you share selected data through a governed configuration.</p>
+<div class="grid-2">
+<pre class="diagram">Databricks Provider
+        |
+        v
+      Share
+  (approved tables)
+        |
+        v
+    Recipient
+        |
+        v
+Approved External Consumer</pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Participant</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>Provider</td><td>The organization that owns and shares the data</td></tr>
+<tr><td>Share</td><td>A named collection of data assets made available</td></tr>
+<tr><td>Recipient</td><td>The person or organization receiving access</td></tr>
+</tbody></table></div>
+</div>
+<p><strong>Benefits:</strong> controlled external access, less manual file distribution, governed shared assets, selective sharing, and integration with supported analytics tools.</p>
+
+<h3 id="s10-5-2"><span class="num">10.5.2</span>Sharing Data Securely</h3>
+<div class="card"><h4>Recommended workflow</h4><ol class="steps">
+<li>Identify the external consumer.</li>
+<li>Define the business purpose.</li>
+<li>Select the approved data assets.</li>
+<li>Remove unnecessary sensitive information.</li>
+<li>Configure the appropriate sharing method.</li>
+<li>Grant only the necessary access.</li>
+<li>Test access with the intended recipient.</li>
+<li>Monitor usage where supported.</li>
+<li>Review the arrangement periodically.</li>
+<li>Revoke access when the agreement ends.</li>
+</ol></div>
+<div class="code-wrap"><span class="lang">SQL · illustrative</span><pre class="code"><code>-- 1. Create a share and add approved data
+CREATE SHARE IF NOT EXISTS partner_share;
+
+ALTER SHARE partner_share
+ADD TABLE sales_prod.reporting.product_reference;
+
+-- 2. Create the recipient
+CREATE RECIPIENT IF NOT EXISTS partner_co;
+
+-- 3. Give the recipient access to the share
+GRANT SELECT ON SHARE partner_share TO RECIPIENT partner_co;
+
+-- 4. When the agreement ends
+REVOKE SELECT ON SHARE partner_share FROM RECIPIENT partner_co;</code></pre></div>
+<p class="ref">Requires sharing privileges in your metastore. A recipient on another Databricks account is created with their sharing identifier; others receive an activation link.</p>
+<div class="callout warn"><span class="label">Important</span><p>Sharing a table doesn't make every column appropriate for external use. Review privacy, contractual, regulatory, and business requirements first.</p></div>
+
+<h3 id="s10-5-3"><span class="num">10.5.3</span>External Data Consumers</h3>
+<p>External consumers include business partners, vendors, customers, research organizations, and external analytics platforms, using Databricks, another compatible system, or a Delta Sharing client.</p>
+<div class="grid-2">
+<pre class="diagram">Partner needs:      Partner doesn't need:
+  ProductID           SupplierCost
+  ProductName         Margin
+  Category            Confidential attributes</pre>
+<div class="callout key" style="margin:0"><span class="label">Data minimization</span><p>Share the smallest useful dataset that meets the recipient's requirements, such as an approved view or reference table.</p></div>
+</div>
+
+<h3 id="s10-5-4"><span class="num">10.5.4</span>Data Access Management</h3>
+<div class="grid-2">
+  <div class="card"><h4>Internal users</h4><ul><li>Identity management.</li><li>Group membership.</li><li>Unity Catalog privileges.</li><li>Workspace permissions.</li><li>Data classification.</li><li>Audit and review.</li></ul></div>
+  <div class="card"><h4>External consumers (additionally)</h4><ul><li>Recipient configuration.</li><li>Share membership.</li><li>Approved data assets.</li><li>Sharing credentials or authentication.</li><li>Contractual controls.</li><li>Revocation procedures.</li></ul></div>
+</div>
+<div class="card"><h4>Before granting access, ask</h4><ol><li>Who is the recipient?</li><li>What is the business purpose?</li><li>Which datasets are required?</li><li>Is the data sensitive?</li><li>Would a smaller dataset do?</li><li>How long is access needed?</li><li>Who approves it?</li><li>How will access be monitored?</li><li>How will access be revoked?</li></ol></div>
+
+<h3 id="s10-5-5"><span class="num">10.5.5</span>Delta Sharing Concepts</h3>
+<p>A <strong>share</strong> is a named collection of data assets; a <strong>recipient</strong> is the identity or party receiving a share; the <strong>provider</strong> owns or administers the shared data.</p>
+<div class="card"><h4>Governance considerations</h4><ul><li>Share only approved assets.</li><li>Review recipient access.</li><li>Don't expose unnecessary sensitive columns.</li><li>Understand the sharing mode.</li><li>Monitor available access information.</li><li>Revoke recipients when access is no longer required.</li></ul></div>
+
+<h3 id="s10-5-6"><span class="num">10.5.6</span>Data Governance Best Practices</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Practice</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>1. Organize data logically</td><td>Catalogs and schemas that reflect governance boundaries</td></tr>
+<tr><td>2. Prefer group-based access</td><td>Groups instead of many individual grants</td></tr>
+<tr><td>3. Follow least privilege</td><td>Only the access the task needs</td></tr>
+<tr><td>4. Separate dev and production</td><td>Workspace, catalog, and storage controls protect production</td></tr>
+<tr><td>5. Define ownership</td><td>Every important dataset has an accountable owner</td></tr>
+<tr><td>6. Classify sensitive data</td><td>Identify confidential, personal, financial, and regulated data</td></tr>
+<tr><td>7. Document data assets</td><td>Descriptions, column definitions, business context</td></tr>
+<tr><td>8. Use fine-grained controls</td><td>Row filters and column masks for sensitive data</td></tr>
+<tr><td>9. Monitor access</td><td>Audit capabilities to investigate activity</td></tr>
+<tr><td>10. Maintain lineage</td><td>Know sources and consumers of critical datasets</td></tr>
+<tr><td>11. Review external sharing</td><td>Share only approved data; remove stale access</td></tr>
+<tr><td>12. Test authorization</td><td>Verify both allowed and denied access</td></tr>
+<tr><td>13. Avoid storage bypasses</td><td>Cloud-storage permissions mustn't circumvent governance</td></tr>
+<tr><td>14. Review permissions</td><td>Remove stale privileges and group memberships</td></tr>
+<tr><td>15. Plan lifecycle and recovery</td><td>Ownership, retention, backup, and deletion requirements</td></tr>
+</tbody></table></div>
+
+<!-- ===================== Lab ===================== -->
+<h2 id="lab">Hands-On Exercise: Create a Catalog, Grant Access, and Verify Security</h2>
+<p class="section-intro">Build a basic governance setup: a catalog, schema, and Delta table with sample data; grant a reporting group read access; prove that authorized users can query it and unauthorized users can't; then revoke and retest.</p>
+<div class="grid-2">
+  <div class="card"><h4>Prerequisites</h4><ul><li>A Unity Catalog-enabled workspace with an assigned metastore.</li><li>Permission to create the catalog and schema.</li><li>A group such as <code>sales_analysts</code>.</li><li>A test user <strong>in</strong> that group.</li><li>A separate test user <strong>not</strong> in it.</li><li>Permission to grant and revoke privileges.</li></ul></div>
+  <div class="callout warn" style="margin:0"><span class="label">Before you start</span><p>Creating users and groups may need account-admin access. Never use a production table.</p><p><strong>Free Edition and single-user workspaces:</strong> you may not be able to create a catalog; if so, create the schema inside an existing catalog you own instead. If you're the only user, you can still do every step except 8, 9, and the retest in 11, which need a second person.</p></div>
+</div>
+
+<h4>Step 1: Create a catalog</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE CATALOG IF NOT EXISTS governance_lab;
+
+SHOW CATALOGS;
+
+DESCRIBE CATALOG governance_lab;</code></pre></div>
+
+<h4>Step 2: Create a schema</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS governance_lab.sales;
+
+SHOW SCHEMAS IN governance_lab;</code></pre></div>
+
+<h4>Step 3: Create a Delta table</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS governance_lab.sales.customers (
+    CustomerID INT,
+    CustomerName STRING,
+    City STRING
+)
+USING DELTA;</code></pre></div>
+
+<h4>Step 4: Insert sample records</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>INSERT INTO governance_lab.sales.customers
+VALUES
+    (101, 'John', 'Hyderabad'),
+    (102, 'David', 'Chennai'),
+    (103, 'Smith', 'Bengaluru');
+
+SELECT *
+FROM governance_lab.sales.customers;</code></pre></div>
+<div class="table-wrap"><table>
+<thead><tr><th>CustomerID</th><th>CustomerName</th><th>City</th></tr></thead>
+<tbody><tr><td>101</td><td>John</td><td>Hyderabad</td></tr><tr><td>102</td><td>David</td><td>Chennai</td></tr><tr><td>103</td><td>Smith</td><td>Bengaluru</td></tr></tbody></table></div>
+
+<h4>Steps 5–7: Grant catalog, schema, and table access</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Step 5: catalog usage (the group must already exist)
+GRANT USE CATALOG
+ON CATALOG governance_lab
+TO `sales_analysts`;
+
+-- Step 6: schema usage
+GRANT USE SCHEMA
+ON SCHEMA governance_lab.sales
+TO `sales_analysts`;
+
+-- Step 7: read access
+GRANT SELECT
+ON TABLE governance_lab.sales.customers
+TO `sales_analysts`;</code></pre></div>
+<p>The group now has the intended read grant, provided all other access conditions are met.</p>
+
+<h4>Step 8: Test access as an authorized user</h4>
+<p>Sign in as a test user who belongs to <code>sales_analysts</code> and run:</p>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
+FROM governance_lab.sales.customers;</code></pre></div>
+<p><strong>Expected:</strong> the query succeeds and returns three records. If it fails, check group membership, catalog and schema privileges, table privileges, workspace-catalog binding, SQL warehouse or compute permissions, and other access controls.</p>
+
+<h4>Step 9: Test access as an unauthorized user</h4>
+<p>Sign in as a separate user who isn't in <code>sales_analysts</code> and has no other grant, then run the same query.</p>
+<p><strong>Expected:</strong> access is denied.</p>
+<div class="callout warn"><span class="label">Important</span><p>Use a genuinely separate test identity. An administrator or the object owner has extra access, so testing as yourself proves nothing about the ordinary-user restriction.</p></div>
+
+<h4>Step 10: Review grants</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SHOW GRANTS ON CATALOG governance_lab;
+
+SHOW GRANTS ON SCHEMA governance_lab.sales;
+
+SHOW GRANTS ON TABLE governance_lab.sales.customers;</code></pre></div>
+<p class="ref">These show direct grants on each object. They don't necessarily show every effective permission from group membership, ownership, inheritance, or workspace configuration.</p>
+
+<h4>Step 11: Revoke table access</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>REVOKE SELECT
+ON TABLE governance_lab.sales.customers
+FROM `sales_analysts`;</code></pre></div>
+<p>Test again as the authorized user. With no other <code>SELECT</code> grant or ownership, the query should now be denied. The catalog and schema usage privileges remain, but they don't grant <code>SELECT</code> on their own.</p>
+
+<h4>Step 12: Clean up</h4>
+<div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DROP CATALOG IF EXISTS governance_lab CASCADE;</code></pre></div>
+<div class="callout warn"><span class="label">Warning</span><p><code>CASCADE</code> deletes every contained object and its managed data. Run it only on your dedicated training catalog after confirming there's nothing to keep.</p></div>
+
+<h3 id="practice">Additional Practice Exercises</h3>
+<div class="grid-2">
+  <div class="card"><h4>1. Governed view</h4><p style="margin-bottom:0">Create a view exposing only <code>CustomerID</code>, <code>CustomerName</code>, and <code>City</code>. Grant the reporting group access to the view and confirm it works without granting access to the underlying table.</p></div>
+  <div class="card"><h4>2. Managed volume</h4><p style="margin-bottom:0">Create a managed volume, upload a sample CSV, read it in a notebook, and write the cleaned records to a Delta table.</p></div>
+  <div class="card"><h4>3. Classify a sensitive table</h4><p style="margin-bottom:0">Add a description and tags to a sample customer table. Document the business owner, allowed users, and sensitive columns.</p></div>
+  <div class="card"><h4>4. Row-level restrictions</h4><p style="margin-bottom:0">Build a multi-region test table and a row filter so a test group sees only its region. Verify permitted and denied records.</p></div>
+  <div class="card"><h4>5. Column mask</h4><p style="margin-bottom:0">Mask a sensitive test column such as email. Verify results as authorized and unauthorized identities.</p></div>
+  <div class="card"><h4>6. Data lineage</h4><p style="margin-bottom:0">Build a small pipeline from a source table to a target Delta table, then inspect the lineage and identify upstream and downstream dependencies.</p></div>
+  <div class="card"><h4>7. Audit information</h4><p style="margin-bottom:0">Identify the audit sources available in your account and which events help investigate permission changes and data access.</p></div>
+  <div class="card"><h4>8. Workspace boundaries</h4><p style="margin-bottom:0">If you have separate dev and production workspaces, review catalog assignments, bindings, and permissions. Document who can access each environment.</p></div>
+</div>
+
+<!-- ===================== Reference ===================== -->
+<h2 id="reference">Quick Reference</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Requirement</th><th>Unity Catalog concept</th></tr></thead>
+<tbody>
+<tr><td>Organize data assets</td><td>Catalogs and schemas</td></tr>
+<tr><td>Store structured data</td><td>Tables</td></tr>
+<tr><td>Provide reusable queries</td><td>Views</td></tr>
+<tr><td>Store and govern files</td><td>Volumes</td></tr>
+<tr><td>Manage cloud-storage access</td><td>Storage credentials and external locations</td></tr>
+<tr><td>Grant read access</td><td><code>SELECT</code></td></tr>
+<tr><td>Grant data modification</td><td><code>MODIFY</code></td></tr>
+<tr><td>Allow use of a catalog</td><td><code>USE CATALOG</code></td></tr>
+<tr><td>Allow use of a schema</td><td><code>USE SCHEMA</code></td></tr>
+<tr><td>Allow table creation</td><td><code>CREATE TABLE</code></td></tr>
+<tr><td>Remove a privilege</td><td><code>REVOKE</code></td></tr>
+<tr><td>Limit visible records</td><td>Row filters</td></tr>
+<tr><td>Mask sensitive values</td><td>Column masks</td></tr>
+<tr><td>Understand data dependencies</td><td>Data lineage</td></tr>
+<tr><td>Investigate platform activity</td><td>Audit information</td></tr>
+<tr><td>Share data externally</td><td>Delta Sharing</td></tr>
+</tbody></table></div>
+
+<!-- ===================== Summary ===================== -->
+<h2 id="summary">Final Summary</h2>
+<p>Tick each concept once you can explain it in your own words. Your ticks are saved in this browser.</p>
+<div class="card checklist" id="ch10-checklist">
+<label><input type="checkbox"> <strong>Metastore:</strong> the top-level governance container.</label>
+<label><input type="checkbox"> <strong>Catalog:</strong> a major organizational boundary for data assets.</label>
+<label><input type="checkbox"> <strong>Schema:</strong> a container for related objects.</label>
+<label><input type="checkbox"> <strong>Table:</strong> a structured data asset.</label>
+<label><input type="checkbox"> <strong>View:</strong> a reusable query interface.</label>
+<label><input type="checkbox"> <strong>Volume:</strong> a governed file-access object.</label>
+<label><input type="checkbox"> <strong>External location:</strong> a governed cloud-storage path.</label>
+<label><input type="checkbox"> <strong>Storage credential:</strong> the identity used for storage access.</label>
+<label><input type="checkbox"> <strong>GRANT and REVOKE:</strong> commands for managing privileges.</label>
+<label><input type="checkbox"> <strong>Ownership:</strong> administrative authority over an object.</label>
+<label><input type="checkbox"> <strong>Row filters and column masks:</strong> fine-grained data protection.</label>
+<label><input type="checkbox"> <strong>Lineage:</strong> visibility into data relationships and transformations.</label>
+<label><input type="checkbox"> <strong>Audit information:</strong> evidence of platform activity.</label>
+<label><input type="checkbox"> <strong>Delta Sharing:</strong> sharing approved data with external consumers.</label>
+<p class="ref checklist-count" style="margin:10px 0 0"></p>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('ch10-checklist'); if(!box) return;
+  var inputs=[].slice.call(box.querySelectorAll('input[type=checkbox]'));
+  var key='db-course-ch10-checklist', saved=[];
+  try{saved=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){saved=[];}
+  var count=box.querySelector('.checklist-count');
+  function update(){
+    var done=inputs.filter(function(i){return i.checked;}).length;
+    count.textContent=done+' of '+inputs.length+' complete'+(done===inputs.length?' — ready for Chapter 11!':'');
+    try{localStorage.setItem(key,JSON.stringify(inputs.map(function(i){return i.checked;})));}catch(e){}
+  }
+  inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
+  update();
+})();
+</script>
+<div class="callout key"><span class="label">Key takeaway</span><p>Effective governance is more than granting access to a table. You also manage identities, workspace access, cloud storage, sensitive data, lineage, auditing, and the full lifecycle of permissions.</p></div>
+
+<div class="next">
+<h3>Next chapter: Medallion Architecture</h3>
+<p>Phase 5 begins. Chapter 11 puts Delta Lake and Unity Catalog to work in the Bronze → Silver → Gold pattern: raw ingestion with metadata, cleansing and validation, business-ready facts and dimensions, and pipeline design for idempotency, restartability, and reprocessing.</p>
+<p style="margin-bottom:0" class="ref">Jobs and workflow orchestration, service principals in production, and CI/CD come later, in Chapters 14 and 21.</p>
+</div>
+
+<nav class="pager">
+  <a class="pager-link" href="databricks-chapter-9.html"><span>← Previous</span><strong>Chapter 9: Delta Lake</strong></a>
+  <a class="pager-link" href="databricks-chapter-11.html"><span>Next →</span><strong>Chapter 11: Medallion Architecture</strong></a>
+</nav>
+
+<footer>Databricks Learning Path · Phase 4 · Chapter 10 of 24</footer>
+</div>
+</main>
+</div>
+
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement;
+  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('db-theme',next);}catch(e){}
+  });
+
+  // Mobile menu
+  var toc=document.getElementById('toc');
+  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
+  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
+
+  // Copy buttons
+  document.querySelectorAll('pre.code').forEach(function(pre){
+    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
+    b.addEventListener('click',function(){
+      var t=pre.innerText;
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
+        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
+      }).catch(function(){b.textContent='Select & copy';});
+    });
+    pre.appendChild(b);
+  });
+
+  // Progress bar + active TOC link
+  var bar=document.getElementById('progress');
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+    var idx=0;
+    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
+    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
