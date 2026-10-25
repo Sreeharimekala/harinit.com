@@ -1,307 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 4: SQL</title>
-<meta name="description" content="Databricks Tutorial — Chapter 4: SQL for Databricks. Fundamentals, functions, joins, window functions, MERGE INTO, Databricks SQL, and 50 practice problems with answers.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SQL — Chapter 4 | Databricks | HarinIT Academy</title><meta name="description" content="Databricks Tutorial — Chapter 4: SQL for Databricks. Fundamentals, functions, joins, window functions, MERGE INTO, Databricks SQL, and 50 practice problems with answers."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 4 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s4-1">4.1 SQL Fundamentals</a></li>
-    <li class="lvl2"><a href="#s4-1-2">SELECT</a></li>
-    <li class="lvl2"><a href="#s4-1-3">DISTINCT</a></li>
-    <li class="lvl2"><a href="#s4-1-4">WHERE</a></li>
-    <li class="lvl2"><a href="#s4-1-5">ORDER BY</a></li>
-    <li class="lvl2"><a href="#s4-1-6">GROUP BY</a></li>
-    <li class="lvl2"><a href="#s4-1-7">HAVING</a></li>
-    <li class="lvl2"><a href="#s4-1-8">LIMIT</a></li>
-    <li class="lvl2"><a href="#s4-1-9">Aliases</a></li>
-    <li class="lvl2"><a href="#s4-1-10">NULL handling</a></li>
-    <li class="lvl1"><a href="#s4-2">4.2 SQL Functions</a></li>
-    <li class="lvl2"><a href="#s4-2-1">String functions</a></li>
-    <li class="lvl2"><a href="#s4-2-2">Numeric functions</a></li>
-    <li class="lvl2"><a href="#s4-2-3">Date and time</a></li>
-    <li class="lvl2"><a href="#s4-2-4">Aggregate functions</a></li>
-    <li class="lvl2"><a href="#s4-2-5">CASE</a></li>
-    <li class="lvl2"><a href="#s4-2-6">COALESCE</a></li>
-    <li class="lvl2"><a href="#s4-2-7">NULLIF</a></li>
-    <li class="lvl2"><a href="#s4-2-8">CAST and TRY_CAST</a></li>
-    <li class="lvl1"><a href="#s4-3">4.3 SQL Joins</a></li>
-    <li class="lvl2"><a href="#s4-3-1">Example tables</a></li>
-    <li class="lvl2"><a href="#s4-3-2">INNER JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-3">LEFT JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-4">RIGHT JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-5">FULL OUTER JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-6">CROSS JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-7">SELF JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-8">LEFT SEMI JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-9">LEFT ANTI JOIN</a></li>
-    <li class="lvl2"><a href="#s4-3-10">Duplicates after joins</a></li>
-    <li class="lvl1"><a href="#s4-4">4.4 Advanced SQL</a></li>
-    <li class="lvl2"><a href="#s4-4-1">CTEs</a></li>
-    <li class="lvl2"><a href="#s4-4-2">Subqueries</a></li>
-    <li class="lvl2"><a href="#s4-4-3">Recursive alternatives</a></li>
-    <li class="lvl2"><a href="#s4-4-4">Window functions</a></li>
-    <li class="lvl2"><a href="#s4-4-5">ROW_NUMBER</a></li>
-    <li class="lvl2"><a href="#s4-4-6">RANK / DENSE_RANK</a></li>
-    <li class="lvl2"><a href="#s4-4-7">LAG and LEAD</a></li>
-    <li class="lvl2"><a href="#s4-4-8">Running totals</a></li>
-    <li class="lvl2"><a href="#s4-4-9">Ranking &amp; deduplication</a></li>
-    <li class="lvl2"><a href="#s4-4-10">PIVOT / UNPIVOT</a></li>
-    <li class="lvl2"><a href="#s4-4-11">Set operations</a></li>
-    <li class="lvl2"><a href="#s4-4-12">MERGE INTO</a></li>
-    <li class="lvl1"><a href="#s4-5">4.5 Databricks SQL</a></li>
-    <li class="lvl2"><a href="#s4-5-1">What is Databricks SQL?</a></li>
-    <li class="lvl2"><a href="#s4-5-2">SQL warehouses</a></li>
-    <li class="lvl2"><a href="#s4-5-3">Catalogs, schemas, tables</a></li>
-    <li class="lvl2"><a href="#s4-5-4">Creating schemas &amp; tables</a></li>
-    <li class="lvl2"><a href="#s4-5-5">Views</a></li>
-    <li class="lvl2"><a href="#s4-5-6">Temporary views</a></li>
-    <li class="lvl2"><a href="#s4-5-7">Scripting &amp; procedures</a></li>
-    <li class="lvl2"><a href="#s4-5-8">Execution plans</a></li>
-    <li class="lvl2"><a href="#s4-5-9">Query history</a></li>
-    <li class="lvl2"><a href="#s4-5-10">Query optimization</a></li>
-    <li class="lvl1"><a href="#project">Project: Employee Database</a></li>
-    <li class="lvl2"><a href="#setup">Setup (Steps 1–6)</a></li>
-    <li class="lvl2"><a href="#lvl1">Problems 1–10</a></li>
-    <li class="lvl2"><a href="#lvl2">Problems 11–20</a></li>
-    <li class="lvl2"><a href="#lvl3">Problems 21–30</a></li>
-    <li class="lvl2"><a href="#lvl4">Problems 31–40</a></li>
-    <li class="lvl2"><a href="#lvl5">Problems 41–50</a></li>
-    <li class="lvl2"><a href="#challenge">Final challenge</a></li>
-    <li class="lvl1"><a href="#takeaways">Key takeaways</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 2 · Chapter 4 · Prerequisites</span>
-  <h1>SQL for Databricks</h1>
-  <p class="lead">From SELECT to MERGE INTO: the SQL skills a data engineer uses every day, with the differences that matter in Databricks SQL, and 50 practice problems on an employee database you build yourself.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ul>
-    <li>Write SQL to retrieve, filter, sort, and aggregate data.</li>
-    <li>Use built-in functions for strings, numbers, dates, and NULL values.</li>
-    <li>Use every major join type and prevent duplicate records.</li>
-    <li>Use CTEs, subqueries, and window functions for complex analysis.</li>
-    <li>Rank employees, calculate running totals, find duplicates, and retrieve previous or next records.</li>
-    <li>Create schemas, tables, views, and temporary views in Databricks.</li>
-    <li>Understand MERGE INTO, query execution plans, and SQL optimization.</li>
-    <li>Build an employee database and solve 50 practical SQL problems.</li>
-  </ul></div>
-  <p class="ref">If you've worked with SQL Server or Azure Synapse Analytics, most concepts will be familiar; this chapter highlights where Databricks SQL differs.</p>
-  <div class="chips">
-    <a class="chip" href="#s4-1"><span>4.1</span><strong>SQL Fundamentals</strong></a>
-    <a class="chip" href="#s4-2"><span>4.2</span><strong>SQL Functions</strong></a>
-    <a class="chip" href="#s4-3"><span>4.3</span><strong>Joins</strong></a>
-    <a class="chip" href="#s4-4"><span>4.4</span><strong>Advanced SQL</strong></a>
-    <a class="chip" href="#s4-5"><span>4.5</span><strong>Databricks SQL</strong></a>
-    <a class="chip" href="#project"><span>Project</span><strong>50 SQL Problems</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 4.1 ===================== -->
-<h2 id="s4-1"><span class="num">4.1</span>SQL Fundamentals</h2>
-
-<h3 id="s4-1-1"><span class="num">4.1.1</span>What is SQL?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">SQL for Databricks</div>
+<div class="brand-sub">Chapter 4 · 5 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s4-1" class="nav-link"><span class="nav-num">4.1</span>SQL Fundamentals</a>
+<a href="#s4-2" class="nav-link"><span class="nav-num">4.2</span>SQL Functions</a>
+<a href="#s4-3" class="nav-link"><span class="nav-num">4.3</span>SQL Joins</a>
+<a href="#s4-4" class="nav-link"><span class="nav-num">4.4</span>Advanced SQL</a>
+<a href="#s4-5" class="nav-link"><span class="nav-num">4.5</span>Databricks SQL</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#project" class="nav-link">Hands-on Project: Employee Database</a>
+<a href="#takeaways" class="nav-link">Key Takeaways</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 2 · Chapter 4 · Prerequisites</div><h1>SQL for Databricks</h1>
+<p>From SELECT to MERGE INTO: the SQL skills a data engineer uses every day, with the differences that matter in Databricks SQL, and 50 practice problems on an employee database you build yourself.</p>
+<div class="doc-meta"><span class="pill">5 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s4-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4 · Lesson 4.1</span><h2>SQL Fundamentals</h2></div><div class="content"><h3 id="s4-1-1"><span class="num">4.1.1</span>What is SQL?</h3>
 <p>SQL (Structured Query Language) is used to retrieve, insert, update, delete, and analyze data stored in relational tables. Consider this employee table:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>employee_id</th><th>employee_name</th><th>department</th><th>salary</th><th>city</th></tr></thead>
@@ -313,7 +144,6 @@ details.q summary{line-height:1.5}
 <tr><td>105</td><td>Kiran</td><td>Finance</td><td>70000</td><td>Chennai</td></tr>
 </tbody></table></div>
 <p>SQL can answer questions such as: Which employees work in IT? Who earns more than ₹70,000? What is the average salary per department? Which department spends most on salaries? Which employees have duplicate records?</p>
-
 <h3 id="s4-1-2"><span class="num">4.1.2</span>SELECT — Retrieve data</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Syntax
 SELECT column1, column2
@@ -328,7 +158,6 @@ SELECT *
 FROM employees;</code></pre></div>
 <div class="callout key"><span class="label">Best practice</span><p>Avoid <code>SELECT *</code> in production pipelines when you know which columns you need. Unnecessary columns increase data processing and transfer. Prefer, for example, <code>SELECT employee_id, employee_name, department FROM employees;</code> when downstream only needs those three.</p></div>
 <div class="callout"><span class="label">Important distinction</span><p><code>SELECT</code> describes which columns appear in the result. The optimizer decides how to execute the query; the physical execution order is not necessarily the written order.</p></div>
-
 <h3 id="s4-1-3"><span class="num">4.1.3</span>DISTINCT — Remove duplicate values</h3>
 <p><code>DISTINCT</code> returns unique combinations of the selected columns.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT DISTINCT department
@@ -340,7 +169,6 @@ SELECT DISTINCT department, city
 FROM employees;</code></pre></div>
 <p>The second query removes duplicate <em>combinations</em> of department and city, not duplicates from each column independently. If a table holds 100,000 employees in five departments, <code>SELECT DISTINCT department</code> returns those five.</p>
 <div class="callout warn"><span class="label">Important</span><p><code>DISTINCT</code> removes duplicate result rows. It does not decide which record is the correct business record when multiple records exist for the same employee.</p></div>
-
 <h3 id="s4-1-4"><span class="num">4.1.4</span>WHERE — Filter records</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
 FROM employees
@@ -389,7 +217,6 @@ WHERE department = 'IT'
 SELECT * FROM employees
 WHERE department = 'IT'
   AND (city = 'Hyderabad' OR city = 'Bengaluru');</code></pre></div>
-
 <h3 id="s4-1-5"><span class="num">4.1.5</span>ORDER BY — Sort records</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Ascending (the default)
 SELECT employee_name, salary
@@ -406,7 +233,6 @@ SELECT employee_name, department, salary
 FROM employees
 ORDER BY department ASC, salary DESC;</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p>Without <code>ORDER BY</code>, SQL does not guarantee the order of returned rows.</p></div>
-
 <h3 id="s4-1-6"><span class="num">4.1.6</span>GROUP BY — Aggregate records</h3>
 <p><code>GROUP BY</code> groups rows with the same values in the specified columns, usually with aggregate functions.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT department, COUNT(*) AS employee_count
@@ -444,7 +270,6 @@ GROUP BY department;</code></pre></div>
 FROM employees
 GROUP BY department;</code></pre></div>
 <p class="ref"><code>COUNT(*)</code> and <code>COUNT(salary)</code> differ when salary contains NULLs.</p>
-
 <h3 id="s4-1-7"><span class="num">4.1.7</span>HAVING — Filter aggregated results</h3>
 <p><code>WHERE</code> filters rows <strong>before</strong> aggregation; <code>HAVING</code> filters groups <strong>after</strong> aggregation.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Departments with more than five employees
@@ -466,7 +291,6 @@ WHERE city = 'Hyderabad'
 GROUP BY department
 HAVING AVG(salary) &gt; 60000;</code></pre></div>
 <p>The last query filters to Hyderabad employees, groups them by department, calculates each department's average salary, and returns only departments averaging above ₹60,000.</p>
-
 <h3 id="s4-1-8"><span class="num">4.1.8</span>LIMIT — Restrict the result size</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
 FROM employees
@@ -478,7 +302,6 @@ FROM employees
 ORDER BY salary DESC
 LIMIT 5;</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p>Use an appropriate <code>ORDER BY</code> for a meaningful top-N result. Without ordering, <code>LIMIT 5</code> does not guarantee the five highest-paid employees.</p></div>
-
 <h3 id="s4-1-9"><span class="num">4.1.9</span>Aliases — Rename columns and tables</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Column aliases
 SELECT
@@ -499,7 +322,6 @@ INNER JOIN departments AS d
 -- Alias for a calculated value
 SELECT employee_name, salary * 12 AS annual_salary
 FROM employees;</code></pre></div>
-
 <h3 id="s4-1-10"><span class="num">4.1.10</span>NULL handling</h3>
 <p><code>NULL</code> represents missing, unknown, or unavailable data. It is not zero and not an empty string.</p>
 <div class="table-wrap"><table>
@@ -530,12 +352,8 @@ FROM employees;</code></pre></div>
     AVG(salary) AS average_salary  -- 55000
 FROM employees;</code></pre></div>
 <div class="callout key"><span class="label">Remember</span><p><code>AVG</code> ignores NULL values. It does not treat them as zero.</p></div>
-<div class="callout"><span class="label">Section 4.1 summary</span><p><code>SELECT</code> retrieves columns · <code>DISTINCT</code> removes duplicate result rows · <code>WHERE</code> filters rows · <code>GROUP BY</code> groups for aggregation · <code>HAVING</code> filters groups · <code>ORDER BY</code> sorts · <code>LIMIT</code> restricts row count · <code>IS NULL</code> and <code>COALESCE</code> handle missing values.</p></div>
-
-<!-- ===================== 4.2 ===================== -->
-<h2 id="s4-2"><span class="num">4.2</span>SQL Functions</h2>
-<p class="section-intro">Functions transform, calculate, and analyze values without writing a full program. Databricks SQL has a broad library; these are the ones most useful in data engineering.</p>
-
+<div class="callout"><span class="label">Section 4.1 summary</span><p><code>SELECT</code> retrieves columns · <code>DISTINCT</code> removes duplicate result rows · <code>WHERE</code> filters rows · <code>GROUP BY</code> groups for aggregation · <code>HAVING</code> filters groups · <code>ORDER BY</code> sorts · <code>LIMIT</code> restricts row count · <code>IS NULL</code> and <code>COALESCE</code> handle missing values.</p></div></div></section>
+<section class="lesson" id="s4-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4 · Lesson 4.2</span><h2>SQL Functions</h2></div><div class="content"><p class="section-intro">Functions transform, calculate, and analyze values without writing a full program. Databricks SQL has a broad library; these are the ones most useful in data engineering.</p>
 <h3 id="s4-2-1"><span class="num">4.2.1</span>String functions</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>employee_name</th><th>email</th><th>department</th></tr></thead>
@@ -574,7 +392,6 @@ FROM employees;
 SELECT REGEXP_REPLACE(phone_number, '[^0-9]', '') AS cleaned_phone
 FROM employees;</code></pre></div>
 <div class="callout"><span class="label">Data engineering example</span><p>A source system sends phone numbers as <code>+91-98765 43210</code> but the destination expects digits only. String functions standardize the format during ingestion or transformation.</p></div>
-
 <h3 id="s4-2-2"><span class="num">4.2.2</span>Numeric functions</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT ROUND(1234.567, 2) AS rounded_value;   -- 1234.57
 
@@ -592,7 +409,6 @@ SELECT
     salary AS monthly_salary,
     salary * 12 AS annual_salary
 FROM employees;</code></pre></div>
-
 <h3 id="s4-2-3"><span class="num">4.2.3</span>Date and time functions</h3>
 <p>Date functions are essential for ETL pipelines, incremental loads, reporting, and historical analysis. Databricks SQL supports <code>CURRENT_DATE()</code>, <code>CURRENT_TIMESTAMP()</code>, <code>YEAR()</code>, <code>MONTH()</code>, <code>DAY()</code>, <code>DATE_ADD()</code>, <code>DATE_SUB()</code>, <code>DATEDIFF()</code>, <code>ADD_MONTHS()</code>, <code>DATE_TRUNC()</code>, <code>TO_DATE()</code>, <code>TO_TIMESTAMP()</code>, and <code>DATE_FORMAT()</code>, among others.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT CURRENT_DATE() AS today;
@@ -633,7 +449,6 @@ FROM source_employees
 WHERE last_modified_date &gt;= DATE_SUB(CURRENT_DATE(), 1);</code></pre></div>
 <p>This retrieves records modified since the previous calendar day.</p>
 <div class="callout warn"><span class="label">Not a complete strategy</span><p>In production, a timestamp watermark or source change tracking is more reliable than filtering on the current date. Also consider time zones, late-arriving changes, and the last successful pipeline run.</p></div>
-
 <h3 id="s4-2-4"><span class="num">4.2.4</span>Aggregate functions</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
     department,
@@ -663,7 +478,6 @@ GROUP BY department;</code></pre></div>
 FROM pipeline_runs
 GROUP BY CAST(start_time AS DATE);</code></pre></div>
 <p class="ref">This pattern is the basis for a data engineering monitoring dashboard (Chapter 20).</p>
-
 <h3 id="s4-2-5"><span class="num">4.2.5</span>Conditional functions and CASE</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
     employee_name,
@@ -689,7 +503,6 @@ FROM employees;</code></pre></div>
     END AS tenure_category
 FROM employees;</code></pre></div>
 <p class="ref">Simplified; production tenure rules should specify calendar years or exact day counts.</p>
-
 <h3 id="s4-2-6"><span class="num">4.2.6</span>COALESCE</h3>
 <p><code>COALESCE</code> returns the first non-NULL expression.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -697,14 +510,12 @@ FROM employees;</code></pre></div>
     COALESCE(email, alternate_email, 'No email') AS contact_email
 FROM employees;</code></pre></div>
 <p>If <code>email</code> isn't NULL, return it; otherwise <code>alternate_email</code> if not NULL; otherwise <code>'No email'</code>. Especially useful when combining data from multiple source systems.</p>
-
 <h3 id="s4-2-7"><span class="num">4.2.7</span>NULLIF</h3>
 <p><code>NULLIF(a, b)</code> returns NULL if <code>a = b</code>; otherwise it returns <code>a</code>. <code>SELECT NULLIF(100, 100)</code> returns NULL.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
     revenue / NULLIF(units_sold, 0) AS revenue_per_unit
 FROM sales;</code></pre></div>
 <p>When <code>units_sold = 0</code>, the divisor becomes NULL, preventing division by zero and producing NULL instead of a misleading number.</p>
-
 <h3 id="s4-2-8"><span class="num">4.2.8</span>CAST and TRY_CAST</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT CAST('123' AS INT) AS employee_number;          -- 123
 SELECT CAST('2026-10-25' AS DATE) AS converted_date;
@@ -727,12 +538,8 @@ FROM source_employee_data;</code></pre></div>
 FROM source_employee_data
 WHERE salary_text IS NOT NULL
   AND TRY_CAST(salary_text AS DECIMAL(12, 2)) IS NULL;</code></pre></div>
-<div class="callout"><span class="label">Section 4.2 summary</span><p>You can now clean strings, do numeric calculations, compute date differences, aggregate data, implement rules with <code>CASE</code>, replace missing values with <code>COALESCE</code>, prevent division by zero with <code>NULLIF</code>, and convert types with <code>CAST</code> and <code>TRY_CAST</code>.</p></div>
-
-<!-- ===================== 4.3 ===================== -->
-<h2 id="s4-3"><span class="num">4.3</span>SQL Joins</h2>
-<p class="section-intro">Joins combine rows from multiple tables. This is one of the most important data engineering skills, because source data is usually spread across tables.</p>
-
+<div class="callout"><span class="label">Section 4.2 summary</span><p>You can now clean strings, do numeric calculations, compute date differences, aggregate data, implement rules with <code>CASE</code>, replace missing values with <code>COALESCE</code>, prevent division by zero with <code>NULLIF</code>, and convert types with <code>CAST</code> and <code>TRY_CAST</code>.</p></div></div></section>
+<section class="lesson" id="s4-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4 · Lesson 4.3</span><h2>SQL Joins</h2></div><div class="content"><p class="section-intro">Joins combine rows from multiple tables. This is one of the most important data engineering skills, because source data is usually spread across tables.</p>
 <h3 id="s4-3-1"><span class="num">4.3.1</span>Two example tables</h3>
 <div class="grid-2">
 <div><h5>Employees</h5><div class="table-wrap"><table>
@@ -749,7 +556,6 @@ WHERE salary_text IS NOT NULL
 <tbody><tr><td>10</td><td>IT</td></tr><tr><td>20</td><td>Finance</td></tr><tr><td>40</td><td>Marketing</td></tr></tbody></table></div></div>
 </div>
 <div class="callout"><span class="label">Notice</span><ul><li>Department 30 exists in Employees but not in Departments.</li><li>Department 40 exists in Departments but has no employees.</li><li>Kiran has no department assigned.</li></ul></div>
-
 <h3 id="s4-3-2"><span class="num">4.3.2</span>INNER JOIN</h3>
 <p>Returns rows that match in both tables.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -763,7 +569,6 @@ INNER JOIN departments AS d
 <thead><tr><th>employee_id</th><th>employee_name</th><th>department_name</th></tr></thead>
 <tbody><tr><td>101</td><td>Rahul</td><td>IT</td></tr><tr><td>102</td><td>Priya</td><td>Finance</td></tr><tr><td>103</td><td>Arjun</td><td>IT</td></tr></tbody></table></div>
 <p>Sneha is excluded because department 30 doesn't exist in Departments; Kiran because his department is NULL. Use an inner join when you need only matching records, for example transactions with a valid customer.</p>
-
 <h3 id="s4-3-3"><span class="num">4.3.3</span>LEFT JOIN</h3>
 <p>Returns every row from the left table plus matching rows from the right; unmatched right-side columns are NULL.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -786,7 +591,6 @@ LEFT JOIN departments AS d
     ON e.department_id = d.department_id
 WHERE d.department_id IS NULL;</code></pre></div>
 <p>This returns Sneha and Kiran, but they are <strong>different data-quality problems</strong>: Kiran's department is NULL in the source, while Sneha's department ID doesn't match any department.</p>
-
 <h3 id="s4-3-4"><span class="num">4.3.4</span>RIGHT JOIN</h3>
 <p>Returns every row from the right table plus matching rows from the left. This includes Marketing even though no employee belongs to it.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -797,7 +601,6 @@ FROM employees AS e
 RIGHT JOIN departments AS d
     ON e.department_id = d.department_id;</code></pre></div>
 <p class="ref">Many developers rewrite a RIGHT JOIN as a LEFT JOIN by swapping table order, since the intent is often easier to read.</p>
-
 <h3 id="s4-3-5"><span class="num">4.3.5</span>FULL OUTER JOIN</h3>
 <p>Returns matching rows plus unmatched rows from both sides.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -817,7 +620,6 @@ FROM source_employees AS s
 FULL OUTER JOIN target_employees AS t
     ON s.employee_id = t.employee_id;</code></pre></div>
 <p>This identifies records only in the source, only in the target, or in both. For accurate reconciliation, also compare column values and handle NULLs explicitly.</p>
-
 <h3 id="s4-3-6"><span class="num">4.3.6</span>CROSS JOIN</h3>
 <p>Returns every combination of rows: 5 rows × 3 rows = 15 rows.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -827,7 +629,6 @@ FROM employees AS e
 CROSS JOIN departments AS d;</code></pre></div>
 <p>Useful for generating combinations of dates and product IDs, departments and reporting months, or products and price scenarios.</p>
 <div class="callout warn"><span class="label">Be careful</span><p>A cross join can produce a very large result.</p></div>
-
 <h3 id="s4-3-7"><span class="num">4.3.7</span>SELF JOIN</h3>
 <p>Joins a table to itself, which is useful for employee–manager relationships.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -840,7 +641,6 @@ LEFT JOIN employees AS m
 <thead><tr><th>employee_name</th><th>manager_name</th></tr></thead>
 <tbody><tr><td>Rahul</td><td>NULL</td></tr><tr><td>Priya</td><td>Rahul</td></tr><tr><td>Arjun</td><td>Rahul</td></tr><tr><td>Sneha</td><td>Priya</td></tr><tr><td>Kiran</td><td>Rahul</td></tr></tbody></table></div>
 <p class="ref">The aliases <code>e</code> and <code>m</code> are two logical roles played by the same table.</p>
-
 <h3 id="s4-3-8"><span class="num">4.3.8</span>LEFT SEMI JOIN</h3>
 <p>Returns left-table rows that have a match in the right table, with only left-side columns. Think of it as an existence test.</p>
 <div class="grid-2">
@@ -857,7 +657,6 @@ WHERE EXISTS (
 );</code></pre></div>
 </div>
 <p class="ref">A semi join does not multiply employee rows when multiple right-side rows match.</p>
-
 <h3 id="s4-3-9"><span class="num">4.3.9</span>LEFT ANTI JOIN</h3>
 <p>Returns left-table rows with <strong>no</strong> matching row in the right table.</p>
 <div class="grid-2">
@@ -884,7 +683,6 @@ WHERE NOT EXISTS (
 <tr><td>Test whether a related record exists</td><td>LEFT SEMI JOIN or EXISTS</td></tr>
 <tr><td>Compare two datasets</td><td>FULL OUTER JOIN</td></tr>
 </tbody></table></div>
-
 <h3 id="s4-3-10"><span class="num">4.3.10</span>Handling duplicate records after joins</h3>
 <p class="section-intro">A critical topic.</p>
 <div class="grid-2">
@@ -944,12 +742,8 @@ FROM employee_addresses
 GROUP BY employee_id
 HAVING COUNT(*) &gt; 1;</code></pre></div>
 <p>If multiple records are legitimate, don't delete them just to force a one-to-one join.</p>
-<div class="callout key"><span class="label">Production rule</span><p>Before joining two tables, understand their <strong>grain</strong>: the meaning and uniqueness of one row in each table.</p></div>
-
-<!-- ===================== 4.4 ===================== -->
-<h2 id="s4-4"><span class="num">4.4</span>Advanced SQL</h2>
-<p class="section-intro">Multi-step transformations, historical analysis, ranking, and deduplication, all in SQL.</p>
-
+<div class="callout key"><span class="label">Production rule</span><p>Before joining two tables, understand their <strong>grain</strong>: the meaning and uniqueness of one row in each table.</p></div></div></section>
+<section class="lesson" id="s4-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4 · Lesson 4.4</span><h2>Advanced SQL</h2></div><div class="content"><p class="section-intro">Multi-step transformations, historical analysis, ranking, and deduplication, all in SQL.</p>
 <h3 id="s4-4-1"><span class="num">4.4.1</span>Common Table Expressions (CTEs)</h3>
 <p>A CTE is a named query defined with <code>WITH</code>, which breaks complex SQL into readable steps.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH department_salary AS (
@@ -980,7 +774,6 @@ SELECT *
 FROM department_summary
 ORDER BY average_salary DESC;</code></pre></div>
 <div class="callout"><span class="label">Important</span><p>A CTE improves organization but is not automatically a physically materialized table. The optimizer may inline or transform it.</p></div>
-
 <h3 id="s4-4-2"><span class="num">4.4.2</span>Subqueries</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Employees earning above the overall average
 SELECT employee_id, employee_name, salary
@@ -1022,7 +815,6 @@ WHERE e.salary &gt; (
 SELECT *
 FROM employee_salary
 WHERE salary &gt; department_average;</code></pre></div>
-
 <h3 id="s4-4-3"><span class="num">4.4.3</span>Recursive-query alternatives</h3>
 <p>Recursive CTE support differs across SQL engines and versions; check the runtime and documentation available in your workspace. Many hierarchy problems have alternatives.</p>
 <div class="code-wrap"><span class="lang">SQL · one level</span><pre class="code"><code>SELECT
@@ -1041,7 +833,6 @@ LEFT JOIN employees AS m
 LEFT JOIN employees AS gm
     ON m.manager_id = gm.employee_id;</code></pre></div>
 <p>This handles two management levels. For arbitrary-depth hierarchies, consider iterative processing in PySpark, a precomputed hierarchy (closure) table, or a supported recursive-query feature where available.</p>
-
 <h3 id="s4-4-4"><span class="num">4.4.4</span>Window functions</h3>
 <p>Window functions calculate across related rows <strong>without collapsing</strong> them into one row per group.</p>
 <div class="grid-2">
@@ -1067,7 +858,6 @@ FROM employees;</code></pre></div></div>
 <tr><td>ORDER BY</td><td>Defines row ordering within each partition</td></tr>
 <tr><td>Window frame</td><td>Defines which rows are included relative to the current row</td></tr>
 </tbody></table></div>
-
 <h3 id="s4-4-5"><span class="num">4.4.5</span>ROW_NUMBER</h3>
 <p>Assigns a sequential number to rows within each partition.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -1107,7 +897,6 @@ FROM ranked_employees
 WHERE rn = 1;</code></pre></div>
 <p class="ref">Assumes <code>source_record_id</code> is a stable tie-breaker; without one, a tied latest timestamp gives a nondeterministic pick.</p>
 <div class="callout key"><span class="label">Important</span><p>Use a business key such as <code>employee_id</code> for business-level deduplication. Don't partition by every column unless you specifically want to remove exact duplicates.</p></div>
-
 <h3 id="s4-4-6"><span class="num">4.4.6</span>RANK and DENSE_RANK</h3>
 <p>Salaries: Rahul 100000, Priya 90000, Arjun 90000, Sneha 80000.</p>
 <div class="grid-2">
@@ -1140,7 +929,6 @@ FROM employees;</code></pre></div>
 <tr><td>DENSE_RANK()</td><td>Ties share a rank; no gaps</td></tr>
 </tbody></table></div>
 <p>For the top three <em>distinct salary levels</em>, use <code>DENSE_RANK()</code>. For exactly one record per employee, use <code>ROW_NUMBER()</code> with deterministic ordering.</p>
-
 <h3 id="s4-4-7"><span class="num">4.4.7</span>LAG and LEAD</h3>
 <p><code>LAG()</code> retrieves a value from a preceding row; <code>LEAD()</code> from a following row.</p>
 <div class="table-wrap"><table>
@@ -1173,7 +961,6 @@ SELECT
     ) AS next_salary
 FROM employee_salary_history;</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p>Make sure the ordering column reflects the true chronological sequence. If two records share a date, add a stable secondary ordering column.</p></div>
-
 <h3 id="s4-4-8"><span class="num">4.4.8</span>Running totals</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
     transaction_date,
@@ -1198,7 +985,6 @@ SELECT
     ) AS department_running_salary
 FROM employees;</code></pre></div>
 <div class="callout"><span class="label">Why specify ROWS?</span><p>An explicit frame (<code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>) makes the row-by-row cumulative intent clear. Default frames can behave differently when ordering values contain ties.</p></div>
-
 <h3 id="s4-4-9"><span class="num">4.4.9</span>Ranking and deduplication</h3>
 <p>A common requirement: keep the latest record for every business key.</p>
 <div class="table-wrap"><table>
@@ -1233,7 +1019,6 @@ GROUP BY employee_id
 HAVING COUNT(*) &gt; 1;</code></pre></div></div>
 </div>
 <p class="ref">These two situations require different handling.</p>
-
 <h3 id="s4-4-10"><span class="num">4.4.10</span>PIVOT and UNPIVOT</h3>
 <h4>PIVOT: rows to columns</h4>
 <div class="table-wrap"><table>
@@ -1259,7 +1044,6 @@ UNPIVOT (
     sales FOR quarter IN (Q1, Q2)
 );</code></pre></div>
 <p>The result has one row per employee and quarter. UNPIVOT syntax can vary by runtime; if unavailable, use <code>UNION ALL</code>.</p>
-
 <h3 id="s4-4-11"><span class="num">4.4.11</span>Set operations</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- UNION ALL: combine, keep duplicates
 SELECT employee_id, employee_name FROM current_employees
@@ -1289,7 +1073,6 @@ SELECT employee_id FROM payroll_employees;</code></pre></div>
 <tr><td>Preserves intentional duplicates</td><td>No</td><td>Yes</td></tr>
 </tbody></table></div>
 <p>In pipelines, <code>UNION ALL</code> is usually right when appending monthly or regional datasets where every record should be kept. Don't use <code>UNION</code> just to hide unexplained duplicates. Set operations require compatible column types.</p>
-
 <h3 id="s4-4-12"><span class="num">4.4.12</span>MERGE INTO</h3>
 <p><code>MERGE INTO</code> combines insert and update logic in one operation and is widely used with Delta tables for <strong>upserts</strong>: update when the key matches, insert when it doesn't.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO main.default.employee_target AS target
@@ -1316,9 +1099,9 @@ WHEN NOT MATCHED THEN
         source.updated_at
     );</code></pre></div>
 <ol class="steps">
-  <li>Databricks compares source and target on <code>employee_id</code>.</li>
-  <li>If a target record exists, it is updated.</li>
-  <li>If no target record exists, a new one is inserted.</li>
+<li>Databricks compares source and target on <code>employee_id</code>.</li>
+<li>If a target record exists, it is updated.</li>
+<li>If no target record exists, a new one is inserted.</li>
 </ol>
 <div class="callout warn"><span class="label">Common production issue</span><p>If staging has several rows for the same <code>employee_id</code>, multiple source rows matching one target row can cause a MERGE failure or ambiguous results. Deduplicate the source to at most one row per key first:</p></div>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_source AS (
@@ -1333,15 +1116,10 @@ WHEN NOT MATCHED THEN
 SELECT *
 FROM ranked_source
 WHERE rn = 1;</code></pre></div>
-<p><strong>MERGE is useful for</strong> incremental loads, updating customer or employee dimensions, maintaining current-state tables, applying change data from upstream systems, and synchronizing source and target. It isn't a replacement for every INSERT or UPDATE.</p>
-
-<!-- ===================== 4.5 ===================== -->
-<h2 id="s4-5"><span class="num">4.5</span>Databricks SQL</h2>
-
-<h3 id="s4-5-1"><span class="num">4.5.1</span>What is Databricks SQL?</h3>
+<p><strong>MERGE is useful for</strong> incremental loads, updating customer or employee dimensions, maintaining current-state tables, applying change data from upstream systems, and synchronizing source and target. It isn't a replacement for every INSERT or UPDATE.</p></div></section>
+<section class="lesson" id="s4-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4 · Lesson 4.5</span><h2>Databricks SQL</h2></div><div class="content"><h3 id="s4-5-1"><span class="num">4.5.1</span>What is Databricks SQL?</h3>
 <p>Databricks SQL is the SQL experience within Databricks for querying and analyzing lakehouse data. Use it to query tables, create tables and views, explore catalog objects, build analytical datasets, run queries on SQL warehouses, and analyze performance. It's based on Apache Spark SQL with Databricks-specific features.</p>
 <p class="ref">Coming from Azure Synapse, tables, views, queries, and plans feel familiar, but the architecture, supported syntax, storage formats, and execution behavior differ.</p>
-
 <h3 id="s4-5-2"><span class="num">4.5.2</span>SQL warehouses</h3>
 <p>A SQL warehouse is compute designed to run SQL queries and analytical workloads, used by the SQL editor, dashboards, BI integrations, and SQL analytics.</p>
 <div class="table-wrap"><table>
@@ -1358,15 +1136,14 @@ WHERE rn = 1;</code></pre></div>
 <p class="ref">A SQL warehouse is not a database or a schema.</p>
 <h4>Create and use a SQL warehouse</h4>
 <ol class="steps">
-  <li>Open the SQL or Compute area of your workspace.</li>
-  <li>Locate the SQL warehouses page.</li>
-  <li>Select an existing warehouse, or create one if permitted.</li>
-  <li>Configure its settings per your workspace and organization.</li>
-  <li>Start it if required.</li>
-  <li>Select it as the compute for your SQL query.</li>
+<li>Open the SQL or Compute area of your workspace.</li>
+<li>Locate the SQL warehouses page.</li>
+<li>Select an existing warehouse, or create one if permitted.</li>
+<li>Configure its settings per your workspace and organization.</li>
+<li>Start it if required.</li>
+<li>Select it as the compute for your SQL query.</li>
 </ol>
 <div class="callout warn"><span class="label">Cost note</span><p>Warehouses consume compute. Use suitable sizing and auto-stop settings, and don't leave unused compute running.</p></div>
-
 <h3 id="s4-5-3"><span class="num">4.5.3</span>Catalogs, schemas, and tables</h3>
 <p>Databricks uses a three-level namespace: <code>catalog.schema.table</code>. In <code>main.default.employees</code>, <code>main</code> is the catalog, <code>default</code> the schema, <code>employees</code> the table.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SHOW CATALOGS;
@@ -1379,7 +1156,6 @@ DESCRIBE TABLE main.default.employees;
 
 DESCRIBE DETAIL main.default.employees;</code></pre></div>
 <p class="ref">Available commands and metadata depend on object type and your permissions.</p>
-
 <h3 id="s4-5-4"><span class="num">4.5.4</span>Creating schemas and tables</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.hr;
 
@@ -1405,7 +1181,6 @@ FROM main.hr.employees
 ORDER BY employee_id;</code></pre></div>
 <p>This creates a Delta table; Delta Lake adds transaction-log-based management and reliability features.</p>
 <p class="ref">The catalog and schema must exist and you need the privileges. If <code>main</code> isn't available, use an approved catalog and schema.</p>
-
 <h3 id="s4-5-5"><span class="num">4.5.5</span>Views</h3>
 <p>A view is a saved query you can query like a table.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW main.hr.it_employees AS
@@ -1417,7 +1192,6 @@ SELECT *
 FROM main.hr.it_employees;</code></pre></div>
 <p><strong>Why use views?</strong> Simplify complex queries, reuse business logic, expose only selected columns, provide a reporting layer, and separate presentation logic from tables. A standard view stores the query definition, not a physical copy of results.</p>
 <div class="callout warn"><span class="label">Security warning</span><p>A view can limit what's exposed, but security must also be configured through privileges and any required row- or column-level controls.</p></div>
-
 <h3 id="s4-5-6"><span class="num">4.5.6</span>Temporary views</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW it_employee_view AS
 SELECT *
@@ -1435,7 +1209,6 @@ FROM it_employee_view;</code></pre></div>
 <tr><td>Available beyond its scope</td><td>Generally no</td><td>Subject to permissions</td></tr>
 </tbody></table></div>
 <p class="ref">When working across notebooks, verify the session and execution context rather than assuming a temp view is globally accessible.</p>
-
 <h3 id="s4-5-7"><span class="num">4.5.7</span>SQL scripting and stored procedures</h3>
 <p>Databricks SQL supports SQL scripting with variables and control flow in supported contexts:</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>BEGIN
@@ -1451,7 +1224,6 @@ END;</code></pre></div>
 <p class="ref">Check this syntax against your SQL warehouse and runtime; scripting features vary.</p>
 <div class="callout warn"><span class="label">What about stored procedures?</span><p>Support differs from SQL Server and Synapse dedicated SQL pools. Don't assume T-SQL stored procedures can be copied directly into Databricks.</p></div>
 <p>For reusable logic, Databricks workloads may use SQL views, SQL functions where supported, SQL scripts, notebooks, jobs and task orchestration, Lakeflow pipelines, or external orchestration. Choose based on whether you need reusable SQL logic, procedural control flow, data transformation, or workflow orchestration.</p>
-
 <h3 id="s4-5-8"><span class="num">4.5.8</span>Query execution plans</h3>
 <p>An execution plan describes how the engine intends to run a query, helping you spot unnecessary scans, expensive joins, and large shuffles.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>EXPLAIN
@@ -1473,19 +1245,17 @@ GROUP BY department;</code></pre></div>
 <tr><td>Broadcast</td><td>Sends a small dataset to tasks to facilitate a join</td></tr>
 </tbody></table></div>
 <div class="callout key"><span class="label">Why Exchange matters</span><p>Grouping by department may require bringing rows with the same department together across workers. That redistribution is a <strong>shuffle</strong>, and it can involve heavy network, disk, and memory activity, which makes it a prime suspect in slow queries.</p></div>
-
 <h3 id="s4-5-9"><span class="num">4.5.9</span>Query history</h3>
 <p>Query history can show query text, start time and duration, status, user or principal, warehouse, errors, and execution details.</p>
 <h4>How to investigate a slow query</h4>
 <ol class="steps">
-  <li>Open Query History in your workspace.</li>
-  <li>Find the query by time, user, warehouse, or status.</li>
-  <li>Inspect the query text.</li>
-  <li>Check its duration and execution details.</li>
-  <li>Review the execution plan or query profile.</li>
-  <li>Decide whether the cause is scanning too much data, a large join, a shuffle, poor filtering, or insufficient compute.</li>
+<li>Open Query History in your workspace.</li>
+<li>Find the query by time, user, warehouse, or status.</li>
+<li>Inspect the query text.</li>
+<li>Check its duration and execution details.</li>
+<li>Review the execution plan or query profile.</li>
+<li>Decide whether the cause is scanning too much data, a large join, a shuffle, poor filtering, or insufficient compute.</li>
 </ol>
-
 <h3 id="s4-5-10"><span class="num">4.5.10</span>SQL query optimization</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Technique</th><th>Why it helps</th></tr></thead>
@@ -1516,17 +1286,12 @@ FROM main.hr.employees
 GROUP BY employee_id
 HAVING COUNT(*) &gt; 1;</code></pre></div>
 <div class="callout warn"><span class="label">Don't over-partition</span><p>Partitioning every table automatically can create many small files and unnecessary overhead.</p></div>
-<div class="callout key"><span class="label">The goal</span><p>Identify the expensive part of the query before changing the SQL.</p></div>
-
-<!-- ===================== Project ===================== -->
-<h2 id="project">Hands-on Project: Employee Database</h2>
-<p class="section-intro">Build a small employee management database with Delta tables (departments, employees, salary history, attendance), then solve 50 business questions covering joins, aggregations, window functions, deduplication, and data quality.</p>
-
+<div class="callout key"><span class="label">The goal</span><p>Identify the expensive part of the query before changing the SQL.</p></div></div></section>
+<section class="lesson-extra" id="project"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4</span><h2>Hands-on Project: Employee Database</h2></div><div class="content"><p class="section-intro">Build a small employee management database with Delta tables (departments, employees, salary history, attendance), then solve 50 business questions covering joins, aggregations, window functions, deduplication, and data quality.</p>
 <h3 id="setup">Setup</h3>
 <h4>Step 1: Create the project schema</h4>
 <p>Run in the SQL editor or a SQL notebook attached to suitable compute. If you can't use <code>main</code>, substitute an authorized catalog.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.employee_sql_lab;</code></pre></div>
-
 <h4>Step 2: Create the Departments table</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.departments (
     department_id INT,
@@ -1543,7 +1308,6 @@ VALUES
     (30, 'HR', 'Bengaluru', 2000000),
     (40, 'Marketing', 'Mumbai', 2500000),
     (50, 'Operations', 'Hyderabad', 4000000);</code></pre></div>
-
 <h4>Step 3: Create the Employees table</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.employees (
     employee_id INT,
@@ -1575,7 +1339,6 @@ VALUES
     (113, 'Naveen Kumar', 'naveen@example.com', NULL, 101, 65000, DATE '2024-07-01', 'Pune', 'Active'),
     (114, 'Lakshmi Devi', 'lakshmi@example.com', 50, 109, 72000, DATE '2021-06-14', 'Hyderabad', 'Active'),
     (115, 'Manoj Verma', 'manoj@example.com', 10, 107, 110000, DATE '2020-03-30', 'Bengaluru', 'Active');</code></pre></div>
-
 <h4>Step 4: Verify the data</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
 FROM main.employee_sql_lab.employees
@@ -1583,7 +1346,6 @@ ORDER BY employee_id;
 
 SELECT COUNT(*) AS employee_count
 FROM main.employee_sql_lab.employees;   -- expected: 15</code></pre></div>
-
 <h4>Step 5: Create the salary history table</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.salary_history (
     history_id INT,
@@ -1606,7 +1368,6 @@ VALUES
     (9, 104, 75000, DATE '2025-02-01'),
     (10, 107, 115000, DATE '2019-07-01'),
     (11, 107, 130000, DATE '2023-07-01');</code></pre></div>
-
 <h4>Step 6: Create the attendance table</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE main.employee_sql_lab.attendance (
     attendance_id INT,
@@ -1629,10 +1390,8 @@ VALUES
     (9, 104, DATE '2026-10-02', 'Present'),
     (10, 107, DATE '2026-10-01', 'Present'),
     (11, 107, DATE '2026-10-02', 'Present');</code></pre></div>
-
 <h3 id="problems">50 SQL Practice Problems</h3>
 <div class="callout key"><span class="label">How to use this section</span><p>Each problem is a card. Write your own answer first, then click the card to reveal the solution. All examples use the tables in <code>main.employee_sql_lab</code>.</p></div>
-
 <h4 id="lvl1">Level 1: SQL fundamentals (1–10)</h4>
 <details class="q"><summary>1. Retrieve all employee records.</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
@@ -1670,7 +1429,6 @@ FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
 FROM main.employee_sql_lab.employees
 WHERE department_id IS NULL;</code></pre></div></div></details>
-
 <h4 id="lvl2">Level 2: Aggregations and functions (11–20)</h4>
 <details class="q"><summary>11. Count employees in each department.</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -1736,7 +1494,6 @@ FROM main.employee_sql_lab.employees;</code></pre></div></div></details>
     COUNT(*) AS employee_count
 FROM main.employee_sql_lab.employees
 GROUP BY employment_status;</code></pre></div></div></details>
-
 <h4 id="lvl3">Level 3: Joins (21–30)</h4>
 <details class="q"><summary>21. Display every employee with their department name.</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -1820,7 +1577,6 @@ GROUP BY e.employee_id, e.employee_name;</code></pre></div>
 FROM main.employee_sql_lab.employees AS e
 LEFT ANTI JOIN main.employee_sql_lab.attendance AS a
     ON e.employee_id = a.employee_id;</code></pre></div></div></details>
-
 <h4 id="lvl4">Level 4: Window functions (31–40)</h4>
 <details class="q"><summary>31. Assign a row number to employees ordered by salary, highest first.</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT
@@ -1943,7 +1699,6 @@ SELECT
     salary - previous_salary AS salary_change
 FROM salary_comparison
 ORDER BY employee_id, effective_date;</code></pre></div></div></details>
-
 <h4 id="lvl5">Level 5: Advanced SQL and data engineering (41–50)</h4>
 <details class="q"><summary>41. Find the latest salary record for each employee using ROW_NUMBER().</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>WITH ranked_history AS (
@@ -2105,25 +1860,21 @@ SELECT
 FROM ranked_source
 WHERE rn = 1;</code></pre></div>
 <p>The tie-breaker must have meaningful, stable ordering. An arbitrary ID makes the result deterministic but not necessarily the correct business record.</p></div></details>
-
 <h3 id="challenge">Final Project Challenge: Mini Employee Analytics System</h3>
 <p>After the 50 problems, build these reports with your employee tables.</p>
 <div class="grid-2">
-  <div class="card"><h4>Report 1: Department salary dashboard</h4><ul><li>Department name.</li><li>Employee count.</li><li>Average, minimum, and maximum salary.</li><li>Total salary expenditure.</li><li>Number of active employees.</li></ul></div>
-  <div class="card"><h4>Report 2: Employee ranking</h4><p>For each department:</p><ul><li>Employee name and salary.</li><li>Department average salary.</li><li>Salary rank.</li><li>Difference from the department average.</li></ul></div>
-  <div class="card"><h4>Report 3: Data quality report</h4><ul><li>Employees without a valid department.</li><li>Duplicate employee IDs.</li><li>Missing email addresses.</li><li>Invalid or missing salaries.</li><li>Attendance referencing nonexistent employees.</li></ul></div>
-  <div class="card"><h4>Report 4: Incremental employee processing</h4><ol><li>Read incoming records into staging.</li><li>Validate employee IDs and data types.</li><li>Identify duplicate records.</li><li>Keep the latest valid version.</li><li>MERGE into the target table.</li><li>Report inserted, updated, rejected, and duplicate records.</li></ol></div>
+<div class="card"><h4>Report 1: Department salary dashboard</h4><ul><li>Department name.</li><li>Employee count.</li><li>Average, minimum, and maximum salary.</li><li>Total salary expenditure.</li><li>Number of active employees.</li></ul></div>
+<div class="card"><h4>Report 2: Employee ranking</h4><p>For each department:</p><ul><li>Employee name and salary.</li><li>Department average salary.</li><li>Salary rank.</li><li>Difference from the department average.</li></ul></div>
+<div class="card"><h4>Report 3: Data quality report</h4><ul><li>Employees without a valid department.</li><li>Duplicate employee IDs.</li><li>Missing email addresses.</li><li>Invalid or missing salaries.</li><li>Attendance referencing nonexistent employees.</li></ul></div>
+<div class="card"><h4>Report 4: Incremental employee processing</h4><ol><li>Read incoming records into staging.</li><li>Validate employee IDs and data types.</li><li>Identify duplicate records.</li><li>Keep the latest valid version.</li><li>MERGE into the target table.</li><li>Report inserted, updated, rejected, and duplicate records.</li></ol></div>
 </div>
 <p>Example for Report 3, attendance records referencing nonexistent employees:</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT a.*
 FROM main.employee_sql_lab.attendance AS a
 LEFT ANTI JOIN main.employee_sql_lab.employees AS e
     ON a.employee_id = e.employee_id;</code></pre></div>
-<p>This challenge brings together SQL, data quality, incremental loading, and Delta Lake concepts.</p>
-
-<!-- ===================== Takeaways ===================== -->
-<h2 id="takeaways">Key Takeaways</h2>
-<div class="table-wrap"><table>
+<p>This challenge brings together SQL, data quality, incremental loading, and Delta Lake concepts.</p></div></section>
+<section class="lesson-extra" id="takeaways"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 4</span><h2>Key Takeaways</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Topic</th><th>Skills to master</th></tr></thead>
 <tbody>
 <tr><td>SQL fundamentals</td><td>SELECT, WHERE, GROUP BY, HAVING, ORDER BY</td></tr>
@@ -2141,75 +1892,29 @@ LEFT ANTI JOIN main.employee_sql_lab.employees AS e
 <h4>Recommended learning sequence</h4>
 <p>Don't try to memorize all 50 answers. Instead:</p>
 <ol class="steps">
-  <li>Create the employee database.</li>
-  <li>Solve Problems 1–10 without looking at the answers.</li>
-  <li>Repeat for Problems 11–20.</li>
-  <li>Focus carefully on join cardinality and window functions.</li>
-  <li>Practice deduplication using realistic source data.</li>
-  <li>Complete the MERGE INTO exercise.</li>
-  <li>Build the final employee analytics system.</li>
+<li>Create the employee database.</li>
+<li>Solve Problems 1–10 without looking at the answers.</li>
+<li>Repeat for Problems 11–20.</li>
+<li>Focus carefully on join cardinality and window functions.</li>
+<li>Practice deduplication using realistic source data.</li>
+<li>Complete the MERGE INTO exercise.</li>
+<li>Build the final employee analytics system.</li>
 </ol>
 <div class="callout key"><span class="label">Most important for data engineering</span><p>Joins, window functions, incremental loading, deduplication, NULL handling, and MERGE INTO. These skills apply directly to production ETL pipelines and lakehouse development.</p></div>
-
 <div class="next">
 <h3>Next chapter: Python Fundamentals for Databricks</h3>
 <p style="margin-bottom:0">Chapter 5 covers variables, data types, conditions, loops, functions, collections, exception handling, modules, and file handling.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-3.html"><span class="mn-label">← Previous</span><span class="mn-title">Setup</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-5.html"><span class="mn-label">Next →</span><span class="mn-title">Python</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-3.html"><span>← Previous</span><strong>Chapter 3: Workspace and Environment Setup</strong></a>
-  <a class="pager-link" href="databricks-chapter-5.html"><span>Next →</span><strong>Chapter 5: Python Fundamentals</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 2 · Chapter 4 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

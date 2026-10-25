@@ -1,286 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 18: Data Quality & Testing</title>
-<meta name="description" content="Chapter 18 of a Databricks learning path: data quality dimensions, validation and reconciliation, PySpark testing with pytest, idempotent pipelines, audit and reject tables, and a tested validation framework.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Data Quality &amp; Testing — Chapter 18 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 18 of a Databricks learning path: data quality dimensions, validation and reconciliation, PySpark testing with pytest, idempotent pipelines, audit and reject tables, and a tested validation framework."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 18 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s18-1">18.1 Data Quality Fundamentals</a></li>
-    <li class="lvl2"><a href="#s18-1-1">What is data quality?</a></li>
-    <li class="lvl2"><a href="#s18-1-2">Completeness</a></li>
-    <li class="lvl2"><a href="#s18-1-3">Accuracy</a></li>
-    <li class="lvl2"><a href="#s18-1-4">Consistency</a></li>
-    <li class="lvl2"><a href="#s18-1-5">Validity</a></li>
-    <li class="lvl2"><a href="#s18-1-6">Uniqueness</a></li>
-    <li class="lvl2"><a href="#s18-1-7">Timeliness</a></li>
-    <li class="lvl1"><a href="#s18-2">18.2 Validation Framework</a></li>
-    <li class="lvl2"><a href="#s18-2-1">Architecture</a></li>
-    <li class="lvl2"><a href="#s18-2-2">Counts &amp; keys</a></li>
-    <li class="lvl2"><a href="#s18-2-6">Data types</a></li>
-    <li class="lvl2"><a href="#s18-2-7">Business rules</a></li>
-    <li class="lvl2"><a href="#s18-2-8">Reconciliation</a></li>
-    <li class="lvl1"><a href="#s18-3">18.3 Automated Testing</a></li>
-    <li class="lvl2"><a href="#s18-3-1">Unit tests</a></li>
-    <li class="lvl2"><a href="#s18-3-2">Integration &amp; regression</a></li>
-    <li class="lvl2"><a href="#s18-3-4">Data-quality tests</a></li>
-    <li class="lvl2"><a href="#s18-3-6">Test data &amp; environments</a></li>
-    <li class="lvl1"><a href="#s18-4">18.4 Pipeline Reliability</a></li>
-    <li class="lvl2"><a href="#s18-4-1">Idempotency</a></li>
-    <li class="lvl2"><a href="#s18-4-3">Transactions</a></li>
-    <li class="lvl2"><a href="#s18-4-4">Failure recovery</a></li>
-    <li class="lvl2"><a href="#s18-4-5">Partial loads</a></li>
-    <li class="lvl2"><a href="#s18-4-6">Reprocessing</a></li>
-    <li class="lvl1"><a href="#s18-5">18.5 Operational Controls</a></li>
-    <li class="lvl2"><a href="#s18-5-1">Audit tables &amp; batch IDs</a></li>
-    <li class="lvl2"><a href="#s18-5-3">Logs &amp; summaries</a></li>
-    <li class="lvl2"><a href="#s18-5-5">Error &amp; reject tables</a></li>
-    <li class="lvl2"><a href="#s18-5-7">Alerts</a></li>
-    <li class="lvl1"><a href="#s18-6">18.6 Project: DQ Framework</a></li>
-    <li class="lvl2"><a href="#s18-6-2">Steps 1–2: Tables</a></li>
-    <li class="lvl2"><a href="#s18-6-4">Step 3: Framework code</a></li>
-    <li class="lvl2"><a href="#s18-6-9">Steps 4–6: Run &amp; enforce</a></li>
-    <li class="lvl2"><a href="#s18-6-12">Steps 7–8: Query &amp; extend</a></li>
-    <li class="lvl1"><a href="#s18-7">18.7 Advanced Patterns</a></li>
-    <li class="lvl1"><a href="#s18-8">18.8 Common Mistakes</a></li>
-    <li class="lvl1"><a href="#s18-9">18.9 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s18-10">18.10 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 6 · Chapter 18 · Advanced Data Engineering</span>
-  <h1>Data Quality, Testing, and Reconciliation</h1>
-  <p class="lead">Prove your data is right, not just that your job finished. The six dimensions of data quality; reusable validation for counts, keys, nulls, types, and business rules; source-to-target reconciliation; unit, integration, and regression tests for PySpark; idempotent, retry-safe pipelines; and audit, error, and reject tables with alerts. The project builds a tested validation framework that records every check in Delta.</p>
-  <div class="callout warn"><span class="label">The scenario this chapter solves</span><p>A pipeline loads 10 million records into a Delta table and reports <strong>success</strong>, but 50,000 records are missing. You'll learn to detect it, find the affected records, stop bad data reaching reports, and leave an auditable trail.</p></div>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Explain the six dimensions of data quality.</li>
-    <li>Build reusable validation with PySpark and SQL.</li>
-    <li>Validate counts, duplicates, missing and null keys, and types.</li>
-    <li>Implement business-rule validation and reconciliation.</li>
-    <li>Write unit, integration, and regression tests for PySpark.</li>
-    <li>Design idempotent, retry-safe pipelines.</li>
-    <li>Prevent partial loads and recover failed batches.</li>
-    <li>Maintain audit, log, reject, and reconciliation tables.</li>
-    <li>Raise automated failure alerts.</li>
-    <li>Build a framework that records results in Delta audit tables.</li>
-  </ol></div>
-  <div class="chips">
-    <a class="chip" href="#s18-1"><span>18.1</span><strong>Quality Dimensions</strong></a>
-    <a class="chip" href="#s18-2"><span>18.2</span><strong>Validation</strong></a>
-    <a class="chip" href="#s18-3"><span>18.3</span><strong>Testing</strong></a>
-    <a class="chip" href="#s18-4"><span>18.4</span><strong>Reliability</strong></a>
-    <a class="chip" href="#s18-5"><span>18.5</span><strong>Operations</strong></a>
-    <a class="chip" href="#s18-6"><span>18.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 18.1 ===================== -->
-<h2 id="s18-1"><span class="num">18.1</span>Data Quality Fundamentals</h2>
-
-<h3 id="s18-1-1"><span class="num">18.1.1</span>What Is Data Quality?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Data Quality, Testing, and Reconciliation</div>
+<div class="brand-sub">Chapter 18 · 10 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s18-1" class="nav-link"><span class="nav-num">18.1</span>Data Quality Fundamentals</a>
+<a href="#s18-2" class="nav-link"><span class="nav-num">18.2</span>Validation Framework</a>
+<a href="#s18-3" class="nav-link"><span class="nav-num">18.3</span>Automated Testing</a>
+<a href="#s18-4" class="nav-link"><span class="nav-num">18.4</span>Pipeline Reliability</a>
+<a href="#s18-5" class="nav-link"><span class="nav-num">18.5</span>Operational Controls</a>
+<a href="#s18-6" class="nav-link"><span class="nav-num">18.6</span>Hands-On Project: Build a Reusable Validation Framework</a>
+<a href="#s18-7" class="nav-link"><span class="nav-num">18.7</span>Advanced Validation Patterns</a>
+<a href="#s18-8" class="nav-link"><span class="nav-num">18.8</span>Common Data Quality and Testing Mistakes</a>
+<a href="#s18-9" class="nav-link"><span class="nav-num">18.9</span>Interview Questions and Answers</a>
+<a href="#s18-10" class="nav-link"><span class="nav-num">18.10</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 6 · Chapter 18 · Advanced Data Engineering</div><h1>Data Quality, Testing, and Reconciliation</h1>
+<p>Prove your data is right, not just that your job finished. The six dimensions of data quality; reusable validation for counts, keys, nulls, types, and business rules; source-to-target reconciliation; unit, integration, and regression tests for PySpark; idempotent, retry-safe pipelines; and audit, error, and reject tables with alerts. The project builds a tested validation framework that records every check in Delta.</p>
+<div class="doc-meta"><span class="pill">10 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s18-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.1</span><h2>Data Quality Fundamentals</h2></div><div class="content"><h3 id="s18-1-1"><span class="num">18.1.1</span>What Is Data Quality?</h3>
 <p>Data quality is how well data meets the requirements of its intended use. A pipeline can succeed technically and still produce wrong results: 100,000 source rows but 98,000 in the target; a null customer ID; a forbidden negative amount; an order loaded twice; a misread date; a report showing yesterday's data.</p>
 <div class="grid-2">
 <pre class="diagram">          Source data
@@ -298,7 +154,6 @@ details.q summary{line-height:1.5}
   Audit and alerts</pre>
 <div class="callout key" style="margin:0"><span class="label">The goal</span><p>Not just to detect errors, but to <strong>control what happens</strong> when they're found: route bad rows aside, stop publication, and tell someone.</p></div>
 </div>
-
 <h3 id="s18-1-2"><span class="num">18.1.2</span>Completeness</h3>
 <p><strong>Is the expected data present?</strong> If the source holds 1,000 sales but the target 950, 50 may be missing. Checks: source vs target counts, missing business keys, required columns, files, dates or partitions, expected transactions.</p>
 <div class="grid-2">
@@ -312,7 +167,6 @@ if source_count != target_count:
     print("Completeness validation failed")</code></pre></div>
 </div>
 <div class="callout warn"><span class="label">Equal counts don't prove completeness</span><p>One missing row plus one duplicated row gives the same count. The project demonstrates exactly this: the count check <strong>passes</strong> while the key checks fail. Always compare keys and measures too.</p></div>
-
 <h3 id="s18-1-3"><span class="num">18.1.3</span>Accuracy</h3>
 <p><strong>Are the values correct?</strong> With the rule <em>sales = quantity × price</em>, order O1002 (3 × 200) should be 600, not 800.</p>
 <div class="grid-2">
@@ -328,14 +182,12 @@ invalid_sales = source_df.filter(
 display(invalid_sales)</code></pre></div>
 </div>
 <p class="ref">Recalculate derived values; validate totals against trusted sources and reference data; verify currency and unit conversions and mappings. Real rules include discounts, taxes, returns, and rounding, and some accuracy questions need an authoritative external source.</p>
-
 <h3 id="s18-1-4"><span class="num">18.1.4</span>Consistency</h3>
 <p><strong>Does data agree across tables and systems?</strong> If one current-state table says C1001 lives in Hyderabad and another says Chennai, something's wrong, unless one deliberately keeps history. <strong>Define the business meaning before comparing.</strong></p>
 <div class="code-wrap"><span class="lang">SQL · referential consistency</span><pre class="code"><code>SELECT f.customer_key
 FROM gold.fact_sales AS f
 LEFT ANTI JOIN gold.dim_customer AS d ON f.customer_key = d.customer_key;</code></pre></div>
 <p class="ref">Also: matching IDs across systems, consistent categories, date/time-zone and currency conventions, and metrics that agree across reports.</p>
-
 <h3 id="s18-1-5"><span class="num">18.1.5</span>Validity</h3>
 <p><strong>Does data follow the required format, domain, or rule?</strong></p>
 <div class="table-wrap"><table>
@@ -350,7 +202,6 @@ LEFT ANTI JOIN gold.dim_customer AS d ON f.customer_key = d.customer_key;</code>
 valid_records   = source_df.filter(is_valid)
 invalid_records = source_df.filter(~is_valid | is_valid.isNull())</code></pre></div>
 <div class="callout"><span class="label">Why the <code>isNull()</code>?</span><p>A null quantity makes <code>quantity &gt; 0</code> <em>null</em>, not false, so the row matches neither <code>filter(is_valid)</code> nor <code>filter(~is_valid)</code> and silently vanishes. Including <code>is_valid.isNull()</code> sends it to invalid records, so every row lands in exactly one bucket. (Here <code>customer_id.isNotNull()</code> is never null itself, but nullable comparisons are.) In production, also record <em>why</em> each row failed.</p></div>
-
 <h3 id="s18-1-6"><span class="num">18.1.6</span>Uniqueness</h3>
 <p><strong>Are keys that should be unique actually unique?</strong> With key <code>(order_id, line_number)</code>, a second <code>O1001 / 1</code> row is a duplicate.</p>
 <div class="grid-2">
@@ -365,7 +216,6 @@ HAVING COUNT(*) &gt; 1;</code></pre></div>
 )</code></pre></div>
 </div>
 <p class="ref">A business key is often composite (<code>order_id + line_number</code>, or with <code>source_system</code> for multi-source warehouses). Define it from the real grain.</p>
-
 <h3 id="s18-1-7"><span class="num">18.1.7</span>Timeliness</h3>
 <p><strong>Is the data available when needed?</strong> If yesterday's sales must be on the dashboard by 7:00 AM and the pipeline finishes at 11:00, the data is correct but not timely.</p>
 <div class="code-wrap"><span class="lang">SQL · freshness</span><pre class="code"><code>SELECT MAX(source_updated_at) AS latest_source_timestamp FROM silver.sales_source;
@@ -384,12 +234,8 @@ FROM gold.fact_sales;</code></pre></div>
 <tr><td>Validity</td><td>Does data follow rules?</td><td>Positive quantity</td></tr>
 <tr><td>Uniqueness</td><td>No duplicate business keys?</td><td>Group by order and line</td></tr>
 <tr><td>Timeliness</td><td>Available on time?</td><td>Latest loaded timestamp</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 18.2 ===================== -->
-<h2 id="s18-2"><span class="num">18.2</span>Validation Framework</h2>
-<p class="section-intro">A validation framework runs checks, records results, and decides whether the pipeline continues, so every notebook doesn't reinvent its own checks.</p>
-
+</tbody></table></div></div></section>
+<section class="lesson" id="s18-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.2</span><h2>Validation Framework</h2></div><div class="content"><p class="section-intro">A validation framework runs checks, records results, and decides whether the pipeline continues, so every notebook doesn't reinvent its own checks.</p>
 <h3 id="s18-2-1"><span class="num">18.2.1</span>Framework Architecture</h3>
 <div class="grid-2">
 <pre class="diagram">  Source -&gt; Transformations -&gt; Target
@@ -407,7 +253,6 @@ FROM gold.fact_sales;</code></pre></div>
   Continue or fail pipeline</pre>
 <div class="card"><h4>Responsibilities</h4><ol style="margin-bottom:0"><li>Receive source and target datasets.</li><li>Execute configured checks.</li><li>Compute expected vs actual results.</li><li>Record every result.</li><li>Identify failures.</li><li>Decide: continue or stop.</li><li>Leave enough detail to investigate.</li></ol></div>
 </div>
-
 <h3 id="s18-2-2"><span class="num">18.2.2</span>Count, Key, Duplicate, and Null Checks</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python · record count</span><pre class="code"><code>def validate_record_count(source_df, target_df):
@@ -452,7 +297,6 @@ def find_null_keys(df, key_columns, check_blank_strings=False):
 duplicate_keys = find_duplicate_keys(source_df, ["order_id", "line_number"])
 null_keys = find_null_keys(source_df, ["order_id", "line_number"])</code></pre></div>
 <p class="ref">Pass composite keys as configuration rather than hard-coding one column. A null check alone misses empty or whitespace-only string IDs.</p>
-
 <h3 id="s18-2-6"><span class="num">18.2.3</span>Data Type Validation</h3>
 <p>Expected: <code>quantity INT</code>, <code>sales_amount DECIMAL(18,2)</code>. Incoming text: <code>"three"</code>, <code>"ABC"</code>. Use <code>try_cast</code>: a non-null input that casts to null is invalid.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>typed_df = (
@@ -466,7 +310,6 @@ invalid_types = typed_df.filter(
     | (F.col("sales_amount").isNotNull() &amp; F.col("sales_amount_cast").isNull())
 )</code></pre></div>
 <p class="ref">Plain <code>CAST</code> raises an error in ANSI mode (Chapter 11), which is why <code>try_cast</code> is used. Keep the raw input so invalid rows can be investigated and reprocessed.</p>
-
 <h3 id="s18-2-7"><span class="num">18.2.4</span>Business-Rule Validation</h3>
 <p>Domain rules: quantity &gt; 0; order date not in the future; discount within limits; customer exists; currency approved; net sales reconcile.</p>
 <div class="code-wrap"><span class="lang">Python · rules as named configuration</span><pre class="code"><code>business_rules = [
@@ -481,7 +324,6 @@ for rule in business_rules:
     failures = source_df.filter(f"NOT coalesce({rule['condition']}, false)").count()
     print(rule["rule_name"], "FAIL" if failures else "PASS", failures)</code></pre></div>
 <p class="ref"><code>coalesce(…, false)</code> treats a null result as a violation. Adjust rules to your model (e.g. negative quantities for returns). Only run <strong>approved</strong> expressions from configuration, never untrusted SQL.</p>
-
 <h3 id="s18-2-8"><span class="num">18.2.5</span>Source-to-Target Reconciliation</h3>
 <p>Proves the target correctly represents the intended source through counts, key comparisons, aggregated measures, column comparisons, insert/update/delete counts, and batch-level checks.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Counts for one batch (both tables must carry batch_id at the same grain)
@@ -502,12 +344,8 @@ LEFT ANTI JOIN silver.sales_source AS s
   ON t.order_id = s.order_id AND t.line_number = s.line_number;</code></pre></div>
 <div class="table-wrap"><table>
 <thead><tr><th>Validation</th><th>Identifies</th></tr></thead>
-<tbody><tr><td>Count comparison</td><td>Overall volume mismatch</td></tr><tr><td>Missing source keys</td><td>Records not loaded</td></tr><tr><td>Extra target keys</td><td>Unexpected records</td></tr><tr><td>Duplicate keys</td><td>Repeated events</td></tr><tr><td>Measure comparison</td><td>Wrong numbers</td></tr><tr><td>Null keys</td><td>Missing identifiers</td></tr><tr><td>Referential integrity</td><td>Invalid dimension references</td></tr></tbody></table></div>
-
-<!-- ===================== 18.3 ===================== -->
-<h2 id="s18-3"><span class="num">18.3</span>Automated Testing</h2>
-<div class="callout key"><span class="label">Two kinds of checking</span><p><strong>Tests</strong> check that pipeline <em>logic</em> is right (run before deployment, on small known data). <strong>Validations</strong> check that real <em>data</em> is right (run in production, every load). You need both.</p></div>
-
+<tbody><tr><td>Count comparison</td><td>Overall volume mismatch</td></tr><tr><td>Missing source keys</td><td>Records not loaded</td></tr><tr><td>Extra target keys</td><td>Unexpected records</td></tr><tr><td>Duplicate keys</td><td>Repeated events</td></tr><tr><td>Measure comparison</td><td>Wrong numbers</td></tr><tr><td>Null keys</td><td>Missing identifiers</td></tr><tr><td>Referential integrity</td><td>Invalid dimension references</td></tr></tbody></table></div></div></section>
+<section class="lesson" id="s18-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.3</span><h2>Automated Testing</h2></div><div class="content"><div class="callout key"><span class="label">Two kinds of checking</span><p><strong>Tests</strong> check that pipeline <em>logic</em> is right (run before deployment, on small known data). <strong>Validations</strong> check that real <em>data</em> is right (run in production, every load). You need both.</p></div>
 <h3 id="s18-3-1"><span class="num">18.3.1</span>Unit Testing</h3>
 <p>Unit tests check one small component in isolation: a calculation, a filter, a date derivation, a deduplication rule. Structure code so transformations are plain functions you can import:</p>
 <div class="grid-2">
@@ -607,7 +445,6 @@ python -m pytest -q retail_pipeline/tests
 # 4 passed</code></pre></div>
 <div class="callout key"><span class="label">Verified: the tests catch the regression</span><p>All 4 tests pass with Spark 4. When I changed the formula to <code>quantity * (unit_price - discount_amount)</code>, the regression the original text warns about, <code>test_calculate_net_sales</code> failed (O1001 became 180 instead of 190), exactly as a test should.</p></div>
 <p class="ref">Changes from the original: deduplication now keeps the <strong>latest</strong> version (with a test for conflicting values) instead of whichever <code>dropDuplicates</code> picks; duplicate checking uses <code>isEmpty()</code>; and there's an empty-input test. In Databricks, run tests from a notebook with <code>pytest.main([...])</code> or in CI (Chapter 21).</p>
-
 <h3 id="s18-3-2"><span class="num">18.3.2</span>Integration and Regression Testing</h3>
 <div class="grid-2">
 <div class="card"><h4>Integration tests: components together</h4><p>Read from a Delta table → transform → write → validate → audit row written.</p>
@@ -622,17 +459,15 @@ Run validations
 Assert expected results
         |
 Clean up test data</pre>
-<p style="margin:8px 0 0" class="ref">Use an isolated test schema, never production tables.</p></div>
+<p class="ref" style="margin:8px 0 0">Use an isolated test schema, never production tables.</p></div>
 <div class="card"><h4>Regression tests: nothing broke</h4><p>Adding a discount column to sales? Confirm existing amounts, product joins, customer relationships, returns, and downstream reports are unchanged.</p><p style="margin-bottom:0"><strong>Golden datasets</strong>: small inputs with known outputs.</p>
 <table style="margin-top:8px"><thead><tr><th>Order</th><th>Qty</th><th>Price</th><th>Disc.</th><th>Net</th></tr></thead><tbody><tr><td>O1001</td><td>2</td><td>100</td><td>10</td><td>190</td></tr><tr><td>O1002</td><td>1</td><td>500</td><td>0</td><td>500</td></tr></tbody></table></div>
 </div>
 <p class="ref">Compare stable business results (e.g. as dictionaries or sorted rows) rather than relying on physical row order.</p>
-
 <h3 id="s18-3-4"><span class="num">18.3.3</span>Data-Quality Tests</h3>
 <p>Assertions about real data: no null customer IDs, no duplicate order lines, no invalid product keys, no negative quantities, no missing dates, counts reconcile.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>assert_no_duplicate_keys(sales_df, ["order_id", "line_number"])   # raises if any duplicate group</code></pre></div>
 <p class="ref">Philosophy: test <strong>logic correctness</strong> (does the code do what's intended?) and <strong>data correctness</strong> (does the actual data meet constraints?).</p>
-
 <h3 id="s18-3-6"><span class="num">18.3.4</span>Test Datasets and Environments</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -659,12 +494,8 @@ Clean up test data</pre>
 <div class="table-wrap"><table>
 <thead><tr><th>Environment</th><th>Data</th><th>Purpose</th></tr></thead>
 <tbody><tr><td>Development</td><td>Small sample or masked</td><td>Build and debug</td></tr><tr><td>Test / QA</td><td>Controlled test datasets</td><td>Functional, integration, regression</td></tr><tr><td>UAT</td><td>Representative business data</td><td>Business sign-off</td></tr><tr><td>Production</td><td>Authorized operational data</td><td>Business workloads</td></tr></tbody></table></div>
-<p class="ref">Separate production and test data; non-production credentials; masked or synthetic sensitive data; parameterized catalogs and paths; CI/CD automation; validation before deployment; tested rollback.</p>
-
-<!-- ===================== 18.4 ===================== -->
-<h2 id="s18-4"><span class="num">18.4</span>Pipeline Reliability</h2>
-
-<h3 id="s18-4-1"><span class="num">18.4.1</span>Idempotency and Retry Safety</h3>
+<p class="ref">Separate production and test data; non-production credentials; masked or synthetic sensitive data; parameterized catalogs and paths; CI/CD automation; validation before deployment; tested rollback.</p></div></section>
+<section class="lesson" id="s18-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.4</span><h2>Pipeline Reliability</h2></div><div class="content"><h3 id="s18-4-1"><span class="num">18.4.1</span>Idempotency and Retry Safety</h3>
 <p>Repeating the same logical operation must not add effects. A plain append run twice gives two copies of O1001; a <code>MERGE</code> on the business key gives one.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>MERGE INTO gold.fact_sales AS target
 USING silver.sales_batch AS source
@@ -678,7 +509,6 @@ WHEN NOT MATCHED THEN INSERT (order_id, line_number, sales_amount)
 <div class="card"><h4>Safer sequence</h4><ol style="margin-bottom:0"><li>Identify the batch.</li><li>Read its source records.</li><li>Validate.</li><li>Transform deterministically.</li><li>Commit the target write.</li><li>Record completion.</li><li>Then advance the watermark.</li></ol></div>
 </div>
 <p class="ref">Checklist: stable keys; deduplicated source before merging; deterministic logic; no new IDs on retry; processed-batch tracking; retry-safe side effects; validate after reprocessing.</p>
-
 <h3 id="s18-4-3"><span class="num">18.4.2</span>Transaction Handling</h3>
 <p>Each Delta write or MERGE is atomic <strong>for one table</strong>. A load that (1) updates a dimension, (2) inserts facts, (3) writes a reconciliation summary, (4) advances the watermark is four commits. If step 2 fails, step 1 already happened.</p>
 <div class="grid-2">
@@ -692,7 +522,6 @@ STARTED
   -&gt; RECONCILED
   -&gt; COMPLETED</pre>
 </div>
-
 <h3 id="s18-4-4"><span class="num">18.4.3</span>Failure Recovery</h3>
 <p>100,000 records staged, 80,000 written, then failure. A blind restart might append duplicates.</p>
 <div class="grid-2">
@@ -713,7 +542,6 @@ Reconcile source and target
 Mark batch complete</pre>
 <div class="card"><h4>Recovery checklist</h4><ul style="margin-bottom:0"><li>Which batch failed?</li><li>Did the target write commit? (Delta history shows commits.)</li><li>Was the watermark advanced?</li><li>Is the source still available?</li><li>Is the operation idempotent?</li><li>Could duplicates appear?</li><li>Does the audit table show the right state?</li><li>Does reconciliation pass afterwards?</li></ul></div>
 </div>
-
 <h3 id="s18-4-5"><span class="num">18.4.4</span>Partial-Load Prevention</h3>
 <div class="grid-2">
 <pre class="diagram">Source
@@ -730,7 +558,6 @@ Mark batch complete</pre>
 <div class="card"><h4>Approaches</h4><ol style="margin-bottom:0"><li><strong>Stage before publishing.</strong></li><li><strong>Batch identifiers</strong> on every record.</li><li><strong>Validate before promotion</strong>: counts, keys, schema, rules.</li><li><strong>Control publication</strong>: don't mark complete until writes and checks succeed.</li><li><strong>Preserve the last good state</strong> (e.g. atomic replace; Delta time travel for rollback).</li></ol></div>
 </div>
 <p class="ref">A staging table doesn't prevent partial loads by itself; the pipeline must enforce the publication rules.</p>
-
 <h3 id="s18-4-6"><span class="num">18.4.5</span>Reprocessing Failed Batches and Consistency</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -738,12 +565,8 @@ Mark batch complete</pre>
 <tbody><tr><td>B001</td><td>COMPLETED</td><td>10,000</td><td>10,000</td></tr><tr><td><strong>B002</strong></td><td><strong>FAILED</strong></td><td>15,000</td><td>12,000</td></tr><tr><td>B003</td><td>COMPLETED</td><td>8,000</td><td>8,000</td></tr></tbody></table></div>
 <div class="card"><h4>Reprocess B002</h4><ol style="margin-bottom:0"><li>Identify its source records.</li><li>Determine what committed.</li><li>Keep the batch ID; record a new run ID for the attempt.</li><li>Reprocess with retry-safe logic.</li><li>Rerun all validations.</li><li>Update the audit record.</li><li>Confirm reconciliation.</li></ol></div>
 </div>
-<p class="ref">Don't blindly rerun appends. Decide whether to replay the original snapshot or the latest source state. <strong>Consistency</strong> spans the whole model: a dimension updated while facts keep obsolete keys creates orphans and misattribution. Use referential checks, SCD date validation, reconciliation, batch controls, and idempotent merges.</p>
-
-<!-- ===================== 18.5 ===================== -->
-<h2 id="s18-5"><span class="num">18.5</span>Operational Controls</h2>
-<p class="section-intro">A supportable pipeline can answer: when did it start, which batch, how many rows in/inserted/updated, which check failed, where are the rejects, did it reconcile, who ran it, and was the data published?</p>
-
+<p class="ref">Don't blindly rerun appends. Decide whether to replay the original snapshot or the latest source state. <strong>Consistency</strong> spans the whole model: a dimension updated while facts keep obsolete keys creates orphans and misattribution. Use referential checks, SCD date validation, reconciliation, batch controls, and idempotent merges.</p></div></section>
+<section class="lesson" id="s18-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.5</span><h2>Operational Controls</h2></div><div class="content"><p class="section-intro">A supportable pipeline can answer: when did it start, which batch, how many rows in/inserted/updated, which check failed, where are the rejects, did it reconcile, who ran it, and was the data published?</p>
 <h3 id="s18-5-1"><span class="num">18.5.1</span>Audit Tables and Batch Identifiers</h3>
 <div class="code-wrap"><span class="lang">SQL · pipeline execution audit</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.ops.pipeline_audit (
     audit_id STRING, pipeline_name STRING, batch_id STRING, run_id STRING,
@@ -762,7 +585,6 @@ batch_id = "BATCH_20261025_001"   # stable for the data
 run_id = str(uuid4())             # unique per attempt</code></pre></div>
 </div>
 <p class="ref">Batch IDs support reconciliation, recovery, reprocessing, auditability, and traceability. Keep one execution table plus a separate validation-results table rather than one ever-wider row.</p>
-
 <h3 id="s18-5-3"><span class="num">18.5.2</span>Execution Logs and Reconciliation Summaries</h3>
 <div class="code-wrap"><span class="lang">Python · structured event log</span><pre class="code"><code>import json
 from datetime import datetime, timezone
@@ -786,7 +608,6 @@ log_event("SOURCE_READ_COMPLETED", {"source": "silver.sales_source", "rows": 100
 <div class="table-wrap"><table>
 <thead><tr><th>Batch</th><th>Source</th><th>Target</th><th>Missing keys</th><th>Status</th></tr></thead>
 <tbody><tr><td>B001</td><td>10,000</td><td>10,000</td><td>0</td><td>PASS</td></tr><tr><td>B002</td><td>15,000</td><td>14,500</td><td>500</td><td>FAIL</td></tr><tr><td>B003</td><td>8,000</td><td>8,000</td><td>0</td><td>PASS</td></tr></tbody></table></div>
-
 <h3 id="s18-5-5"><span class="num">18.5.3</span>Error Tables and Reject Tables</h3>
 <div class="table-wrap"><table>
 <thead><tr><th></th><th>Error table</th><th>Reject table</th></tr></thead>
@@ -814,7 +635,6 @@ reject_df = (classified.filter(F.col("reject_reason").isNotNull())
              .withColumn("batch_id", F.lit(batch_id))
              .withColumn("rejected_at", F.current_timestamp()))</code></pre></div>
 <p class="ref">One reason column means every row is either valid or rejected, never both and never lost, so <code>source = accepted + rejected</code> holds (18.7.2). Record all violations instead if the business needs them. Error tables: enough context, minimal sensitive data, original source ID, stable categories, searchable by batch, defined retention.</p>
-
 <h3 id="s18-5-7"><span class="num">18.5.4</span>Automated Failure Alerts</h3>
 <div class="grid-2">
 <pre class="diagram">Validation failure
@@ -833,11 +653,8 @@ Fail or quarantine the batch</pre>
 <tbody><tr><td>Critical</td><td>Financial reconciliation fails</td><td>Stop publication, alert now</td></tr><tr><td>High</td><td>Required source data missing</td><td>Fail pipeline, notify support</td></tr><tr><td>Medium</td><td>Reject rate over threshold</td><td>Investigate, maybe quarantine</td></tr><tr><td>Low</td><td>Optional attribute missing</td><td>Record and monitor</td></tr></tbody></table></div>
 </div>
 <p><strong>Alert on:</strong> pipeline failure, count differences beyond tolerance, duplicate keys, null keys over limit, freshness beyond SLA, referential-integrity failures, missing records, reject rate over threshold.</p>
-<p class="ref">The simplest path: <strong>raise an exception</strong> on critical failure, so the job task fails and Lakeflow Jobs notifications fire (Chapter 14). Also consider Databricks SQL alerts on the audit table, ADF failure notifications, Azure Monitor / Log Analytics, Logic Apps, Teams or email. Logging a failure does not send a notification by itself.</p>
-
-<!-- ===================== 18.6 ===================== -->
-<h2 id="s18-6"><span class="num">18.6</span>Hands-On Project: Build a Reusable Validation Framework</h2>
-<p class="section-intro">Build a framework that takes source and target DataFrames; checks counts, missing keys, duplicate keys, null keys, and amounts; writes every result to a Delta audit table and failures to an error table; supports CRITICAL vs WARNING severity; and raises an exception when critical checks fail.</p>
+<p class="ref">The simplest path: <strong>raise an exception</strong> on critical failure, so the job task fails and Lakeflow Jobs notifications fire (Chapter 14). Also consider Databricks SQL alerts on the audit table, ADF failure notifications, Azure Monitor / Log Analytics, Logic Apps, Teams or email. Logging a failure does not send a notification by itself.</p></div></section>
+<section class="lesson" id="s18-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.6</span><h2>Hands-On Project: Build a Reusable Validation Framework</h2></div><div class="content"><p class="section-intro">Build a framework that takes source and target DataFrames; checks counts, missing keys, duplicate keys, null keys, and amounts; writes every result to a Delta audit table and failures to an error table; supports CRITICAL vs WARNING severity; and raises an exception when critical checks fail.</p>
 <pre class="diagram">  Source DataFrame      Target DataFrame
           \                  /
        run_validation_suite(...)
@@ -851,7 +668,6 @@ Fail or quarantine the batch</pre>
              |
         enforce(results) -&gt; raise if any CRITICAL check FAILED</pre>
 <div class="callout"><span class="label">What changed from the original, and why</span><p><strong>1. The original framework crashed on every passing check.</strong> It built audit rows with <code>spark.createDataFrame(rows, column_names)</code>. On a PASS, <code>error_message</code> is <code>None</code>, and Spark can't infer a column type from <code>None</code>, so it raised <code>[CANNOT_DETERMINE_TYPE]</code> (verified on Spark 4). The new version uses explicit schemas. <strong>2.</strong> Amount reconciliation uses <code>Decimal</code>, not <code>float</code>. <strong>3.</strong> Severity levels (CRITICAL → FAIL, WARNING → WARN) were added. <strong>4.</strong> A runnable four-scenario test replaces assumptions.</p></div>
-
 <h3 id="s18-6-2"><span class="num">18.6.1</span>Steps 1–2: Create the Audit and Error Tables</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.ops;
 
@@ -884,7 +700,6 @@ CREATE TABLE IF NOT EXISTS retail_dev.ops.validation_errors (
     detected_at   TIMESTAMP
 );</code></pre></div>
 <p class="ref">One audit row = one check, which makes it easy to query by pipeline, batch, and check. Expected and actual values are strings so counts and amounts share one column. The error table holds one row per failed <em>check</em>; per-<em>record</em> failures belong in a reject table.</p>
-
 <h3 id="s18-6-4"><span class="num">18.6.2</span>Step 3: The Framework Code</h3>
 <p>Put this in a notebook (or a <code>dq_framework.py</code> file you import). It contains the result writer, five checks, the suite runner, and the enforcement step:</p>
 <div class="code-wrap"><span class="lang">Python · dq_framework.py</span><pre class="code"><code>from datetime import datetime, timezone
@@ -1022,7 +837,6 @@ def enforce(results):
 <div class="card"><h4>Design notes</h4><ul style="margin-bottom:0"><li><code>ctx</code> bundles pipeline, batch, and table names so every check gets them in one argument.</li><li>Missing-key and null-key checks also return the offending rows for investigation.</li><li>Null keys are checked on the <strong>source</strong> (where they originate); duplicates on the <strong>target</strong> (what consumers see).</li><li>WARNING checks are recorded as <code>WARN</code> but don't stop the pipeline.</li></ul></div>
 <div class="callout warn" style="margin:0"><span class="label">Production considerations</span><p>Audit and error writes are separate commits; if one fails they can disagree, so monitor audit-write failures. Each check runs its own <code>count()</code>, which is fine for most batches, but on huge tables combine metrics in one aggregation. Filter source and target to the <strong>same batch and grain</strong> before validating.</p></div>
 </div>
-
 <h3 id="s18-6-9"><span class="num">18.6.3</span>Step 4: Test It with Four Scenarios</h3>
 <p>Before pointing it at real tables, prove the framework works. This cell uses Chapter 17's four sales lines as the source and builds four targets: correct, missing a row, a missing row plus a duplicate, and a source containing a null key.</p>
 <div class="code-wrap"><span class="lang">Python · scenarios</span><pre class="code"><code>from decimal import Decimal as D
@@ -1089,7 +903,6 @@ for name, target_rows in scenarios.items():
   -&gt; Critical data validation failed: RECORD_COUNT, MISSING_TARGET_KEYS, NULL_KEYS, AMOUNT_SALES_AMOUNT</code></pre></div>
 <div class="callout key"><span class="label">Scenario 3 is the lesson of this chapter</span><p>O1003 is missing <em>and</em> O1002 is loaded twice, so the <strong>record count passes</strong> (4 = 4). Only the key, duplicate, and amount checks reveal the problem. This is exactly how a "successful" pipeline hides 50,000 missing records. In scenario 4, the null-key row is also reported as a missing key, because <code>NULL</code> never matches in a join.</p></div>
 <p class="ref">After the run, the audit table held 20 rows (5 checks × 4 scenarios) and the error table 10 rows (one per FAIL).</p>
-
 <h4>Step 5: Run it on the Chapter 17 warehouse</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>ctx = {
     "pipeline_name": "retail_sales_pipeline",
@@ -1109,12 +922,10 @@ results = run_validation_suite(spark, ctx, source_df, target_df,
 for r in results:
     print(r["check_name"], r["status"], r["error_message"] or "")</code></pre></div>
 <p class="ref">The staging table has no <code>sales_amount</code> column, so it's derived with the same formula the fact load used. With Chapter 17's data, all five checks should pass (4 lines, ₹111,500).</p>
-
 <h4>Step 6: Fail the pipeline on critical failures</h4>
 <div class="code-wrap"><span class="lang">Python · last cell of the notebook</span><pre class="code"><code>enforce(results)    # raises RuntimeError if any CRITICAL check returned FAIL</code></pre></div>
 <p>Raising marks the notebook task as failed, so the job can notify, stop dependent tasks, and show the failure (Chapter 14). <strong>Don't auto-retry data-quality failures</strong>: the same input fails the same way, and it needs a correction, not another attempt.</p>
 <p class="ref">To demote a check, pass <code>severity="WARNING"</code> to it in your own suite; it's then recorded as <code>WARN</code> and doesn't stop the pipeline.</p>
-
 <h3 id="s18-6-12"><span class="num">18.6.4</span>Step 7: Query the Audit Results</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Every check for a batch
 SELECT check_name, severity, expected_value, actual_value, difference_value,
@@ -1136,17 +947,12 @@ FROM retail_dev.ops.validation_audit
 WHERE validated_at &gt;= current_timestamp() - INTERVAL 7 DAYS
 GROUP BY check_name
 ORDER BY failures DESC;</code></pre></div>
-
 <h4>Step 8: Extend the framework</h4>
 <div class="grid-2">
 <div class="card"><h4>Ideas</h4><ul style="margin-bottom:0"><li>Type, required-column, and business-rule checks.</li><li>Referential integrity (anti-join to dimensions).</li><li>Freshness checks against an SLA.</li><li>Tolerances per check.</li><li>Batch-specific filtering.</li><li>Reject-table management.</li><li>Alerts on WARN / FAIL.</li><li>One-pass aggregated metrics for large tables.</li></ul></div>
 <div class="card"><h4>Already included</h4><p style="margin-bottom:0"><code>validate_amount</code> reconciles totals with <code>Decimal</code> arithmetic and an optional tolerance. The original converted to <code>float</code>, which can introduce rounding errors in financial data.</p></div>
-</div>
-
-<!-- ===================== 18.7 ===================== -->
-<h2 id="s18-7"><span class="num">18.7</span>Advanced Validation Patterns</h2>
-
-<h3>18.7.1 Config-Driven Validation</h3>
+</div></div></section>
+<section class="lesson" id="s18-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.7</span><h2>Advanced Validation Patterns</h2></div><div class="content"><h3>18.7.1 Config-Driven Validation</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>pipeline</th><th>table</th><th>check_name</th><th>key_columns</th><th>severity</th></tr></thead>
 <tbody>
@@ -1157,24 +963,19 @@ ORDER BY failures DESC;</code></pre></div>
 <tr><td>customer_load</td><td>dim_customer</td><td>CURRENT_ROW_UNIQUENESS</td><td>customer_id</td><td>CRITICAL</td></tr>
 </tbody></table></div>
 <p>Store rules as a table and map each <code>check_name</code> to a function, for reuse across tables, centralized definitions, consistent audit records, and easy onboarding. Restrict configuration to approved checks; never execute arbitrary untrusted SQL.</p>
-
 <h3>18.7.2 Validation Thresholds</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
 <thead><tr><th>Metric</th><th>Count</th></tr></thead>
 <tbody><tr><td>Source</td><td>100,000</td></tr><tr><td>Accepted</td><td>99,500</td></tr><tr><td>Rejected</td><td>500</td></tr><tr><td>Unclassified</td><td>0</td></tr></tbody></table></div>
-<div class="card"><p>When invalid rows are rejected on purpose, the right check is:</p><p><code>source = accepted + rejected</code><br>100,000 = 99,500 + 500 ✓</p><p style="margin-bottom:0">This only holds if every row is classified exactly once (the single <code>reject_reason</code> column in 18.5.3 guarantees it). A non-zero unclassified count means records were lost.</p></div>
+<div class="card"><p>When invalid rows are rejected on purpose, the right check is:</p><p><code>source = accepted + rejected</code><br/>100,000 = 99,500 + 500 ✓</p><p style="margin-bottom:0">This only holds if every row is classified exactly once (the single <code>reject_reason</code> column in 18.5.3 guarantees it). A non-zero unclassified count means records were lost.</p></div>
 </div>
-
 <h3>18.7.3 Row-Level Versus Aggregate Validation</h3>
 <div class="table-wrap"><table>
 <thead><tr><th></th><th>Aggregate (counts, totals, min/max)</th><th>Row-level (keys, field comparison, relationships)</th></tr></thead>
 <tbody><tr><td>Strengths</td><td>Efficient, easy to summarize, good batch controls</td><td>Precise, identifies affected records, supports remediation</td></tr><tr><td>Weaknesses</td><td>Offsetting errors hide; doesn't find bad rows</td><td>Costly at scale; needs reliable keys; more storage</td></tr></tbody></table></div>
-<div class="callout key"><span class="label">Best practice</span><p>Combine aggregate checks with key-level and business-rule validation. Scenario 3 shows why.</p></div>
-
-<!-- ===================== 18.8 ===================== -->
-<h2 id="s18-8"><span class="num">18.8</span>Common Data Quality and Testing Mistakes</h2>
-<div class="table-wrap"><table>
+<div class="callout key"><span class="label">Best practice</span><p>Combine aggregate checks with key-level and business-rule validation. Scenario 3 shows why.</p></div></div></section>
+<section class="lesson" id="s18-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.8</span><h2>Common Data Quality and Testing Mistakes</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Mistake</th><th>Problem</th><th>Better approach</th></tr></thead>
 <tbody>
 <tr><td>Validating only counts</td><td>Duplicates and wrong rows go unnoticed</td><td>Add key and measure checks</td></tr>
@@ -1191,11 +992,8 @@ ORDER BY failures DESC;</code></pre></div>
 <tr><td>Deleting audit history</td><td>Lost traceability</td><td>Keep history; record retries</td></tr>
 <tr><td>Assuming audit writes can't fail</td><td>Missing results</td><td>Monitor and handle them</td></tr>
 <tr><td>Inferring schemas for audit rows</td><td>Crashes when a field is None</td><td>Explicit schemas</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 18.9 ===================== -->
-<h2 id="s18-9"><span class="num">18.9</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+</tbody></table></div></div></section>
+<section class="lesson" id="s18-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.9</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. The six dimensions of data quality?</summary><div class="answer">Completeness, accuracy, consistency, validity, uniqueness, timeliness.</div></details>
 <details class="q"><summary>Q2. Are equal record counts proof of quality?</summary><div class="answer">No. Duplicates can offset missing rows, values can be wrong, and relationships can break, all with matching counts.</div></details>
 <details class="q"><summary>Q3. Source-to-target reconciliation?</summary><div class="answer">Comparing the intended source with the target using counts, business keys, measures, and rules at the same scope and grain.</div></details>
@@ -1220,11 +1018,8 @@ ORDER BY failures DESC;</code></pre></div>
 <details class="q"><summary>Q22. Handling schema changes?</summary><div class="answer">Validate the incoming schema, apply the approved evolution policy, and test downstream transformations.</div></details>
 <details class="q"><summary>Q23. Making a pipeline safe to reprocess?</summary><div class="answer">Stable keys, deterministic logic, idempotent writes, batch tracking, and reconciliation after retries.</div></details>
 <details class="q"><summary>Q24. Can a pipeline succeed while data quality fails?</summary><div class="answer">Yes. Technical success doesn't prove the data meets business requirements.</div></details>
-<details class="q"><summary>Q25. Designing a reusable framework?</summary><div class="answer">Common check functions, config-driven rules, standard audit tables with explicit schemas, batch IDs, severity levels, reject handling, and a shared pass/fail decision.</div></details>
-
-<!-- ===================== 18.10 ===================== -->
-<h2 id="s18-10"><span class="num">18.10</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q25. Designing a reusable framework?</summary><div class="answer">Common check functions, config-driven rules, standard audit tables with explicit schemas, batch IDs, severity levels, reject handling, and a shared pass/fail decision.</div></details></div></section>
+<section class="lesson" id="s18-10"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18 · Lesson 18.10</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Quality fundamentals</td><td>Completeness, validity, uniqueness checks</td></tr>
@@ -1236,29 +1031,26 @@ ORDER BY failures DESC;</code></pre></div>
 <tr><td>7</td><td>End-to-end project</td><td>All four scenarios + enforcement</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://spark.apache.org/docs/latest/api/python/" target="_blank" rel="noopener">PySpark API reference</a> (includes <code>pyspark.testing</code> helpers like <code>assertDataFrameEqual</code>)</li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/" target="_blank" rel="noopener">Databricks Lakeflow Jobs</a></li>
-<li><a href="https://docs.databricks.com/aws/en/delta/merge" target="_blank" rel="noopener">Delta Lake MERGE INTO</a></li>
-<li><a href="https://docs.databricks.com/aws/en/tables/constraints" target="_blank" rel="noopener">Delta Lake constraints</a> (<code>NOT NULL</code> and <code>CHECK</code> are enforced on write)</li>
-<li><a href="https://docs.databricks.com/aws/en/lakehouse-monitoring/" target="_blank" rel="noopener">Databricks data quality monitoring</a></li>
-<li><a href="https://docs.pytest.org/en/stable/" target="_blank" rel="noopener">pytest</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/monitor-visually" target="_blank" rel="noopener">Azure Data Factory monitoring</a></li>
-</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://spark.apache.org/docs/latest/api/python/" rel="noopener" target="_blank">PySpark API reference</a> (includes <code>pyspark.testing</code> helpers like <code>assertDataFrameEqual</code>)</li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/" rel="noopener" target="_blank">Databricks Lakeflow Jobs</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/merge" rel="noopener" target="_blank">Delta Lake MERGE INTO</a></li>
+<li><a href="https://docs.databricks.com/aws/en/tables/constraints" rel="noopener" target="_blank">Delta Lake constraints</a> (<code>NOT NULL</code> and <code>CHECK</code> are enforced on write)</li>
+<li><a href="https://docs.databricks.com/aws/en/lakehouse-monitoring/" rel="noopener" target="_blank">Databricks data quality monitoring</a></li>
+<li><a href="https://docs.pytest.org/en/stable/" rel="noopener" target="_blank">pytest</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/monitor-visually" rel="noopener" target="_blank">Azure Data Factory monitoring</a></li>
+</ul><p class="ref" style="margin:8px 0 0">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 18</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch18-checklist">
-<label><input type="checkbox"> <span><strong>Data quality</strong> measures whether data meets business requirements.</span></label>
-<label><input type="checkbox"> <span>The <strong>six dimensions</strong> cover different kinds of defect.</span></label>
-<label><input type="checkbox"> <span><strong>Counts alone are insufficient</strong>; add key and measure reconciliation.</span></label>
-<label><input type="checkbox"> <span><strong>Automated tests</strong> verify logic and catch regressions.</span></label>
-<label><input type="checkbox"> <span><strong>Idempotency</strong> makes retries and reprocessing safe.</span></label>
-<label><input type="checkbox"> <span><strong>Staging and validation gates</strong> stop incomplete data being published.</span></label>
-<label><input type="checkbox"> <span><strong>Audit, error, and reject tables plus batch IDs</strong> make pipelines traceable.</span></label>
-<label><input type="checkbox"> <span>A <strong>reusable framework</strong> standardizes checks across pipelines.</span></label>
-<label><input type="checkbox"> <span><strong>Critical failures</strong> prevent a batch being marked complete.</span></label>
-<label><input type="checkbox"> <span><strong>Reliability</strong> needs technical monitoring and business validation.</span></label>
+<label><input type="checkbox"/> <span><strong>Data quality</strong> measures whether data meets business requirements.</span></label>
+<label><input type="checkbox"/> <span>The <strong>six dimensions</strong> cover different kinds of defect.</span></label>
+<label><input type="checkbox"/> <span><strong>Counts alone are insufficient</strong>; add key and measure reconciliation.</span></label>
+<label><input type="checkbox"/> <span><strong>Automated tests</strong> verify logic and catch regressions.</span></label>
+<label><input type="checkbox"/> <span><strong>Idempotency</strong> makes retries and reprocessing safe.</span></label>
+<label><input type="checkbox"/> <span><strong>Staging and validation gates</strong> stop incomplete data being published.</span></label>
+<label><input type="checkbox"/> <span><strong>Audit, error, and reject tables plus batch IDs</strong> make pipelines traceable.</span></label>
+<label><input type="checkbox"/> <span>A <strong>reusable framework</strong> standardizes checks across pipelines.</span></label>
+<label><input type="checkbox"/> <span><strong>Critical failures</strong> prevent a batch being marked complete.</span></label>
+<label><input type="checkbox"/> <span><strong>Reliability</strong> needs technical monitoring and business validation.</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1277,66 +1069,20 @@ ORDER BY failures DESC;</code></pre></div>
   update();
 })();
 </script>
-
 <div class="next">
 <h3>Next chapter: Databricks Security and Administration</h3>
 <p>Phase 7 begins. Chapter 19 covers running Databricks safely at scale: workspace settings, compute policies, permissions, users, groups and service principals, secrets management, network security, and administration best practices.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-17.html"><span class="mn-label">← Previous</span><span class="mn-title">Data Warehousing</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-19.html"><span class="mn-label">Next →</span><span class="mn-title">Security &amp; Administration</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-17.html"><span>← Previous</span><strong>Chapter 17: Data Warehousing</strong></a>
-  <a class="pager-link" href="databricks-chapter-19.html"><span>Next →</span><strong>Chapter 19: Security &amp; Administration</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 6 · Chapter 18 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

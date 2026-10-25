@@ -1,292 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 16: Streaming</title>
-<meta name="description" content="Chapter 16 of a Databricks learning path: Structured Streaming, output modes, triggers, checkpoints, event time, watermarks, windows, deduplication, exactly-once, Auto Loader, Kafka, Event Hubs, and a live sales-aggregation project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Streaming — Chapter 16 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 16 of a Databricks learning path: Structured Streaming, output modes, triggers, checkpoints, event time, watermarks, windows, deduplication, exactly-once, Auto Loader, Kafka, Event Hubs, and a live sales-aggregation project."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 16 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s16-1">16.1 Fundamentals</a></li>
-    <li class="lvl2"><a href="#s16-1-1">What is streaming?</a></li>
-    <li class="lvl2"><a href="#s16-1-2">Batch vs streaming</a></li>
-    <li class="lvl2"><a href="#s16-1-3">Real-time processing</a></li>
-    <li class="lvl2"><a href="#s16-1-4">Micro-batches</a></li>
-    <li class="lvl2"><a href="#s16-1-5">Structured Streaming</a></li>
-    <li class="lvl2"><a href="#s16-1-6">Streaming DataFrames</a></li>
-    <li class="lvl2"><a href="#s16-1-7">Query lifecycle</a></li>
-    <li class="lvl1"><a href="#s16-2">16.2 Structured Streaming</a></li>
-    <li class="lvl2"><a href="#s16-2-1">Reading</a></li>
-    <li class="lvl2"><a href="#s16-2-2">Writing &amp; sinks</a></li>
-    <li class="lvl2"><a href="#s16-2-3">Streaming queries</a></li>
-    <li class="lvl2"><a href="#s16-2-4">Output modes</a></li>
-    <li class="lvl2"><a href="#s16-2-5">Triggers</a></li>
-    <li class="lvl2"><a href="#s16-2-6">Checkpointing</a></li>
-    <li class="lvl2"><a href="#s16-2-7">Stateful processing</a></li>
-    <li class="lvl2"><a href="#s16-2-8">Failure recovery</a></li>
-    <li class="lvl1"><a href="#s16-3">16.3 Advanced Streaming</a></li>
-    <li class="lvl2"><a href="#s16-3-1">Event vs processing time</a></li>
-    <li class="lvl2"><a href="#s16-3-3">Watermarks</a></li>
-    <li class="lvl2"><a href="#s16-3-4">Windowed aggregations</a></li>
-    <li class="lvl2"><a href="#s16-3-5">Deduplication</a></li>
-    <li class="lvl2"><a href="#s16-3-6">Stateful operations</a></li>
-    <li class="lvl2"><a href="#s16-3-7">Exactly-once</a></li>
-    <li class="lvl1"><a href="#s16-4">16.4 Streaming Sources</a></li>
-    <li class="lvl2"><a href="#s16-4-1">Cloud files</a></li>
-    <li class="lvl2"><a href="#s16-4-2">Auto Loader</a></li>
-    <li class="lvl2"><a href="#s16-4-3">Kafka</a></li>
-    <li class="lvl2"><a href="#s16-4-4">Azure Event Hubs</a></li>
-    <li class="lvl2"><a href="#s16-4-5">Other systems</a></li>
-    <li class="lvl1"><a href="#s16-5">16.5 Production Streaming</a></li>
-    <li class="lvl2"><a href="#s16-5-1">Monitoring</a></li>
-    <li class="lvl2"><a href="#s16-5-2">Checkpoint management</a></li>
-    <li class="lvl2"><a href="#s16-5-3">Schema changes</a></li>
-    <li class="lvl2"><a href="#s16-5-4">Recovering from failures</a></li>
-    <li class="lvl2"><a href="#s16-5-5">Throughput</a></li>
-    <li class="lvl2"><a href="#s16-5-6">Backpressure</a></li>
-    <li class="lvl1"><a href="#s16-6">16.6 Project: Live Sales</a></li>
-    <li class="lvl2"><a href="#s16-6-1">Setup &amp; generator</a></li>
-    <li class="lvl2"><a href="#s16-6-4">Bronze ingestion</a></li>
-    <li class="lvl2"><a href="#s16-6-7">Windowed aggregation</a></li>
-    <li class="lvl2"><a href="#s16-6-11">Monitor, validate, recover</a></li>
-    <li class="lvl1"><a href="#s16-7">16.7 Common Mistakes</a></li>
-    <li class="lvl1"><a href="#s16-8">16.8 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s16-9">16.9 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 6 · Chapter 16 · Advanced Data Engineering</span>
-  <h1>Streaming and Real-Time Data Processing</h1>
-  <p class="lead">Process data as it arrives instead of waiting for a nightly batch. Structured Streaming, micro-batches, output modes, triggers, and checkpoints; event time, watermarks, windows, and deduplication; Auto Loader, Kafka, and Event Hubs; monitoring and recovery. The project builds a live five-minute sales aggregation from simulated events.</p>
-  <p class="ref">Run each example in a notebook, then do the project. Examples use <code>retail_dev.streaming_lab</code>; replace it with a catalog and schema you own.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Explain batch, real-time, and micro-batch processing.</li>
-    <li>Build streaming pipelines with Structured Streaming in Databricks.</li>
-    <li>Read and write streaming DataFrames.</li>
-    <li>Configure output modes, triggers, and checkpoints.</li>
-    <li>Process event-time data with watermarks and windows.</li>
-    <li>Handle late events, duplicates, and failures.</li>
-    <li>Ingest from cloud files, Auto Loader, Kafka, and Event Hubs.</li>
-    <li>Monitor and optimize production streaming workloads.</li>
-    <li>Build a pipeline that continuously aggregates sales events.</li>
-  </ol></div>
-  <div class="callout warn"><span class="label">Serverless and Free Edition</span><p>Serverless compute supports only the <code>availableNow</code> trigger. Continuous triggers such as <code>processingTime="10 seconds"</code> fail there. The project uses <code>availableNow</code> so it runs everywhere, with a continuous variant for classic clusters.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s16-1"><span>16.1</span><strong>Fundamentals</strong></a>
-    <a class="chip" href="#s16-2"><span>16.2</span><strong>Structured Streaming</strong></a>
-    <a class="chip" href="#s16-3"><span>16.3</span><strong>Event Time</strong></a>
-    <a class="chip" href="#s16-4"><span>16.4</span><strong>Sources</strong></a>
-    <a class="chip" href="#s16-5"><span>16.5</span><strong>Production</strong></a>
-    <a class="chip" href="#s16-6"><span>16.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 16.1 ===================== -->
-<h2 id="s16-1"><span class="num">16.1</span>Streaming Fundamentals</h2>
-
-<h3 id="s16-1-1"><span class="num">16.1.1</span>What Is Data Streaming?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Streaming and Real-Time Data Processing</div>
+<div class="brand-sub">Chapter 16 · 9 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s16-1" class="nav-link"><span class="nav-num">16.1</span>Streaming Fundamentals</a>
+<a href="#s16-2" class="nav-link"><span class="nav-num">16.2</span>Structured Streaming</a>
+<a href="#s16-3" class="nav-link"><span class="nav-num">16.3</span>Advanced Streaming</a>
+<a href="#s16-4" class="nav-link"><span class="nav-num">16.4</span>Streaming Sources</a>
+<a href="#s16-5" class="nav-link"><span class="nav-num">16.5</span>Production Streaming</a>
+<a href="#s16-6" class="nav-link"><span class="nav-num">16.6</span>Hands-On Project: Real-Time Sales Aggregation</a>
+<a href="#s16-7" class="nav-link"><span class="nav-num">16.7</span>Common Streaming Mistakes</a>
+<a href="#s16-8" class="nav-link"><span class="nav-num">16.8</span>Interview Questions and Answers</a>
+<a href="#s16-9" class="nav-link"><span class="nav-num">16.9</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 6 · Chapter 16 · Advanced Data Engineering</div><h1>Streaming and Real-Time Data Processing</h1>
+<p>Process data as it arrives instead of waiting for a nightly batch. Structured Streaming, micro-batches, output modes, triggers, and checkpoints; event time, watermarks, windows, and deduplication; Auto Loader, Kafka, and Event Hubs; monitoring and recovery. The project builds a live five-minute sales aggregation from simulated events.</p>
+<div class="doc-meta"><span class="pill">9 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s16-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.1</span><h2>Streaming Fundamentals</h2></div><div class="content"><h3 id="s16-1-1"><span class="num">16.1.1</span>What Is Data Streaming?</h3>
 <p>Streaming is the continuous processing of data as new records become available, instead of waiting for a complete dataset.</p>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -302,7 +151,6 @@ details.q summary{line-height:1.5}
 </tbody></table></div>
 <div class="card"><h4>One million orders a day</h4><p><strong>Batch:</strong> collect all day → run at midnight → update reports → available next morning.</p><p><strong>Streaming:</strong> receive orders as created → process continuously → update aggregates as data arrives → available within seconds or minutes.</p><p class="ref" style="margin-bottom:0">Streaming doesn't mean every record is instant. Latency depends on the source, trigger, workload, and capacity.</p></div>
 </div>
-
 <h3 id="s16-1-2"><span class="num">16.1.2</span>Batch Versus Streaming</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Feature</th><th>Batch</th><th>Streaming</th></tr></thead>
@@ -332,7 +180,6 @@ streaming_sales = (
 )</code></pre></div>
 </div>
 <p class="ref">Same DataFrame API. The streaming version keeps running totals in <strong>state</strong>, so its output mode and checkpoint must suit the aggregation and sink.</p>
-
 <h3 id="s16-1-3"><span class="num">16.1.3</span>What Is Real-Time Processing?</h3>
 <p>"Real-time" means fast enough for the business requirement. There's no single threshold: fraud detection needs seconds, an operations dashboard tolerates a minute, IoT alerting may need sub-second, and a sales dashboard is fine every few minutes.</p>
 <div class="table-wrap"><table>
@@ -342,7 +189,6 @@ streaming_sales = (
 <tr><td><strong>Micro-batch</strong></td><td>Small batches of new data, repeatedly. The standard Structured Streaming model.</td></tr>
 <tr><td>Continuous / real-time mode</td><td>Lower-latency execution models with specific limitations; not interchangeable with every micro-batch feature</td></tr>
 </tbody></table></div>
-
 <h3 id="s16-1-4"><span class="num">16.1.4</span>What Are Micro-Batches?</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -361,7 +207,6 @@ Micro-batch 3 --&gt; process --&gt; write results</pre>
 </div>
 <p>Each micro-batch is a separate, small execution of the same computation. That gives incremental processing, low latency without per-record tasks, support for stateful operations, and progress recorded in checkpoints after every batch.</p>
 <p class="ref"><strong>Interval trade-off:</strong> shorter intervals lower latency but add scheduling overhead; longer intervals are more efficient but delay results. Choose by latency and throughput needs.</p>
-
 <h3 id="s16-1-5"><span class="num">16.1.5</span>What Is Structured Streaming?</h3>
 <p><strong>Structured Streaming</strong> is Spark's stream-processing engine, built on Spark SQL and DataFrames. You write the same transformations as for batch, and Spark runs them incrementally.</p>
 <div class="grid-2">
@@ -399,7 +244,6 @@ Micro-batch 3 --&gt; process --&gt; write results</pre>
 <tr><td>Event time, watermarks</td><td>Built in</td><td>Limited, different APIs</td></tr>
 <tr><td>New projects</td><td><strong>Preferred</strong></td><td>Legacy only</td></tr>
 </tbody></table></div>
-
 <h3 id="s16-1-6"><span class="num">16.1.6</span>What Is a Streaming DataFrame?</h3>
 <p>A streaming DataFrame represents data arriving over time rather than a fixed dataset. Create one with <code>spark.readStream</code>:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_stream = (
@@ -425,7 +269,6 @@ print(spark.read.table("retail_dev.sales.orders").isStreaming)     # False</code
     .select("order_id", "store_id", "product_id", "quantity", "sales_amount", "event_time")
 )</code></pre></div>
 <div class="callout key"><span class="label">Lazy until you write</span><p>Defining a streaming DataFrame starts nothing. The query begins when you call a streaming write (<code>writeStream … .toTable()</code> / <code>.start()</code>). Streaming file sources need an explicit schema.</p></div>
-
 <h3 id="s16-1-7"><span class="num">16.1.7</span>Streaming Execution</h3>
 <div class="grid-2">
 <div class="card"><h4>Query lifecycle</h4><ol style="margin-bottom:0"><li>Define the source.</li><li>Apply transformations.</li><li>Configure the sink.</li><li>Set a checkpoint location.</li><li>Configure the trigger.</li><li>Start the query.</li><li>Monitor it.</li><li>Stop it when required.</li></ol></div>
@@ -442,12 +285,8 @@ print(spark.read.table("retail_dev.sales.orders").isStreaming)     # False</code
 query.awaitTermination()   # block the cell until the query ends
 query.stop()               # stop it deliberately</code></pre></div>
 </div>
-<p class="ref">The query checks for new data about every 30 seconds; a slow batch delays the next. Interactively, skip <code>awaitTermination()</code> so you can inspect status. In production, run long-lived streams as jobs or pipelines, not notebook cells left open.</p>
-
-<!-- ===================== 16.2 ===================== -->
-<h2 id="s16-2"><span class="num">16.2</span>Structured Streaming</h2>
-
-<h3 id="s16-2-1"><span class="num">16.2.1</span>Reading Streaming Data</h3>
+<p class="ref">The query checks for new data about every 30 seconds; a slow batch delays the next. Interactively, skip <code>awaitTermination()</code> so you can inspect status. In production, run long-lived streams as jobs or pipelines, not notebook cells left open.</p></div></section>
+<section class="lesson" id="s16-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.2</span><h2>Structured Streaming</h2></div><div class="content"><h3 id="s16-2-1"><span class="num">16.2.1</span>Reading Streaming Data</h3>
 <div class="code-wrap"><span class="lang">Python · schema used in the examples</span><pre class="code"><code>from pyspark.sql.types import (
     StructType, StructField, StringType, IntegerType, DoubleType, TimestampType
 )
@@ -472,7 +311,6 @@ sales_csv_stream = (spark.readStream.format("csv").option("header", True)
 # 3. A Delta table: new rows appended to it become the stream
 delta_sales_stream = spark.readStream.table("retail_dev.streaming_lab.sales_bronze")</code></pre></div>
 <div class="callout"><span class="label">read vs readStream</span><p><code>spark.read</code> is batch: read once. <code>spark.readStream</code> defines a source that keeps delivering new data once a query starts. A Delta table used as a stream source should be append-only; updates and deletes in the source need options like <code>skipChangeCommits</code> or Change Data Feed.</p></div>
-
 <h3 id="s16-2-2"><span class="num">16.2.2</span>Writing Streaming Data</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>query = (
     sales_stream.writeStream
@@ -492,7 +330,6 @@ delta_sales_stream = spark.readStream.table("retail_dev.streaming_lab.sales_bron
 <tr><td>Custom sinks</td><td>External systems via a supported connector</td></tr>
 </tbody></table></div>
 <p class="ref">Sinks differ in supported output modes and recovery guarantees. Verify before relying on them.</p>
-
 <h3 id="s16-2-3"><span class="num">16.2.3</span>What Is a Streaming Query?</h3>
 <p>The running computation that reads new data, transforms it, and writes results.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>query = (
@@ -513,7 +350,6 @@ if progress:
     print(progress)</code></pre></div>
 <p>Progress includes batch ID, input and processed rows per second, batch duration, source offsets, and state metrics.</p>
 <div class="callout"><span class="label">Active ≠ healthy</span><p>A query can be active while no data flows. Monitor freshness and row counts, not just status.</p></div>
-
 <h3 id="s16-2-4"><span class="num">16.2.4</span>Output Modes</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Mode</th><th>Emits each trigger</th><th>Common use</th><th>Notes</th></tr></thead>
@@ -536,7 +372,6 @@ if progress:
 # Store A's new row; complete mode re-emits all stores.</code></pre></div>
 </div>
 <details class="q"><summary>Interview: can append mode be used with every streaming aggregation?</summary><div class="answer">No. Append only emits rows that will never change. A windowed aggregation <strong>with a watermark</strong> can emit each window once it's final. A running <code>groupBy("store_id")</code> total is never final, so it needs update or complete mode.</div></details>
-
 <h3 id="s16-2-5"><span class="num">16.2.5</span>Triggers</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Trigger</th><th>Behavior</th><th>Use for</th></tr></thead>
@@ -552,7 +387,6 @@ if progress:
 # Catch up, then stop
 .trigger(availableNow=True)</code></pre></div>
 <p class="ref">An omitted trigger isn't a fixed interval: the next micro-batch starts immediately when data is waiting.</p>
-
 <h3 id="s16-2-6"><span class="num">16.2.6</span>Checkpointing</h3>
 <p>A checkpoint stores source offsets, completed-batch metadata, and operator state, everything needed to resume exactly where the query left off.</p>
 <div class="grid-2">
@@ -560,7 +394,6 @@ if progress:
 <div><details class="q"><summary>Can two queries share one checkpoint?</summary><div class="answer"><strong>No.</strong> Sharing a checkpoint corrupts progress tracking and makes recovery unreliable. Give every query its own path.</div></details>
 <details class="q"><summary>Can I delete a checkpoint to fix an error?</summary><div class="answer">Not without understanding the consequences. A new checkpoint resets progress and state, which can mean reprocessing, duplicates, or lost state. Only do it deliberately, as a planned reset or new query lineage.</div></details></div>
 </div>
-
 <h3 id="s16-2-7"><span class="num">16.2.7</span>Stateful Processing</h3>
 <p>Stateful processing keeps information between micro-batches. A running total per store must remember each store's current total:</p>
 <div class="grid-2">
@@ -572,7 +405,6 @@ if progress:
 <tbody><tr><td>Select columns</td><td>Group by store and sum</td></tr><tr><td>Filter records</td><td>Count per store</td></tr><tr><td>Rename columns</td><td>Deduplicate over time</td></tr><tr><td>Cast types</td><td>Stream-stream joins</td></tr></tbody></table></div>
 </div>
 <p class="ref">Stateful operations: aggregations, windowed aggregations, deduplication, stream-stream joins, session windows, custom state. State grows with every new key unless a watermark allows old state to be dropped.</p>
-
 <h3 id="s16-2-8"><span class="num">16.2.8</span>Stream Failure Recovery</h3>
 <div class="grid-2">
 <div class="card"><h4>Common causes</h4><p style="margin-bottom:0">Cluster termination, network issues, invalid input, schema mismatches, permission errors, source connectivity, sink write failures, memory exhaustion, incompatible checkpoint changes.</p></div>
@@ -596,12 +428,8 @@ except Exception as exc:
     print("Streaming query failed:", exc)
     raise            # re-raise so a job marks the run as failed (Chapter 14)</code></pre></div>
 <p class="ref">Catching the error doesn't recover the query. In production, use job retries and notifications, and make sure retries are safe for the sink.</p>
-<div class="callout warn"><span class="label">Recovery ≠ exactly-once output</span><p>Resuming from the right offset doesn't guarantee one copy of every event in an external system. A <code>foreachBatch</code> function might write to an API and fail before Spark records the batch, so the retry writes it again. Sink logic must handle replays (16.3.7).</p></div>
-
-<!-- ===================== 16.3 ===================== -->
-<h2 id="s16-3"><span class="num">16.3</span>Advanced Streaming</h2>
-
-<h3 id="s16-3-1"><span class="num">16.3.1</span>Event Time and Processing Time</h3>
+<div class="callout warn"><span class="label">Recovery ≠ exactly-once output</span><p>Resuming from the right offset doesn't guarantee one copy of every event in an external system. A <code>foreachBatch</code> function might write to an API and fail before Spark records the batch, so the retry writes it again. Sink logic must handle replays (16.3.7).</p></div></div></section>
+<section class="lesson" id="s16-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.3</span><h2>Advanced Streaming</h2></div><div class="content"><h3 id="s16-3-1"><span class="num">16.3.1</span>Event Time and Processing Time</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
 <thead><tr><th>Order</th><th>Event time</th><th>Arrival time</th></tr></thead>
@@ -612,7 +440,6 @@ except Exception as exc:
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># If event_time arrives as a string, parse it (mind the source's time zone)
 sales_with_event_time = sales_stream.withColumn("event_time", F.to_timestamp("event_time"))</code></pre></div>
 <div class="callout key"><span class="label">Best practice</span><p>Use <strong>event time</strong> for business aggregations ("sales per 5 minutes") so late arrivals land in the right window. Use processing time only when the requirement is about when the platform handled data.</p></div>
-
 <h3 id="s16-3-3"><span class="num">16.3.2</span>Watermarks</h3>
 <p>A watermark tells Spark how late data may arrive, which lets it <strong>finalize</strong> event-time windows and <strong>drop old state</strong>.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>windowed_sales = (
@@ -627,7 +454,6 @@ sales_with_event_time = sales_stream.withColumn("event_time", F.to_timestamp("ev
 </div>
 <p class="ref">Late events within the threshold update their window while it's still in state; events older than the watermark are dropped from the aggregation.</p>
 <div class="callout warn"><span class="label">The #1 streaming surprise</span><p>Your windowed aggregation table is <strong>empty</strong> even though data is flowing. That's expected in append mode until later events push the watermark past each window's end. The project demonstrates this, verified by simulation.</p></div>
-
 <h3 id="s16-3-4"><span class="num">16.3.3</span>Windowed Aggregations</h3>
 <div class="grid-2">
 <pre class="diagram">Tumbling (5 min, no overlap):
@@ -665,7 +491,6 @@ sessions = (
     .count()
 )</code></pre></div>
 <p class="ref">The window column is a struct with <code>start</code> and <code>end</code>; query it as <code>window.start</code>, <code>window.end</code>.</p>
-
 <h3 id="s16-3-5"><span class="num">16.3.4</span>Deduplication</h3>
 <p>Duplicates come from producer retries, upstream resends, double publishing, batch retries, and source replays.</p>
 <div class="table-wrap"><table>
@@ -685,7 +510,6 @@ dedup_3 = (sales_stream.withWatermark("event_time", "30 minutes")
            .dropDuplicatesWithinWatermark(["order_id"]))</code></pre></div>
 <div class="callout key"><span class="label">Choose the key by business meaning</span><p>If <code>order_id</code> uniquely identifies an event, use it. If an order can legitimately have several events (created, shipped…), deduplicating on <code>order_id</code> discards real data; use an <code>event_id</code>. Decide how late duplicates can arrive and set the watermark to match.</p></div>
 <p class="ref">Checklist: stable event ID; how late duplicates may arrive; watermark policy; source replay behavior; legitimate updates aren't discarded; test with realistic duplicates. Streaming dedup isn't end-to-end exactly-once on its own.</p>
-
 <h3 id="s16-3-6"><span class="num">16.3.5</span>Stateful Operations in More Detail</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>store_order_counts = sales_stream.groupBy("store_id").count()
@@ -705,7 +529,6 @@ matched = orders.join(
     """)
 )</code></pre></div>
 <p class="ref">Assumes the DataFrames are aliased as <code>orders</code> and <code>payments</code> (<code>.alias("orders")</code>).</p>
-
 <h3 id="s16-3-7"><span class="num">16.3.6</span>Exactly-Once Processing Considerations</h3>
 <p>Exactly-once means each event has <strong>one logical effect</strong> on the result despite retries. Structured Streaming plus a checkpoint does <em>not</em> guarantee this on its own; three parts must work together:</p>
 <div class="table-wrap"><table>
@@ -750,17 +573,12 @@ query = (
     .start()
 )</code></pre></div>
 <p class="ref">I made two fixes to the original: deduplicating within the batch, and <code>batch_df.sparkSession</code> instead of the global <code>spark</code> (required on serverless / Spark Connect). Before production, confirm <code>order_id</code> is unique and stable, the target exists, how updates should apply, concurrent writers, and retry behavior.</p>
-<details class="q"><summary>Interview: does Structured Streaming guarantee exactly-once?</summary><div class="answer">It provides exactly-once processing semantics for supported source/sink combinations (replayable source + checkpoint + idempotent sink like Delta). End-to-end exactly-once effects in other systems depend on source replay, checkpoint recovery, sink guarantees, and retry-safe write logic. A non-idempotent external write can duplicate on retry.</div></details>
-
-<!-- ===================== 16.4 ===================== -->
-<h2 id="s16-4"><span class="num">16.4</span>Streaming Sources</h2>
-
-<h3 id="s16-4-1"><span class="num">16.4.1</span>Cloud File Sources</h3>
+<details class="q"><summary>Interview: does Structured Streaming guarantee exactly-once?</summary><div class="answer">It provides exactly-once processing semantics for supported source/sink combinations (replayable source + checkpoint + idempotent sink like Delta). End-to-end exactly-once effects in other systems depend on source replay, checkpoint recovery, sink guarantees, and retry-safe write logic. A non-idempotent external write can duplicate on retry.</div></details></div></section>
+<section class="lesson" id="s16-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.4</span><h2>Streaming Sources</h2></div><div class="content"><h3 id="s16-4-1"><span class="num">16.4.1</span>Cloud File Sources</h3>
 <p>Spark's built-in file source streams JSON, CSV, Parquet, ORC, and text files as they appear:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_stream = (spark.readStream.format("json").schema(sales_schema)
                 .load("/Volumes/retail_dev/streaming_lab/landing/sales/"))</code></pre></div>
 <div class="card"><h4>Considerations</h4><ul style="margin-bottom:0"><li>Files must be complete before discovery: write to a temp name, then rename. Names starting with <code>.</code> or <code>_</code> are ignored.</li><li>Explicit schemas.</li><li>Plan file discovery and retention (it lists the directory every batch).</li><li>Read permissions for the job.</li><li>For large-scale cloud ingestion, prefer Auto Loader.</li></ul></div>
-
 <h3 id="s16-4-2"><span class="num">16.4.2</span>Auto Loader</h3>
 <p>Auto Loader (<code>cloudFiles</code>, from Chapter 12) is Databricks' scalable incremental file source, with efficient discovery, file tracking, and schema evolution.</p>
 <div class="grid-2">
@@ -810,7 +628,6 @@ query = (
 <tr><td>Availability</td><td>Any Spark</td><td>Databricks only</td></tr>
 <tr><td>Best fit</td><td>Learning, small workloads</td><td>Production cloud ingestion</td></tr>
 </tbody></table></div>
-
 <h3 id="s16-4-3"><span class="num">16.4.3</span>Kafka</h3>
 <div class="grid-2">
 <pre class="diagram">Producer applications
@@ -853,7 +670,6 @@ parsed_kafka_sales = (
 )</code></pre></div>
 <p class="ref">Columns provided: <code>key</code>, <code>value</code>, <code>topic</code>, <code>partition</code>, <code>offset</code>, <code>timestamp</code>, <code>timestampType</code>. <code>startingOffsets</code> only applies to a brand-new checkpoint; afterwards the checkpoint decides where to resume. Malformed JSON becomes <code>NULL</code> fields, so route those rows to quarantine.</p>
 <div class="card"><h4>Kafka considerations</h4><ul style="margin-bottom:0"><li>Secure authentication and encryption.</li><li>Partitions sized for throughput.</li><li>Checkpoints for recovery.</li><li>Monitor consumer lag and input rates.</li><li>Malformed-message handling.</li><li>Topic retention long enough to recover after an outage.</li></ul></div>
-
 <h3 id="s16-4-4"><span class="num">16.4.4</span>Azure Event Hubs</h3>
 <p>Event Hubs is Azure's managed event-ingestion service for telemetry, application events, and IoT. It exposes a <strong>Kafka-compatible endpoint</strong>, so Spark's Kafka source can read it:</p>
 <div class="code-wrap"><span class="lang">Python · Event Hubs via the Kafka endpoint</span><pre class="code"><code>EH_NAMESPACE = "my-namespace"
@@ -881,7 +697,6 @@ eh_stream = (
 <tbody><tr><td>Input</td><td>Event messages</td><td>Files</td></tr><tr><td>Producers</td><td>Apps, devices, services</td><td>Systems writing files</td></tr><tr><td>Example</td><td>Live device telemetry</td><td>Hourly file drops</td></tr></tbody></table>
 <p class="ref" style="padding:0 12px">Choose by how the upstream system delivers data.</p></div>
 </div>
-
 <h3 id="s16-4-5"><span class="num">16.4.5</span>Other Supported Messaging Systems</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Source</th><th>Purpose</th><th>Key consideration</th></tr></thead>
@@ -893,12 +708,8 @@ eh_stream = (
 <tr><td>Delta tables</td><td>Incremental processing from Delta</td><td>Retention and change semantics</td></tr>
 <tr><td>Custom sources</td><td>Specialized ingestion</td><td>Reliability and recovery</td></tr>
 </tbody></table></div>
-<p class="ref">For each source, confirm connector availability, runtime support, authentication, offset tracking, failure behavior, throughput limits, retention, and sink compatibility.</p>
-
-<!-- ===================== 16.5 ===================== -->
-<h2 id="s16-5"><span class="num">16.5</span>Production Streaming</h2>
-<p class="section-intro">A notebook stream that works on sample data isn't production-ready. Production needs monitoring, operational controls, recovery procedures, and tuning.</p>
-
+<p class="ref">For each source, confirm connector availability, runtime support, authentication, offset tracking, failure behavior, throughput limits, retention, and sink compatibility.</p></div></section>
+<section class="lesson" id="s16-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.5</span><h2>Production Streaming</h2></div><div class="content"><p class="section-intro">A notebook stream that works on sample data isn't production-ready. Production needs monitoring, operational controls, recovery procedures, and tuning.</p>
 <h3 id="s16-5-1"><span class="num">16.5.1</span>Monitoring Streaming Queries</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Metric</th><th>Tells you</th></tr></thead>
@@ -924,8 +735,7 @@ if p:
 for q in spark.streams.active:       # all running queries in this session
     print(q.name, q.status)</code></pre></div>
 <p class="ref">In notebooks, a running query also shows a live dashboard under the cell; the Spark UI has a <strong>Structured Streaming</strong> tab. For long-term monitoring, register a <code>StreamingQueryListener</code> or use job monitoring.</p>
-<div class="card"><h4>Alert when</h4><ul style="margin-bottom:0"><li>The query terminates unexpectedly.</li><li>No data processed for longer than expected.</li><li>Batch duration consistently exceeds the trigger interval.</li><li>Input rate exceeds processed rate for a sustained period.</li><li>State grows unexpectedly.</li><li>Quality failures exceed a threshold.</li><li>Freshness breaches the SLA.</li></ul><p style="margin:8px 0 0" class="ref">An active query with zero input isn't necessarily broken; consider expected arrival patterns.</p></div>
-
+<div class="card"><h4>Alert when</h4><ul style="margin-bottom:0"><li>The query terminates unexpectedly.</li><li>No data processed for longer than expected.</li><li>Batch duration consistently exceeds the trigger interval.</li><li>Input rate exceeds processed rate for a sustained period.</li><li>State grows unexpectedly.</li><li>Quality failures exceed a threshold.</li><li>Freshness breaches the SLA.</li></ul><p class="ref" style="margin:8px 0 0">An active query with zero input isn't necessarily broken; consider expected arrival patterns.</p></div>
 <h3 id="s16-5-2"><span class="num">16.5.2</span>Checkpoint Management</h3>
 <div class="grid-2">
 <div class="card"><h4>Production checklist</h4><ul style="margin-bottom:0"><li>Durable, supported storage.</li><li>Separate path per query.</li><li>Restricted access.</li><li>Excluded from routine cleanup.</li><li>Documented ownership.</li><li>Restart after cluster failure tested.</li><li>Compatibility checked before changing stateful logic.</li></ul></div>
@@ -937,7 +747,6 @@ for q in spark.streams.active:       # all running queries in this session
     customer_events/</pre>
 </div>
 <p class="ref">Changing a checkpoint path starts the query with no memory, which risks reprocessing or lost state. Treat it as a controlled migration.</p>
-
 <h3 id="s16-5-3"><span class="num">16.5.3</span>Handling Schema Changes</h3>
 <div class="grid-2">
 <pre class="diagram">Original:                New:
@@ -948,13 +757,11 @@ sales_amount DOUBLE      sales_amount    DOUBLE
 <div class="card"><h4>Approach</h4><ol style="margin-bottom:0"><li><strong>Detect:</strong> is it compatible?</li><li><strong>Validate:</strong> optional, required, business-critical?</li><li><strong>Decide:</strong> reject, quarantine, or accept.</li><li><strong>Update</strong> downstream transformations.</li><li><strong>Test</strong> with the existing checkpoint and table.</li></ol></div>
 </div>
 <p class="ref">Checklist: are new columns or type changes allowed? Missing required fields? Malformed records? Does the Delta target need <code>mergeSchema</code>? Will SQL or Power BI break? Is a controlled migration needed? With an explicit schema, new fields are simply ignored until you add them.</p>
-
 <h3 id="s16-5-4"><span class="num">16.5.4</span>Recovering from Failures</h3>
 <div class="grid-2">
 <div class="card"><h4>Incident: target table temporarily unavailable</h4><ol style="margin-bottom:0"><li>Is the source still receiving data?</li><li>Read the query's exception.</li><li>Verify the target and permissions.</li><li>Find the last successful batch.</li><li>Check the checkpoint.</li><li>Does the source retain enough data to resume?</li><li>Fix the problem.</li><li>Restart with the same checkpoint.</li><li>Validate for missing or duplicated records.</li></ol></div>
 <div class="card"><h4>Principles</h4><ul style="margin-bottom:0"><li>Fix the root cause before restarting.</li><li>Preserve checkpoints unless resetting deliberately.</li><li>Retry only when safe.</li><li>Confirm source retention.</li><li>Validate sink idempotency.</li><li>Record actions and data checks.</li></ul><p style="margin:8px 0 0"><strong>A successful restart doesn't prove the output is complete.</strong></p></div>
 </div>
-
 <h3 id="s16-5-5"><span class="num">16.5.5</span>Throughput Optimization</h3>
 <p>If the source produces 50,000 records a minute and the pipeline processes 30,000, the backlog grows forever.</p>
 <div class="grid-2">
@@ -964,10 +771,9 @@ valid_sales = sales_stream.filter("sales_amount &gt; 0")
 # 2. Keep only needed columns
 slim = sales_stream.select("order_id", "store_id",
                            "sales_amount", "event_time")</code></pre></div>
-<div class="card"><h4>Also</h4><ol style="margin-bottom:0" start="3"><li>Avoid unnecessary shuffles.</li><li>Optimize joins (broadcast small static tables).</li><li>Manage state (keys, watermarks, RocksDB).</li><li>Tune triggers and per-batch limits.</li><li>Size compute appropriately.</li><li>Avoid tiny files in Delta (OPTIMIZE / auto compaction).</li></ol></div>
+<div class="card"><h4>Also</h4><ol start="3" style="margin-bottom:0"><li>Avoid unnecessary shuffles.</li><li>Optimize joins (broadcast small static tables).</li><li>Manage state (keys, watermarks, RocksDB).</li><li>Tune triggers and per-batch limits.</li><li>Size compute appropriately.</li><li>Avoid tiny files in Delta (OPTIMIZE / auto compaction).</li></ol></div>
 </div>
 <p class="ref"><strong>Throughput vs latency:</strong> bigger batches raise records/sec but delay each record's visibility. Tune to the SLA.</p>
-
 <h3 id="s16-5-6"><span class="num">16.5.6</span>Backpressure and Processing Delays</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -976,11 +782,8 @@ slim = sales_stream.select("order_id", "store_id",
 <div class="card"><h4>Symptoms</h4><p style="margin-bottom:0">Growing delays and Kafka lag, longer micro-batches, input rate above processed rate, growing state, worsening freshness.</p></div>
 </div>
 <div class="card"><h4>Troubleshooting sequence</h4><ol style="margin-bottom:0"><li>Is the source sending unusual volume?</li><li>Check batch durations and rates.</li><li>Find slow stages and tasks in the Spark UI.</li><li>Look for skew, expensive joins, big shuffles (Chapter 15).</li><li>Check executor CPU and memory.</li><li>Inspect state-store metrics.</li><li>Review source limits (e.g. <code>maxOffsetsPerTrigger</code>, throughput units).</li><li>Scale compute or parallelism if justified.</li><li>Retest with realistic traffic.</li></ol></div>
-<p class="ref">High delay isn't always "too much data". It could be a slow join, inefficient transform, slow sink, network, or too little compute. Find the bottleneck before scaling.</p>
-
-<!-- ===================== 16.6 ===================== -->
-<h2 id="s16-6"><span class="num">16.6</span>Hands-On Project: Real-Time Sales Aggregation</h2>
-<p class="section-intro">Generate simulated sales events as JSON files, ingest them with Auto Loader, validate them into Bronze, deduplicate, compute five-minute sales per store by <strong>event time</strong>, write to Delta, monitor, and test recovery.</p>
+<p class="ref">High delay isn't always "too much data". It could be a slow join, inefficient transform, slow sink, network, or too little compute. Find the bottleneck before scaling.</p></div></section>
+<section class="lesson" id="s16-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.6</span><h2>Hands-On Project: Real-Time Sales Aggregation</h2></div><div class="content"><p class="section-intro">Generate simulated sales events as JSON files, ingest them with Auto Loader, validate them into Bronze, deduplicate, compute five-minute sales per store by <strong>event time</strong>, write to Delta, monitor, and test recovery.</p>
 <pre class="diagram">  Simulated sales generator (Python)
                 |
                 v
@@ -996,7 +799,6 @@ slim = sales_stream.select("order_id", "store_id",
                 v
         SQL / dashboard</pre>
 <div class="callout"><span class="label">Verified by simulation</span><p>I ran this pipeline's logic in Spark 4 (using Spark's JSON file source and Parquet in place of Auto Loader and Delta, which only exist on Databricks): validation, deduplication, watermark behavior, and final window counts. The expected results below come from that run.</p></div>
-
 <h3 id="s16-6-1"><span class="num">16.6.1</span>Step 1: Create Storage and Paths</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.streaming_lab;
 CREATE VOLUME IF NOT EXISTS retail_dev.streaming_lab.landing;
@@ -1004,7 +806,6 @@ CREATE VOLUME IF NOT EXISTS retail_dev.streaming_lab.checkpoints;</code></pre></
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>landing_path      = "/Volumes/retail_dev/streaming_lab/landing/sales_events/"
 checkpoint_bronze = "/Volumes/retail_dev/streaming_lab/checkpoints/sales_bronze/"
 checkpoint_agg    = "/Volumes/retail_dev/streaming_lab/checkpoints/sales_5min_agg/"</code></pre></div>
-
 <h4>Step 2: The sales event generator</h4>
 <p>Run this cell to define the generator. It can add a duplicate and an invalid event, shift event times into the future, and writes each file under a hidden temporary name first, so a half-written file is never picked up.</p>
 <div class="code-wrap"><span class="lang">Python · generator</span><pre class="code"><code>import json, random, time, uuid
@@ -1061,7 +862,6 @@ write_sales_file(10, add_duplicate=True, add_invalid=True)
 # 10 more, one minute later
 write_sales_file(10, minutes_offset=1)</code></pre></div>
 <p class="ref">Tested: files contain one JSON object per line with ISO-8601 UTC timestamps, which Spark parses as <code>TIMESTAMP</code>.</p>
-
 <h4>Step 3: Define the schema</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
 from pyspark.sql.types import (
@@ -1079,7 +879,6 @@ sales_schema = StructType([
     StructField("event_time", TimestampType()),
 ])</code></pre></div>
 <p class="ref">The original declared fields <code>nullable=False</code>, but file sources treat every column as nullable anyway, and nullability doesn't validate business rules. Validation happens in Step 5.</p>
-
 <h3 id="s16-6-4"><span class="num">16.6.4</span>Step 4: Read with Auto Loader</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_stream = (
     spark.readStream
@@ -1091,7 +890,6 @@ sales_schema = StructType([
 
 print(sales_stream.isStreaming)   # True</code></pre></div>
 <p class="ref"><code>display(sales_stream)</code> shows a live preview in a notebook, but it isn't a production sink. With an explicit schema, <code>cloudFiles.schemaLocation</code> is optional.</p>
-
 <h4>Step 5: Apply data-quality rules</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>is_valid = (
     F.col("event_id").isNotNull()
@@ -1108,7 +906,6 @@ valid_sales = sales_stream.filter(is_valid)</code></pre></div>
 <thead><tr><th>Order</th><th>Quantity</th><th>Sales amount</th><th>Result</th></tr></thead>
 <tbody><tr><td>O1001</td><td>2</td><td>500</td><td>Valid</td></tr><tr><td>O1002</td><td>0</td><td>0</td><td>Invalid quantity</td></tr><tr><td>O1003</td><td>3</td><td>-100</td><td>Invalid amount</td></tr><tr><td>O1004</td><td>1</td><td>200</td><td>Valid</td></tr></tbody></table></div>
 <p class="ref">Production: write <code>sales_stream.filter(~is_valid)</code> to a quarantine table with a second query rather than discarding invalid rows silently. (Comparisons with <code>NULL</code> yield <code>NULL</code>, which <code>filter</code> treats as false, so null quantities are also excluded.)</p>
-
 <h4>Step 6: Write valid records to Bronze</h4>
 <div class="code-wrap"><span class="lang">Python · runs everywhere (serverless included)</span><pre class="code"><code>bronze_query = (
     valid_sales.writeStream
@@ -1120,7 +917,6 @@ valid_sales = sales_stream.filter(is_valid)</code></pre></div>
 )
 bronze_query.awaitTermination()</code></pre></div>
 <p class="ref">Classic compute, continuous: replace the trigger with <code>.trigger(processingTime="10 seconds")</code> and drop <code>awaitTermination()</code>. Expected: <strong>21 rows</strong> (20 events + the duplicate; the invalid event was filtered out).</p>
-
 <h3 id="s16-6-7"><span class="num">16.6.7</span>Step 7: Stream from Bronze and Deduplicate</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>bronze_stream = spark.readStream.table("retail_dev.streaming_lab.sales_bronze")
 
@@ -1130,7 +926,6 @@ deduplicated_sales = (
     .dropDuplicatesWithinWatermark(["event_id"])
 )</code></pre></div>
 <p class="ref">The original used <code>dropDuplicates(["event_id", "event_time"])</code>. That works for exact copies (and gives the same result here), but misses a duplicate resent with a different timestamp. <code>dropDuplicatesWithinWatermark</code> dedupes on the ID alone with bounded state. It needs Spark 3.5+ / DBR 13.3+; on older runtimes use the original form.</p>
-
 <h4>Step 8: Five-minute sales aggregation</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>windowed_sales = (
     deduplicated_sales
@@ -1141,7 +936,6 @@ deduplicated_sales = (
         F.sum("quantity").alias("total_quantity"),
     )
 )</code></pre></div>
-
 <h4>Step 9: Write aggregations to Delta (append mode)</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>agg_query = (
     windowed_sales.writeStream
@@ -1152,7 +946,6 @@ deduplicated_sales = (
     .toTable("retail_dev.streaming_lab.sales_5min_agg")
 )
 agg_query.awaitTermination()</code></pre></div>
-
 <h4>Step 10: Where are my results? Advance the watermark</h4>
 <p>Query the aggregation table now and it's <strong>empty</strong>. That's correct. All events so far fall within a minute or two, so the watermark (latest event time − 10 minutes) hasn't passed the end of their 5-minute window, and append mode only writes <em>final</em> windows.</p>
 <div class="code-wrap"><span class="lang">Python · send later events, rerun both queries</span><pre class="code"><code># 3 events stamped 20 minutes in the future push the watermark forward
@@ -1169,7 +962,6 @@ print(agg_query.lastProgress["eventTime"])   # watermark has moved ~20 minutes</
 </tbody></table></div>
 <p class="ref">Verified in simulation: the 20 counted orders are the 20 genuine events. The duplicate was removed and the invalid event never reached Bronze. Depending on the clock, the first 20 events may straddle two 5-minute windows. The +20-minute events stay in state until even later data arrives.</p>
 <div class="callout key"><span class="label">Want live, changing totals instead?</span><p>Use <code>outputMode("update")</code> with <code>foreachBatch</code> + <code>MERGE</code> into the target on <code>(window, store_id)</code>, so totals refresh every batch and consumers see provisional values. Append mode gives final, immutable rows; choose by what downstream users need.</p></div>
-
 <h3 id="s16-6-11"><span class="num">16.6.11</span>Step 11: Monitor the Queries</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>for name, q in [("bronze", bronze_query), ("aggregation", agg_query)]:
     p = q.lastProgress
@@ -1177,7 +969,6 @@ print(agg_query.lastProgress["eventTime"])   # watermark has moved ~20 minutes</
           "| rows:", p and p["numInputRows"],
           "| watermark:", p and p.get("eventTime", {}).get("watermark"))</code></pre></div>
 <p><strong>Check:</strong> are records processed? Are batch durations growing? Is the watermark advancing? Any failed micro-batches? Is state growing? Rows in Bronze? Completed windows in the aggregation table? If Bronze stops, the aggregation has nothing new, so monitor both.</p>
-
 <h4>Step 12: Validate the results</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Aggregated windows
 SELECT window.start AS window_start, window.end AS window_end,
@@ -1198,7 +989,6 @@ FROM (
 GROUP BY 1, 2
 ORDER BY 1 DESC, 2;</code></pre></div>
 <p class="ref">For every window present in the aggregation table, the totals should match. The batch query also shows windows the stream hasn't finalized yet. I replaced the original's hard-coded time range with a query that computes the windows itself, and added deduplication so Bronze's duplicate row doesn't skew the comparison.</p>
-
 <h4>Step 13: Test failure recovery</h4>
 <ol class="steps">
 <li>Generate a file and run Bronze. Note the row count.</li>
@@ -1207,16 +997,12 @@ ORDER BY 1 DESC, 2;</code></pre></div>
 <li>Confirm the aggregation still matches the Step 12 recomputation.</li>
 </ol>
 <p class="ref">On classic compute with continuous triggers, use <code>bronze_query.stop()</code> and restart with the same checkpoint instead. <strong>Don't delete the checkpoints</strong>; the point is to recover from them. A graceful stop doesn't simulate every failure; also test cluster termination in development.</p>
-
 <h4>Step 14: Stop and clean up</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>for q in spark.streams.active:        # stops ALL streams in this session
     print("Stopping:", q.name or q.id)
     q.stop()</code></pre></div>
-<div class="code-wrap"><span class="lang">SQL · remove the lab when finished</span><pre class="code"><code>DROP SCHEMA IF EXISTS retail_dev.streaming_lab CASCADE;   -- tables, volumes, checkpoints</code></pre></div>
-
-<!-- ===================== 16.7 ===================== -->
-<h2 id="s16-7"><span class="num">16.7</span>Common Streaming Mistakes</h2>
-<div class="table-wrap"><table>
+<div class="code-wrap"><span class="lang">SQL · remove the lab when finished</span><pre class="code"><code>DROP SCHEMA IF EXISTS retail_dev.streaming_lab CASCADE;   -- tables, volumes, checkpoints</code></pre></div></div></section>
+<section class="lesson" id="s16-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.7</span><h2>Common Streaming Mistakes</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Mistake</th><th>Problem</th><th>Better approach</th></tr></thead>
 <tbody>
 <tr><td>No checkpoint</td><td>Unreliable recovery</td><td>Durable checkpoint per query</td></tr>
@@ -1233,11 +1019,8 @@ ORDER BY 1 DESC, 2;</code></pre></div>
 <tr><td>processingTime on serverless</td><td>Query fails to start</td><td><code>availableNow</code> + scheduled job</td></tr>
 <tr><td>Scaling before investigating</td><td>Cost without a fix</td><td>Inspect stages, state, source, sink</td></tr>
 <tr><td>"Active" as proof of health</td><td>Idle or stalled pipeline</td><td>Monitor freshness and throughput</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 16.8 ===================== -->
-<h2 id="s16-8"><span class="num">16.8</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+</tbody></table></div></div></section>
+<section class="lesson" id="s16-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.8</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. What is Structured Streaming?</summary><div class="answer">Spark's stream-processing engine using the DataFrame/SQL model to process continuously arriving data incrementally.</div></details>
 <details class="q"><summary>Q2. Batch vs streaming?</summary><div class="answer">Batch processes a bounded dataset; streaming incrementally processes data as it arrives, with low latency.</div></details>
 <details class="q"><summary>Q3. What is a micro-batch?</summary><div class="answer">A set of newly available records processed together in one execution cycle of a streaming query.</div></details>
@@ -1262,11 +1045,8 @@ ORDER BY 1 DESC, 2;</code></pre></div>
 <details class="q"><summary>Q22. Is Structured Streaming exactly-once?</summary><div class="answer">For supported source/sink combinations with checkpoints, yes. End-to-end effects in external systems depend on idempotent, retry-safe sink logic.</div></details>
 <details class="q"><summary>Q23. Why might a windowed aggregation not update immediately?</summary><div class="answer">In append mode with a watermark, a window is written only after the watermark passes its end, which requires later events to arrive.</div></details>
 <details class="q"><summary>Q24. What is foreachBatch?</summary><div class="answer">A sink that runs your batch function on each micro-batch (e.g. Delta MERGE, external writes). The function must be retry-safe.</div></details>
-<details class="q"><summary>Q25. Long-running query vs availableNow?</summary><div class="answer">A long-running query stays active for future data; availableNow processes what's available and stops, which suits scheduled jobs and serverless.</div></details>
-
-<!-- ===================== 16.9 ===================== -->
-<h2 id="s16-9"><span class="num">16.9</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q25. Long-running query vs availableNow?</summary><div class="answer">A long-running query stays active for future data; availableNow processes what's available and stops, which suits scheduled jobs and serverless.</div></details></div></section>
+<section class="lesson" id="s16-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16 · Lesson 16.9</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Fundamentals, micro-batches</td><td>Create a streaming DataFrame from JSON files</td></tr>
@@ -1278,29 +1058,26 @@ ORDER BY 1 DESC, 2;</code></pre></div>
 <tr><td>7</td><td>Monitoring, recovery, optimization</td><td>Test a failure and validate recovery</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://spark.apache.org/docs/latest/streaming/index.html" target="_blank" rel="noopener">Apache Spark Structured Streaming guide</a></li>
-<li><a href="https://docs.databricks.com/aws/en/structured-streaming/" target="_blank" rel="noopener">Databricks Structured Streaming</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/" target="_blank" rel="noopener">Databricks Auto Loader</a></li>
-<li><a href="https://spark.apache.org/docs/latest/structured-streaming-kafka-integration.html" target="_blank" rel="noopener">Spark Kafka integration</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/event-hubs/" target="_blank" rel="noopener">Azure Event Hubs</a></li>
-<li><a href="https://docs.delta.io/latest/index.html" target="_blank" rel="noopener">Delta Lake</a></li>
-</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://spark.apache.org/docs/latest/streaming/index.html" rel="noopener" target="_blank">Apache Spark Structured Streaming guide</a></li>
+<li><a href="https://docs.databricks.com/aws/en/structured-streaming/" rel="noopener" target="_blank">Databricks Structured Streaming</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/" rel="noopener" target="_blank">Databricks Auto Loader</a></li>
+<li><a href="https://spark.apache.org/docs/latest/structured-streaming-kafka-integration.html" rel="noopener" target="_blank">Spark Kafka integration</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/event-hubs/" rel="noopener" target="_blank">Azure Event Hubs</a></li>
+<li><a href="https://docs.delta.io/latest/index.html" rel="noopener" target="_blank">Delta Lake</a></li>
+</ul><p class="ref" style="margin:8px 0 0">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 16</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch16-checklist">
-<label><input type="checkbox"> <strong>Structured Streaming</strong> processes arriving data with the DataFrame/SQL model.</label>
-<label><input type="checkbox"> <strong>Micro-batches</strong> process new records incrementally.</label>
-<label><input type="checkbox"> <strong>Output modes</strong> control which results reach the sink.</label>
-<label><input type="checkbox"> <strong>Triggers</strong> control when input is processed (availableNow on serverless).</label>
-<label><input type="checkbox"> <strong>Checkpoints</strong> store progress and state for recovery.</label>
-<label><input type="checkbox"> <strong>Event time and watermarks</strong> handle late data and bound state.</label>
-<label><input type="checkbox"> <strong>Windowed aggregations</strong> compute metrics per time interval, and append mode waits for windows to close.</label>
-<label><input type="checkbox"> <strong>Auto Loader</strong> incrementally ingests cloud files.</label>
-<label><input type="checkbox"> <strong>Kafka and Event Hubs</strong> deliver event streams.</label>
-<label><input type="checkbox"> <strong>Production streaming</strong> needs monitoring, recovery tests, schema management, and tuning.</label>
-<label><input type="checkbox"> <strong>Exactly-once effects</strong> depend on source, engine, sink, and application design.</label>
+<label><input type="checkbox"/> <strong>Structured Streaming</strong> processes arriving data with the DataFrame/SQL model.</label>
+<label><input type="checkbox"/> <strong>Micro-batches</strong> process new records incrementally.</label>
+<label><input type="checkbox"/> <strong>Output modes</strong> control which results reach the sink.</label>
+<label><input type="checkbox"/> <strong>Triggers</strong> control when input is processed (availableNow on serverless).</label>
+<label><input type="checkbox"/> <strong>Checkpoints</strong> store progress and state for recovery.</label>
+<label><input type="checkbox"/> <strong>Event time and watermarks</strong> handle late data and bound state.</label>
+<label><input type="checkbox"/> <strong>Windowed aggregations</strong> compute metrics per time interval, and append mode waits for windows to close.</label>
+<label><input type="checkbox"/> <strong>Auto Loader</strong> incrementally ingests cloud files.</label>
+<label><input type="checkbox"/> <strong>Kafka and Event Hubs</strong> deliver event streams.</label>
+<label><input type="checkbox"/> <strong>Production streaming</strong> needs monitoring, recovery tests, schema management, and tuning.</label>
+<label><input type="checkbox"/> <strong>Exactly-once effects</strong> depend on source, engine, sink, and application design.</label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1319,66 +1096,20 @@ ORDER BY 1 DESC, 2;</code></pre></div>
   update();
 })();
 </script>
-
 <div class="next">
 <h3>Next chapter: Advanced Data Modeling and Warehousing</h3>
 <p>Chapter 17 steps back from pipelines to design: OLTP vs OLAP, star and snowflake schemas, data marts, business vs surrogate keys, fact-table grain, conformed, degenerate and role-playing dimensions, and Slowly Changing Dimensions Type 0, 1, 2 and beyond.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-15.html"><span class="mn-label">← Previous</span><span class="mn-title">Spark Optimization</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-17.html"><span class="mn-label">Next →</span><span class="mn-title">Data Warehousing</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-15.html"><span>← Previous</span><strong>Chapter 15: Spark Optimization</strong></a>
-  <a class="pager-link" href="databricks-chapter-17.html"><span>Next →</span><strong>Chapter 17: Data Modeling &amp; Warehousing</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 6 · Chapter 16 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

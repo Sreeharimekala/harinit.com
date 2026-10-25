@@ -1,268 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 23: Advanced Topics</title>
-<meta name="description" content="Chapter 23 of a Databricks learning path: machine learning with MLflow, generative AI with vector search and RAG, Delta Sharing, Iceberg and federation, Photon, predictive optimization, and choosing a specialization.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Advanced Topics — Chapter 23 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 23 of a Databricks learning path: machine learning with MLflow, generative AI with vector search and RAG, Delta Sharing, Iceberg and federation, Photon, predictive optimization, and choosing a specialization."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 23 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s23-1">23.1 Machine Learning</a></li>
-    <li class="lvl2"><a href="#s23-1-1">What is ML?</a></li>
-    <li class="lvl2"><a href="#s23-1-2">Data preparation</a></li>
-    <li class="lvl2"><a href="#s23-1-3">Features &amp; leakage</a></li>
-    <li class="lvl2"><a href="#s23-1-4">Training datasets</a></li>
-    <li class="lvl2"><a href="#s23-1-5">Train &amp; evaluate</a></li>
-    <li class="lvl2"><a href="#s23-1-6">MLflow &amp; registry</a></li>
-    <li class="lvl2"><a href="#s23-1-8">Deployment</a></li>
-    <li class="lvl1"><a href="#s23-2">23.2 Generative AI</a></li>
-    <li class="lvl2"><a href="#s23-2-1">LLMs &amp; foundation models</a></li>
-    <li class="lvl2"><a href="#s23-2-3">Embeddings &amp; vector search</a></li>
-    <li class="lvl2"><a href="#s23-2-5">RAG</a></li>
-    <li class="lvl2"><a href="#s23-2-6">AI agents</a></li>
-    <li class="lvl2"><a href="#s23-2-7">Serving &amp; evaluation</a></li>
-    <li class="lvl2"><a href="#s23-2-9">AI governance</a></li>
-    <li class="lvl1"><a href="#s23-3">23.3 Sharing &amp; Interoperability</a></li>
-    <li class="lvl2"><a href="#s23-3-1">Delta Sharing</a></li>
-    <li class="lvl2"><a href="#s23-3-2">Table formats &amp; Iceberg</a></li>
-    <li class="lvl2"><a href="#s23-3-5">Federation</a></li>
-    <li class="lvl2"><a href="#s23-3-7">Sharing externally</a></li>
-    <li class="lvl1"><a href="#s23-4">23.4 Platform Capabilities</a></li>
-    <li class="lvl2"><a href="#s23-4-1">Photon</a></li>
-    <li class="lvl2"><a href="#s23-4-2">Predictive optimization</a></li>
-    <li class="lvl2"><a href="#s23-4-3">SQL, AI/BI, Assistant</a></li>
-    <li class="lvl2"><a href="#s23-4-6">Observability</a></li>
-    <li class="lvl2"><a href="#s23-4-7">Architecture patterns</a></li>
-    <li class="lvl1"><a href="#s23-5">23.5 Choose a Specialization</a></li>
-    <li class="lvl1"><a href="#s23-6">23.6 Learning Path</a></li>
-    <li class="lvl1"><a href="#s23-7">23.7 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s23-8">23.8 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 8 · Chapter 23 · Advanced Topics and Career Preparation</span>
-  <h1>Advanced Databricks Topics</h1>
-  <p class="lead">A guided tour of what to learn once you can build reliable pipelines: machine learning with MLflow, generative AI (embeddings, vector search, RAG, agents), data sharing and open table formats, and platform capabilities like Photon, predictive optimization, federation, and AI/BI. Each topic is connected to a data-engineering use case.</p>
-  <div class="grid-2">
-  <div class="card"><h4>Connecting to what you know</h4><ul style="margin-bottom:0"><li><strong>ML:</strong> predict which pipelines are likely to fail.</li><li><strong>GenAI:</strong> an assistant that explains failures from logs and past incidents.</li><li><strong>Sharing:</strong> give a partner governed tables without copying files.</li><li><strong>Platform:</strong> faster SQL, automatic table maintenance, monitoring dashboards.</li></ul></div>
-  <div class="callout key" style="margin:0"><span class="label">By the end of this chapter you will be able to</span><ol style="margin-bottom:0"><li>Explain the ML lifecycle and MLflow.</li><li>Explain embeddings, vector search, RAG, and agents.</li><li>Share data securely across platforms.</li><li>Explain Photon, predictive optimization, federation, and AI/BI.</li><li>Design an advanced project.</li><li>Choose a specialization.</li></ol></div>
-  </div>
-  <div class="callout"><span class="label">What was tested</span><p>The full ML workflow in 23.1 was <strong>run end to end</strong> on synthetic pipeline history with Spark 4 and MLflow 3: data preparation, features, a chronological split, tuning tracked in MLflow, registration, and batch scoring. Testing exposed a serious flaw in the original example (23.1.3). The RAG helper functions in 23.2 were tested too. Vector Search, model serving, Delta Sharing, federation, and UniForm need a Databricks workspace and are marked untested.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s23-1"><span>23.1</span><strong>Machine Learning</strong></a>
-    <a class="chip" href="#s23-2"><span>23.2</span><strong>Generative AI</strong></a>
-    <a class="chip" href="#s23-3"><span>23.3</span><strong>Sharing</strong></a>
-    <a class="chip" href="#s23-4"><span>23.4</span><strong>Platform</strong></a>
-    <a class="chip" href="#s23-5"><span>23.5</span><strong>Specialize</strong></a>
-    <a class="chip" href="#s23-6"><span>23.6</span><strong>Learning Path</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 23.1 ===================== -->
-<h2 id="s23-1"><span class="num">23.1</span>Machine Learning Fundamentals</h2>
-
-<h3 id="s23-1-1"><span class="num">23.1.1</span>What Is Machine Learning?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Advanced Databricks Topics</div>
+<div class="brand-sub">Chapter 23 · 8 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s23-1" class="nav-link"><span class="nav-num">23.1</span>Machine Learning Fundamentals</a>
+<a href="#s23-2" class="nav-link"><span class="nav-num">23.2</span>Generative AI</a>
+<a href="#s23-3" class="nav-link"><span class="nav-num">23.3</span>Data Sharing and Interoperability</a>
+<a href="#s23-4" class="nav-link"><span class="nav-num">23.4</span>Advanced Platform Capabilities</a>
+<a href="#s23-5" class="nav-link"><span class="nav-num">23.5</span>Hands-On Exercise: Choose Your Specialization</a>
+<a href="#s23-6" class="nav-link"><span class="nav-num">23.6</span>Recommended Learning Path</a>
+<a href="#s23-7" class="nav-link"><span class="nav-num">23.7</span>Interview Questions and Answers</a>
+<a href="#s23-8" class="nav-link"><span class="nav-num">23.8</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 8 · Chapter 23 · Advanced Topics and Career Preparation</div><h1>Advanced Databricks Topics</h1>
+<p>A guided tour of what to learn once you can build reliable pipelines: machine learning with MLflow, generative AI (embeddings, vector search, RAG, agents), data sharing and open table formats, and platform capabilities like Photon, predictive optimization, federation, and AI/BI. Each topic is connected to a data-engineering use case.</p>
+<div class="doc-meta"><span class="pill">8 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s23-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.1</span><h2>Machine Learning Fundamentals</h2></div><div class="content"><h3 id="s23-1-1"><span class="num">23.1.1</span>What Is Machine Learning?</h3>
 <p>Machine learning learns patterns from historical examples and applies them to new data, instead of following rules someone wrote by hand.</p>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python · hand-written rule</span><pre class="code"><code>if duration_minutes &amp;gt; 60 and retry_count &amp;gt; 3:
@@ -283,7 +155,6 @@ else:
      -&gt; MLflow tracking -&gt; Unity Catalog model registry -&gt; deploy -&gt; predictions
      -&gt; monitor -&gt; retrain</pre>
 <p class="ref">Databricks covers the whole lifecycle: Spark for data, Delta for storage, MLflow for tracking and models, Unity Catalog for governance, and Model Serving for real-time use.</p>
-
 <h3 id="s23-1-2"><span class="num">23.1.2</span>Data Preparation</h3>
 <p>We'll predict pipeline failures from run history. To make this runnable anywhere, this generator creates eight months of history for six pipelines, with failure patterns that resemble real operations (unstable spells, Sunday-night source maintenance, large inputs) plus some nulls and duplicate events:</p>
 <details class="q"><summary>Show the practice-data generator (Python)</summary><div class="answer"><div class="code-wrap" style="margin:0"><span class="lang">Python · gen_runs.py</span><pre class="code"><code># Practice data: 8 months of pipeline run history with realistic patterns.
@@ -346,7 +217,6 @@ df.select([F.count(F.when(F.col(c).isNull(), 1)).alias(c)
            for c in df.columns]).show()</code></pre></div>
 <div class="card"><h4>Prepare deliberately</h4><ul style="margin-bottom:0"><li><strong>Duplicates:</strong> dedup on the real key (<code>pipeline_run_id</code>); the data had 2,941 rows, 2,916 distinct.</li><li><strong>Essential nulls:</strong> drop rows missing the pipeline, time, or label.</li><li><strong>Missing values can mean something:</strong> a null duration here means the run died before starting.</li><li><strong>Impute inside the model pipeline</strong> so medians come from training data only (next sections).</li></ul></div>
 </div>
-
 <h3 id="s23-1-3"><span class="num">23.1.3</span>Feature Engineering and Leakage</h3>
 <p>A feature is an input the model uses; the <strong>label</strong> is the outcome it learns to predict (<code>is_failed</code>). The most important rule: <strong>a feature must be known at the moment you make the prediction</strong>.</p>
 <div class="callout warn"><span class="label">The original example leaked the answer</span><p>To predict whether a run <em>will</em> fail, the original used that same run's <code>duration_minutes</code> and <code>retry_count</code>, but those are only known <em>after</em> the run, and they're largely <em>caused</em> by failing (failed runs retry). I trained the original feature set on the practice data:</p>
@@ -363,7 +233,6 @@ df.select([F.count(F.when(F.col(c).isNull(), 1)).alias(c)
 <tr><td>This run's duration, retry count</td><td><strong>No</strong>: outcomes</td><td><strong>No</strong> (fine for a <em>post-mortem</em> model, not for prediction)</td></tr>
 <tr><td>Final status</td><td>No: it's the label</td><td>Never as a feature</td></tr>
 </tbody></table></div>
-
 <h3 id="s23-1-4"><span class="num">23.1.4</span>Training Datasets</h3>
 <div class="grid-2">
 <div class="card"><h4>Train, validation, test</h4><ul style="margin-bottom:0"><li><strong>Training:</strong> fit the model.</li><li><strong>Validation:</strong> choose settings (hyperparameters, threshold).</li><li><strong>Test:</strong> evaluate once at the end.</li></ul><p style="margin:8px 0 0">For independent records, a random 70/15/15 split is a common start.</p></div>
@@ -378,7 +247,6 @@ This mimics using the past
 to predict the future.</pre>
 </div>
 <p class="ref">A random split would let the model "see the future" (e.g. train on a run from 3 August and test on 2 August) and overstate quality. Also keep correlated records in mind: runs of one pipeline in one unstable week are not independent.</p>
-
 <h3 id="s23-1-5"><span class="num">23.1.5</span>Train and Evaluate a Model</h3>
 <p>The complete, tested pipeline: preparation, honest features, chronological split, imputation and categorical encoding <em>inside</em> the Spark ML pipeline, and three regularization settings compared on validation and tracked in MLflow.</p>
 <div class="code-wrap"><span class="lang">Python · ml_pipeline.py</span><pre class="code"><code>import mlflow
@@ -507,7 +375,6 @@ Returns_Load   2026-08-03 02:11:00  0.572                FAILED
 Returns_Load   2026-08-02 14:16:00  0.567                FAILED</code></pre></div>
 <div class="callout key"><span class="label">Reading these honest results</span><p>11.3% of August runs failed, so "always predict success" scores <strong>88.7% accuracy</strong> while catching nothing; accuracy is the wrong metric. The honest model's <strong>PR-AUC of 0.30 is 2.7× the 0.113 baseline</strong>: genuinely useful for ranking risk, nowhere near the leaky model's fake 1.0. At a 0.25 threshold, about 1 in 3 alerts is a real failure and about 1 in 3 failures is flagged. Whether that's worth acting on depends on the cost of a false alarm versus a missed failure; tune the threshold on validation data, not test. The top-scored runs are Sunday-night runs during unstable spells, exactly the patterns built into the data.</p></div>
 <p class="ref">Ran with Spark 4.x and MLflow 3.17 locally (tracking in SQLite, so the registry name has no catalog). On Databricks, see the registry notes below. Numbers will differ slightly on your run.</p>
-
 <h3 id="s23-1-6"><span class="num">23.1.6</span>MLflow and the Model Registry</h3>
 <div class="grid-2">
 <div class="card"><h4>MLflow answers</h4><ul style="margin-bottom:0"><li>Which parameters and features produced this model?</li><li>Which data and code version?</li><li>Which run performed best?</li><li>Which version is deployed?</li><li>Can we reproduce it?</li></ul></div>
@@ -539,8 +406,7 @@ champion = mlflow.spark.load_model("models:/retail_dev.ml.pipeline_failure_model
    -&gt; monitor -&gt; retrain -&gt; version N+1</pre>
 <div class="card"><h4>Governance questions</h4><p style="margin-bottom:0">Who can register models? Who approves production? Which data trained it (lineage)? Who can use it (UC grants, e.g. <code>EXECUTE</code> on the model)? How are versions promoted and retired (aliases such as <code>champion</code>/<code>challenger</code> rather than the old Staging/Production stages)? How is degradation detected?</p></div>
 </div>
-<p class="ref">Unity Catalog is the recommended registry; the older workspace registry still appears in tutorials. In MLflow 3, many flavors use <code>name=</code> instead of <code>artifact_path=</code>; the Spark flavor in the tested version still took <code>artifact_path</code>. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/mlflow/" target="_blank" rel="noopener">MLflow on Databricks</a>.</p>
-
+<p class="ref">Unity Catalog is the recommended registry; the older workspace registry still appears in tutorials. In MLflow 3, many flavors use <code>name=</code> instead of <code>artifact_path=</code>; the Spark flavor in the tested version still took <code>artifact_path</code>. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/mlflow/" rel="noopener" target="_blank">MLflow on Databricks</a>.</p>
 <h3 id="s23-1-8"><span class="num">23.1.7</span>Model Deployment</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Pattern</th><th>How</th><th>Example</th></tr></thead>
@@ -550,12 +416,8 @@ champion = mlflow.spark.load_model("models:/retail_dev.ml.pipeline_failure_model
 <tr><td>Streaming</td><td>Score inside a Structured Streaming query</td><td>Score events as they arrive</td></tr>
 <tr><td>Embedded</td><td>Model applied inside a Spark job</td><td>Add a risk column during processing</td></tr>
 </tbody></table></div>
-<p class="ref">Production needs: how the model is loaded (alias, not a hard-coded version), identical feature logic at training and scoring time (the pipeline guarantees this here), where predictions land, model version recorded with each prediction, retries, and monitoring of both model quality (compare predictions with actual outcomes) and serving latency. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/" target="_blank" rel="noopener">Azure Databricks machine learning</a>.</p>
-
-<!-- ===================== 23.2 ===================== -->
-<h2 id="s23-2"><span class="num">23.2</span>Generative AI</h2>
-
-<h3 id="s23-2-1"><span class="num">23.2.1</span>LLMs and Foundation Models</h3>
+<p class="ref">Production needs: how the model is loaded (alias, not a hard-coded version), identical feature logic at training and scoring time (the pipeline guarantees this here), where predictions land, model version recorded with each prediction, retries, and monitoring of both model quality (compare predictions with actual outcomes) and serving latency. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/" rel="noopener" target="_blank">Azure Databricks machine learning</a>.</p></div></section>
+<section class="lesson" id="s23-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.2</span><h2>Generative AI</h2></div><div class="content"><h3 id="s23-2-1"><span class="num">23.2.1</span>LLMs and Foundation Models</h3>
 <div class="grid-2">
 <div class="card"><h4>Large language models</h4><p>Trained on vast text to understand and generate language: summarize, answer questions, generate SQL or code, explain errors, extract structure, converse.</p><p style="margin-bottom:0">A <strong>foundation model</strong> is any broadly trained model adaptable to many tasks; most LLMs are foundation models, and embedding models are another kind.</p></div>
 <div class="table-wrap"><table>
@@ -575,7 +437,6 @@ champion = mlflow.spark.load_model("models:/retail_dev.ml.pipeline_failure_model
 <tr><td>Fine-tuning</td><td>Further train a model on curated examples</td><td>Change behavior, format, or style; not for adding fresh facts</td></tr>
 </tbody></table></div>
 <p class="ref">On Databricks, foundation models are reached through Model Serving endpoints (pay-per-token or provisioned), from Python or from SQL with <code>ai_query()</code>.</p>
-
 <h3 id="s23-2-3"><span class="num">23.2.2</span>Embeddings and Vector Search</h3>
 <div class="grid-2">
 <pre class="diagram">"ADF pipeline failed because the
@@ -614,8 +475,7 @@ results = index.similarity_search(
     query_type="HYBRID",
 )
 rows = results["result"]["data_array"]             # [[id, description, resolution, score], ...]</code></pre></div>
-<p class="ref">Design decisions: what to index, how to chunk long documents, which embedding model, how the index stays fresh, which metadata filters apply, and how permissions are enforced. Endpoint and model names vary by workspace; check the Serving page. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/vector-search/" target="_blank" rel="noopener">Vector Search</a>.</p>
-
+<p class="ref">Design decisions: what to index, how to chunk long documents, which embedding model, how the index stays fresh, which metadata filters apply, and how permissions are enforced. Endpoint and model names vary by workspace; check the Serving page. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/vector-search/" rel="noopener" target="_blank">Vector Search</a>.</p>
 <h3 id="s23-2-5"><span class="num">23.2.3</span>Retrieval-Augmented Generation (RAG)</h3>
 <p>RAG retrieves relevant, authorized information and gives it to the model as context, so answers can draw on your runbooks, incidents, and logs rather than only the model's training. A generic LLM can guess why <code>KeyError: 'DATA_TYPE'</code> happened; a RAG assistant can look at your code, configuration, and past fixes.</p>
 <div class="grid-2">
@@ -730,7 +590,6 @@ check_grounding("It was probably the network.")
 </tbody></table></div>
 </div>
 <p class="ref">For quick, set-based work, SQL can call a model directly: <code>SELECT run_id, ai_query('&lt;chat endpoint&gt;', concat('Explain this error in one sentence: ', error_message)) FROM retail_dev.ops.pipeline_run_latest WHERE status = 'FAILED'</code>.</p>
-
 <h3 id="s23-2-6"><span class="num">23.2.4</span>AI Agents</h3>
 <div class="grid-2">
 <div class="card"><h4>What an agent does</h4><ol style="margin-bottom:0"><li>Receives a goal ("Investigate why Customer_Load failed this morning").</li><li>Decides what it needs.</li><li>Calls an approved tool (run details, monitoring query, incident search, runbook).</li><li>Inspects the result and chooses the next step.</li><li>Returns a report, or performs an authorized action.</li></ol></div>
@@ -744,7 +603,6 @@ check_grounding("It was probably the network.")
 </tbody></table></div>
 </div>
 <div class="callout warn"><span class="label">Safety controls for agents</span><p>An agent must not restart pipelines, delete tables, change permissions, or run arbitrary SQL because a model suggested it. Use read-only tools by default, explicit tool and query allowlists, human approval for high-impact actions, limits on tool calls, timeouts, audit logs, input and output validation, and protection against injected instructions in retrieved content. A sensible first version <strong>investigates and recommends</strong>; people act. Unity Catalog functions make good governed tools, because each runs with UC permissions.</p></div>
-
 <h3 id="s23-2-7"><span class="num">23.2.5</span>Model Serving and AI Evaluation</h3>
 <div class="grid-2">
 <pre class="diagram">Monitoring portal (e.g. Django)
@@ -756,7 +614,7 @@ check_grounding("It was probably the network.")
   Model (LLM, or your ML model)
          |
   Response -&gt; portal</pre>
-<div class="card"><h4>Before you depend on an endpoint</h4><ul style="margin-bottom:0"><li>Authentication and authorization (service principal).</li><li>Request and response schemas.</li><li>Rate limits and timeouts.</li><li>Cost monitoring (Chapter 22).</li><li>Logging and retention (inference tables).</li><li>A fallback when it's unavailable.</li></ul><p style="margin:8px 0 0" class="ref">Serving answers requests; a batch job processes a dataset. Different tools, different cost profiles.</p></div>
+<div class="card"><h4>Before you depend on an endpoint</h4><ul style="margin-bottom:0"><li>Authentication and authorization (service principal).</li><li>Request and response schemas.</li><li>Rate limits and timeouts.</li><li>Cost monitoring (Chapter 22).</li><li>Logging and retention (inference tables).</li><li>A fallback when it's unavailable.</li></ul><p class="ref" style="margin:8px 0 0">Serving answers requests; a batch job processes a dataset. Different tools, different cost profiles.</p></div>
 </div>
 <p><strong>Evaluation</strong> is how you know the assistant is right, not just running:</p>
 <div class="table-wrap"><table>
@@ -778,8 +636,7 @@ check_grounding("It was probably the network.")
 <tr><td>What caused an undocumented failure?</td><td>None</td><td><strong>Say it's unknown</strong>; list checks</td></tr>
 <tr><td>A ticket containing injected instructions</td><td>The ticket</td><td>Ignore the instruction</td></tr>
 </tbody></table></div>
-<p class="ref">Include normal, ambiguous, missing-evidence, conflicting, unauthorized, and misleading cases. MLflow's GenAI evaluation and tracing tools (and Mosaic AI Agent Evaluation) automate much of this. Re-evaluate whenever the model, prompt, or index changes. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-serving/" target="_blank" rel="noopener">Model Serving</a>.</p>
-
+<p class="ref">Include normal, ambiguous, missing-evidence, conflicting, unauthorized, and misleading cases. MLflow's GenAI evaluation and tracing tools (and Mosaic AI Agent Evaluation) automate much of this. Re-evaluate whenever the model, prompt, or index changes. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-serving/" rel="noopener" target="_blank">Model Serving</a>.</p>
 <h3 id="s23-2-9"><span class="num">23.2.6</span>Governance of AI Assets</h3>
 <div class="grid-2">
 <div class="card"><h4>Four areas</h4><ul style="margin-bottom:0"><li><strong>Data:</strong> who can access sources; personal or confidential content; retrieval filtered by the user's permissions.</li><li><strong>Model:</strong> which version; what's logged; who approves changes; known limitations.</li><li><strong>Application:</strong> which tools an agent may call; what needs human approval; output monitoring.</li><li><strong>Operations:</strong> endpoint failures, cost control, index and model updates, rollback.</li></ul></div>
@@ -796,12 +653,8 @@ check_grounding("It was probably the network.")
 <tr><td>Evaluation set</td><td>Approved, representative</td></tr>
 </tbody></table></div>
 </div>
-<div class="callout key"><span class="label">Key principle</span><p>An AI application must never give a user access to information they couldn't otherwise access. Indexes, models, and functions are Unity Catalog objects, so the Chapter 19 controls apply to them too.</p></div>
-
-<!-- ===================== 23.3 ===================== -->
-<h2 id="s23-3"><span class="num">23.3</span>Data Sharing and Interoperability</h2>
-
-<h3 id="s23-3-1"><span class="num">23.3.1</span>Delta Sharing</h3>
+<div class="callout key"><span class="label">Key principle</span><p>An AI application must never give a user access to information they couldn't otherwise access. Indexes, models, and functions are Unity Catalog objects, so the Chapter 19 controls apply to them too.</p></div></div></section>
+<section class="lesson" id="s23-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.3</span><h2>Data Sharing and Interoperability</h2></div><div class="content"><h3 id="s23-3-1"><span class="num">23.3.1</span>Delta Sharing</h3>
 <p>Delta Sharing is an open protocol for sharing live data across organizations and platforms without sending copies. Instead of exporting files daily for an analytics partner, you grant them read access to selected tables.</p>
 <div class="grid-2">
 <pre class="diagram">PROVIDER (your Unity Catalog)
@@ -846,8 +699,7 @@ REVOKE SELECT ON SHARE partner_sales_share FROM RECIPIENT acme_analytics;</code>
 import delta_sharing
 
 df = delta_sharing.load_as_pandas("config.share#partner_sales_share.share_out.partner_monthly_sales")</code></pre></div>
-<p class="ref">The table uses Chapter 17's star schema. Sharing is opt-in per table; nothing else in the catalog is visible. Treat the credential file like a password. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/delta-sharing/" target="_blank" rel="noopener">Delta Sharing</a>.</p>
-
+<p class="ref">The table uses Chapter 17's star schema. Sharing is opt-in per table; nothing else in the catalog is visible. Treat the credential file like a password. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/delta-sharing/" rel="noopener" target="_blank">Delta Sharing</a>.</p>
 <h3 id="s23-3-2"><span class="num">23.3.2</span>Open Table Formats, Apache Iceberg, and Interoperability</h3>
 <p>A folder of Parquet files has data but no table: no transactions, history, or reliable schema. An <strong>open table format</strong> adds a metadata layer that tells engines which files form the table, enabling ACID writes, schema evolution, and time travel (Chapter 6 covered Delta's transaction log).</p>
 <div class="grid-2">
@@ -884,7 +736,6 @@ REORG TABLE retail_dev.retail_gold.fact_sales APPLY (UPGRADE UNIFORM(ICEBERG_COM
 <div class="card"><h4>Before mixing engines, ask</h4><ol style="margin-bottom:0"><li>Can the engine read the table?</li><li>Can it write, or read-only?</li><li>Does it support the table's protocol and features?</li><li>How are concurrent writes handled?</li><li>How are permissions enforced?</li><li>How are schema changes communicated?</li><li>What if one engine writes a feature another can't read?</li></ol></div>
 <div class="callout key" style="margin:0"><span class="label">Production recommendation</span><p>Keep a <strong>compatibility matrix</strong> (engine × read/write × table features) and default to <strong>one writer, many readers</strong>. UniForm tables are read-only for Iceberg clients; writes go through Databricks. UniForm has requirements (e.g. column mapping, some feature restrictions), so check the docs for your runtime.</p></div>
 </div>
-
 <h3 id="s23-3-5"><span class="num">23.3.3</span>Data Federation and Lakehouse Federation</h3>
 <p><strong>Lakehouse Federation</strong> queries external databases (SQL Server, PostgreSQL, MySQL, Snowflake, Synapse, and others) through Unity Catalog, without ingesting them first. A <strong>connection</strong> holds the credentials; a <strong>foreign catalog</strong> mirrors the external database as catalog.schema.table, with UC grants, lineage, and auditing.</p>
 <div class="code-wrap"><span class="lang">SQL · federate the SQL Server source (not run here)</span><pre class="code"><code>CREATE CONNECTION IF NOT EXISTS retail_sqlserver TYPE sqlserver
@@ -917,25 +768,19 @@ GROUP BY ALL;</code></pre></div>
 <tr><td>Data must stay in place</td><td>Good fit</td><td>Not allowed</td></tr>
 <tr><td>Large repeated transforms</td><td>Depends on pushdown</td><td>Usually better</td></tr>
 </tbody></table></div>
-<p class="ref">Use federation for exploration, small lookups, and live data that must stay put; ingest for durable history, heavy transformation, and predictable performance. They coexist, and federation is a quick way to <em>prototype</em> before building an ingestion pipeline. A federated query is never faster than the source and network allow. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/query-federation/" target="_blank" rel="noopener">Lakehouse Federation</a>.</p>
-
+<p class="ref">Use federation for exploration, small lookups, and live data that must stay put; ingest for durable history, heavy transformation, and predictable performance. They coexist, and federation is a quick way to <em>prototype</em> before building an ingestion pipeline. A federated query is never faster than the source and network allow. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/query-federation/" rel="noopener" target="_blank">Lakehouse Federation</a>.</p>
 <h3 id="s23-3-7"><span class="num">23.3.4</span>Sharing Governed Data with External Consumers</h3>
 <div class="grid-2">
 <div class="card"><h4>The partner needs</h4><ul style="margin-bottom:0"><li>Product category</li><li>Sales month</li><li>Quantity</li><li>Total sales</li></ul><h4 style="margin-top:12px">The partner must not get</h4><ul style="margin-bottom:0"><li>Customer emails or phone numbers</li><li>Internal notes</li><li>Contract details</li></ul></div>
 <div class="card"><h4>Process</h4><ol style="margin-bottom:0"><li>Agree the business purpose.</li><li>Select only required columns and rows.</li><li>Aggregate or mask as needed (the shared table above is aggregated).</li><li>Create the share and grant to the recipient.</li><li>Test as the consumer.</li><li>Agree refresh schedule and support owner.</li><li>Audit access; review periodically.</li><li>Plan revocation.</li></ol></div>
 </div>
-<p class="ref">Secure sharing is a process, not just a connection: ownership, classification, access reviews, and support.</p>
-
-<!-- ===================== 23.4 ===================== -->
-<h2 id="s23-4"><span class="num">23.4</span>Advanced Platform Capabilities</h2>
-
-<h3 id="s23-4-1"><span class="num">23.4.1</span>Photon</h3>
+<p class="ref">Secure sharing is a process, not just a connection: ownership, classification, access reviews, and support.</p></div></section>
+<section class="lesson" id="s23-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.4</span><h2>Advanced Platform Capabilities</h2></div><div class="content"><h3 id="s23-4-1"><span class="num">23.4.1</span>Photon</h3>
 <div class="grid-2">
 <div class="card"><h4>What it is</h4><p>Databricks' native, vectorized query engine (C++). It processes batches of values with CPU-efficient instructions instead of row-by-row, speeding up scans, joins, aggregations, and writes for supported operations, with no code changes.</p><p style="margin-bottom:0">On by default for SQL warehouses and serverless compute; an option on classic clusters (where it uses a higher DBU rate, Chapter 22).</p></div>
 <div class="card"><h4>How to evaluate it</h4><ol style="margin-bottom:0"><li>Baseline runtime and cost.</li><li>Run the same workload with and without Photon.</li><li>Check in the query profile which operators ran in Photon.</li><li>Verify identical results.</li><li>Compare <strong>total cost</strong>, not just time.</li></ol></div>
 </div>
-<p class="ref">Photon doesn't fix a query that reads unnecessary data (Chapter 15). UDF-heavy Python code may gain little. Billing records carry <code>product_features.is_photon</code>, so you can measure its cost. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/compute/photon/" target="_blank" rel="noopener">Photon</a>.</p>
-
+<p class="ref">Photon doesn't fix a query that reads unnecessary data (Chapter 15). UDF-heavy Python code may gain little. Billing records carry <code>product_features.is_photon</code>, so you can measure its cost. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/compute/photon/" rel="noopener" target="_blank">Photon</a>.</p>
 <h3 id="s23-4-2"><span class="num">23.4.2</span>Predictive Optimization</h3>
 <p>For <strong>Unity Catalog managed tables</strong>, Databricks decides when to run maintenance (<code>OPTIMIZE</code> compaction, <code>VACUUM</code>, statistics collection) based on how each table is used, so you don't schedule maintenance jobs for every table.</p>
 <div class="grid-2">
@@ -948,10 +793,9 @@ SELECT table_name, operation_type, operation_status,
 FROM system.storage.predictive_optimization_operations_history
 WHERE catalog_name = 'retail_dev'
 ORDER BY start_time DESC;</code></pre></div>
-<div class="card"><h4>What it doesn't do</h4><ul style="margin-bottom:0"><li>Rewrite inefficient queries.</li><li>Choose your table design or clustering keys (unless you use automatic liquid clustering).</li><li>Apply to external tables.</li><li>Replace monitoring of slow queries and data growth.</li></ul><p style="margin:8px 0 0" class="ref">It runs on serverless compute and appears in billing (Chapter 22).</p></div>
+<div class="card"><h4>What it doesn't do</h4><ul style="margin-bottom:0"><li>Rewrite inefficient queries.</li><li>Choose your table design or clustering keys (unless you use automatic liquid clustering).</li><li>Apply to external tables.</li><li>Replace monitoring of slow queries and data growth.</li></ul><p class="ref" style="margin:8px 0 0">It runs on serverless compute and appears in billing (Chapter 22).</p></div>
 </div>
-<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/optimizations/predictive-optimization" target="_blank" rel="noopener">Predictive optimization</a>.</p>
-
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/optimizations/predictive-optimization" rel="noopener" target="_blank">Predictive optimization</a>.</p>
 <h3 id="s23-4-3"><span class="num">23.4.3</span>Databricks SQL, AI/BI Dashboards, and Databricks Assistant</h3>
 <p><strong>Databricks SQL</strong> provides SQL warehouses, an editor, query history, alerts, and BI connectivity for SQL-first teams. Chapter 20's monitoring tables make a natural first dashboard:</p>
 <div class="code-wrap"><span class="lang">SQL · 7-day pipeline KPIs (from Chapter 20's audit view)</span><pre class="code"><code>SELECT pipeline_name,
@@ -967,10 +811,9 @@ GROUP BY pipeline_name
 ORDER BY failed_runs DESC;</code></pre></div>
 <p class="ref">The original queried a <code>main.monitoring.pipeline_run_history</code> table that no chapter creates; this uses the audit view built in Chapter 20. Success rate excludes still-running runs from the denominator.</p>
 <div class="grid-2">
-<div class="card"><h4>AI/BI dashboards and Genie</h4><ul style="margin-bottom:0"><li><strong>Dashboards:</strong> KPI counters, trend charts (failures by day, runtime), tables (recent failures, long runs, repeated retries), filters, scheduled email snapshots.</li><li><strong>Genie spaces:</strong> business users ask questions in natural language over tables you curate, with instructions and example queries you supply.</li></ul><p style="margin:8px 0 0" class="ref">Always check the SQL Genie generated before acting on the answer. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/dashboards/" target="_blank" rel="noopener">AI/BI dashboards</a>.</p></div>
-<div class="card"><h4>Databricks Assistant</h4><p>In notebooks and the SQL editor it explains code and errors, writes and edits code, suggests fixes ("Diagnose error"), and helps explore data. Faced with <code>UNRESOLVED_COLUMN.WITH_SUGGESTION</code>, ask it to explain the error and how to check the source schema before changing code.</p><p style="margin-bottom:0" class="ref">Verify generated code, test on representative data, review security implications, never run generated commands blindly in production, and follow your organization's rules on confidential data. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/notebooks/databricks-assistant/" target="_blank" rel="noopener">Databricks Assistant</a>.</p></div>
+<div class="card"><h4>AI/BI dashboards and Genie</h4><ul style="margin-bottom:0"><li><strong>Dashboards:</strong> KPI counters, trend charts (failures by day, runtime), tables (recent failures, long runs, repeated retries), filters, scheduled email snapshots.</li><li><strong>Genie spaces:</strong> business users ask questions in natural language over tables you curate, with instructions and example queries you supply.</li></ul><p class="ref" style="margin:8px 0 0">Always check the SQL Genie generated before acting on the answer. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/dashboards/" rel="noopener" target="_blank">AI/BI dashboards</a>.</p></div>
+<div class="card"><h4>Databricks Assistant</h4><p>In notebooks and the SQL editor it explains code and errors, writes and edits code, suggests fixes ("Diagnose error"), and helps explore data. Faced with <code>UNRESOLVED_COLUMN.WITH_SUGGESTION</code>, ask it to explain the error and how to check the source schema before changing code.</p><p class="ref" style="margin-bottom:0">Verify generated code, test on representative data, review security implications, never run generated commands blindly in production, and follow your organization's rules on confidential data. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/notebooks/databricks-assistant/" rel="noopener" target="_blank">Databricks Assistant</a>.</p></div>
 </div>
-
 <h3 id="s23-4-6"><span class="num">23.4.4</span>Platform Observability</h3>
 <p>Observability is understanding a system's internal state from its outputs: metrics, events, logs, and traces. Chapters 18, 20, and 22 built the pieces; together they cover:</p>
 <div class="table-wrap"><table>
@@ -984,7 +827,6 @@ ORDER BY failed_runs DESC;</code></pre></div>
 <tr><td>Operations</td><td>Time to acknowledge</td><td>Are alerts handled?</td><td>Chapter 20</td></tr>
 </tbody></table></div>
 <p class="ref">Failure counts alone aren't enough: also watch missed schedules, stale data, long runs, source availability, and alert acknowledgement.</p>
-
 <h3 id="s23-4-7"><span class="num">23.4.5</span>Enterprise Architecture Patterns</h3>
 <div class="grid-2">
 <pre class="diagram">           DATA SOURCES
@@ -1009,12 +851,8 @@ data quality, monitoring, lineage, cost,
 CI/CD, testing, governance</pre>
 <div class="card"><h4>Design principles</h4><ol style="margin-bottom:0"><li><strong>Separate environments</strong> with controlled promotion (Ch 19, 21).</li><li><strong>Centralize governance</strong> for data, models, permissions, lineage.</li><li><strong>Automate quality checks</strong> (Ch 18).</li><li><strong>Design for recovery</strong>: retries, checkpoints, idempotent writes.</li><li><strong>Monitor business outcomes</strong>, not just job success.</li><li><strong>Control cost</strong> by team and domain (Ch 22).</li><li><strong>Use CI/CD</strong> (Ch 21).</li><li><strong>Document ownership</strong> of every dataset, job, alert, and model.</li></ol></div>
 </div>
-<p class="ref">Medallion layers are a common pattern, not a rule.</p>
-
-<!-- ===================== 23.5 ===================== -->
-<h2 id="s23-5"><span class="num">23.5</span>Hands-On Exercise: Choose Your Specialization</h2>
-<p class="section-intro">Don't try to master all four at once. Pick one, complete a project, then broaden. Each option below reuses what you built in this course.</p>
-
+<p class="ref">Medallion layers are a common pattern, not a rule.</p></div></section>
+<section class="lesson" id="s23-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.5</span><h2>Hands-On Exercise: Choose Your Specialization</h2></div><div class="content"><p class="section-intro">Don't try to master all four at once. Pick one, complete a project, then broaden. Each option below reuses what you built in this course.</p>
 <style>.spec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}@media (max-width:760px){.spec-grid{grid-template-columns:1fr}}</style>
 <div class="spec-grid">
 <div class="card"><h4>A · Advanced Data Engineering</h4><p><strong>Project:</strong> production-grade retail lakehouse.</p><pre class="diagram" style="margin:0 0 10px">SQL Server / CSV
@@ -1022,24 +860,23 @@ CI/CD, testing, governance</pre>
  -&gt; Bronze -&gt; validation
  -&gt; Silver -&gt; Gold
  -&gt; Databricks SQL
- -&gt; dashboard</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> ingest customers, products, orders, order items incrementally; SCD1/SCD2; reusable quality checks; retry and recovery; layout and query tuning; job monitoring; CI/CD; cost and performance dashboard.</p><p style="margin-bottom:0" class="ref"><strong>Choose if</strong> you want to build production-grade pipelines. Builds on Chapters 11–22; Chapter 24 is exactly this project.</p></div>
+ -&gt; dashboard</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> ingest customers, products, orders, order items incrementally; SCD1/SCD2; reusable quality checks; retry and recovery; layout and query tuning; job monitoring; CI/CD; cost and performance dashboard.</p><p class="ref" style="margin-bottom:0"><strong>Choose if</strong> you want to build production-grade pipelines. Builds on Chapters 11–22; Chapter 24 is exactly this project.</p></div>
 <div class="card"><h4>B · Analytics Engineering</h4><p><strong>Project:</strong> retail analytics models.</p><pre class="diagram" style="margin:0 0 10px">Silver
  -&gt; business rules
  -&gt; facts and dimensions
  -&gt; Databricks SQL
- -&gt; AI/BI or Power BI</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> customer, product, date dimensions; sales fact with a defined grain; business calculations; reusable views; totals reconciled to source; reporting optimization; business dashboard.</p><p style="margin-bottom:0" class="ref"><strong>Choose if</strong> you enjoy SQL, modeling, and turning requirements into trusted metrics. Builds on Chapter 17.</p></div>
+ -&gt; AI/BI or Power BI</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> customer, product, date dimensions; sales fact with a defined grain; business calculations; reusable views; totals reconciled to source; reporting optimization; business dashboard.</p><p class="ref" style="margin-bottom:0"><strong>Choose if</strong> you enjoy SQL, modeling, and turning requirements into trusted metrics. Builds on Chapter 17.</p></div>
 <div class="card"><h4>C · Machine Learning</h4><p><strong>Project:</strong> predict pipeline failures.</p><pre class="diagram" style="margin:0 0 10px">Run history -&gt; features
  -&gt; training set -&gt; train
  -&gt; MLflow -&gt; evaluate
  -&gt; register -&gt; batch scores
- -&gt; risk dashboard</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> start from 23.1's working code with your real audit data (Chapter 20); define the target; leak-free features; chronological split; PR-AUC, precision, recall; register; score future runs; compare predictions with outcomes; plan retraining.</p><p style="margin-bottom:0" class="ref"><strong>Choose if</strong> you like statistics and experimentation. A high-risk score should prioritize attention, never restart jobs automatically.</p></div>
+ -&gt; risk dashboard</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> start from 23.1's working code with your real audit data (Chapter 20); define the target; leak-free features; chronological split; PR-AUC, precision, recall; register; score future runs; compare predictions with outcomes; plan retraining.</p><p class="ref" style="margin-bottom:0"><strong>Choose if</strong> you like statistics and experimentation. A high-risk score should prioritize attention, never restart jobs automatically.</p></div>
 <div class="card"><h4>D · Generative AI</h4><p><strong>Project:</strong> AI assistant for pipeline monitoring.</p><pre class="diagram" style="margin:0 0 10px">Logs + incidents + runbooks
  -&gt; chunk -&gt; embed
  -&gt; vector index
  -&gt; question -&gt; retrieve
- -&gt; LLM -&gt; cited answer</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> collect approved incidents and runbooks; chunk with metadata; build a Vector Search index; implement retrieval and the grounded prompt (23.2.3); display answers; evaluate on historical incidents with known causes; add authorization, audit, and human approval.</p><p style="margin-bottom:0" class="ref"><strong>Choose if</strong> you want to combine data engineering, search, and generative AI.</p></div>
+ -&gt; LLM -&gt; cited answer</pre><p style="margin-bottom:6px"><strong>Tasks:</strong> collect approved incidents and runbooks; chunk with metadata; build a Vector Search index; implement retrieval and the grounded prompt (23.2.3); display answers; evaluate on historical incidents with known causes; add authorization, audit, and human approval.</p><p class="ref" style="margin-bottom:0"><strong>Choose if</strong> you want to combine data engineering, search, and generative AI.</p></div>
 </div>
-
 <div class="table-wrap"><table>
 <thead><tr><th></th><th>Advanced DE</th><th>Analytics Eng.</th><th>Machine Learning</th><th>Generative AI</th></tr></thead>
 <tbody>
@@ -1049,11 +886,8 @@ CI/CD, testing, governance</pre>
 <tr><td>Judged by</td><td>Reliability, quality, performance</td><td>Correctness, usefulness</td><td>Generalization</td><td>Groundedness, relevance, safety</td></tr>
 <tr><td>Deliverable</td><td>Incremental lakehouse</td><td>Sales analytics platform</td><td>Failure prediction model</td><td>Monitoring assistant</td></tr>
 <tr><td>Suits</td><td>Data engineers</td><td>SQL and BI people</td><td>Quantitative analysts</td><td>Software + data + AI</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 23.6 ===================== -->
-<h2 id="s23-6"><span class="num">23.6</span>Recommended Learning Path</h2>
-<p>For someone coming from data engineering (ADF, SQL, monitoring, data quality), a sequence that builds on existing skills rather than starting four unrelated tracks:</p>
+</tbody></table></div></div></section>
+<section class="lesson" id="s23-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.6</span><h2>Recommended Learning Path</h2></div><div class="content"><p>For someone coming from data engineering (ADF, SQL, monitoring, data quality), a sequence that builds on existing skills rather than starting four unrelated tracks:</p>
 <div class="grid-2">
 <div class="card"><h4>Stage 1: Advanced data engineering</h4><p>Advanced PySpark, Delta and incremental processing, Unity Catalog, performance, data quality, CI/CD, monitoring.</p><p style="margin-bottom:0"><strong>Goal:</strong> a production-grade pipeline (Chapter 24).</p></div>
 <div class="card"><h4>Stage 2: Analytics engineering</h4><p>Dimensional modeling, facts and dimensions, SCD1/SCD2, Databricks SQL, BI integration, metrics.</p><p style="margin-bottom:0"><strong>Goal:</strong> trustworthy datasets for business users.</p></div>
@@ -1072,11 +906,8 @@ CI/CD, testing, governance</pre>
 <li>Track answer quality, latency, and cost.</li>
 <li>Protect sensitive data with Unity Catalog.</li>
 <li>Recommend fixes; require approval for production changes.</li>
-</ol></div>
-
-<!-- ===================== 23.7 ===================== -->
-<h2 id="s23-7"><span class="num">23.7</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+</ol></div></div></section>
+<section class="lesson" id="s23-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.7</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. Traditional programming vs machine learning?</summary><div class="answer">Traditional programs apply hand-written rules; ML learns patterns from historical examples and applies them to new data.</div></details>
 <details class="q"><summary>Q2. What is feature engineering?</summary><div class="answer">Turning raw data into useful model inputs, e.g. a timestamp into hour and day, or run history into "failures in the last 7 runs".</div></details>
 <details class="q"><summary>Q3. What is data leakage?</summary><div class="answer">Using information at training time that wouldn't be available at prediction time, such as a run's retry count to predict whether that run fails, or statistics from the test data. It inflates metrics (here to a perfect 1.0) and fails in production.</div></details>
@@ -1096,11 +927,8 @@ CI/CD, testing, governance</pre>
 <details class="q"><summary>Q17. Lakehouse Federation vs ingestion?</summary><div class="answer">Federation queries external databases in place through UC connections and foreign catalogs, for live access without copies; ingestion copies data for history, heavy processing, and predictable performance.</div></details>
 <details class="q"><summary>Q18. What is Photon?</summary><div class="answer">Databricks' vectorized native engine that accelerates supported SQL and DataFrame operations without code changes; evaluate by total cost, not just speed.</div></details>
 <details class="q"><summary>Q19. What is predictive optimization?</summary><div class="answer">Automatic, usage-driven OPTIMIZE, VACUUM, and statistics for Unity Catalog managed tables. It maintains tables but doesn't fix bad queries.</div></details>
-<details class="q"><summary>Q20. Using GenAI to improve pipeline monitoring?</summary><div class="answer">A RAG assistant over authorized run logs, incidents, and runbooks that explains failures with citations, abstains when evidence is missing, is evaluated on known incidents, and recommends rather than executes fixes.</div></details>
-
-<!-- ===================== 23.8 ===================== -->
-<h2 id="s23-8"><span class="num">23.8</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q20. Using GenAI to improve pipeline monitoring?</summary><div class="answer">A RAG assistant over authorized run logs, incidents, and runbooks that explains failures with citations, abstains when evidence is missing, is evaluated on known incidents, and recommends rather than executes fixes.</div></details></div></section>
+<section class="lesson" id="s23-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23 · Lesson 23.8</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topic</th><th>Practical task</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>ML fundamentals</td><td>Generate and prepare the run-history data</td></tr>
@@ -1114,37 +942,34 @@ CI/CD, testing, governance</pre>
 <p class="ref">An introduction, not mastery in a week. On Free Edition, some features (serving endpoints, Vector Search, Delta Sharing to external recipients) may be limited or unavailable; the ML section runs anywhere.</p>
 <div class="grid-2">
 <div class="card"><h4>Machine learning and GenAI</h4><ul style="margin-bottom:0">
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/" target="_blank" rel="noopener">Azure Databricks machine learning</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/mlflow/" target="_blank" rel="noopener">MLflow on Databricks</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/vector-search/" target="_blank" rel="noopener">Vector Search</a></li>
-<li><a href="https://api-docs.databricks.com/python/vector-search/databricks.vector_search.html" target="_blank" rel="noopener">Vector Search Python SDK</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-serving/" target="_blank" rel="noopener">Model Serving</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/notebooks/databricks-assistant/" target="_blank" rel="noopener">Databricks Assistant</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/" rel="noopener" target="_blank">Azure Databricks machine learning</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/mlflow/" rel="noopener" target="_blank">MLflow on Databricks</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/vector-search/" rel="noopener" target="_blank">Vector Search</a></li>
+<li><a href="https://api-docs.databricks.com/python/vector-search/databricks.vector_search.html" rel="noopener" target="_blank">Vector Search Python SDK</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/machine-learning/model-serving/" rel="noopener" target="_blank">Model Serving</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/notebooks/databricks-assistant/" rel="noopener" target="_blank">Databricks Assistant</a></li>
 </ul></div>
 <div class="card"><h4>Sharing and platform</h4><ul style="margin-bottom:0">
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/delta-sharing/" target="_blank" rel="noopener">Delta Sharing</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/query-federation/" target="_blank" rel="noopener">Lakehouse Federation</a></li>
-<li><a href="https://docs.delta.io/" target="_blank" rel="noopener">Delta Lake</a> · <a href="https://iceberg.apache.org/docs/latest/" target="_blank" rel="noopener">Apache Iceberg</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/compute/photon/" target="_blank" rel="noopener">Photon</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/optimizations/predictive-optimization" target="_blank" rel="noopener">Predictive optimization</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/sql/" target="_blank" rel="noopener">Databricks SQL</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/dashboards/" target="_blank" rel="noopener">AI/BI dashboards</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/delta-sharing/" rel="noopener" target="_blank">Delta Sharing</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/query-federation/" rel="noopener" target="_blank">Lakehouse Federation</a></li>
+<li><a href="https://docs.delta.io/" rel="noopener" target="_blank">Delta Lake</a> · <a href="https://iceberg.apache.org/docs/latest/" rel="noopener" target="_blank">Apache Iceberg</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/compute/photon/" rel="noopener" target="_blank">Photon</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/optimizations/predictive-optimization" rel="noopener" target="_blank">Predictive optimization</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/sql/" rel="noopener" target="_blank">Databricks SQL</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/dashboards/" rel="noopener" target="_blank">AI/BI dashboards</a></li>
 </ul></div>
-</div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+</div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 23</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch23-checklist">
-<label><input type="checkbox"> <span>The <strong>ML lifecycle</strong>: prepare, engineer features, split, train, evaluate, track, register, deploy, monitor.</span></label>
-<label><input type="checkbox"> <span><strong>Leakage</strong>: features must be known at prediction time.</span></label>
-<label><input type="checkbox"> <span><strong>Rare-event metrics</strong>: precision, recall, and PR-AUC over accuracy.</span></label>
-<label><input type="checkbox"> <span><strong>MLflow and Unity Catalog</strong> track and govern models.</span></label>
-<label><input type="checkbox"> <span><strong>Embeddings and vector search</strong> find related content by meaning.</span></label>
-<label><input type="checkbox"> <span><strong>RAG</strong> grounds answers in retrieved, authorized evidence with citations.</span></label>
-<label><input type="checkbox"> <span><strong>Agents</strong> need least-privilege tools and human approval.</span></label>
-<label><input type="checkbox"> <span><strong>Delta Sharing, UniForm, and federation</strong> share and connect data without copies.</span></label>
-<label><input type="checkbox"> <span><strong>Photon and predictive optimization</strong> speed up and maintain tables.</span></label>
-<label><input type="checkbox"> <span>I've <strong>chosen a specialization</strong> and a first project.</span></label>
+<label><input type="checkbox"/> <span>The <strong>ML lifecycle</strong>: prepare, engineer features, split, train, evaluate, track, register, deploy, monitor.</span></label>
+<label><input type="checkbox"/> <span><strong>Leakage</strong>: features must be known at prediction time.</span></label>
+<label><input type="checkbox"/> <span><strong>Rare-event metrics</strong>: precision, recall, and PR-AUC over accuracy.</span></label>
+<label><input type="checkbox"/> <span><strong>MLflow and Unity Catalog</strong> track and govern models.</span></label>
+<label><input type="checkbox"/> <span><strong>Embeddings and vector search</strong> find related content by meaning.</span></label>
+<label><input type="checkbox"/> <span><strong>RAG</strong> grounds answers in retrieved, authorized evidence with citations.</span></label>
+<label><input type="checkbox"/> <span><strong>Agents</strong> need least-privilege tools and human approval.</span></label>
+<label><input type="checkbox"/> <span><strong>Delta Sharing, UniForm, and federation</strong> share and connect data without copies.</span></label>
+<label><input type="checkbox"/> <span><strong>Photon and predictive optimization</strong> speed up and maintain tables.</span></label>
+<label><input type="checkbox"/> <span>I've <strong>chosen a specialization</strong> and a first project.</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1163,67 +988,21 @@ CI/CD, testing, governance</pre>
   update();
 })();
 </script>
-
 <div class="callout key"><span class="label">Your next decision</span><p>Which specialization will you pursue first? <strong>A.</strong> Advanced Data Engineering · <strong>B.</strong> Analytics Engineering · <strong>C.</strong> Machine Learning · <strong>D.</strong> Generative AI. Whichever you choose, Chapter 24 comes first: it's the foundation every path builds on.</p></div>
-
 <div class="next">
 <h3>Next chapter: Real-World End-to-End Data Engineering Project</h3>
 <p>The final and most important practical chapter: build an enterprise retail data platform from scratch, covering customers, products, orders, inventory, and payments; incremental ingestion; Bronze, Silver, and Gold layers; a star schema; data quality; orchestration; monitoring; security; CI/CD; and cost, bringing together everything from the previous 23 chapters.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-22.html"><span class="mn-label">← Previous</span><span class="mn-title">Cost Optimization</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-24.html"><span class="mn-label">Next →</span><span class="mn-title">End-to-End Project</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-22.html"><span>← Previous</span><strong>Chapter 22: Cost Optimization</strong></a>
-  <a class="pager-link" href="databricks-chapter-24.html"><span>Next →</span><strong>Chapter 24: End-to-End Project</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 8 · Chapter 23 of 24</footer>
-</div>
-</main>
-</div>
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

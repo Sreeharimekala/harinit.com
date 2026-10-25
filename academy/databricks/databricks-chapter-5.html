@@ -1,290 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 5: Python</title>
-<meta name="description" content="Databricks Tutorial — Chapter 5: Python Fundamentals for Databricks. Collections, functions, files and JSON, errors, logging, dates, APIs, config, tests, and a JSON-to-Delta ingestion exercise.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Python — Chapter 5 | Databricks | HarinIT Academy</title><meta name="description" content="Databricks Tutorial — Chapter 5: Python Fundamentals for Databricks. Collections, functions, files and JSON, errors, logging, dates, APIs, config, tests, and a JSON-to-Delta ingestion exercise."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 5 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s5-1">5.1 Python Basics</a></li>
-    <li class="lvl2"><a href="#s5-1-2">Running Python</a></li>
-    <li class="lvl2"><a href="#s5-1-3">Variables</a></li>
-    <li class="lvl2"><a href="#s5-1-4">Data types</a></li>
-    <li class="lvl2"><a href="#s5-1-5">Operators</a></li>
-    <li class="lvl2"><a href="#s5-1-6">Strings</a></li>
-    <li class="lvl2"><a href="#s5-1-7">Lists</a></li>
-    <li class="lvl2"><a href="#s5-1-8">Tuples</a></li>
-    <li class="lvl2"><a href="#s5-1-9">Sets</a></li>
-    <li class="lvl2"><a href="#s5-1-10">Dictionaries</a></li>
-    <li class="lvl2"><a href="#s5-1-11">Conditionals</a></li>
-    <li class="lvl2"><a href="#s5-1-12">Loops</a></li>
-    <li class="lvl1"><a href="#s5-2">5.2 Functions and Modules</a></li>
-    <li class="lvl2"><a href="#s5-2-1">Defining functions</a></li>
-    <li class="lvl2"><a href="#s5-2-2">Arguments &amp; returns</a></li>
-    <li class="lvl2"><a href="#s5-2-3">Lambda functions</a></li>
-    <li class="lvl2"><a href="#s5-2-4">Built-in functions</a></li>
-    <li class="lvl2"><a href="#s5-2-5">Importing modules</a></li>
-    <li class="lvl2"><a href="#s5-2-6">Reusable code</a></li>
-    <li class="lvl1"><a href="#s5-3">5.3 Data Processing</a></li>
-    <li class="lvl2"><a href="#s5-3-1">Reading CSV</a></li>
-    <li class="lvl2"><a href="#s5-3-2">Reading JSON</a></li>
-    <li class="lvl2"><a href="#s5-3-3">Dicts and lists</a></li>
-    <li class="lvl2"><a href="#s5-3-4">Missing values</a></li>
-    <li class="lvl2"><a href="#s5-3-5">Exception handling</a></li>
-    <li class="lvl2"><a href="#s5-3-6">Logging</a></li>
-    <li class="lvl2"><a href="#s5-3-7">File operations</a></li>
-    <li class="lvl1"><a href="#s5-4">5.4 Python for Data Eng.</a></li>
-    <li class="lvl2"><a href="#s5-4-1">Dates</a></li>
-    <li class="lvl2"><a href="#s5-4-2">JSON parsing</a></li>
-    <li class="lvl2"><a href="#s5-4-3">API requests</a></li>
-    <li class="lvl2"><a href="#s5-4-4">Configuration</a></li>
-    <li class="lvl2"><a href="#s5-4-5">Environment variables</a></li>
-    <li class="lvl2"><a href="#s5-4-6">Transformation functions</a></li>
-    <li class="lvl2"><a href="#s5-4-7">Unit testing</a></li>
-    <li class="lvl1"><a href="#s5-5">5.5 Hands-on: JSON Records</a></li>
-    <li class="lvl1"><a href="#s5-6">5.6 Load into Databricks</a></li>
-    <li class="lvl1"><a href="#s5-7">5.7 Best Practices</a></li>
-    <li class="lvl1"><a href="#s5-8">5.8 Quick Reference</a></li>
-    <li class="lvl1"><a href="#s5-9">5.9 Practice &amp; Checklist</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 2 · Chapter 5 · Prerequisites</span>
-  <h1>Python Fundamentals for Databricks</h1>
-  <p class="lead">The Python you actually need as a Databricks data engineer: core syntax and collections, functions, file and JSON processing, error handling, logging, dates, APIs, configuration, and tests, ending with a small ingestion pipeline that loads into a Delta table.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ul>
-    <li>Understand Python syntax, variables, data types, and operators.</li>
-    <li>Work with strings, lists, tuples, sets, and dictionaries.</li>
-    <li>Write conditional statements, loops, and reusable functions.</li>
-    <li>Read and process CSV and JSON files.</li>
-    <li>Handle missing values, invalid records, and exceptions.</li>
-    <li>Use logging to monitor scripts and data-processing tasks.</li>
-    <li>Work with dates, APIs, configuration files, and environment variables.</li>
-    <li>Write reusable transformation functions and basic unit tests.</li>
-    <li>Build a small ingestion process that prepares JSON records for a Databricks table.</li>
-  </ul></div>
-  <div class="callout"><span class="label">Important</span><p>You don't need to master every Python feature before learning Databricks. Focus on the skills you'll use in notebooks, PySpark transformations, ingestion pipelines, and data-quality checks. Examples throughout use practical ETL scenarios.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s5-1"><span>5.1</span><strong>Python Basics</strong></a>
-    <a class="chip" href="#s5-2"><span>5.2</span><strong>Functions &amp; Modules</strong></a>
-    <a class="chip" href="#s5-3"><span>5.3</span><strong>Data Processing</strong></a>
-    <a class="chip" href="#s5-4"><span>5.4</span><strong>Python for Data Eng.</strong></a>
-    <a class="chip" href="#s5-5"><span>5.5–5.6</span><strong>Hands-on Pipeline</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 5.1 ===================== -->
-<h2 id="s5-1"><span class="num">5.1</span>Python Basics</h2>
-
-<h3 id="s5-1-1"><span class="num">5.1.1</span>What is Python?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Python Fundamentals for Databricks</div>
+<div class="brand-sub">Chapter 5 · 9 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s5-1" class="nav-link"><span class="nav-num">5.1</span>Python Basics</a>
+<a href="#s5-2" class="nav-link"><span class="nav-num">5.2</span>Functions and Modules</a>
+<a href="#s5-3" class="nav-link"><span class="nav-num">5.3</span>Python Data Processing</a>
+<a href="#s5-4" class="nav-link"><span class="nav-num">5.4</span>Python for Data Engineering</a>
+<a href="#s5-5" class="nav-link"><span class="nav-num">5.5</span>Hands-on Exercise: Read, Validate, and Transform JSON Records</a>
+<a href="#s5-6" class="nav-link"><span class="nav-num">5.6</span>Load the Valid Records into a Databricks Table</a>
+<a href="#s5-7" class="nav-link"><span class="nav-num">5.7</span>Python Best Practices for Databricks Data Engineers</a>
+<a href="#s5-8" class="nav-link"><span class="nav-num">5.8</span>Quick Reference</a>
+<a href="#s5-9" class="nav-link"><span class="nav-num">5.9</span>Practice Questions</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 2 · Chapter 5 · Prerequisites</div><h1>Python Fundamentals for Databricks</h1>
+<p>The Python you actually need as a Databricks data engineer: core syntax and collections, functions, file and JSON processing, error handling, logging, dates, APIs, configuration, and tests, ending with a small ingestion pipeline that loads into a Delta table.</p>
+<div class="doc-meta"><span class="pill">9 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s5-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.1</span><h2>Python Basics</h2></div><div class="content"><h3 id="s5-1-1"><span class="num">5.1.1</span>What is Python?</h3>
 <p>Python is a general-purpose language used for data engineering, data analysis, automation, API integration, machine learning, file processing, and application development. In Databricks it's commonly used with PySpark to process large datasets across many machines.</p>
 <div class="grid-2">
-  <div class="card"><h4>A typical Python job in Databricks</h4><ol><li>Read a configuration file.</li><li>Identify source and target tables.</li><li>Read data using Spark.</li><li>Apply transformations.</li><li>Validate records.</li><li>Write results to Delta tables.</li><li>Log the execution status.</li></ol></div>
-  <div class="callout key" style="margin:0"><span class="label">Division of labour</span><p>Python handles the <strong>programming logic</strong>; Spark handles <strong>distributed data processing</strong> when you use PySpark.</p></div>
+<div class="card"><h4>A typical Python job in Databricks</h4><ol><li>Read a configuration file.</li><li>Identify source and target tables.</li><li>Read data using Spark.</li><li>Apply transformations.</li><li>Validate records.</li><li>Write results to Delta tables.</li><li>Log the execution status.</li></ol></div>
+<div class="callout key" style="margin:0"><span class="label">Division of labour</span><p>Python handles the <strong>programming logic</strong>; Spark handles <strong>distributed data processing</strong> when you use PySpark.</p></div>
 </div>
-
 <h3 id="s5-1-2"><span class="num">5.1.2</span>Running Python in Databricks</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print("Hello, Databricks!")
 # Hello, Databricks!
@@ -300,7 +154,6 @@ print(employee_count)</code></pre></div>
 FROM main.employee_sql_lab.employees;</code></pre></div>
 </div>
 <p>Use <strong>Python</strong> for programmatic logic, API integration, configuration processing, or custom functions. Use <strong>SQL</strong> when it expresses the transformation clearly and efficiently. PySpark combines Python programming with Spark's distributed processing.</p>
-
 <h3 id="s5-1-3"><span class="num">5.1.3</span>Variables</h3>
 <p>A variable stores a value; Python determines its type from the assigned value.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>employee_id = 101
@@ -350,7 +203,6 @@ target_table = "main.sales_silver.customers"
 print(f"Source: {source_system}.{source_table}")
 print(f"Target: {target_table}")</code></pre></div>
 <p>The last pattern is useful when writing reusable ingestion scripts.</p>
-
 <h3 id="s5-1-4"><span class="num">5.1.4</span>Data types</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Type</th><th>Example</th><th>Purpose</th></tr></thead>
@@ -384,7 +236,6 @@ employee_name = str(101)          # "101"
     "is_active": "true"
 }</code></pre></div>
 <p>All three values are <em>strings</em>, even though they represent an integer, a decimal, and a Boolean. Before loading into a typed table, validate and convert them. This is a core data engineering responsibility.</p>
-
 <h3 id="s5-1-5"><span class="num">5.1.5</span>Operators</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Arithmetic</span><pre class="code"><code>a = 10
@@ -423,7 +274,6 @@ value = None
 if value is None:
     print("Value is missing")</code></pre></div>
 <p class="ref">Prefer <code>is None</code> over <code>== None</code>; it's the standard, clearer check.</p>
-
 <h3 id="s5-1-6"><span class="num">5.1.6</span>Strings</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>name = "Databricks"
 
@@ -464,7 +314,6 @@ print(f"Employee {employee_name} earns {salary}")
 clean_department = department.strip().upper()
 print(clean_department)   # IT</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p>Python string methods work on individual strings. For millions of records in Spark, prefer Spark SQL functions or PySpark column expressions over calling Python functions on every row.</p></div>
-
 <h3 id="s5-1-7"><span class="num">5.1.7</span>Lists</h3>
 <p>A list is an ordered, <strong>mutable</strong> collection.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>departments = ["IT", "Finance", "HR"]
@@ -499,7 +348,6 @@ print(high_values)   # [20, 25, 30]</code></pre></div>
 for table_name in source_tables:
     print(f"Processing table: {table_name}")</code></pre></div>
 <p class="ref">Useful for running one reusable pipeline over many tables. Never put credentials in lists or notebook source.</p>
-
 <h3 id="s5-1-8"><span class="num">5.1.8</span>Tuples</h3>
 <p>A tuple is an ordered collection that cannot be modified after creation; useful when values should stay grouped and fixed.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>database_config = ("server01", "sales_db", 1433)
@@ -520,7 +368,6 @@ source_table, target_table = (
 <tr><td>Typical use</td><td>Collection that may change</td><td>Fixed collection</td></tr>
 </tbody></table></div>
 <p class="ref">A tuple can still contain a mutable object; immutability means its element references can't be reassigned.</p>
-
 <h3 id="s5-1-9"><span class="num">5.1.9</span>Sets</h3>
 <p>A set stores <strong>unique</strong> elements, which is useful for membership checks and comparing collections.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>departments = {"IT", "Finance", "IT", "HR"}
@@ -541,7 +388,6 @@ target_tables = {"customers", "orders"}
 missing_tables = source_tables - target_tables
 print(missing_tables)   # {'products'}</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p>Sets have no guaranteed order. Don't use them when record order matters.</p></div>
-
 <h3 id="s5-1-10"><span class="num">5.1.10</span>Dictionaries</h3>
 <p>A dictionary stores key-value pairs. Dictionaries are central to Python data engineering because <strong>JSON objects map naturally to Python dictionaries</strong>.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>employee = {
@@ -588,7 +434,6 @@ for employee in employees:
           employee["employee_name"])</code></pre></div>
 </div>
 <p class="ref">The list-of-dictionaries structure is used in the hands-on project.</p>
-
 <h3 id="s5-1-11"><span class="num">5.1.11</span>Conditional statements</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># if
 salary = 85000
@@ -626,7 +471,6 @@ elif employee.get("salary") is None:
 else:
     print("Record passed basic validation")</code></pre></div>
 <p class="ref">Production validation should also check empty strings, types, ranges, and business rules.</p>
-
 <h3 id="s5-1-12"><span class="num">5.1.12</span>Loops</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># for: range(5) gives 0 through 4
 for number in range(5):
@@ -657,12 +501,8 @@ for employee_id in range(1, 6):
     if employee_id == 3:
         continue
     print(employee_id)</code></pre></div>
-<div class="callout warn"><span class="label">Critical distinction: Python loops vs Spark</span><p>A loop like <code>for employee in employees: process_employee(employee)</code> is fine for small collections, configuration, and control flow. But <strong>never collect millions of Spark records into a Python list</strong> and process them one by one: it can exhaust driver memory and throws away distributed processing. Use PySpark DataFrame transformations instead (Chapter 7).</p></div>
-
-<!-- ===================== 5.2 ===================== -->
-<h2 id="s5-2"><span class="num">5.2</span>Functions and Modules</h2>
-<p class="section-intro">Functions organize code into reusable units. Define a transformation once and call it everywhere it's needed.</p>
-
+<div class="callout warn"><span class="label">Critical distinction: Python loops vs Spark</span><p>A loop like <code>for employee in employees: process_employee(employee)</code> is fine for small collections, configuration, and control flow. But <strong>never collect millions of Spark records into a Python list</strong> and process them one by one: it can exhaust driver memory and throws away distributed processing. Use PySpark DataFrame transformations instead (Chapter 7).</p></div></div></section>
+<section class="lesson" id="s5-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.2</span><h2>Functions and Modules</h2></div><div class="content"><p class="section-intro">Functions organize code into reusable units. Define a transformation once and call it everywhere it's needed.</p>
 <h3 id="s5-2-1"><span class="num">5.2.1</span>Defining functions</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>def greet():
     print("Hello from Python")
@@ -682,7 +522,6 @@ greet_employee("Priya")</code></pre></div>
 print(validate_employee_id(101))    # True
 print(validate_employee_id(None))   # False</code></pre></div>
 <p class="ref">Real validation should also reject invalid types and malformed identifiers.</p>
-
 <h3 id="s5-2-2"><span class="num">5.2.2</span>Arguments and return values</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>def calculate_annual_salary(monthly_salary):
     return monthly_salary * 12
@@ -716,7 +555,6 @@ employee = create_employee(
     salary=85000
 )</code></pre></div>
 <div class="callout key"><span class="label">return versus print</span><p><code>print()</code> displays a value. <code>return</code> sends a value back to the caller, so another function or pipeline step can use it.</p></div>
-
 <h3 id="s5-2-3"><span class="num">5.2.3</span>Lambda functions</h3>
 <p>A lambda is a small anonymous function.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>square = lambda x: x * x
@@ -735,7 +573,6 @@ employees_sorted = sorted(
 )
 print(employees_sorted)   # highest salary first</code></pre></div>
 <p class="ref">Use a regular <code>def</code> function for complicated transformations; lambdas suit short expressions.</p>
-
 <h3 id="s5-2-4"><span class="num">5.2.4</span>Built-in functions</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
@@ -763,7 +600,6 @@ employee_names = ["Rahul", "Priya", "Arjun"]
 for employee_id, employee_name in zip(employee_ids, employee_names):
     print(employee_id, employee_name)</code></pre></div>
 <p class="ref"><code>zip()</code> stops when the shortest iterable is exhausted.</p>
-
 <h3 id="s5-2-5"><span class="num">5.2.5</span>Importing modules</h3>
 <p>A module is a Python file or package of reusable code. Python ships with modules for dates, JSON, logging, files, and more.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Import a complete module
@@ -793,7 +629,6 @@ print(dt.date.today())</code></pre></div>
 <tr><td>re</td><td>Regular expressions</td></tr>
 </tbody></table></div>
 <p class="ref">Some third-party packages may not be installed by default in your Databricks environment.</p>
-
 <h3 id="s5-2-6"><span class="num">5.2.6</span>Creating reusable code</h3>
 <p>For a small notebook, functions in a Python cell are often enough. For larger projects, put them in modules:</p>
 <pre class="diagram">employee_pipeline/
@@ -826,12 +661,8 @@ annual_salary = calculate_annual_salary(85000)
 
 print(name)            # Rahul Sharma
 print(annual_salary)   # 1020000</code></pre></div>
-<p>This makes code easier to test, maintain, and reuse. In Databricks, you can organize reusable code with source files, workspace files, packages, and notebooks, depending on your project and deployment setup.</p>
-
-<!-- ===================== 5.3 ===================== -->
-<h2 id="s5-3"><span class="num">5.3</span>Python Data Processing</h2>
-<p class="section-intro">Especially important for data engineers: you'll constantly receive files from external systems and need to read, validate, transform, and prepare them for storage.</p>
-
+<p>This makes code easier to test, maintain, and reuse. In Databricks, you can organize reusable code with source files, workspace files, packages, and notebooks, depending on your project and deployment setup.</p></div></section>
+<section class="lesson" id="s5-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.3</span><h2>Python Data Processing</h2></div><div class="content"><p class="section-intro">Especially important for data engineers: you'll constantly receive files from external systems and need to read, validate, transform, and prepare them for storage.</p>
 <h3 id="s5-3-1"><span class="num">5.3.1</span>Reading CSV files</h3>
 <pre class="diagram">employee_id,employee_name,department,salary
 101,Rahul Sharma,IT,85000
@@ -877,7 +708,6 @@ display(df)</code></pre></div>
 <p class="ref">Assumes the file exists in that Unity Catalog volume and you have access.</p></div>
 </div>
 <div class="callout"><span class="label">Note</span><p>Databricks file paths depend on where data is stored and how storage access is configured. <code>inferSchema=True</code> is convenient for exploration; explicit schemas are better for reliable production ingestion.</p></div>
-
 <h3 id="s5-3-2"><span class="num">5.3.2</span>Reading JSON files</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import json
 
@@ -926,7 +756,6 @@ df = (
     .option("multiLine", True)
     .json("/Volumes/main/default/files/employees.json")
 )</code></pre></div>
-
 <h3 id="s5-3-3"><span class="num">5.3.3</span>Working with dictionaries and lists</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>employees = [
     {
@@ -969,7 +798,6 @@ transformed_employees = [
     for employee in employees
 ]</code></pre></div>
 <p class="ref">This function assumes every field exists and is valid. The hands-on project makes it robust.</p>
-
 <h3 id="s5-3-4"><span class="num">5.3.4</span>Handling missing values</h3>
 <p>Missing values can appear as a missing JSON property, JSON <code>null</code> (Python <code>None</code>), an empty string, a whitespace-only string, a missing CSV field, or a placeholder like <code>"UNKNOWN"</code> or <code>"N/A"</code>. These are <strong>not automatically equivalent</strong>.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>employee = {"employee_id": 101, "employee_name": "Rahul", "salary": None}
@@ -997,7 +825,6 @@ email = employee.get("email") or "unknown@example.com"</code></pre></div>
 <li>Missing email → allow NULL if email is optional.</li>
 <li>Missing salary → reject, quarantine, or keep NULL per the source contract.</li></ul>
 <p>Don't replace every missing value with zero; that creates incorrect business results.</p></div>
-
 <h3 id="s5-3-5"><span class="num">5.3.5</span>Exception handling</h3>
 <p>An exception is an error raised while a program runs: a string that can't become an integer, a missing file, malformed JSON, a failed API request, a missing dictionary key.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>try:
@@ -1028,7 +855,6 @@ finally:
 <tr><td><code>finally</code></td><td>Always, whether it succeeded or failed</td></tr>
 </tbody></table></div>
 <div class="callout warn"><span class="label">Avoid broad exception handling</span><p><code>except Exception: pass</code> hides errors and makes troubleshooting very hard. Handle the exceptions you expect, and log enough information to diagnose failures.</p></div>
-
 <h3 id="s5-3-6"><span class="num">5.3.6</span>Logging</h3>
 <p>Logging records what happened during execution, which is exactly what you need to understand an ETL load.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import logging
@@ -1067,10 +893,9 @@ for employee in employees:
 
 logger.info("Employee processing completed")</code></pre></div>
 <div class="grid-2">
-  <div class="card"><h4>Good job logs answer</h4><ul><li>Which pipeline or task ran?</li><li>Which source was processed?</li><li>How many records were read, accepted, and rejected?</li><li>What caused a failure?</li><li>When did it start and finish?</li></ul></div>
-  <div class="callout warn" style="margin:0"><span class="label">Never log</span><p>Passwords, access tokens, sensitive personal information, or full records containing confidential data.</p></div>
+<div class="card"><h4>Good job logs answer</h4><ul><li>Which pipeline or task ran?</li><li>Which source was processed?</li><li>How many records were read, accepted, and rejected?</li><li>What caused a failure?</li><li>When did it start and finish?</li></ul></div>
+<div class="callout warn" style="margin:0"><span class="label">Never log</span><p>Passwords, access tokens, sensitive personal information, or full records containing confidential data.</p></div>
 </div>
-
 <h3 id="s5-3-7"><span class="num">5.3.7</span>File operations</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Read
 with open("sample.txt", "r", encoding="utf-8") as file:
@@ -1093,12 +918,8 @@ with open("sample.txt", "r", encoding="utf-8") as file:
 from pathlib import Path
 file_path = Path("data") / "employees.json"
 print(file_path)</code></pre></div>
-<div class="callout"><span class="label">Local files versus Databricks storage</span><p><code>open("employees.json")</code> refers to a file relative to the Python process's working directory. It does <strong>not</strong> automatically point to ADLS or a Unity Catalog volume. In Databricks, files may live in a Unity Catalog volume, cloud object storage, workspace files, the driver's local filesystem, or another source. For large-scale ingestion, use Spark readers and supported storage access, not downloads to the driver.</p></div>
-
-<!-- ===================== 5.4 ===================== -->
-<h2 id="s5-4"><span class="num">5.4</span>Python for Data Engineering</h2>
-
-<h3 id="s5-4-1"><span class="num">5.4.1</span>Working with dates</h3>
+<div class="callout"><span class="label">Local files versus Databricks storage</span><p><code>open("employees.json")</code> refers to a file relative to the Python process's working directory. It does <strong>not</strong> automatically point to ADLS or a Unity Catalog volume. In Databricks, files may live in a Unity Catalog volume, cloud object storage, workspace files, the driver's local filesystem, or another source. For large-scale ingestion, use Spark readers and supported storage access, not downloads to the driver.</p></div></div></section>
+<section class="lesson" id="s5-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.4</span><h2>Python for Data Engineering</h2></div><div class="content"><h3 id="s5-4-1"><span class="num">5.4.1</span>Working with dates</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from datetime import date, datetime, timedelta
 
 today = date.today()
@@ -1131,7 +952,6 @@ from zoneinfo import ZoneInfo
 current_time = datetime.now(ZoneInfo("Asia/Kolkata"))
 print(current_time)</code></pre></div>
 <div class="callout key"><span class="label">Define timestamp meaning</span><p>Use timezone-aware values when a timestamp must be interpreted in a specific zone. For distributed pipelines, document whether source timestamps are UTC, local, or offset-aware. A timestamp's meaning matters as much as its displayed value.</p></div>
-
 <h3 id="s5-4-2"><span class="num">5.4.2</span>JSON parsing</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import json
 from datetime import date
@@ -1156,7 +976,6 @@ employee = {
     "joining_date": date(2024, 1, 15).isoformat()
 }
 print(json.dumps(employee))</code></pre></div>
-
 <h3 id="s5-4-3"><span class="num">5.4.3</span>API requests</h3>
 <p>Data engineers often pull customer, employee, sales, monitoring, or third-party data from APIs. The <code>requests</code> package is common; it may need to be installed in your environment.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import requests
@@ -1173,11 +992,10 @@ data = response.json()
 print(data)</code></pre></div>
 <p class="ref">Illustrative only; the URL is a placeholder. <code>raise_for_status()</code> raises an error for unsuccessful status codes, so a failed request isn't mistaken for success.</p>
 <div class="grid-2">
-  <div class="card"><h4>Authentication</h4><p>APIs may require API keys, OAuth tokens, managed identity, or other mechanisms.</p><p style="margin-bottom:0"><strong>Never hard-code credentials</strong> in notebook cells; use your organization's approved secret-management or identity mechanism.</p></div>
-  <div class="card"><h4>Production considerations</h4><ul><li>Authentication, timeouts, retries.</li><li>Rate limits and pagination.</li><li>Response validation.</li><li>Duplicate handling.</li><li>Incremental retrieval.</li><li>Logging and failure recovery.</li></ul></div>
+<div class="card"><h4>Authentication</h4><p>APIs may require API keys, OAuth tokens, managed identity, or other mechanisms.</p><p style="margin-bottom:0"><strong>Never hard-code credentials</strong> in notebook cells; use your organization's approved secret-management or identity mechanism.</p></div>
+<div class="card"><h4>Production considerations</h4><ul><li>Authentication, timeouts, retries.</li><li>Rate limits and pagination.</li><li>Response validation.</li><li>Duplicate handling.</li><li>Incremental retrieval.</li><li>Logging and failure recovery.</li></ul></div>
 </div>
 <p class="ref">A successful HTTP response doesn't guarantee the records have the expected schema or valid data.</p>
-
 <h3 id="s5-4-4"><span class="num">5.4.4</span>Configuration management</h3>
 <p>Separate environment-specific settings from application logic instead of scattering values like <code>"production.crm.customers"</code> through your code.</p>
 <div class="grid-2">
@@ -1203,7 +1021,6 @@ with open("config.json", "r", encoding="utf-8") as file:
 
 print(config["source_table"])</code></pre></div>
 <p class="ref">In Databricks, config files must be in an accessible location. For deployed workloads, follow your organization's configuration and deployment approach.</p>
-
 <h3 id="s5-4-5"><span class="num">5.4.5</span>Environment variables</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import os
 
@@ -1214,7 +1031,6 @@ database_host = os.getenv("DATABASE_HOST")
 if not database_host:
     raise ValueError("DATABASE_HOST is not configured")</code></pre></div>
 <div class="callout warn"><span class="label">Security rule</span><p>Environment variables are not a secure secret store. Credentials there can leak into logs, notebook outputs, or diagnostics. In Databricks, use approved secret management or workload identity, depending on whether you're connecting to Azure resources, external APIs, databases, or other services.</p></div>
-
 <h3 id="s5-4-6"><span class="num">5.4.6</span>Reusable transformation functions</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from decimal import Decimal, InvalidOperation
 
@@ -1241,7 +1057,6 @@ transformed_employees = [
     for record in employees
 ]</code></pre></div>
 <div class="callout key"><span class="label">Why Decimal for money?</span><p>Binary floating-point represents some decimal values only approximately. For financial calculations that need exact decimal arithmetic, <code>Decimal</code> is safer than <code>float</code>. In Databricks, a SQL <code>DECIMAL(p, s)</code> type usually suits monetary values; match the target schema and business requirements.</p></div>
-
 <h3 id="s5-4-7"><span class="num">5.4.7</span>Basic unit testing</h3>
 <p>Unit tests check that a small piece of code behaves as expected. For a name normalizer, <code>" Rahul "</code> should become <code>"Rahul"</code>, <code>"Priya"</code> stays the same, and <code>None</code> stays <code>None</code>.</p>
 <div class="code-wrap"><span class="lang">Python · assertions</span><pre class="code"><code>def normalize_name(name):
@@ -1284,23 +1099,19 @@ result = unittest.TextTestRunner().run(suite)
 if not result.wasSuccessful():
     raise AssertionError("Unit tests failed")</code></pre></div>
 <div class="grid-2">
-  <div class="card"><h4>What to test in a transformation</h4><ul><li>Valid input and correct output types.</li><li>Missing fields and NULL values.</li><li>Invalid types and unexpected strings.</li><li>Boundary values.</li><li>Duplicate business keys.</li><li>Empty input.</li></ul></div>
-  <div class="callout" style="margin:0"><span class="label">Note</span><p>Unit tests don't replace integration tests. A function can work in isolation and still fail when interacting with Spark, a table, or an external API.</p></div>
-</div>
-
-<!-- ===================== 5.5 ===================== -->
-<h2 id="s5-5"><span class="num">5.5</span>Hands-on Exercise: Read, Validate, and Transform JSON Records</h2>
-<p class="section-intro">Combine the chapter into a small ingestion workflow: first in plain Python, then loaded into a Spark DataFrame and a Delta table.</p>
+<div class="card"><h4>What to test in a transformation</h4><ul><li>Valid input and correct output types.</li><li>Missing fields and NULL values.</li><li>Invalid types and unexpected strings.</li><li>Boundary values.</li><li>Duplicate business keys.</li><li>Empty input.</li></ul></div>
+<div class="callout" style="margin:0"><span class="label">Note</span><p>Unit tests don't replace integration tests. A function can work in isolation and still fail when interacting with Spark, a table, or an external API.</p></div>
+</div></div></section>
+<section class="lesson" id="s5-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.5</span><h2>Hands-on Exercise: Read, Validate, and Transform JSON Records</h2></div><div class="content"><p class="section-intro">Combine the chapter into a small ingestion workflow: first in plain Python, then loaded into a Spark DataFrame and a Delta table.</p>
 <div class="card"><h4>The process will</h4><ol class="steps">
-  <li>Read employee records from JSON and parse each one.</li>
-  <li>Validate required fields.</li>
-  <li>Convert employee IDs and salaries to the right types.</li>
-  <li>Normalize names and department values.</li>
-  <li>Handle invalid records without stopping the batch.</li>
-  <li>Separate valid and invalid records.</li>
-  <li>Produce a structure ready to load into a Databricks table.</li>
+<li>Read employee records from JSON and parse each one.</li>
+<li>Validate required fields.</li>
+<li>Convert employee IDs and salaries to the right types.</li>
+<li>Normalize names and department values.</li>
+<li>Handle invalid records without stopping the batch.</li>
+<li>Separate valid and invalid records.</li>
+<li>Produce a structure ready to load into a Databricks table.</li>
 </ol></div>
-
 <h4>Step 1: Create sample JSON data</h4>
 <p>The JSON lives in a Python string so you can run the exercise without a separate file.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>json_text = """
@@ -1349,7 +1160,6 @@ if not result.wasSuccessful():
 ]
 """</code></pre></div>
 <div class="callout"><span class="label">Deliberate problems</span><ul><li>Record 103 has an invalid salary.</li><li>Record 104 has an empty employee name.</li><li>Record 105 has no employee name at all.</li><li>The others are valid.</li></ul></div>
-
 <h4>Step 2: Parse the JSON</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import json
 
@@ -1357,7 +1167,6 @@ records = json.loads(json_text)
 
 print(f"Total input records: {len(records)}")
 # Total input records: 6</code></pre></div>
-
 <h4>Step 3: Create a transformation function</h4>
 <p>Uses <code>Decimal</code> for salary and <code>datetime.strptime()</code> for date validation.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from datetime import datetime
@@ -1444,7 +1253,6 @@ def transform_employee(record):
 <tr><td>7</td><td>Returns a normalized dictionary</td></tr>
 </tbody></table></div>
 <p>If validation fails, the function raises a <code>ValueError</code> describing the reason.</p>
-
 <h4>Step 4: Process valid and invalid records</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>import logging
 
@@ -1479,7 +1287,6 @@ logger.info("Invalid records: %s", len(invalid_records))</code></pre></div>
 <div class="table-wrap"><table>
 <thead><tr><th>Metric</th><th>Expected count</th></tr></thead>
 <tbody><tr><td>Total input records</td><td>6</td></tr><tr><td>Valid records</td><td>3 (101, 102, 106)</td></tr><tr><td>Invalid records</td><td>3 (103, 104, 105)</td></tr></tbody></table></div>
-
 <h4>Step 5: Inspect the valid records</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>for record in valid_records:
     print(record)
@@ -1491,19 +1298,14 @@ logger.info("Invalid records: %s", len(invalid_records))</code></pre></div>
 #  "salary": Decimal("85000.50"),
 #  "joining_date": date(2024, 1, 15)}</code></pre></div>
 <p>Records now have integer IDs, clean names, uppercase departments, Decimal salaries, and Python date values.</p>
-
 <h4>Step 6: Inspect rejected records</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>for record in invalid_records:
     print(
         record["row_number"],
         record["error"]
     )</code></pre></div>
-<p class="ref">This is a simple rejection report. In production, persist rejected records and reasons to a quarantine table or other approved storage rather than keeping them only in memory.</p>
-
-<!-- ===================== 5.6 ===================== -->
-<h2 id="s5-6"><span class="num">5.6</span>Load the Valid Records into a Databricks Table</h2>
-
-<h4>Step 1: Create a Spark DataFrame</h4>
+<p class="ref">This is a simple rejection report. In production, persist rejected records and reasons to a quarantine table or other approved storage rather than keeping them only in memory.</p></div></section>
+<section class="lesson" id="s5-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.6</span><h2>Load the Valid Records into a Databricks Table</h2></div><div class="content"><h4>Step 1: Create a Spark DataFrame</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
     StructType,
     StructField,
@@ -1539,7 +1341,6 @@ df = spark.createDataFrame(
 
 display(df)</code></pre></div>
 <div class="callout key"><span class="label">Why specify a schema?</span><p>It defines the expected types and avoids relying on inference. The schema also declares fields non-nullable; because the Python step validated records first, accepted rows satisfy those constraints.</p></div>
-
 <h4>Step 2: Create the target table</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS main.python_lab;
 
@@ -1552,7 +1353,6 @@ CREATE TABLE IF NOT EXISTS main.python_lab.employee_json_clean (
 )
 USING DELTA;</code></pre></div>
 <p class="ref">The catalog and schema must exist, and your identity needs the required privileges.</p>
-
 <h4>Step 3: Write the DataFrame to the table</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
     df.write
@@ -1561,13 +1361,11 @@ USING DELTA;</code></pre></div>
     .saveAsTable("main.python_lab.employee_json_clean")
 )</code></pre></div>
 <div class="callout warn"><span class="label">Why append, and its catch</span><p><code>append</code> adds records without replacing existing data, which is fine for a demo, but rerunning appends the same records again. A repeatable production pipeline needs an idempotency strategy, such as deduplicating on a business key and using Delta <code>MERGE</code>. Avoid <code>overwrite</code> on production tables unless replacement is intended.</p></div>
-
 <h4>Step 4: Verify the data</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT *
 FROM main.python_lab.employee_json_clean
 ORDER BY employee_id;
 -- Expected IDs: 101, 102, 106</code></pre></div>
-
 <h4>Step 5: Run data-quality checks</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Row count: expected 3 on a fresh table after one run
 SELECT COUNT(*) AS total_records
@@ -1588,11 +1386,8 @@ WHERE employee_id IS NULL
    OR employee_name IS NULL
    OR department IS NULL
    OR salary IS NULL
-   OR joining_date IS NULL;</code></pre></div>
-
-<!-- ===================== 5.7 ===================== -->
-<h2 id="s5-7"><span class="num">5.7</span>Python Best Practices for Databricks Data Engineers</h2>
-<div class="table-wrap"><table>
+   OR joining_date IS NULL;</code></pre></div></div></section>
+<section class="lesson" id="s5-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.7</span><h2>Python Best Practices for Databricks Data Engineers</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Practice</th><th>What it means</th></tr></thead>
 <tbody>
 <tr><td>1. Keep transformations reusable</td><td>Functions with clear inputs and outputs instead of copied cells.</td></tr>
@@ -1605,11 +1400,8 @@ WHERE employee_id IS NULL
 <tr><td>8. Keep credentials out of code</td><td>Use secret management or identity-based access.</td></tr>
 <tr><td>9. Test transformation functions</td><td>Valid input, missing fields, invalid types, boundaries.</td></tr>
 <tr><td>10. Understand where code executes</td><td>Plain Python runs in the notebook's process; PySpark operations run in Spark when an action triggers them. Essential for Chapter 6.</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 5.8 ===================== -->
-<h2 id="s5-8"><span class="num">5.8</span>Quick Reference</h2>
-<div class="table-wrap"><table>
+</tbody></table></div></div></section>
+<section class="lesson" id="s5-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.8</span><h2>Quick Reference</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Requirement</th><th>Python feature</th></tr></thead>
 <tbody>
 <tr><td>Store a value</td><td>Variable</td></tr>
@@ -1629,12 +1421,9 @@ WHERE employee_id IS NULL
 <tr><td>Test transformation logic</td><td><code>unittest</code> or assertions</td></tr>
 <tr><td>Load large datasets</td><td>Spark DataFrame</td></tr>
 <tr><td>Store validated records</td><td>Delta table</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 5.9 ===================== -->
-<h2 id="s5-9"><span class="num">5.9</span>Practice Questions</h2>
-<p>Try answering these without referring to the tutorial.</p>
-<details class="q" open><summary>Python basics</summary>
+</tbody></table></div></div></section>
+<section class="lesson" id="s5-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 5 · Lesson 5.9</span><h2>Practice Questions</h2></div><div class="content"><p>Try answering these without referring to the tutorial.</p>
+<details class="q" open=""><summary>Python basics</summary>
 <ol>
 <li>What is the difference between a list and a tuple?</li>
 <li>What is the difference between <code>==</code> and <code>is</code>?</li>
@@ -1663,23 +1452,22 @@ WHERE employee_id IS NULL
 <li>Why can processing millions of records in a Python loop be inefficient?</li>
 <li>Why should a pipeline be designed to handle retries safely?</li>
 </ol></details>
-
 <h3 id="checklist">Completion Checklist</h3>
 <p>Before moving to Chapter 6, confirm you can do each of these. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch5-checklist">
-<label><input type="checkbox"> Create variables and use Python data types.</label>
-<label><input type="checkbox"> Work with strings, lists, tuples, sets, and dictionaries.</label>
-<label><input type="checkbox"> Write <code>if</code>, <code>for</code>, and <code>while</code> statements.</label>
-<label><input type="checkbox"> Create functions that accept arguments and return values.</label>
-<label><input type="checkbox"> Read CSV and JSON files.</label>
-<label><input type="checkbox"> Convert strings into numbers and dates.</label>
-<label><input type="checkbox"> Handle missing values and invalid records.</label>
-<label><input type="checkbox"> Use exception handling and logging.</label>
-<label><input type="checkbox"> Read configuration values and environment variables.</label>
-<label><input type="checkbox"> Write a basic unit test.</label>
-<label><input type="checkbox"> Transform JSON records into a Spark DataFrame.</label>
-<label><input type="checkbox"> Write a DataFrame to a Delta table.</label>
-<label><input type="checkbox"> Run SQL checks against the resulting table.</label>
+<label><input type="checkbox"/> Create variables and use Python data types.</label>
+<label><input type="checkbox"/> Work with strings, lists, tuples, sets, and dictionaries.</label>
+<label><input type="checkbox"/> Write <code>if</code>, <code>for</code>, and <code>while</code> statements.</label>
+<label><input type="checkbox"/> Create functions that accept arguments and return values.</label>
+<label><input type="checkbox"/> Read CSV and JSON files.</label>
+<label><input type="checkbox"/> Convert strings into numbers and dates.</label>
+<label><input type="checkbox"/> Handle missing values and invalid records.</label>
+<label><input type="checkbox"/> Use exception handling and logging.</label>
+<label><input type="checkbox"/> Read configuration values and environment variables.</label>
+<label><input type="checkbox"/> Write a basic unit test.</label>
+<label><input type="checkbox"/> Transform JSON records into a Spark DataFrame.</label>
+<label><input type="checkbox"/> Write a DataFrame to a Delta table.</label>
+<label><input type="checkbox"/> Run SQL checks against the resulting table.</label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1698,67 +1486,21 @@ WHERE employee_id IS NULL
   update();
 })();
 </script>
-
 <div class="next">
 <h3>Next chapter: Apache Spark Fundamentals</h3>
 <p>Python teaches you how to write the logic. Spark teaches you how that logic processes data across a distributed environment. Chapter 6 covers what Spark is and why it exists; distributed and parallel processing; drivers, executors, clusters, and tasks; SparkSession and the execution lifecycle; RDDs, DataFrames, and Datasets; transformations versus actions and lazy evaluation; jobs, stages, tasks, and partitions; narrow versus wide transformations and shuffles; fault tolerance and lineage; execution plans and the Catalyst optimizer; and how Databricks runs Spark workloads.</p>
 <p style="margin-bottom:0"><strong>The key idea:</strong> Python code can run on the driver while Spark operations run across many workers. Knowing where code runs, and how data moves between them, is fundamental to efficient Databricks pipelines.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-4.html"><span class="mn-label">← Previous</span><span class="mn-title">SQL</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-6.html"><span class="mn-label">Next →</span><span class="mn-title">Spark</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-4.html"><span>← Previous</span><strong>Chapter 4: SQL for Databricks</strong></a>
-  <a class="pager-link" href="databricks-chapter-6.html"><span>Next →</span><strong>Chapter 6: Apache Spark Fundamentals</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 2 · Chapter 5 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

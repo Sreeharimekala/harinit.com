@@ -1,293 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 17: Data Warehousing</title>
-<meta name="description" content="Chapter 17 of a Databricks learning path: OLTP vs OLAP, star and snowflake schemas, keys and grain, SCD Types 0-2, incremental loading with MERGE and CDC, integrity and reconciliation, Databricks SQL and Power BI, with a retail warehouse project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Data Warehousing — Chapter 17 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 17 of a Databricks learning path: OLTP vs OLAP, star and snowflake schemas, keys and grain, SCD Types 0-2, incremental loading with MERGE and CDC, integrity and reconciliation, Databricks SQL and Power BI, with a retail warehouse project."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 17 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s17-1">17.1 Warehousing Concepts</a></li>
-    <li class="lvl2"><a href="#s17-1-1">What is a warehouse?</a></li>
-    <li class="lvl2"><a href="#s17-1-2">OLTP vs OLAP</a></li>
-    <li class="lvl2"><a href="#s17-1-3">Facts &amp; dimensions</a></li>
-    <li class="lvl2"><a href="#s17-1-4">Star schema</a></li>
-    <li class="lvl2"><a href="#s17-1-5">Snowflake schema</a></li>
-    <li class="lvl2"><a href="#s17-1-6">Data marts</a></li>
-    <li class="lvl2"><a href="#s17-1-7">Architecture</a></li>
-    <li class="lvl1"><a href="#s17-2">17.2 Dimensional Modeling</a></li>
-    <li class="lvl2"><a href="#s17-2-1">Business keys</a></li>
-    <li class="lvl2"><a href="#s17-2-2">Surrogate keys</a></li>
-    <li class="lvl2"><a href="#s17-2-3">Fact grain</a></li>
-    <li class="lvl2"><a href="#s17-2-4">Measures</a></li>
-    <li class="lvl2"><a href="#s17-2-5">Conformed dimensions</a></li>
-    <li class="lvl2"><a href="#s17-2-6">Degenerate dimensions</a></li>
-    <li class="lvl2"><a href="#s17-2-7">Role-playing dimensions</a></li>
-    <li class="lvl1"><a href="#s17-3">17.3 Slowly Changing Dims</a></li>
-    <li class="lvl2"><a href="#s17-3-1">What is an SCD?</a></li>
-    <li class="lvl2"><a href="#s17-3-2">Types 0, 1, 2</a></li>
-    <li class="lvl2"><a href="#s17-3-6">Effective dates</a></li>
-    <li class="lvl2"><a href="#s17-3-7">Historical tracking</a></li>
-    <li class="lvl2"><a href="#s17-3-8">Late-arriving dims</a></li>
-    <li class="lvl2"><a href="#s17-3-9">Change detection</a></li>
-    <li class="lvl1"><a href="#s17-4">17.4 Incremental Loading</a></li>
-    <li class="lvl2"><a href="#s17-4-1">Incremental loads</a></li>
-    <li class="lvl2"><a href="#s17-4-2">Incremental facts</a></li>
-    <li class="lvl2"><a href="#s17-4-3">Dimension updates</a></li>
-    <li class="lvl2"><a href="#s17-4-4">MERGE INTO</a></li>
-    <li class="lvl2"><a href="#s17-4-5">CDC &amp; Change Data Feed</a></li>
-    <li class="lvl2"><a href="#s17-4-6">Deleted records</a></li>
-    <li class="lvl2"><a href="#s17-4-7">Referential integrity</a></li>
-    <li class="lvl2"><a href="#s17-4-8">Reconciliation</a></li>
-    <li class="lvl1"><a href="#s17-5">17.5 Databricks SQL</a></li>
-    <li class="lvl2"><a href="#s17-5-1">SQL warehouses</a></li>
-    <li class="lvl2"><a href="#s17-5-2">Views &amp; MVs</a></li>
-    <li class="lvl2"><a href="#s17-5-4">Query optimization</a></li>
-    <li class="lvl2"><a href="#s17-5-5">Dashboards &amp; BI</a></li>
-    <li class="lvl2"><a href="#s17-5-7">Power BI &amp; semantics</a></li>
-    <li class="lvl1"><a href="#s17-6">17.6 Project: Retail DW</a></li>
-    <li class="lvl2"><a href="#s17-6-2">Steps 1–5: Tables</a></li>
-    <li class="lvl2"><a href="#s17-6-7">Steps 6–10: SCD Type 2</a></li>
-    <li class="lvl2"><a href="#s17-6-12">Steps 11–15: Load</a></li>
-    <li class="lvl2"><a href="#s17-6-17">Steps 16–18: Analyze</a></li>
-    <li class="lvl1"><a href="#s17-7">17.7 Production Design</a></li>
-    <li class="lvl1"><a href="#s17-8">17.8 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s17-9">17.9 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 6 · Chapter 17 · Advanced Data Engineering</span>
-  <h1>Advanced Data Modeling and Warehousing</h1>
-  <p class="lead">Design a warehouse people can trust: OLTP vs OLAP, star and snowflake schemas, keys and grain, conformed, degenerate, and role-playing dimensions, and Slowly Changing Dimensions. Then load it incrementally with <code>MERGE</code>, CDC, delete handling, integrity checks, and reconciliation, and serve it through Databricks SQL and Power BI. The project builds a retail star schema with customer history.</p>
-  <p class="ref">Examples use <code>gold.*</code> for illustration and <code>retail_dev.retail_gold</code> in the project.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Explain OLTP, OLAP, and modern warehouse architecture.</li>
-    <li>Design fact and dimension tables, star and snowflake schemas.</li>
-    <li>Define fact grain and choose business and surrogate keys.</li>
-    <li>Implement SCD Types 0, 1, and 2.</li>
-    <li>Load facts and dimensions incrementally.</li>
-    <li>Use <code>MERGE INTO</code>, CDC, and delete handling.</li>
-    <li>Validate referential integrity and reconcile data.</li>
-    <li>Use SQL warehouses, views, materialized views, and dashboards.</li>
-    <li>Integrate with Power BI.</li>
-    <li>Build a retail warehouse with SCD Type 2 customer history.</li>
-  </ol></div>
-  <div class="chips">
-    <a class="chip" href="#s17-1"><span>17.1</span><strong>Concepts</strong></a>
-    <a class="chip" href="#s17-2"><span>17.2</span><strong>Modeling</strong></a>
-    <a class="chip" href="#s17-3"><span>17.3</span><strong>SCDs</strong></a>
-    <a class="chip" href="#s17-4"><span>17.4</span><strong>Loading</strong></a>
-    <a class="chip" href="#s17-5"><span>17.5</span><strong>Databricks SQL</strong></a>
-    <a class="chip" href="#s17-6"><span>17.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 17.1 ===================== -->
-<h2 id="s17-1"><span class="num">17.1</span>Data Warehousing Concepts</h2>
-
-<h3 id="s17-1-1"><span class="num">17.1.1</span>What Is a Data Warehouse?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Advanced Data Modeling and Warehousing</div>
+<div class="brand-sub">Chapter 17 · 9 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s17-1" class="nav-link"><span class="nav-num">17.1</span>Data Warehousing Concepts</a>
+<a href="#s17-2" class="nav-link"><span class="nav-num">17.2</span>Dimensional Modeling</a>
+<a href="#s17-3" class="nav-link"><span class="nav-num">17.3</span>Slowly Changing Dimensions</a>
+<a href="#s17-4" class="nav-link"><span class="nav-num">17.4</span>Incremental Warehouse Loading</a>
+<a href="#s17-5" class="nav-link"><span class="nav-num">17.5</span>Databricks SQL Analytics</a>
+<a href="#s17-6" class="nav-link"><span class="nav-num">17.6</span>Hands-On Project: Build a Retail Data Warehouse</a>
+<a href="#s17-7" class="nav-link"><span class="nav-num">17.7</span>Production Design Considerations</a>
+<a href="#s17-8" class="nav-link"><span class="nav-num">17.8</span>Interview Questions and Answers</a>
+<a href="#s17-9" class="nav-link"><span class="nav-num">17.9</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 6 · Chapter 17 · Advanced Data Engineering</div><h1>Advanced Data Modeling and Warehousing</h1>
+<p>Design a warehouse people can trust: OLTP vs OLAP, star and snowflake schemas, keys and grain, conformed, degenerate, and role-playing dimensions, and Slowly Changing Dimensions. Then load it incrementally with <code>MERGE</code>, CDC, delete handling, integrity checks, and reconciliation, and serve it through Databricks SQL and Power BI. The project builds a retail star schema with customer history.</p>
+<div class="doc-meta"><span class="pill">9 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s17-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.1</span><h2>Data Warehousing Concepts</h2></div><div class="content"><h3 id="s17-1-1"><span class="num">17.1.1</span>What Is a Data Warehouse?</h3>
 <p>A data warehouse consolidates data from many sources (transactional databases, CRM, ERP, e-commerce, files, APIs, event streams, cloud apps) into consistent business entities and measures for reporting and decisions.</p>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -316,7 +164,6 @@ details.q summary{line-height:1.5}
     Power BI     SQL reports</pre>
 <div class="callout key" style="margin:0"><span class="label">Lakehouse vs traditional warehouse</span><p>In a Databricks lakehouse, the same Delta tables serve engineering and analytics. A traditional enterprise warehouse uses dedicated database storage and compute. The goal is the same: trusted, consistent data for analytics.</p></div>
 </div>
-
 <h3 id="s17-1-2"><span class="num">17.1.2</span>OLTP Versus OLAP</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Feature</th><th>OLTP (Online Transaction Processing)</th><th>OLAP (Online Analytical Processing)</th></tr></thead>
@@ -340,7 +187,6 @@ JOIN gold.dim_product AS p ON f.product_key = p.product_key
 GROUP BY d.year, p.category;</code></pre></div>
 </div>
 <p class="ref">Best practice: don't run expensive analytics directly against critical operational databases.</p>
-
 <h3 id="s17-1-3"><span class="num">17.1.3</span>Fact and Dimension Tables</h3>
 <div class="grid-2">
 <div class="card"><h4>Fact table: <em>what happened</em></h4><p>Measurable business events: sales, payments, inventory movements, visits, shipments.</p><p style="margin-bottom:0">Contains foreign keys to dimensions, numeric <strong>measures</strong>, transaction identifiers, and dates.</p></div>
@@ -358,7 +204,6 @@ GROUP BY d.year, p.category;</code></pre></div>
 <thead><tr><th colspan="5">fact_sales</th></tr></thead>
 <tbody><tr><td><strong>sales_id</strong></td><td><strong>customer_key</strong></td><td><strong>product_key</strong></td><td><strong>quantity</strong></td><td><strong>sales_amount</strong></td></tr><tr><td>S1001</td><td>1</td><td>101</td><td>1</td><td>65000</td></tr><tr><td>S1002</td><td>2</td><td>102</td><td>2</td><td>12000</td></tr><tr><td>S1003</td><td>3</td><td>103</td><td>1</td><td>15000</td></tr></tbody></table></div>
 <p><strong>Why separate them?</strong> Less repetition in the fact table, consistent business definitions, flexible queries, historical analysis, and BI-friendly models. Delta stores these as ordinary tables, so relationships and integrity rules must be designed and validated by you.</p>
-
 <h3 id="s17-1-4"><span class="num">17.1.4</span>Star Schema</h3>
 <div class="grid-2">
 <pre class="diagram">              dim_customer
@@ -375,7 +220,6 @@ JOIN gold.dim_product  AS p ON f.product_key  = p.product_key
 GROUP BY c.city, p.category
 ORDER BY total_sales DESC;</code></pre></div>
 <p><strong>Advantages:</strong> easy to understand, few joins, great for SQL and BI semantic models, consistent reporting across measures. The strong default for analytical warehouses.</p>
-
 <h3 id="s17-1-5"><span class="num">17.1.5</span>Snowflake Schema</h3>
 <p>A snowflake schema normalizes some dimension attributes into separate tables, e.g. product → category → department.</p>
 <div class="grid-2">
@@ -400,7 +244,6 @@ dim_customer --- fact_sales --- dim_product
 <tr><td>BI usability</td><td>Easier</td><td>More modeling work</td></tr>
 </tbody></table></div>
 <div class="callout key"><span class="label">Recommendation</span><p>Start with a star schema unless normalization brings a clear benefit. Storage format doesn't decide whether the logical model is a star or a snowflake.</p></div>
-
 <h3 id="s17-1-6"><span class="num">17.1.6</span>Data Marts</h3>
 <div class="grid-2">
 <pre class="diagram">          Enterprise warehouse
@@ -414,7 +257,6 @@ dim_customer --- fact_sales --- dim_product
   Sales BI    Finance BI   Stock reports</pre>
 <div class="card"><h4>A data mart</h4><p>A curated analytical dataset for one domain or team. The sales mart exposes revenue, product performance, segments, and regions; the finance mart exposes recognized revenue, expenses, profitability, and periods.</p><p style="margin-bottom:0">In a lakehouse, curated <strong>Gold</strong> tables serve as marts. Share conformed definitions so marts don't compute the same metric differently.</p></div>
 </div>
-
 <h3 id="s17-1-7"><span class="num">17.1.7</span>Data Warehouse Architecture</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Layer</th><th>Contents</th></tr></thead>
@@ -426,21 +268,16 @@ dim_customer --- fact_sales --- dim_product
 <tr><td>Consumption</td><td>SQL warehouses, dashboards, reports, apps</td></tr>
 </tbody></table></div>
 <div class="callout"><span class="label">Important distinction</span><p>Bronze/Silver/Gold is a <em>data organization pattern</em>, not a replacement for dimensional modeling. The Gold layer is where your star schemas live.</p></div>
-<p><strong>Design principles:</strong> preserve source identifiers; consistent naming; defined quality rules; clear table ownership; incremental processing; centralized business logic; lineage and operational metadata; access controls for sensitive data.</p>
-
-<!-- ===================== 17.2 ===================== -->
-<h2 id="s17-2"><span class="num">17.2</span>Dimensional Modeling</h2>
-<p class="section-intro">Understand the business process and decide what one fact row represents <em>before</em> creating tables.</p>
-
+<p><strong>Design principles:</strong> preserve source identifiers; consistent naming; defined quality rules; clear table ownership; incremental processing; centralized business logic; lineage and operational metadata; access controls for sensitive data.</p></div></section>
+<section class="lesson" id="s17-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.2</span><h2>Dimensional Modeling</h2></div><div class="content"><p class="section-intro">Understand the business process and decide what one fact row represents <em>before</em> creating tables.</p>
 <h3 id="s17-2-1"><span class="num">17.2.1</span>Business Keys</h3>
 <p>A business key is an identifier from a source system or defined by the business: <code>customer_id</code>, <code>product_id</code>, <code>order_id</code>, <code>store_id</code>, <code>invoice_number</code>. It identifies an entity within its scope, is often meaningful to users, may change, and may not be unique across systems.</p>
 <div class="grid-2">
 <div class="table-wrap"><table>
 <thead><tr><th>Source</th><th>customer_id</th><th>Customer</th></tr></thead>
 <tbody><tr><td>CRM</td><td>1001</td><td>Ravi</td></tr><tr><td>E-commerce</td><td>1001</td><td>Priya</td></tr></tbody></table></div>
-<div class="card"><h4>Collision!</h4><p>Same ID, different people. Use a composite key: <code>source_system + customer_id</code> → <code>CRM|1001</code>, <code>ECOM|1001</code>.</p><p style="margin-bottom:0" class="ref">This prevents collisions but doesn't <em>match</em> customers across systems; that needs identity-resolution rules.</p></div>
+<div class="card"><h4>Collision!</h4><p>Same ID, different people. Use a composite key: <code>source_system + customer_id</code> → <code>CRM|1001</code>, <code>ECOM|1001</code>.</p><p class="ref" style="margin-bottom:0">This prevents collisions but doesn't <em>match</em> customers across systems; that needs identity-resolution rules.</p></div>
 </div>
-
 <h3 id="s17-2-2"><span class="num">17.2.2</span>Surrogate Keys</h3>
 <p>A surrogate key is a warehouse-generated identifier for a dimension <strong>row</strong> (e.g. <code>customer_key = 10001</code> for business key <code>C1001</code>).</p>
 <div class="grid-2">
@@ -462,7 +299,6 @@ INSERT INTO gold.dim_customer (customer_id, customer_name) VALUES ('C1001', 'Rav
 <div class="callout warn" style="margin:0"><span class="label">Avoid for persistent keys</span><p><code>F.monotonically_increasing_id()</code> is unique per run but not consecutive or repeatable across reruns. <code>MAX(key) + ROW_NUMBER()</code> breaks with concurrent writers. Never regenerate all keys on reload; that breaks every fact reference.</p></div>
 <div class="callout" style="margin:0"><span class="label">Identity columns</span><p>Delta assigns unique, increasing values (gaps are possible), keeps existing keys on updates, and serializes writes to the table, so concurrent loads can't produce duplicate keys. The project uses them.</p></div>
 </div>
-
 <h3 id="s17-2-3"><span class="num">17.2.3</span>Fact Table Grain</h3>
 <p>The <strong>grain</strong> defines what one fact row represents. It's the most important modeling decision.</p>
 <div class="grid-2">
@@ -477,7 +313,6 @@ INSERT INTO gold.dim_customer (customer_id, customer_name) VALUES ('C1001', 'Rav
 <div class="card"><h4>To define grain, ask</h4><ol style="margin-bottom:0"><li>What business event is measured?</li><li>What uniquely identifies a row?</li><li>Can one order have several rows?</li><li>Transaction-level or aggregated measures?</li><li>Which dimensions will analysts filter by?</li></ol></div>
 <div class="callout key" style="margin:0"><span class="label">Rule</span><p>Define the grain before choosing columns. An unclear grain leads to duplicated measures. Joining order-line facts to an order-level table without controlling cardinality multiplies values.</p></div>
 </div>
-
 <h3 id="s17-2-4"><span class="num">17.2.4</span>Measures and Dimensions</h3>
 <p><strong>Measures</strong> quantify activity (quantity, sales, discount, cost, tax, profit). <strong>Dimensions</strong> give context (customer, product, date, store, region, channel).</p>
 <div class="table-wrap"><table>
@@ -494,7 +329,6 @@ FROM gold.fact_sales;</code></pre></div>
        / NULLIF(SUM(net_sales_amount), 0) AS margin_percentage
 FROM gold.fact_sales;</code></pre></div>
 </div>
-
 <h3 id="s17-2-5"><span class="num">17.2.5</span>Conformed Dimensions</h3>
 <div class="grid-2">
 <pre class="diagram">                dim_date
@@ -505,7 +339,6 @@ FROM gold.fact_sales;</code></pre></div>
 fact_sales   fact_returns   fact_inventory</pre>
 <div class="card"><p style="margin-bottom:0">A <strong>conformed dimension</strong> is shared consistently by several fact tables or marts. Without one, teams define fiscal year, segment, category, region, or channel differently, and their reports disagree. Sales and returns must share one product-category definition to be compared.</p></div>
 </div>
-
 <h3 id="s17-2-6"><span class="num">17.2.6</span>Degenerate Dimensions</h3>
 <p>A business identifier stored directly in the fact table with no dimension table of its own: order number, invoice number, transaction reference, ticket number.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- order_number lives in fact_sales; no dim_order needed
@@ -513,7 +346,6 @@ SELECT order_number, SUM(sales_amount) AS order_total
 FROM gold.fact_sales
 GROUP BY order_number;</code></pre></div>
 <p class="ref">Create a separate order dimension only if orders have substantial descriptive attributes of their own.</p>
-
 <h3 id="s17-2-7"><span class="num">17.2.7</span>Role-Playing Dimensions</h3>
 <p>One dimension used in several roles. An order has an order date, ship date, and delivery date, all referencing the same <code>dim_date</code>:</p>
 <div class="code-wrap"><span class="lang">SQL · same table, joined twice with different aliases</span><pre class="code"><code>SELECT
@@ -522,18 +354,13 @@ GROUP BY order_number;</code></pre></div>
     f.sales_amount
 FROM gold.fact_sales AS f
 LEFT JOIN gold.dim_date AS order_date ON f.order_date_key = order_date.date_key
-LEFT JOIN gold.dim_date AS ship_date  ON f.ship_date_key  = ship_date.date_key;</code></pre></div>
-
-<!-- ===================== 17.3 ===================== -->
-<h2 id="s17-3"><span class="num">17.3</span>Slowly Changing Dimensions</h2>
-
-<h3 id="s17-3-1"><span class="num">17.3.1</span>What Is an SCD?</h3>
+LEFT JOIN gold.dim_date AS ship_date  ON f.ship_date_key  = ship_date.date_key;</code></pre></div></div></section>
+<section class="lesson" id="s17-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.3</span><h2>Slowly Changing Dimensions</h2></div><div class="content"><h3 id="s17-3-1"><span class="num">17.3.1</span>What Is an SCD?</h3>
 <p>Dimension attributes change: address, city, phone, segment, account status. An SCD policy decides whether to keep the old value or overwrite it. If a customer moves from Hyderabad (2025-01-01) to Chennai (2026-06-01), keeping both rows lets you report historical sales by the city at the time; overwriting loses that context.</p>
-
 <h3 id="s17-3-2"><span class="num">17.3.2</span>SCD Types 0, 1, and 2</h3>
 <div class="grid-2">
-<div class="card"><h4>Type 0: keep the original</h4><p>Never update. For attributes the business defines as immutable: original registration date, acquisition channel, onboarding date.</p><p style="margin-bottom:0" class="ref">Don't use Type 0 just because updating is inconvenient.</p></div>
-<div class="card"><h4>Type 1: overwrite</h4><p>Replace the value; history is lost.</p><table style="margin:0"><tbody><tr><td>Before</td><td>C1001 · Ravi · Hyderabad</td></tr><tr><td>After</td><td>C1001 · Ravi Kumar · Chennai</td></tr></tbody></table><p style="margin:8px 0 0" class="ref">For spelling corrections, fixing bad values, non-historical attributes.</p></div>
+<div class="card"><h4>Type 0: keep the original</h4><p>Never update. For attributes the business defines as immutable: original registration date, acquisition channel, onboarding date.</p><p class="ref" style="margin-bottom:0">Don't use Type 0 just because updating is inconvenient.</p></div>
+<div class="card"><h4>Type 1: overwrite</h4><p>Replace the value; history is lost.</p><table style="margin:0"><tbody><tr><td>Before</td><td>C1001 · Ravi · Hyderabad</td></tr><tr><td>After</td><td>C1001 · Ravi Kumar · Chennai</td></tr></tbody></table><p class="ref" style="margin:8px 0 0">For spelling corrections, fixing bad values, non-historical attributes.</p></div>
 </div>
 <div class="code-wrap"><span class="lang">SQL · Type 1</span><pre class="code"><code>MERGE INTO gold.dim_customer AS target
 USING silver.customer_latest AS source
@@ -568,7 +395,6 @@ WHEN NOT MATCHED THEN INSERT (customer_id, customer_name, city)
 <tr><td>Example</td><td>Registration date</td><td>Spelling fix</td><td>City history</td></tr>
 </tbody></table></div>
 <p class="ref">One dimension can mix types per column, e.g. <code>original_registration_date</code> Type 0, <code>email_address</code> Type 1, <code>city</code> and <code>customer_segment</code> Type 2. Define tracked columns explicitly.</p>
-
 <h3 id="s17-3-6"><span class="num">17.3.3</span>Effective Dates and Current-Record Flags</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
@@ -588,7 +414,6 @@ FROM gold.dim_customer
 WHERE customer_id = 'C1001'
   AND TIMESTAMP '2025-10-15 00:00:00' &gt;= effective_from
   AND TIMESTAMP '2025-10-15 00:00:00' &lt;  effective_to;</code></pre></div>
-
 <h3 id="s17-3-7"><span class="num">17.3.4</span>Historical Tracking</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -596,7 +421,6 @@ WHERE customer_id = 'C1001'
 <tbody><tr><td>S1001</td><td>1001 (Hyderabad)</td><td>5000</td><td>2026-04-15</td></tr><tr><td>S1002</td><td>1002 (Chennai)</td><td>7000</td><td>2026-07-20</td></tr></tbody></table></div>
 <div class="callout warn" style="margin:0"><span class="label">Critical principle</span><p><strong>Type 2 history alone doesn't guarantee correct historical reports.</strong> Each fact must reference the version valid when it happened. Join every fact to the <em>current</em> row and all history is attributed to Chennai.</p></div>
 </div>
-
 <h3 id="s17-3-8"><span class="num">17.3.5</span>Late-Arriving Dimensions</h3>
 <p>An order for customer C1005 arrives before C1005 is in <code>dim_customer</code>. Options:</p>
 <div class="table-wrap"><table>
@@ -607,7 +431,6 @@ WHERE customer_id = 'C1001'
 <tr><td>Unknown member</td><td>Point the fact at a generic "Unknown" row (e.g. key −1)</td><td>Keeps integrity but loses the customer link until reprocessed</td></tr>
 </tbody></table></div>
 <p class="ref">Define the behavior explicitly, or one customer can end up as several unrelated dimension members.</p>
-
 <h3 id="s17-3-9"><span class="num">17.3.6</span>Change Detection</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python · compare columns (null-safe)</span><pre class="code"><code>from pyspark.sql import functions as F
@@ -629,12 +452,8 @@ changes = (
     ),
 )</code></pre></div>
 </div>
-<div class="card"><h4>Hashing considerations</h4><ul style="margin-bottom:0"><li>Hash only attributes that should trigger a new version.</li><li>Normalize first if rules require it (trim, case).</li><li>Handle nulls consistently.</li><li>Keep a stable column order.</li><li>Never include load timestamps or other always-changing fields.</li></ul><p style="margin:8px 0 0" class="ref">A hash detects change; it doesn't define your SCD rules.</p></div>
-
-<!-- ===================== 17.4 ===================== -->
-<h2 id="s17-4"><span class="num">17.4</span>Incremental Warehouse Loading</h2>
-
-<h3 id="s17-4-1"><span class="num">17.4.1</span>What Is Incremental Loading?</h3>
+<div class="card"><h4>Hashing considerations</h4><ul style="margin-bottom:0"><li>Hash only attributes that should trigger a new version.</li><li>Normalize first if rules require it (trim, case).</li><li>Handle nulls consistently.</li><li>Keep a stable column order.</li><li>Never include load timestamps or other always-changing fields.</li></ul><p class="ref" style="margin:8px 0 0">A hash detects change; it doesn't define your SCD rules.</p></div></div></section>
+<section class="lesson" id="s17-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.4</span><h2>Incremental Warehouse Loading</h2></div><div class="content"><h3 id="s17-4-1"><span class="num">17.4.1</span>What Is Incremental Loading?</h3>
 <div class="grid-2">
 <pre class="diagram">Full load:
   Read ALL source records
@@ -653,7 +472,6 @@ Incremental load:
   MERGE into the target</pre>
 <div class="card"><h4>Why, and how to detect changes</h4><p>Less time, compute, and source load; supports frequent refreshes; scales.</p><p style="margin-bottom:0"><strong>Change sources:</strong> modification timestamps, increasing sequence IDs, CDC, Delta Change Data Feed, source change tables, file-arrival tracking, application events. Each has different reliability.</p></div>
 </div>
-
 <h3 id="s17-4-2"><span class="num">17.4.2</span>Incremental Fact Loading</h3>
 <p>500 million historical lines, 100,000 new today: process the 100,000.</p>
 <div class="code-wrap"><span class="lang">SQL · watermark extraction</span><pre class="code"><code>SELECT *
@@ -666,7 +484,6 @@ WHERE modified_at &gt; :last_successful_watermark;</code></pre></div>
 <tbody><tr><td>sales_fact_load</td><td>2026-10-24 23:59:59</td><td>2026-10-25 00:10:00</td></tr></tbody></table>
 <p class="ref" style="padding:0 12px">Update the control table only after the data is safely committed.</p></div>
 </div>
-
 <h3 id="s17-4-3"><span class="num">17.4.3</span>Dimension Updates</h3>
 <div class="grid-2">
 <pre class="diagram">Incoming customer records
@@ -683,7 +500,6 @@ Compare with current dimension
             Type 2 -&gt; close + insert</pre>
 <div class="callout" style="margin:0"><span class="label">Type 2 precondition</span><p>Each business key must have exactly one current row before applying changes, and the incoming batch must have at most one record per key (resolve multiple versions first).</p></div>
 </div>
-
 <h3 id="s17-4-4"><span class="num">17.4.4</span>MERGE INTO</h3>
 <div class="code-wrap"><span class="lang">SQL · Type 1 product merge, updating only real changes</span><pre class="code"><code>MERGE INTO gold.dim_product AS target
 USING silver.product_updates AS source
@@ -702,7 +518,6 @@ WHEN NOT MATCHED THEN INSERT (product_id, product_name, category, updated_at)
 <div class="card"><h4>MERGE requirements</h4><ol style="margin-bottom:0"><li>Deduplicate the source by the merge key.</li><li>The match condition reflects the business logic.</li><li>Several source rows matching one target row → error.</li><li>Handle nulls intentionally.</li><li>Test retries.</li><li>Validate insert and update counts (returned by <code>MERGE</code>).</li></ol></div>
 <div class="callout warn" style="margin:0"><span class="label">Not a multi-table transaction</span><p>A MERGE is atomic for <em>one</em> table. Updating a dimension, inserting facts, and updating a control table are separate commits. Coordinate them with orchestration and load-control logic (Chapter 14).</p></div>
 </div>
-
 <h3 id="s17-4-5"><span class="num">17.4.5</span>Change Data Capture (CDC)</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -726,7 +541,6 @@ SELECT customer_id, city, _change_type, _commit_version, _commit_timestamp
 FROM table_changes('silver.customers', 5);
 -- _change_type: insert, update_preimage, update_postimage, delete</code></pre></div>
 <p class="ref">CDF captures changes to a <strong>Delta table</strong>; source-system CDC captures changes in an <strong>operational database</strong>. Different things. CDF must be enabled before the changes happen and is subject to retention.</p>
-
 <h3 id="s17-4-6"><span class="num">17.4.6</span>Handling Deleted Source Records</h3>
 <p>If C1002 is deleted at the source, an incremental "changed rows" query simply never mentions it. You need an explicit strategy:</p>
 <div class="grid-2">
@@ -736,7 +550,6 @@ FROM table_changes('silver.customers', 5);
 <tbody><tr><td>Current-state dimension</td><td>Soft or controlled delete</td></tr><tr><td>SCD Type 2 dimension</td><td>Keep history; close the current version (and flag deleted)</td></tr><tr><td>Transaction fact</td><td>Usually keep; record reversals</td></tr><tr><td>Snapshot fact</td><td>Per snapshot semantics</td></tr></tbody></table></div>
 </div>
 <p class="ref">A source delete doesn't always mean a warehouse delete. Financial audit often requires keeping the original transaction and adding a reversal.</p>
-
 <h3 id="s17-4-7"><span class="num">17.4.7</span>Referential Integrity Checks</h3>
 <p>Delta doesn't enforce foreign keys (Unity Catalog <code>PRIMARY KEY</code>/<code>FOREIGN KEY</code> constraints are informational), so check them yourself:</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Orphaned fact references
@@ -764,7 +577,6 @@ FROM customer_versions
 WHERE next_effective_from IS NOT NULL
   AND effective_to &gt; next_effective_from;</code></pre></div>
 <p class="ref">Also check for gaps (<code>effective_to &lt; next_effective_from</code>), duplicate start dates, and <code>effective_from &gt;= effective_to</code>. On failure: quarantine, assign unknown/inferred keys, delay, alert, or fail the load. Never ignore it.</p>
-
 <h3 id="s17-4-8"><span class="num">17.4.8</span>Data Reconciliation</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -780,12 +592,8 @@ FROM gold.fact_sales;</code></pre></div>
 <p>Only meaningful when source and target share the same scope and grain. Filters, aggregation, rejected rows, and history all change counts. <strong>Reconcile at the right grain</strong>: by batch, business date, source system, store, or category.</p>
 <div class="code-wrap"><span class="lang">Control table · ops.load_reconciliation</span><pre class="code"><code>pipeline_name, batch_id, source_count, insert_count, update_count, delete_count,
 reject_count, source_sales_amount, target_sales_amount, load_status,
-started_at, completed_at</code></pre></div>
-
-<!-- ===================== 17.5 ===================== -->
-<h2 id="s17-5"><span class="num">17.5</span>Databricks SQL Analytics</h2>
-
-<h3 id="s17-5-1"><span class="num">17.5.1</span>SQL Warehouses</h3>
+started_at, completed_at</code></pre></div></div></section>
+<section class="lesson" id="s17-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.5</span><h2>Databricks SQL Analytics</h2></div><div class="content"><h3 id="s17-5-1"><span class="num">17.5.1</span>SQL Warehouses</h3>
 <p>A SQL warehouse is <strong>compute</strong> for SQL analytics and BI. It's not a database or schema; it runs queries against tables in Unity Catalog.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Feature</th><th>SQL warehouse</th><th>General-purpose compute</th></tr></thead>
@@ -796,7 +604,6 @@ started_at, completed_at</code></pre></div>
 <tr><td>Engine</td><td>Photon, tuned for SQL concurrency</td><td>Depends on configuration</td></tr>
 </tbody></table></div>
 <p><strong>Production:</strong> right-size (serverless where available), auto-stop, access controls, monitor query duration and failures in <strong>Query History</strong>, separate heavy workloads, watch concurrency and cost.</p>
-
 <h3 id="s17-5-2"><span class="num">17.5.2</span>Views and Materialized Views</h3>
 <div class="code-wrap"><span class="lang">SQL · view: saved query, computed on read</span><pre class="code"><code>CREATE OR REPLACE VIEW gold.vw_sales_summary AS
 SELECT d.year, d.month, p.category,
@@ -829,7 +636,6 @@ GROUP BY d.year, d.month, p.category;</code></pre></div>
 <tr><td>Use for</td><td>Reusable logic, access control</td><td>Expensive, frequently read aggregations</td></tr>
 </tbody></table></div>
 <p class="ref">Views encapsulate logic, reduce repeated SQL, give BI a stable interface, and can restrict access. Materialized views in Databricks SQL are created on a SQL warehouse (Unity Catalog required); syntax and refresh options depend on your environment.</p>
-
 <h3 id="s17-5-4"><span class="num">17.5.3</span>Query Optimization</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">SQL · select needed columns, filter early</span><pre class="code"><code>SELECT product_key, SUM(sales_amount) AS total_sales
@@ -844,7 +650,6 @@ JOIN gold.dim_product AS p ON f.product_key = p.product_key
 GROUP BY p.category;</code></pre></div>
 </div>
 <p><strong>Checklist:</strong> no <code>SELECT *</code>; filter early; join only needed dimensions; good layout (compaction, statistics, data skipping, liquid clustering; partition only when justified); avoid needless casts and nested expressions; read the plan; check actual metrics in the Query Profile. See Chapter 15.</p>
-
 <h3 id="s17-5-5"><span class="num">17.5.4</span>Dashboards and BI Connectivity</h3>
 <p>Databricks <strong>AI/BI dashboards</strong> turn SQL into visuals with filters: total sales, monthly trend, category mix, top customers, regions, orders, AOV, YoY growth.</p>
 <div class="code-wrap"><span class="lang">SQL · KPI tile</span><pre class="code"><code>SELECT
@@ -856,7 +661,6 @@ FROM gold.fact_sales;</code></pre></div>
 <div class="card"><h4>Dashboard tips</h4><ul style="margin-bottom:0"><li>Clearly defined metrics.</li><li>A date filter.</li><li>Consistent currency and time zone.</li><li>Explicit aggregation grain.</li><li>Only useful visuals.</li><li>Numbers validated against reconciled results.</li><li>Monitor query performance.</li></ul></div>
 <div class="card"><h4>BI connectivity</h4><p>Via the Databricks connector, JDBC/ODBC, or Partner Connect. A BI tool needs:</p><ol style="margin-bottom:0"><li>Server hostname.</li><li>SQL warehouse HTTP path.</li><li>Approved authentication.</li><li>Permissions on catalogs, schemas, tables, views.</li></ol></div>
 </div>
-
 <h3 id="s17-5-7"><span class="num">17.5.5</span>Power BI Integration and Semantic Modeling</h3>
 <div class="grid-2">
 <pre class="diagram">     Delta tables
@@ -893,11 +697,8 @@ DIVIDE (
 <div class="table-wrap"><table>
 <thead><tr><th>Layer</th><th>Typical responsibility</th></tr></thead>
 <tbody><tr><td>Bronze</td><td>Raw ingestion, traceability</td></tr><tr><td>Silver</td><td>Cleansing, standardization, validation</td></tr><tr><td>Gold</td><td>Facts, dimensions, curated metrics</td></tr><tr><td>Semantic model</td><td>Relationships, reusable measures, presentation</td></tr></tbody></table>
-<p class="ref" style="padding:0 12px">A guideline: put logic where it must be shared and governed.</p></div>
-
-<!-- ===================== 17.6 ===================== -->
-<h2 id="s17-6"><span class="num">17.6</span>Hands-On Project: Build a Retail Data Warehouse</h2>
-<p class="section-intro">Build <code>dim_customer</code> (SCD Type 2), <code>dim_product</code>, <code>dim_date</code>, and <code>fact_sales</code>, load sales against the correct historical customer version, then analyze and validate.</p>
+<p class="ref" style="padding:0 12px">A guideline: put logic where it must be shared and governed.</p></div></div></section>
+<section class="lesson" id="s17-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.6</span><h2>Hands-On Project: Build a Retail Data Warehouse</h2></div><div class="content"><p class="section-intro">Build <code>dim_customer</code> (SCD Type 2), <code>dim_product</code>, <code>dim_date</code>, and <code>fact_sales</code>, load sales against the correct historical customer version, then analyze and validate.</p>
 <div class="grid-2">
 <pre class="diagram">   Simulated source (staging tables)
                  |
@@ -920,7 +721,6 @@ dim_customer dim_product  dim_date
 </div>
 <div class="callout"><span class="label">What changed from the original, and why</span><p><strong>1. First versions now start at <code>1900-01-01</code>.</strong> The original set them to the staging timestamp (2026-10-25 09:00), but the sample sales are dated 20–21 October, before any customer version existed. Every sale failed the historical lookup and <strong>the fact table loaded zero rows</strong> (verified by simulation). <strong>2. Surrogate keys use identity columns</strong> instead of <code>MAX+1</code> and the original's unresolved <code>NULL</code> product and sales keys. <strong>3. A post-change sale was added</strong> so you can see history attribution work.</p></div>
 <div class="callout"><span class="label">Verified by simulation</span><p>I ran the SCD logic, key resolution, and validation queries in Spark 4, emulating the Delta <code>MERGE</code> steps. The expected tables below come from that run. Delta-specific syntax (identity columns, <code>MERGE</code>) wasn't executed.</p></div>
-
 <h3 id="s17-6-2"><span class="num">17.6.2</span>Steps 1–5: Create the Schema and Tables</h3>
 <div class="code-wrap"><span class="lang">SQL · Step 1–2: schema and customer dimension</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.retail_gold;
 
@@ -976,7 +776,6 @@ CREATE TABLE IF NOT EXISTS retail_dev.retail_gold.fact_sales (
     created_at      TIMESTAMP
 );</code></pre></div>
 <p class="ref">Delta is the default table format, so <code>USING DELTA</code> is optional. Fact grain: one product line on one order, identified by <code>(order_number, line_number)</code> for this single-source exercise (add <code>source_system</code> with multiple sources). <code>dim_product</code> is Type 1; extend to Type 2 if price or category history matters.</p>
-
 <h3 id="s17-6-7"><span class="num">17.6.7</span>Step 6: Stage Sample Customers</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.customer_stage (
     customer_id       STRING,
@@ -992,7 +791,6 @@ INSERT INTO retail_dev.retail_gold.customer_stage VALUES
     ('C1002', 'Priya Sharma', 'priya@example.com', 'Chennai',   'Standard', TIMESTAMP '2026-10-25 09:00:00'),
     ('C1003', 'Arjun Reddy',  'arjun@example.com', 'Bengaluru', 'Premium',  TIMESTAMP '2026-10-25 09:00:00');</code></pre></div>
 <p class="ref"><code>CREATE OR REPLACE</code> makes reruns start clean.</p>
-
 <h4>Steps 7–8: Detect new and changed customers</h4>
 <p>Hash the tracked attributes (name, email, city, segment) and compare with each customer's current version. The result is saved as a <strong>table</strong>, a fixed snapshot, because Step 9 modifies <code>dim_customer</code> and a view would be re-evaluated against the changed table.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.customer_changes AS
@@ -1019,7 +817,6 @@ WHERE t.customer_id IS NULL                          -- new customer
 
 SELECT customer_id, city, is_new_customer FROM retail_dev.retail_gold.customer_changes;</code></pre></div>
 <p class="ref">First run: all 3 customers, <code>is_new_customer = true</code>. Staging must hold at most one record per customer; resolve multiple versions first.</p>
-
 <h4>Step 9: Apply SCD Type 2</h4>
 <div class="code-wrap"><span class="lang">SQL · A. close the current version of changed customers</span><pre class="code"><code>MERGE INTO retail_dev.retail_gold.dim_customer AS target
 USING retail_dev.retail_gold.customer_changes AS source
@@ -1049,7 +846,6 @@ FROM retail_dev.retail_gold.customer_changes;</code></pre></div>
 <thead><tr><th>customer_key</th><th>customer_id</th><th>city</th><th>effective_from</th><th>effective_to</th><th>is_current</th></tr></thead>
 <tbody><tr><td>1</td><td>C1001</td><td>Hyderabad</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr><tr><td>2</td><td>C1002</td><td>Chennai</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr><tr><td>3</td><td>C1003</td><td>Bengaluru</td><td>1900-01-01</td><td>9999-12-31</td><td>true</td></tr></tbody></table></div>
 <p class="ref">Identity values are unique but not guaranteed consecutive, so yours may differ. Steps A and B are separate commits; in production run them in one orchestrated, retry-safe task and validate before loading facts.</p>
-
 <h3 id="s17-6-12"><span class="num">17.6.12</span>Steps 11–12: Product and Date Dimensions</h3>
 <div class="code-wrap"><span class="lang">SQL · Step 11: stage and merge products (Type 1)</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.product_stage (
     product_id STRING, product_name STRING, category STRING,
@@ -1103,7 +899,6 @@ dim_date = (
 
 print(dim_date.count(), "dates loaded")   # 730</code></pre></div>
 <p class="ref">Tested: produces 730 rows with correct day names and weekend flags (e.g. 2026-10-25 Sunday → true, 2026-10-26 Monday → false). Columns are selected in table order so the overwrite matches the table you created. Production calendars add fiscal periods and holidays.</p>
-
 <h4>Steps 13–14: Stage sales and resolve keys</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.retail_gold.sales_stage (
     order_number STRING, line_number INT, customer_id STRING, product_id STRING,
@@ -1125,7 +920,6 @@ LEFT JOIN retail_dev.retail_gold.dim_product AS p ON s.product_id = p.product_id
 LEFT JOIN retail_dev.retail_gold.dim_date    AS d ON s.order_date = d.full_date
 WHERE c.customer_key IS NULL OR p.product_key IS NULL OR d.date_key IS NULL;</code></pre></div>
 <p class="ref">With the original effective dates, this check returned <strong>all three sales</strong>. With first versions from 1900-01-01 it's empty. If the source has a transaction timestamp, use it instead of a date-only value.</p>
-
 <h4>Step 15: Load the fact table (idempotent MERGE)</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE TEMP VIEW sales_fact_source AS
 SELECT
@@ -1165,7 +959,6 @@ WHEN NOT MATCHED THEN INSERT (
 <thead><tr><th>order</th><th>line</th><th>customer_key</th><th>product_key</th><th>date_key</th><th>sales_amount</th></tr></thead>
 <tbody><tr><td>O1001</td><td>1</td><td>1</td><td>1</td><td>20261020</td><td>64,000.00</td></tr><tr><td>O1001</td><td>2</td><td>1</td><td>3</td><td>20261020</td><td>29,500.00</td></tr><tr><td>O1002</td><td>1</td><td>2</td><td>2</td><td>20261021</td><td>12,000.00</td></tr></tbody></table></div>
 <p class="ref">The inner joins exclude unresolved rows, which is why the Step 14 check must be empty first (production: quarantine or use inferred members). Rerunning the MERGE updates the same lines rather than duplicating them. Corrections and deletions at source need explicit policies.</p>
-
 <h4>Step 10 (now): Test SCD Type 2 with a city change</h4>
 <p>C1001 moves to Vijayawada at 12:00 on 25 October. Run this after the first fact load so you can see history preserved:</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>UPDATE retail_dev.retail_gold.customer_stage
@@ -1195,7 +988,6 @@ ORDER BY effective_from;          -- 2 rows
 
 SELECT * FROM retail_dev.retail_gold.dim_customer
 WHERE customer_id = 'C1001' AND is_current = true;   -- exactly 1 row</code></pre></div>
-
 <h3 id="s17-6-17"><span class="num">17.6.17</span>Step 16: Sales Summary View</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REPLACE VIEW retail_dev.retail_gold.vw_sales_summary AS
 SELECT
@@ -1213,7 +1005,6 @@ ORDER BY year, month_number, total_sales DESC;</code></pre></div>
 <div class="table-wrap"><table>
 <thead><tr><th>year</th><th>month</th><th>category</th><th>total_quantity</th><th>total_sales</th><th>total_orders</th></tr></thead>
 <tbody><tr><td>2026</td><td>October</td><td>Electronics</td><td>3</td><td>93,500.00</td><td>1</td></tr><tr><td>2026</td><td>October</td><td>Furniture</td><td>3</td><td>18,000.00</td><td>2</td></tr></tbody></table></div>
-
 <h4>Step 17: Analytical queries</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- 1. Sales by customer (grouped by the version's city)
 SELECT c.customer_id, c.customer_name, c.city, SUM(f.sales_amount) AS total_sales
@@ -1247,7 +1038,6 @@ ORDER BY c.customer_id, c.effective_from;</code></pre></div>
 <thead><tr><th>Query 1 / 4 result</th><th>city</th><th>total_sales</th></tr></thead>
 <tbody><tr><td>C1001</td><td>Hyderabad</td><td>93,500.00</td></tr><tr><td>C1001</td><td>Vijayawada</td><td>6,000.00</td></tr><tr><td>C1002</td><td>Chennai</td><td>12,000.00</td></tr></tbody></table></div>
 <p class="ref">C1001 appears twice, once per city: exactly what Type 2 is for. To report everything under the <em>current</em> city instead, join on <code>customer_id</code> to the <code>is_current = true</code> row.</p>
-
 <h4>Step 18: Validate the warehouse</h4>
 <div class="code-wrap"><span class="lang">SQL · all checks expect no rows / zero</span><pre class="code"><code>-- 1. One current record per customer
 SELECT customer_id, COUNT(*) AS current_count
@@ -1277,21 +1067,15 @@ SELECT
        FROM retail_dev.retail_gold.sales_stage)        AS expected_sales,
     (SELECT SUM(sales_amount)
        FROM retail_dev.retail_gold.fact_sales)          AS loaded_sales;</code></pre></div>
-<p class="ref">Expected sales: 64,000 + 29,500 + 12,000 + 6,000 = <strong>111,500.00</strong> (verified). If staging held corrections, duplicates, or rejected rows, account for them before calling a difference a defect.</p>
-
-<!-- ===================== 17.7 ===================== -->
-<h2 id="s17-7"><span class="num">17.7</span>Production Design Considerations</h2>
-<div class="grid-2">
+<p class="ref">Expected sales: 64,000 + 29,500 + 12,000 + 6,000 = <strong>111,500.00</strong> (verified). If staging held corrections, duplicates, or rejected rows, account for them before calling a difference a defect.</p></div></section>
+<section class="lesson" id="s17-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.7</span><h2>Production Design Considerations</h2></div><div class="content"><div class="grid-2">
 <div class="card"><h4>1. Idempotency</h4><p style="margin-bottom:0">Rerunning the same input must not add effects. Use stable business keys, deduplicated staging, MERGE, batch IDs, load-control tables, retry-safe key assignment (identity columns), and reconciliation.</p></div>
 <div class="card"><h4>2. Late-arriving facts</h4><p style="margin-bottom:0">Delay, inferred members, unknown keys with reprocessing, or a controlled resolution step. Pick one and apply it consistently.</p></div>
 <div class="card"><h4>3. Historical corrections</h4><p style="margin-bottom:0">A correction effective three months ago needs more than close-and-insert: find the affected version, split or adjust periods, insert the corrected version, check overlaps and gaps, reassign affected facts, reconcile.</p></div>
 <div class="card"><h4>4. Concurrency</h4><p style="margin-bottom:0">Two jobs on one dimension can duplicate keys, close the same version twice, or create two current rows. Give each dimension one owning job, use safe key generation, and orchestrate.</p></div>
 </div>
-<div class="card"><h4>5. Auditability: track per load</h4><p style="margin-bottom:0">Pipeline name, batch ID, source watermark, start/end time, records processed, inserts/updates/deletes, rejects, reconciliation status, failure details.</p></div>
-
-<!-- ===================== 17.8 ===================== -->
-<h2 id="s17-8"><span class="num">17.8</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+<div class="card"><h4>5. Auditability: track per load</h4><p style="margin-bottom:0">Pipeline name, batch ID, source watermark, start/end time, records processed, inserts/updates/deletes, rejects, reconciliation status, failure details.</p></div></div></section>
+<section class="lesson" id="s17-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.8</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. OLTP vs OLAP?</summary><div class="answer">OLTP runs operational transactions (many small writes); OLAP serves analytical queries (large reads, joins, aggregations).</div></details>
 <details class="q"><summary>Q2. What is a star schema?</summary><div class="answer">A central fact table joined directly to denormalized dimension tables.</div></details>
 <details class="q"><summary>Q3. What is a snowflake schema?</summary><div class="answer">A dimensional model where some dimensions are normalized into further related tables (e.g. product → category → department).</div></details>
@@ -1321,11 +1105,8 @@ SELECT
 <details class="q"><summary>Q27. Why can SCD Type 2 still give wrong historical reports?</summary><div class="answer">If facts are joined to the current version instead of the version valid at transaction time, or if first versions start too late so lookups fail (exactly the bug fixed in this project).</div></details>
 <details class="q"><summary>Q28. View vs materialized view?</summary><div class="answer">A view stores the query and recomputes on read; a materialized view stores maintained results.</div></details>
 <details class="q"><summary>Q29. Why must loads be idempotent?</summary><div class="answer">Retries and reruns are routine; idempotency stops them from duplicating or corrupting data.</div></details>
-<details class="q"><summary>Q30. Biggest risk in an SCD Type 2 implementation?</summary><div class="answer">Wrong change detection, key assignment, effective-date boundaries, or fact-to-version resolution. These corrupt history silently while the pipeline "succeeds".</div></details>
-
-<!-- ===================== 17.9 ===================== -->
-<h2 id="s17-9"><span class="num">17.9</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q30. Biggest risk in an SCD Type 2 implementation?</summary><div class="answer">Wrong change detection, key assignment, effective-date boundaries, or fact-to-version resolution. These corrupt history silently while the pipeline "succeeds".</div></details></div></section>
+<section class="lesson" id="s17-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17 · Lesson 17.9</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>OLTP/OLAP, facts, dimensions, schemas</td><td>Design a retail star schema</td></tr>
@@ -1337,30 +1118,27 @@ SELECT
 <tr><td>7</td><td>Power BI and end-to-end testing</td><td>Build a retail sales report</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://docs.databricks.com/aws/en/sql/" target="_blank" rel="noopener">Databricks SQL</a></li>
-<li><a href="https://docs.databricks.com/aws/en/delta/merge" target="_blank" rel="noopener">Delta Lake MERGE INTO</a></li>
-<li><a href="https://docs.databricks.com/aws/en/delta/delta-change-data-feed" target="_blank" rel="noopener">Delta Change Data Feed</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ldp/dbsql/materialized" target="_blank" rel="noopener">Materialized views</a></li>
-<li><a href="https://docs.databricks.com/aws/en/partners/bi/power-bi" target="_blank" rel="noopener">Power BI integration</a></li>
-<li><a href="https://docs.databricks.com/aws/en/compute/sql-warehouse/" target="_blank" rel="noopener">SQL warehouses</a></li>
-</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://docs.databricks.com/aws/en/sql/" rel="noopener" target="_blank">Databricks SQL</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/merge" rel="noopener" target="_blank">Delta Lake MERGE INTO</a></li>
+<li><a href="https://docs.databricks.com/aws/en/delta/delta-change-data-feed" rel="noopener" target="_blank">Delta Change Data Feed</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/dbsql/materialized" rel="noopener" target="_blank">Materialized views</a></li>
+<li><a href="https://docs.databricks.com/aws/en/partners/bi/power-bi" rel="noopener" target="_blank">Power BI integration</a></li>
+<li><a href="https://docs.databricks.com/aws/en/compute/sql-warehouse/" rel="noopener" target="_blank">SQL warehouses</a></li>
+</ul><p class="ref" style="margin:8px 0 0">Databricks links use the AWS path; check the Azure docs for Azure-specific details.</p></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 17</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch17-checklist">
-<label><input type="checkbox"> <span><strong>OLTP</strong> runs operations; <strong>OLAP</strong> serves analytics.</span></label>
-<label><input type="checkbox"> <span><strong>Facts</strong> record events; <strong>dimensions</strong> give context.</span></label>
-<label><input type="checkbox"> <span>A <strong>star schema</strong> is the practical default for BI.</span></label>
-<label><input type="checkbox"> <span>Define <strong>fact grain</strong> before choosing columns.</span></label>
-<label><input type="checkbox"> <span><strong>Business keys</strong> identify entities; <strong>surrogate keys</strong> identify rows/versions.</span></label>
-<label><input type="checkbox"> <span><strong>Type 1</strong> overwrites; <strong>Type 2</strong> preserves history.</span></label>
-<label><input type="checkbox"> <span><strong>Effective dates and current flags</strong> manage versions; first versions must cover early facts.</span></label>
-<label><input type="checkbox"> <span><strong>Incremental loading and CDC</strong> propagate changes efficiently.</span></label>
-<label><input type="checkbox"> <span><strong>MERGE INTO</strong> needs deduplicated sources, safe keys, and retry safety.</span></label>
-<label><input type="checkbox"> <span><strong>Referential integrity and reconciliation</strong> make data trustworthy.</span></label>
-<label><input type="checkbox"> <span><strong>Databricks SQL and Power BI</strong> serve curated tables.</span></label>
-<label><input type="checkbox"> <span>Correct history needs facts linked to the <strong>right SCD2 version</strong>.</span></label>
+<label><input type="checkbox"/> <span><strong>OLTP</strong> runs operations; <strong>OLAP</strong> serves analytics.</span></label>
+<label><input type="checkbox"/> <span><strong>Facts</strong> record events; <strong>dimensions</strong> give context.</span></label>
+<label><input type="checkbox"/> <span>A <strong>star schema</strong> is the practical default for BI.</span></label>
+<label><input type="checkbox"/> <span>Define <strong>fact grain</strong> before choosing columns.</span></label>
+<label><input type="checkbox"/> <span><strong>Business keys</strong> identify entities; <strong>surrogate keys</strong> identify rows/versions.</span></label>
+<label><input type="checkbox"/> <span><strong>Type 1</strong> overwrites; <strong>Type 2</strong> preserves history.</span></label>
+<label><input type="checkbox"/> <span><strong>Effective dates and current flags</strong> manage versions; first versions must cover early facts.</span></label>
+<label><input type="checkbox"/> <span><strong>Incremental loading and CDC</strong> propagate changes efficiently.</span></label>
+<label><input type="checkbox"/> <span><strong>MERGE INTO</strong> needs deduplicated sources, safe keys, and retry safety.</span></label>
+<label><input type="checkbox"/> <span><strong>Referential integrity and reconciliation</strong> make data trustworthy.</span></label>
+<label><input type="checkbox"/> <span><strong>Databricks SQL and Power BI</strong> serve curated tables.</span></label>
+<label><input type="checkbox"/> <span>Correct history needs facts linked to the <strong>right SCD2 version</strong>.</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1380,66 +1158,20 @@ SELECT
 })();
 </script>
 <div class="callout key"><span class="label">Next step</span><p>Extend the project with three more customer scenarios: another Type 2 change, an unchanged record (should produce no new version), and a late-arriving historical correction. After each run, check dimension history, fact keys, and reconciliation.</p></div>
-
 <div class="next">
 <h3>Next chapter: Data Quality, Testing, and Reconciliation</h3>
 <p>Chapter 18 turns the checks you've been writing by hand into a discipline: the dimensions of data quality (completeness, accuracy, consistency, validity, uniqueness, timeliness), reusable validation frameworks, testing pipelines, and systematic reconciliation.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-16.html"><span class="mn-label">← Previous</span><span class="mn-title">Streaming</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-18.html"><span class="mn-label">Next →</span><span class="mn-title">Data Quality &amp; Testing</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-16.html"><span>← Previous</span><strong>Chapter 16: Streaming</strong></a>
-  <a class="pager-link" href="databricks-chapter-18.html"><span>Next →</span><strong>Chapter 18: Data Quality &amp; Testing</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 6 · Chapter 17 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

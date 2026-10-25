@@ -1,296 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 14: Lakeflow Jobs</title>
-<meta name="description" content="Chapter 14 of a Databricks learning path: Lakeflow Jobs and workflow orchestration — tasks, dependencies, schedules, parameters, task values, retries, repair, backfills, ADF and REST API, with an idempotent daily sales job project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Lakeflow Jobs — Chapter 14 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 14 of a Databricks learning path: Lakeflow Jobs and workflow orchestration — tasks, dependencies, schedules, parameters, task values, retries, repair, backfills, ADF and REST API, with an idempotent daily sales job project."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 14 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s14-1">14.1 Introduction</a></li>
-    <li class="lvl2"><a href="#s14-1-1">Workflow orchestration</a></li>
-    <li class="lvl2"><a href="#s14-1-2">What is Lakeflow Jobs?</a></li>
-    <li class="lvl2"><a href="#s14-1-3">Jobs vs pipelines</a></li>
-    <li class="lvl2"><a href="#s14-1-4">Tasks &amp; dependencies</a></li>
-    <li class="lvl2"><a href="#s14-1-5">Scheduling</a></li>
-    <li class="lvl2"><a href="#s14-1-6">Triggers</a></li>
-    <li class="lvl2"><a href="#s14-1-7">Parameters</a></li>
-    <li class="lvl1"><a href="#s14-2">14.2 Creating Jobs</a></li>
-    <li class="lvl2"><a href="#s14-2-1">Creating a job</a></li>
-    <li class="lvl2"><a href="#s14-2-2">Notebook tasks</a></li>
-    <li class="lvl2"><a href="#s14-2-3">Python tasks</a></li>
-    <li class="lvl2"><a href="#s14-2-4">SQL tasks</a></li>
-    <li class="lvl2"><a href="#s14-2-5">Pipeline tasks</a></li>
-    <li class="lvl2"><a href="#s14-2-6">Multiple-task workflows</a></li>
-    <li class="lvl2"><a href="#s14-2-7">Dependency conditions</a></li>
-    <li class="lvl2"><a href="#s14-2-8">Parallel execution</a></li>
-    <li class="lvl2"><a href="#s14-2-9">Conditional execution</a></li>
-    <li class="lvl1"><a href="#s14-3">14.3 Production Features</a></li>
-    <li class="lvl2"><a href="#s14-3-1">Retries</a></li>
-    <li class="lvl2"><a href="#s14-3-2">Timeouts</a></li>
-    <li class="lvl2"><a href="#s14-3-3">Failure handling</a></li>
-    <li class="lvl2"><a href="#s14-3-4">Notifications</a></li>
-    <li class="lvl2"><a href="#s14-3-5">Job parameters</a></li>
-    <li class="lvl2"><a href="#s14-3-6">Task values</a></li>
-    <li class="lvl2"><a href="#s14-3-7">Repairing runs</a></li>
-    <li class="lvl2"><a href="#s14-3-8">Restarting tasks</a></li>
-    <li class="lvl1"><a href="#s14-4">14.4 Advanced Orchestration</a></li>
-    <li class="lvl2"><a href="#s14-4-1">Multi-pipeline</a></li>
-    <li class="lvl2"><a href="#s14-4-2">Parent &amp; child jobs</a></li>
-    <li class="lvl2"><a href="#s14-4-3">Dependency levels</a></li>
-    <li class="lvl2"><a href="#s14-4-4">Concurrency</a></li>
-    <li class="lvl2"><a href="#s14-4-5">Backfills</a></li>
-    <li class="lvl2"><a href="#s14-4-6">Scheduled workloads</a></li>
-    <li class="lvl2"><a href="#s14-4-7">Environments</a></li>
-    <li class="lvl1"><a href="#s14-5">14.5 Integration</a></li>
-    <li class="lvl2"><a href="#s14-5-1">Azure Data Factory</a></li>
-    <li class="lvl2"><a href="#s14-5-2">REST API &amp; SDK</a></li>
-    <li class="lvl2"><a href="#s14-5-3">External orchestrators</a></li>
-    <li class="lvl2"><a href="#s14-5-4">Job monitoring</a></li>
-    <li class="lvl2"><a href="#s14-5-5">Operational alerts</a></li>
-    <li class="lvl1"><a href="#s14-6">14.6 Project: Daily Sales Job</a></li>
-    <li class="lvl2"><a href="#s14-6-1">Setup</a></li>
-    <li class="lvl2"><a href="#s14-6-2">The four notebooks</a></li>
-    <li class="lvl2"><a href="#s14-6-6">Build the job</a></li>
-    <li class="lvl2"><a href="#s14-6-10">Test failure &amp; recovery</a></li>
-    <li class="lvl1"><a href="#s14-7">14.7 Pipeline-Based Design</a></li>
-    <li class="lvl1"><a href="#s14-8">14.8 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s14-9">14.9 Learning Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 5 · Chapter 14 · Data Engineering &amp; Pipeline Development</span>
-  <h1>Lakeflow Jobs and Workflow Orchestration</h1>
-  <p class="lead">Run the right task at the right time, in the right order, and recover cleanly when something breaks. This chapter covers tasks and dependencies, schedules and triggers, parameters and task values, retries, timeouts, notifications, run repair, backfills, and integration with Azure Data Factory and the REST API. The project is a daily Bronze → Silver → Gold job that's safe to rerun.</p>
-  <p class="ref">Formerly <strong>Databricks Workflows</strong>. Prerequisites: notebooks, Delta Lake, and Chapter 13's declarative pipelines. Level: intermediate to advanced.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Explain workflow orchestration and its role in data engineering.</li>
-    <li>Differentiate Lakeflow Jobs from Lakeflow Spark Declarative Pipelines.</li>
-    <li>Create workflows with notebook, Python, SQL, and pipeline tasks.</li>
-    <li>Configure task dependencies and parallel execution.</li>
-    <li>Schedule jobs and trigger them from events.</li>
-    <li>Configure retries, timeouts, notifications, and failure handling.</li>
-    <li>Pass parameters to jobs and values between tasks.</li>
-    <li>Repair failed runs and backfill historical data.</li>
-    <li>Orchestrate multiple pipelines and integrate with Azure Data Factory.</li>
-    <li>Build and monitor a production-style Bronze → Silver → Gold workflow.</li>
-  </ol></div>
-  <div class="chips">
-    <a class="chip" href="#s14-1"><span>14.1</span><strong>Introduction</strong></a>
-    <a class="chip" href="#s14-2"><span>14.2</span><strong>Creating Jobs</strong></a>
-    <a class="chip" href="#s14-3"><span>14.3</span><strong>Production</strong></a>
-    <a class="chip" href="#s14-4"><span>14.4</span><strong>Advanced</strong></a>
-    <a class="chip" href="#s14-5"><span>14.5</span><strong>Integration</strong></a>
-    <a class="chip" href="#s14-6"><span>14.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 14.1 ===================== -->
-<h2 id="s14-1"><span class="num">14.1</span>Introduction</h2>
-
-<h3 id="s14-1-1"><span class="num">14.1.1</span>What Is Workflow Orchestration?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Lakeflow Jobs and Workflow Orchestration</div>
+<div class="brand-sub">Chapter 14 · 9 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s14-1" class="nav-link"><span class="nav-num">14.1</span>Introduction</a>
+<a href="#s14-2" class="nav-link"><span class="nav-num">14.2</span>Creating Jobs</a>
+<a href="#s14-3" class="nav-link"><span class="nav-num">14.3</span>Production Features</a>
+<a href="#s14-4" class="nav-link"><span class="nav-num">14.4</span>Advanced Orchestration</a>
+<a href="#s14-5" class="nav-link"><span class="nav-num">14.5</span>Integration</a>
+<a href="#s14-6" class="nav-link"><span class="nav-num">14.6</span>Hands-On Project: Daily Retail Sales Workflow</a>
+<a href="#s14-7" class="nav-link"><span class="nav-num">14.7</span>Production Implementation with a Single Lakeflow Pipeline</a>
+<a href="#s14-8" class="nav-link"><span class="nav-num">14.8</span>Common Interview Questions</a>
+<a href="#s14-9" class="nav-link"><span class="nav-num">14.9</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 5 · Chapter 14 · Data Engineering &amp; Pipeline Development</div><h1>Lakeflow Jobs and Workflow Orchestration</h1>
+<p>Run the right task at the right time, in the right order, and recover cleanly when something breaks. This chapter covers tasks and dependencies, schedules and triggers, parameters and task values, retries, timeouts, notifications, run repair, backfills, and integration with Azure Data Factory and the REST API. The project is a daily Bronze → Silver → Gold job that's safe to rerun.</p>
+<div class="doc-meta"><span class="pill">9 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s14-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.1</span><h2>Introduction</h2></div><div class="content"><h3 id="s14-1-1"><span class="num">14.1.1</span>What Is Workflow Orchestration?</h3>
 <p>Workflow orchestration coordinates multiple tasks so they run in the correct order according to dependencies, schedules, conditions, and operational rules. A retail company might need to ingest orders, validate and clean them, remove duplicates, aggregate sales, refresh reports, and alert support if anything fails. Run independently, Gold might start before Silver finishes, or a report might refresh after ingestion failed.</p>
 <div class="grid-2">
 <pre class="diagram">Without orchestration:
@@ -328,7 +173,6 @@ Runs independently  Runs independently
 <tr><td>3:15 AM</td><td>Send completion notification</td></tr>
 </tbody></table></div>
 </div>
-
 <h3 id="s14-1-2"><span class="num">14.1.2</span>What Is Lakeflow Jobs?</h3>
 <p><strong>Lakeflow Jobs</strong> is Databricks' orchestrator. A job combines tasks (notebooks, Python scripts, SQL, pipeline updates, and more) with schedules, parameters, dependencies, notifications, retries, and limits.</p>
 <div class="grid-2">
@@ -341,7 +185,6 @@ Runs independently  Runs independently
 </tbody></table></div>
 <div class="card"><h4>Why use it?</h4><ul style="margin-bottom:0"><li>Centralized workflow management.</li><li>Dependency-aware execution.</li><li>Scheduling, retries, notifications.</li><li>Run history and task-level monitoring.</li><li>Native integration with Databricks workloads.</li></ul></div>
 </div>
-
 <h3 id="s14-1-3"><span class="num">14.1.3</span>Jobs Versus Pipelines</h3>
 <div class="callout key"><span class="label">The key distinction</span><p><strong>Lakeflow Jobs orchestrates tasks. Lakeflow Spark Declarative Pipelines manages datasets.</strong> In production you usually use both together.</p></div>
 <div class="table-wrap"><table>
@@ -372,7 +215,6 @@ Runs independently  Runs independently
        Reporting refresh</pre>
 <div class="card"><h4>When to use each</h4><p><strong>Pipelines:</strong> managed transformations, expectations, streaming tables, materialized views.</p><p style="margin-bottom:0"><strong>Jobs:</strong> coordinating multiple tasks, schedules, retries, and combining pipeline updates with notebooks, SQL, and other operations.</p></div>
 </div>
-
 <h3 id="s14-1-4"><span class="num">14.1.4</span>Tasks and Dependencies</h3>
 <p>A <strong>task</strong> is one unit of work: run a notebook, a Python script, a SQL statement, a pipeline update, or another job. A <strong>dependency</strong> defines when a task may run relative to others. With <code>A → B → C</code>, if A fails, B and C don't run on the normal path.</p>
 <div class="table-wrap"><table>
@@ -384,14 +226,12 @@ Runs independently  Runs independently
 </tbody></table></div>
 <p>Dependencies prevent reading incomplete data, aggregating unvalidated records, refreshing reports too early, and continuing after a critical failure.</p>
 <div class="callout"><span class="label">Best practice</span><p>Base dependencies on <strong>data requirements</strong>, not on the order you'd like tasks to appear.</p></div>
-
 <h3 id="s14-1-5"><span class="num">14.1.5</span>Job Scheduling</h3>
 <div class="grid-2">
 <div class="card"><h4>Common patterns</h4><ul style="margin-bottom:0"><li><strong>Daily:</strong> sales processing at 1:00 AM.</li><li><strong>Hourly:</strong> operational metrics.</li><li><strong>Weekly:</strong> weekly sales summary.</li><li><strong>Event-based:</strong> when new files arrive.</li><li><strong>Continuous:</strong> a new run starts as soon as the previous one ends.</li></ul></div>
 <div class="card"><h4>Consider</h4><ul style="margin-bottom:0"><li>Time zone.</li><li>When source data actually arrives.</li><li>Processing duration and retries.</li><li>The reporting deadline.</li><li>Upstream availability and maintenance windows.</li><li>Overlapping runs.</li></ul></div>
 </div>
 <div class="callout warn"><span class="label">Start time ≠ deadline</span><p>If the workflow must finish by 6:00 AM, allow for retries and the <em>worst-case</em> duration, not just the typical one.</p></div>
-
 <h3 id="s14-1-6"><span class="num">14.1.6</span>Trigger-Based Execution</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Trigger</th><th>Starts the job when…</th><th>Example</th></tr></thead>
@@ -411,7 +251,6 @@ Runs independently  Runs independently
 <tr><td>Run after an upstream system finishes</td><td>Dependency, table-update trigger, or external orchestration</td></tr>
 <tr><td>Run a pipeline as part of a larger workflow</td><td>Pipeline task in a job</td></tr>
 </tbody></table></div>
-
 <h3 id="s14-1-7"><span class="num">14.1.7</span>Parameterized Execution</h3>
 <p>Parameters let the same job process different inputs without code changes. Instead of hard-coding <code>processing_date = "2026-10-25"</code>, the job passes it in, and tomorrow it passes a different date.</p>
 <div class="table-wrap"><table>
@@ -424,12 +263,8 @@ Runs independently  Runs independently
 <tr><td><code>batch_id</code></td><td><code>BATCH_20261025_001</code></td></tr>
 </tbody></table></div>
 <p>Parameters make workflows reusable, testable, easy to backfill, and portable across environments.</p>
-<div class="callout warn"><span class="label">Never pass secrets as parameters</span><p>Parameters are visible in the job configuration and run history. Use secret scopes for passwords and tokens.</p></div>
-
-<!-- ===================== 14.2 ===================== -->
-<h2 id="s14-2"><span class="num">14.2</span>Creating Jobs</h2>
-
-<h3 id="s14-2-1"><span class="num">14.2.1</span>Creating a Lakeflow Job</h3>
+<div class="callout warn"><span class="label">Never pass secrets as parameters</span><p>Parameters are visible in the job configuration and run history. Use secret scopes for passwords and tokens.</p></div></div></section>
+<section class="lesson" id="s14-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.2</span><h2>Creating Jobs</h2></div><div class="content"><h3 id="s14-2-1"><span class="num">14.2.1</span>Creating a Lakeflow Job</h3>
 <div class="grid-2">
 <div class="card"><h4>Steps</h4><ol class="steps"><li>Open <strong>Jobs &amp; Pipelines</strong> → <strong>Create</strong> → <strong>Job</strong>.</li><li>Give the job a meaningful name.</li><li>Add the first task: key, type, notebook path, compute.</li><li>Click <strong>+ Add task</strong> for each further task, and set <strong>Depends on</strong>.</li><li>Configure retries, timeouts, notifications, schedule, parameters, and permissions.</li><li>Click <strong>Run now</strong> to test, then inspect the run.</li></ol></div>
 <pre class="diagram">Notebooks (illustrative paths):
@@ -450,7 +285,6 @@ Dependencies:
 03_gold_aggregation</pre>
 </div>
 <p class="ref">Verify that each task starts only when its dependencies are satisfied. The project in 14.6 walks through this end to end.</p>
-
 <h3 id="s14-2-2"><span class="num">14.2.2</span>Notebook Tasks</h3>
 <p>Notebook tasks run PySpark, SQL, validation, and operational checks. Notebooks read parameters through widgets:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>dbutils.widgets.text("processing_date", "2026-10-25")   # default for interactive runs
@@ -459,7 +293,6 @@ processing_date = dbutils.widgets.get("processing_date")
 print(f"Processing date: {processing_date}")</code></pre></div>
 <p>When the job runs, the job parameter with the same name overrides the widget default. Job parameters are passed to every notebook task automatically.</p>
 <div class="card"><h4>Best practices</h4><ul style="margin-bottom:0"><li>Keep each notebook focused on one responsibility.</li><li>Don't hard-code environment-specific paths.</li><li>Log important execution information.</li><li>Validate parameters early.</li><li>Raise exceptions for critical failures.</li><li>Make data operations safe to retry. What happens if the task runs twice?</li></ul></div>
-
 <h3 id="s14-2-3"><span class="num">14.2.3</span>Python Tasks</h3>
 <p>Python script tasks run a <code>.py</code> file for file validation, API extraction, utilities, quality checks, or metadata processing.</p>
 <div class="code-wrap"><span class="lang">Python · validate_orders.py</span><pre class="code"><code>import argparse
@@ -478,7 +311,6 @@ if __name__ == "__main__":
     main()</code></pre></div>
 <p>Script tasks receive <strong>command-line arguments</strong>, not widgets. In the task's <strong>Parameters</strong> field, map the job parameter with a dynamic reference:</p>
 <div class="code-wrap"><span class="lang">Task parameters (JSON array)</span><pre class="code"><code>["--processing-date", "{{job.parameters.processing_date}}"]</code></pre></div>
-
 <h3 id="s14-2-4"><span class="num">14.2.4</span>SQL Tasks</h3>
 <p>SQL tasks run queries or SQL files on a SQL warehouse: statements, dataset refreshes, count checks, quality checks, and SQL business logic.</p>
 <div class="code-wrap"><span class="lang">SQL · summarize Gold</span><pre class="code"><code>SELECT
@@ -502,7 +334,6 @@ FROM (
     HAVING COUNT(*) &gt; 1
 );</code></pre></div>
 <p class="ref">Tested on Spark: with no duplicates it returns <code>OK</code>; with duplicates it raises <code>USER_RAISED_EXCEPTION</code>, which fails the task.</p>
-
 <h3 id="s14-2-5"><span class="num">14.2.5</span>Pipeline Tasks</h3>
 <p>A pipeline task runs a Lakeflow Spark Declarative Pipeline update (Chapter 13) as one unit of work. The pipeline manages its own datasets, and downstream tasks wait for it to finish.</p>
 <div class="grid-2">
@@ -518,7 +349,6 @@ Task 3: Reconcile Gold data
 Task 4: Refresh reporting</pre>
 <div class="card"><h4>Use a pipeline task when</h4><ul style="margin-bottom:0"><li>Transformations already live in a pipeline.</li><li>The pipeline is part of a larger workflow.</li><li>Downstream tasks must wait for it.</li><li>You want central orchestration across workloads.</li></ul><p style="margin:8px 0 0">This avoids re-implementing Bronze/Silver/Gold as separate notebooks.</p></div>
 </div>
-
 <h3 id="s14-2-6"><span class="num">14.2.6</span>Multiple-Task Workflows</h3>
 <div class="grid-2">
 <pre class="diagram">Sequential:
@@ -544,7 +374,6 @@ Customer Cleansing  Product Cleansing
         Sales Processing</pre>
 </div>
 <p>Independent branches run concurrently, and the final task waits for both. That gives shorter runtime and better use of compute, at the cost of more concurrent compute and possible contention. Use it only for genuinely independent tasks.</p>
-
 <h3 id="s14-2-7"><span class="num">14.2.7</span>Task Dependencies and Conditions</h3>
 <div class="grid-2">
 <pre class="diagram">Bronze
@@ -582,7 +411,6 @@ Customer Ingestion -+</pre>
 <tr><td>All failed</td><td>all failed</td><td>Escalation</td></tr>
 </tbody></table></div>
 <div class="callout key"><span class="label">Best practice</span><p>Use success dependencies for normal processing; use failure or "all done" dependencies for cleanup, error handling, and notifications.</p></div>
-
 <h3 id="s14-2-8"><span class="num">14.2.8</span>Parallel Execution</h3>
 <div class="grid-2">
 <pre class="diagram">         Bronze Ingestion
@@ -595,13 +423,12 @@ Customer Ingestion -+</pre>
             \        /
              v      v
            Final Report</pre>
-<div class="card"><h4>Performance example</h4><p>Customer processing: 15 min. Product processing: 20 min.</p><p><strong>Sequential:</strong> ~35 min.<br><strong>Parallel:</strong> ~20 min (the longer branch).</p><p style="margin-bottom:0" class="ref">Excluding overhead and contention; actual gains depend on compute.</p></div>
+<div class="card"><h4>Performance example</h4><p>Customer processing: 15 min. Product processing: 20 min.</p><p><strong>Sequential:</strong> ~35 min.<br/><strong>Parallel:</strong> ~20 min (the longer branch).</p><p class="ref" style="margin-bottom:0">Excluding overhead and contention; actual gains depend on compute.</p></div>
 </div>
 <div class="grid-2">
 <div class="card"><h4>Use parallelism when</h4><ul style="margin-bottom:0"><li>Tasks don't depend on each other.</li><li>Source data is ready.</li><li>Shared resources can handle the load.</li><li>It actually reduces total runtime.</li></ul></div>
 <div class="card"><h4>Avoid it when</h4><ul style="margin-bottom:0"><li>Tasks modify the same target data.</li><li>Operations aren't safe concurrently.</li><li>They compete heavily for resources.</li><li>Order matters for correctness.</li></ul></div>
 </div>
-
 <h3 id="s14-2-9"><span class="num">14.2.9</span>Conditional Execution</h3>
 <div class="grid-2">
 <pre class="diagram">Bronze Ingestion
@@ -623,12 +450,8 @@ Right:    0</pre>
 <p style="margin:8px 0 0">Downstream tasks depend on the <code>true</code> or <code>false</code> outcome.</p></div>
 </div>
 <p><strong>Example conditions:</strong> run Gold only if Silver validation passed; quarantine when invalid records exist; skip reporting when no new data arrived; notify when a critical task fails; backfill only for a valid date range.</p>
-<div class="callout"><span class="label">Condition vs expectation</span><p>A pipeline <strong>expectation</strong> validates dataset records. A workflow <strong>condition</strong> decides which tasks run. They work well together.</p></div>
-
-<!-- ===================== 14.3 ===================== -->
-<h2 id="s14-3"><span class="num">14.3</span>Production Features</h2>
-
-<h3 id="s14-3-1"><span class="num">14.3.1</span>Retry Policies</h3>
+<div class="callout"><span class="label">Condition vs expectation</span><p>A pipeline <strong>expectation</strong> validates dataset records. A workflow <strong>condition</strong> decides which tasks run. They work well together.</p></div></div></section>
+<section class="lesson" id="s14-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.3</span><h2>Production Features</h2></div><div class="content"><h3 id="s14-3-1"><span class="num">14.3.1</span>Retry Policies</h3>
 <p>Retries re-attempt a task after failure, which helps with transient problems such as network errors, temporary service unavailability, intermittent connections, and some rate limits.</p>
 <div class="grid-2">
 <pre class="diagram">Bronze Ingestion
@@ -659,7 +482,6 @@ Right:    0</pre>
 </div>
 <p class="ref">Per task you set the maximum retries and minimum interval between attempts (and optionally retry on timeout).</p>
 <div class="callout warn"><span class="label">Retries require idempotency</span><p>A retry runs the same task again. If the task appends the same records each time, a retry creates duplicates (Chapter 11's problem). Use file tracking, <code>MERGE</code>, <code>replaceWhere</code>, or full rebuilds. The project shows how.</p></div>
-
 <h3 id="s14-3-2"><span class="num">14.3.2</span>Timeouts</h3>
 <p>A timeout stops a task (or job) that runs too long, so a hung task doesn't block everything. If Bronze normally takes 10 minutes, a 45-minute timeout allows variation while preventing an endless run.</p>
 <div class="grid-2">
@@ -674,7 +496,6 @@ Right:    0</pre>
 <div class="card"><h4>Choosing a timeout</h4><ul style="margin-bottom:0"><li>Typical and historical maximum duration.</li><li>Data volume and source latency.</li><li>Compute availability.</li><li>Retry time.</li><li>Overall deadline.</li></ul><p style="margin:8px 0 0">Also consider a <strong>duration warning</strong> threshold that alerts before the timeout kills the run.</p></div>
 </div>
 <p class="ref">Illustrative values. Base them on measured run history.</p>
-
 <h3 id="s14-3-3"><span class="num">14.3.3</span>Failure Handling</h3>
 <div class="grid-2">
 <pre class="diagram">          Bronze
@@ -706,7 +527,6 @@ except Exception as exc:
     raise          # task reports FAILED</code></pre></div>
 </div>
 <div class="callout warn"><span class="label">Don't swallow exceptions</span><p>If the exception is caught and not re-raised, the task looks successful, and Gold happily runs on top of a failed load. The same applies to <code>dbutils.notebook.exit()</code>: exiting "successfully" after an error hides it.</p></div>
-
 <h3 id="s14-3-4"><span class="num">14.3.4</span>Notifications</h3>
 <p>Notifications can fire on job start, success, failure, and duration-threshold breaches, and can go to email or configured destinations (Slack, Microsoft Teams, PagerDuty, webhooks).</p>
 <div class="grid-2">
@@ -719,7 +539,6 @@ Action:  Review the failed task and
 <div class="card"><h4>Best practices</h4><ol style="margin-bottom:0"><li>Notify the responsible support team.</li><li>Include job and task names.</li><li>Include failure details or a run link.</li><li>Don't alert on every retry. Enable "mute notifications until the last retry".</li><li>Separate critical failures from informational events.</li><li>Define an escalation path.</li></ol></div>
 </div>
 <p class="ref">Combine job notifications with your organization's monitoring and incident tools. Critical data-quality failures may need their own alerts.</p>
-
 <h3 id="s14-3-5"><span class="num">14.3.5</span>Job Parameters</h3>
 <p>Job parameters (e.g. <code>processing_date</code>, <code>environment</code>, <code>load_type</code>) are defined once on the job and passed to tasks.</p>
 <div class="table-wrap"><table>
@@ -735,7 +554,6 @@ Action:  Review the failed task and
 
 processing_date = date.fromisoformat("2026-10-25")   # raises ValueError if malformed
 print(processing_date)</code></pre></div>
-
 <h3 id="s14-3-6"><span class="num">14.3.6</span>Task Values</h3>
 <p>Task values let one task publish <strong>small</strong> values for downstream tasks: record counts, batch IDs, validation results, status flags.</p>
 <div class="grid-2">
@@ -752,7 +570,6 @@ print(processing_date)</code></pre></div>
 </div>
 <p>Outside notebooks, reference it as <code>{{tasks.Bronze_Ingestion.values.records_ingested}}</code> (e.g. in an if/else task). The <code>taskKey</code> must match the producer's task key exactly.</p>
 <p class="ref">Without <code>debugValue</code>, <code>get()</code> raises an error when you run the notebook outside a job. Task values aren't for datasets; store data in tables.</p>
-
 <h3 id="s14-3-7"><span class="num">14.3.7</span>Repairing Failed Runs</h3>
 <p>A failed run doesn't need a full restart. <strong>Repair run</strong> reruns only the failed and selected tasks, keeping the results of successful ones.</p>
 <div class="grid-2">
@@ -769,16 +586,11 @@ Gold_Aggregation   SKIPPED (upstream failed)
 <div class="card"><h4>Procedure</h4><ol style="margin-bottom:0"><li>Open the failed run.</li><li>Identify the failed task.</li><li>Inspect the error and output.</li><li>Fix the underlying issue.</li><li>Click <strong>Repair run</strong>.</li><li>Select tasks to rerun (failed + dependents are preselected).</li><li>Verify downstream results.</li></ol></div>
 </div>
 <div class="callout warn"><span class="label">Repair doesn't fix data</span><p>If the failed task partially wrote its target before failing, make sure it's safe to run again. That's idempotency again.</p></div>
-
 <h3 id="s14-3-8"><span class="num">14.3.8</span>Restarting Failed Tasks</h3>
 <p>If A succeeds, B fails, and C doesn't run, then after fixing B, C must still run to produce the final output. Before restarting:</p>
 <ul><li>Check whether the source has changed.</li><li>Check whether the task wrote partial results.</li><li>Verify the task is idempotent.</li><li>Determine which downstream tasks must rerun.</li><li>Confirm parameters are correct.</li><li>Reconcile the output afterwards.</li></ul>
-<p class="ref">Not every run resumes at exactly the point of failure. Behavior depends on task types and run state.</p>
-
-<!-- ===================== 14.4 ===================== -->
-<h2 id="s14-4"><span class="num">14.4</span>Advanced Orchestration</h2>
-
-<h3 id="s14-4-1"><span class="num">14.4.1</span>Multi-Pipeline Orchestration</h3>
+<p class="ref">Not every run resumes at exactly the point of failure. Behavior depends on task types and run state.</p></div></section>
+<section class="lesson" id="s14-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.4</span><h2>Advanced Orchestration</h2></div><div class="content"><h3 id="s14-4-1"><span class="num">14.4.1</span>Multi-Pipeline Orchestration</h3>
 <div class="grid-2">
 <pre class="diagram">          Retail_Master_Job
                   |
@@ -795,9 +607,8 @@ Gold_Aggregation   SKIPPED (upstream failed)
                   |
                   v
            Gold Reporting</pre>
-<div class="card"><h4>Why</h4><ul style="margin-bottom:0"><li>Domains are maintained independently.</li><li>Independent pipelines run in parallel.</li><li>Shared reporting waits for all inputs.</li><li>Failure handling is centralized.</li></ul><p style="margin:8px 0 0" class="ref">Don't run pipelines in parallel if they write to the same targets or depend on each other.</p></div>
+<div class="card"><h4>Why</h4><ul style="margin-bottom:0"><li>Domains are maintained independently.</li><li>Independent pipelines run in parallel.</li><li>Shared reporting waits for all inputs.</li><li>Failure handling is centralized.</li></ul><p class="ref" style="margin:8px 0 0">Don't run pipelines in parallel if they write to the same targets or depend on each other.</p></div>
 </div>
-
 <h3 id="s14-4-2"><span class="num">14.4.2</span>Parent and Child Workflows</h3>
 <p>A <strong>Run Job</strong> task lets a parent job trigger another job as a child, which is useful when a workflow is reused by several business processes.</p>
 <div class="grid-2">
@@ -815,7 +626,6 @@ Orders Job    Customer Job
     Final Validation</pre>
 <div><div class="card"><h4>Benefits</h4><p style="margin-bottom:0">Reuse, clear responsibilities, independent development, clear ownership, organized large workflows.</p></div><div class="card"><h4>Risks</h4><p style="margin-bottom:0">More complex dependencies, harder end-to-end troubleshooting, concurrency conflicts, harder parameter propagation. For a small workflow, one job is simpler.</p></div></div>
 </div>
-
 <h3 id="s14-4-3"><span class="num">14.4.3</span>Dependency Management</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Level</th><th>Example</th><th>Managed by</th></tr></thead>
@@ -825,7 +635,6 @@ Orders Job    Customer Job
 <tr><td>Cross-workflow</td><td>Job B waits for Job A</td><td>Run Job task, table-update trigger, or external orchestrator</td></tr>
 </tbody></table></div>
 <p><strong>Best practices:</strong> keep graphs understandable; no circular dependencies; wait for the right upstream outputs; use explicit task keys; document shared datasets; plan for missing upstream data; avoid needless serial execution.</p>
-
 <h3 id="s14-4-4"><span class="num">14.4.4</span>Concurrent Execution</h3>
 <pre class="diagram">Daily Run:      1:00 AM ================ 2:00 AM
 Backfill Run:          1:30 AM ===================== 3:00 AM
@@ -835,7 +644,6 @@ Backfill Run:          1:30 AM ===================== 3:00 AM
 <div class="card"><h4>Controls</h4><ul style="margin-bottom:0"><li><strong>Maximum concurrent runs</strong> (default 1); with queueing on, extra runs wait instead of being skipped.</li><li>Can runs for different dates proceed independently?</li><li>Can targets handle concurrent writes safely?</li><li>Isolate backfills from the normal schedule.</li></ul></div>
 </div>
 <p class="ref">A concurrency limit controls runs, not data correctness. You still need idempotent writes.</p>
-
 <h3 id="s14-4-5"><span class="num">14.4.5</span>Backfills</h3>
 <p>A backfill processes historical data that was missed, corrected, or must be recalculated, e.g. the job failed on 2026-10-20, 21, and 22.</p>
 <div class="grid-2">
@@ -843,7 +651,6 @@ Backfill Run:          1:30 AM ===================== 3:00 AM
 <div class="card"><h4>Before running</h4><ol style="margin-bottom:0"><li>Identify the missing dates.</li><li>Verify source data exists.</li><li>Confirm the transformation logic.</li><li>Check whether outputs already exist.</li><li>Make sure writes are safe to repeat.</li><li>Validate results.</li><li>Monitor resource usage.</li></ol></div>
 </div>
 <div class="callout key"><span class="label">Idempotent backfills</span><p>Processing the same date twice must not duplicate data. Either <strong>replace the date's slice atomically</strong> (Delta <code>replaceWhere</code>, used in the project) or <code>MERGE</code> on business keys.</p></div>
-
 <h3 id="s14-4-6"><span class="num">14.4.6</span>Scheduled Workloads</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Workflow step</th><th>Runs</th><th>Purpose</th></tr></thead>
@@ -855,7 +662,6 @@ Backfill Run:          1:30 AM ===================== 3:00 AM
 <tr><td>Reporting refresh</td><td>After reconciliation succeeds</td><td>Publish results</td></tr>
 </tbody></table></div>
 <p>Schedule only the master job and let dependencies drive the rest. If a run overruns into the next scheduled start, the concurrency setting decides whether the new run waits or is skipped.</p>
-
 <h3 id="s14-4-7"><span class="num">14.4.7</span>Environment-Specific Configuration</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Property</th><th>Development</th><th>Production</th></tr></thead>
@@ -871,12 +677,8 @@ Backfill Run:          1:30 AM ===================== 3:00 AM
 
 source_table = f"{catalog}.bronze.orders_raw"
 target_table = f"{catalog}.analytics.sales_gold"</code></pre></div>
-<p><strong>Deployment practices:</strong> code in Git; separate dev and prod configuration; restricted prod permissions; no secrets in code; test deployments; verify job configuration afterwards. Databricks Asset Bundles (Chapter 21) define jobs as code for exactly this.</p>
-
-<!-- ===================== 14.5 ===================== -->
-<h2 id="s14-5"><span class="num">14.5</span>Integration</h2>
-
-<h3 id="s14-5-1"><span class="num">14.5.1</span>Databricks Jobs with Azure Data Factory</h3>
+<p><strong>Deployment practices:</strong> code in Git; separate dev and prod configuration; restricted prod permissions; no secrets in code; test deployments; verify job configuration afterwards. Databricks Asset Bundles (Chapter 21) define jobs as code for exactly this.</p></div></section>
+<section class="lesson" id="s14-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.5</span><h2>Integration</h2></div><div class="content"><h3 id="s14-5-1"><span class="num">14.5.1</span>Databricks Jobs with Azure Data Factory</h3>
 <div class="grid-2">
 <pre class="diagram">      Azure Data Factory
               |
@@ -900,7 +702,6 @@ target_table = f"{catalog}.analytics.sales_gold"</code></pre></div>
 <div><div class="card"><h4>Let ADF orchestrate when</h4><ul style="margin-bottom:0"><li>The workflow spans many Azure services.</li><li>ADF already coordinates source ingestion.</li><li>Scheduling is centralized in ADF.</li></ul></div><div class="card"><h4>Let Lakeflow Jobs orchestrate when</h4><ul style="margin-bottom:0"><li>The workload is mainly Databricks.</li><li>Tasks are tightly coupled to pipelines.</li><li>You want integrated task monitoring.</li></ul></div></div>
 </div>
 <p><strong>Using both</strong> works when responsibilities are clear: ADF ingests from external systems, coordinates Azure services, and owns enterprise scheduling; Databricks runs Bronze/Silver/Gold, quality checks, and analytical datasets. ADF's Databricks <strong>Job</strong> activity runs an entire job; the older Notebook activity runs a single notebook. Avoid stacking orchestration layers that make failures hard to trace.</p>
-
 <h3 id="s14-5-2"><span class="num">14.5.2</span>REST API Integration</h3>
 <p>The Jobs REST API and the Databricks SDK let external systems start, monitor, and manage jobs.</p>
 <div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code>pip install databricks-sdk</code></pre></div>
@@ -920,7 +721,6 @@ print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></d
   -H "Authorization: Bearer $DATABRICKS_TOKEN" \
   -d '{"job_id": 123456789, "job_parameters": {"processing_date": "2026-10-20"}}'</code></pre></div>
 <div class="callout warn"><span class="label">Starting ≠ finishing</span><p><code>run-now</code> returns a run ID immediately, before processing completes. Callers must poll <code>jobs/runs/get</code> (or use the SDK's <code>.result()</code>) to learn the outcome. Use a service principal for production authentication.</p></div>
-
 <h3 id="s14-5-3"><span class="num">14.5.3</span>External Orchestration Tools</h3>
 <p>Apache Airflow (via the Databricks provider), enterprise schedulers, and custom apps can all start jobs and wait for completion. In a typical Airflow flow: extract source data → start the Databricks job → wait → validate → continue.</p>
 <div class="table-wrap"><table>
@@ -931,7 +731,6 @@ print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></d
 <tr><td>Existing Airflow platform</td><td>Apache Airflow</td></tr>
 <tr><td>Custom application integration</td><td>REST API or SDK</td></tr>
 </tbody></table></div>
-
 <h3 id="s14-5-4"><span class="num">14.5.4</span>Job Monitoring</h3>
 <div class="grid-2">
 <div class="card"><h4>Job level</h4><p style="margin-bottom:0">Status, start/end, duration, failed runs, retry counts, schedule delays, concurrent runs.</p></div>
@@ -947,7 +746,6 @@ print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></d
 <tr><td>Product_Dimension_Job</td><td>Success</td><td>12 min</td><td>0</td></tr>
 </tbody></table></div>
 <div class="callout"><span class="label">Remember</span><p>A job that succeeds but produces incomplete data is still a data-quality incident.</p></div>
-
 <h3 id="s14-5-5"><span class="num">14.5.5</span>Operational Alerts</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Condition</th><th>Severity</th><th>Action</th></tr></thead>
@@ -958,11 +756,8 @@ print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></d
 <tr><td>Gold reconciliation fails</td><td>High</td><td>Investigate; restrict reporting if needed</td></tr>
 <tr><td>Job runs longer than expected</td><td>Medium</td><td>Investigate performance</td></tr>
 </tbody></table></div>
-<p><strong>Avoid alert fatigue:</strong> distinguish temporary failures that self-recover, final failures, data-quality problems, and SLA breaches. Base thresholds on SLAs and history.</p>
-
-<!-- ===================== 14.6 ===================== -->
-<h2 id="s14-6"><span class="num">14.6</span>Hands-On Project: Daily Retail Sales Workflow</h2>
-<p class="section-intro">Build <code>Retail_Daily_Sales_Job</code>: four notebook tasks that run in order, take a <code>processing_date</code> parameter, retry transient failures, time out, alert on failure, and, crucially, can be rerun or backfilled without duplicating data.</p>
+<p><strong>Avoid alert fatigue:</strong> distinguish temporary failures that self-recover, final failures, data-quality problems, and SLA breaches. Base thresholds on SLAs and history.</p></div></section>
+<section class="lesson" id="s14-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.6</span><h2>Hands-On Project: Daily Retail Sales Workflow</h2></div><div class="content"><p class="section-intro">Build <code>Retail_Daily_Sales_Job</code>: four notebook tasks that run in order, take a <code>processing_date</code> parameter, retry transient failures, time out, alert on failure, and, crucially, can be rerun or backfilled without duplicating data.</p>
 <pre class="diagram">             DAILY SCHEDULE (1:00 AM Asia/Kolkata)
                           |
                           v
@@ -983,7 +778,6 @@ print(finished.state.result_state)      # e.g. SUCCESS or FAILED</code></pre></d
              |                          |
              v                          v
        Job complete         Failure notification</pre>
-
 <h3 id="s14-6-1"><span class="num">14.6.1</span>Setup</h3>
 <p>Run once in a SQL editor or notebook. It creates a dedicated schema, a landing volume, and the Bronze and Silver tables (created up front so the date-replace writes work from the first run):</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.jobs_lab;
@@ -1008,7 +802,6 @@ CREATE TABLE IF NOT EXISTS retail_dev.jobs_lab.orders_silver (
 {"order_id": null, "customer_id": "C104", "order_date": "2026-10-20", "amount": 1200.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:20:00"}
 {"order_id": "O1005", "customer_id": "C105", "order_date": "2026-10-20", "amount": -500.00, "status": "COMPLETED", "updated_at": "2026-10-20T09:25:00"}</code></pre></div></div></details>
 <p class="ref">On Free Edition, use a catalog you own (e.g. <code>workspace</code>) and set the job's <code>catalog</code> parameter to match.</p>
-
 <h3 id="s14-6-2"><span class="num">14.6.2</span>Step 1: Bronze Ingestion Notebook</h3>
 <p>Create notebook <code>01_bronze_ingestion</code>. It validates the date, reads that day's file, adds metadata, and <strong>replaces only that date's slice</strong> of Bronze. That's why retries and backfills never duplicate rows.</p>
 <div class="code-wrap"><span class="lang">Python · 01_bronze_ingestion</span><pre class="code"><code># 01_bronze_ingestion
@@ -1052,7 +845,6 @@ if records_ingested == 0:
 dbutils.jobs.taskValues.set(key="records_ingested", value=records_ingested)
 print(f"Bronze: {records_ingested} records ingested for {processing_date}")</code></pre></div>
 <div class="callout key"><span class="label">What makes it retry-safe</span><p><code>mode("overwrite")</code> + <code>replaceWhere</code> atomically swaps out just the rows for <code>_processing_date</code>. Run it twice for the same date and Bronze still holds one copy, unlike Chapter 11's <code>append</code>. It also publishes <code>records_ingested</code> as a task value.</p></div>
-
 <h4>Step 2: Silver cleansing notebook</h4>
 <p>Create <code>02_silver_cleansing</code>. It normalizes status, keeps the latest version of each order, drops invalid rows, and replaces that date's Silver slice:</p>
 <div class="code-wrap"><span class="lang">Python · 02_silver_cleansing</span><pre class="code"><code># 02_silver_cleansing
@@ -1107,7 +899,6 @@ rejected = bronze_df.count() - silver_count       # duplicates + invalid rows
 dbutils.jobs.taskValues.set(key="silver_records", value=silver_count)
 print(f"Silver: {silver_count} records kept, {rejected} removed for {processing_date}")</code></pre></div>
 <p class="ref">Deduplication is within the processing date. If the same order can arrive on different days, switch Silver to a <code>MERGE</code> on <code>order_id</code> (Chapter 9) or <code>AUTO CDC</code> (Chapter 13).</p>
-
 <h4>Step 3: Gold aggregation notebook</h4>
 <p>Create <code>03_gold_aggregation</code>. Gold is small, so it's simply rebuilt from Silver each run. A full rebuild is naturally idempotent.</p>
 <div class="code-wrap"><span class="lang">Python · 03_gold_aggregation</span><pre class="code"><code># 03_gold_aggregation
@@ -1128,7 +919,6 @@ spark.sql(f"""
 """)
 
 print("Gold: sales_gold rebuilt from Silver")</code></pre></div>
-
 <h4>Step 4: Validation notebook</h4>
 <p>Create <code>04_validate_gold</code>. Each check <strong>raises</strong> an exception on failure, so the task fails and the job reports it:</p>
 <div class="code-wrap"><span class="lang">Python · 04_validate_gold</span><pre class="code"><code># 04_validate_gold
@@ -1166,7 +956,6 @@ ingested = dbutils.jobs.taskValues.get(
 print(f"Validation passed: {s['orders']} orders, sales {s['sales']}, "
       f"{ingested} raw records ingested.")</code></pre></div>
 <p class="ref"><code>isEmpty()</code> replaces the original <code>limit(1).count()</code> checks (as in Chapter 8). The task-value read uses <code>debugValue</code> so the notebook also runs interactively.</p>
-
 <h3 id="s14-6-6"><span class="num">14.6.6</span>Step 5: Create the Job</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -1177,10 +966,9 @@ print(f"Validation passed: {s['orders']} orders, sales {s['sales']}, "
 <tr><td><code>Gold_Aggregation</code></td><td>03_gold_aggregation</td><td>Silver_Cleansing</td></tr>
 <tr><td><code>Validate_Gold</code></td><td>04_validate_gold</td><td>Gold_Aggregation</td></tr>
 </tbody></table></div>
-<div class="card"><h4>Job parameters</h4><table style="margin:0"><tbody><tr><td><code>catalog</code></td><td><code>retail_dev</code></td></tr><tr><td><code>processing_date</code></td><td><code>2026-10-20</code> for testing; <code>{{job.start_time.iso_date}}</code> once scheduled</td></tr></tbody></table><p style="margin:8px 0 0" class="ref">Notebook tasks receive these automatically as widgets.</p></div>
+<div class="card"><h4>Job parameters</h4><table style="margin:0"><tbody><tr><td><code>catalog</code></td><td><code>retail_dev</code></td></tr><tr><td><code>processing_date</code></td><td><code>2026-10-20</code> for testing; <code>{{job.start_time.iso_date}}</code> once scheduled</td></tr></tbody></table><p class="ref" style="margin:8px 0 0">Notebook tasks receive these automatically as widgets.</p></div>
 </div>
 <p>Use serverless compute (or one shared job cluster) for all four tasks. The task keys must match exactly, because <code>04_validate_gold</code> reads the task value from <code>Bronze_Ingestion</code>.</p>
-
 <h4>Step 6: Configure retries and timeouts</h4>
 <div class="table-wrap"><table>
 <thead><tr><th>Task</th><th>Retries</th><th>Timeout</th><th>Why</th></tr></thead>
@@ -1191,7 +979,6 @@ print(f"Validation passed: {s['orders']} orders, sales {s['sales']}, "
 <tr><td>Validate_Gold</td><td>0–1</td><td>15 min</td><td>A failed check is deterministic and needs investigation, not retries</td></tr>
 </tbody></table></div>
 <p class="ref">Example values. Tune them from run history. Retries are only safe because every task is idempotent.</p>
-
 <h4>Step 7: Configure failure notifications</h4>
 <p>Under <strong>Job notifications</strong>, add the support email for <strong>Failure</strong>, and tick <em>mute notifications until the last retry</em>. For example, if Silver hits an unexpected data type:</p>
 <pre class="diagram">Bronze_Ingestion  -&gt; SUCCESS
@@ -1199,7 +986,6 @@ Silver_Cleansing  -&gt; FAILED   (after 2 retries)  -&gt; email sent
 Gold_Aggregation  -&gt; UPSTREAM FAILED (not run)
 Validate_Gold     -&gt; UPSTREAM FAILED (not run)</pre>
 <p class="ref">Optional: add a <code>Notify_Failure</code> task with <strong>Run if: At least one failed</strong> that posts to Teams or Slack or writes an audit row.</p>
-
 <h4>Step 8: Configure the daily schedule</h4>
 <div class="grid-2">
 <pre class="diagram">Job:        Retail_Daily_Sales_Job
@@ -1210,7 +996,6 @@ processing_date = {{job.start_time.iso_date}}</pre>
 <div class="card"><h4>Operational checks</h4><ul style="margin-bottom:0"><li>Source data is available before 1:00 AM.</li><li>Timeouts are set.</li><li>Max concurrent runs = 1 (no overlaps).</li><li>Failure notifications work.</li><li>The job finishes before the reporting deadline.</li></ul></div>
 </div>
 <p class="ref">Using the run's start date means the job processes files named for that day. If files for day <em>D</em> arrive overnight, compute <code>D − 1</code> in the notebook instead.</p>
-
 <h3 id="s14-6-10"><span class="num">14.6.10</span>Step 9: Test Failure and Recovery</h3>
 <p>First, click <strong>Run now</strong> with <code>processing_date = 2026-10-20</code>. Expected results, verified by running all four notebooks' logic in Spark (with the Delta writes simulated, since Delta can't run locally):</p>
 <div class="grid-2">
@@ -1235,11 +1020,8 @@ processing_date = {{job.start_time.iso_date}}</pre>
 <li><strong>Repair:</strong> remove the test error, open the failed run, click <strong>Repair run</strong>. Only Silver, Gold, and Validate rerun, and Bronze keeps its earlier result.</li>
 <li><strong>Backfill:</strong> upload a file for another date (e.g. <code>orders_20261021.json</code>) and run with that date. Bronze and Silver gain a new slice; the 2026-10-20 data is untouched.</li>
 </ol>
-<p style="margin:8px 0 0">After recovery, verify: no duplicate orders, Gold reconciles with Silver, validation succeeds, and the job status reflects what actually happened.</p></div>
-
-<!-- ===================== 14.7 ===================== -->
-<h2 id="s14-7"><span class="num">14.7</span>Production Implementation with a Single Lakeflow Pipeline</h2>
-<p>The notebook job teaches orchestration. But if Bronze, Silver, and Gold already live in one declarative pipeline (Chapter 13), you don't need three transformation notebooks:</p>
+<p style="margin:8px 0 0">After recovery, verify: no duplicate orders, Gold reconciles with Silver, validation succeeds, and the job status reflects what actually happened.</p></div></div></section>
+<section class="lesson" id="s14-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.7</span><h2>Production Implementation with a Single Lakeflow Pipeline</h2></div><div class="content"><p>The notebook job teaches orchestration. But if Bronze, Silver, and Gold already live in one declarative pipeline (Chapter 13), you don't need three transformation notebooks:</p>
 <div class="grid-2">
 <pre class="diagram">       Daily Schedule
               |
@@ -1265,11 +1047,8 @@ processing_date = {{job.start_time.iso_date}}</pre>
 <tr><td>Several independent pipelines</td><td>Multi-task job or parent workflow</td></tr>
 <tr><td>Ingestion coordinated across many Azure services</td><td>Consider ADF + Databricks</td></tr>
 </tbody></table></div>
-<div class="callout key"><span class="label">Rule of thumb</span><p>For Databricks-centric work, one declarative pipeline orchestrated by a job is usually simpler than rebuilding the pipeline's dependencies as separate notebook tasks.</p></div>
-
-<!-- ===================== 14.8 ===================== -->
-<h2 id="s14-8"><span class="num">14.8</span>Common Interview Questions</h2>
-<p>Try answering each before revealing the answer.</p>
+<div class="callout key"><span class="label">Rule of thumb</span><p>For Databricks-centric work, one declarative pipeline orchestrated by a job is usually simpler than rebuilding the pipeline's dependencies as separate notebook tasks.</p></div></div></section>
+<section class="lesson" id="s14-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.8</span><h2>Common Interview Questions</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. What is workflow orchestration?</summary><div class="answer">Coordinating multiple tasks according to dependencies, schedules, conditions, and operational rules.</div></details>
 <details class="q"><summary>Q2. What is Lakeflow Jobs?</summary><div class="answer">Databricks' orchestrator (formerly Workflows) for coordinating notebooks, scripts, SQL, pipeline updates, and other tasks with schedules, retries, and notifications.</div></details>
 <details class="q"><summary>Q3. Lakeflow Jobs vs Declarative Pipelines?</summary><div class="answer">Jobs orchestrate tasks; pipelines define and manage datasets. Production systems typically run pipelines from jobs.</div></details>
@@ -1284,11 +1063,8 @@ processing_date = {{job.start_time.iso_date}}</pre>
 <details class="q"><summary>Q12. How does Databricks integrate with ADF?</summary><div class="answer">ADF can run a Databricks job (or notebook) as an activity, wait for it, and continue its wider Azure workflow based on the result.</div></details>
 <details class="q"><summary>Q13. Why might a job succeed while the data is wrong?</summary><div class="answer">Task success only means code didn't throw. Wrong logic, incomplete sources, or swallowed exceptions all "succeed". Validation and reconciliation catch these.</div></details>
 <details class="q"><summary>Q14. When use Lakeflow Jobs instead of ADF?</summary><div class="answer">For Databricks-centric workflows; ADF fits orchestration spanning many Azure services or organizations standardized on ADF.</div></details>
-<details class="q"><summary>Q15. How would you design a production sales workflow?</summary><div class="answer">Ingest Bronze idempotently, cleanse and validate Silver, aggregate Gold, reconcile, with retries, timeouts, failure notifications, a schedule matched to source arrival, and monitoring against the SLA.</div></details>
-
-<!-- ===================== 14.9 ===================== -->
-<h2 id="s14-9"><span class="num">14.9</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q15. How would you design a production sales workflow?</summary><div class="answer">Ingest Bronze idempotently, cleanse and validate Silver, aggregate Gold, reconcile, with retries, timeouts, failure notifications, a schedule matched to source arrival, and monitoring against the SLA.</div></details></div></section>
+<section class="lesson" id="s14-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14 · Lesson 14.9</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topic</th><th>Hands-on exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Orchestration fundamentals</td><td>Create a simple two-task job</td></tr>
@@ -1300,29 +1076,26 @@ processing_date = {{job.start_time.iso_date}}</pre>
 <tr><td>7</td><td>Monitoring and ADF</td><td>Build and validate the complete retail workflow</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://docs.databricks.com/aws/en/jobs/" target="_blank" rel="noopener">Lakeflow Jobs overview</a></li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/tasks" target="_blank" rel="noopener">Configure job tasks</a></li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/scheduled" target="_blank" rel="noopener">Schedule jobs</a></li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/parameters" target="_blank" rel="noopener">Job parameters</a></li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/repair-job-failures" target="_blank" rel="noopener">Repair a job run</a></li>
-<li><a href="https://docs.databricks.com/api/workspace/jobs" target="_blank" rel="noopener">Jobs REST API reference</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/" target="_blank" rel="noopener">Azure Data Factory documentation</a></li>
-</ul><p style="margin:8px 0 0" class="ref">Databricks links use the AWS path; switch to the Azure docs for Azure-specific options.</p></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://docs.databricks.com/aws/en/jobs/" rel="noopener" target="_blank">Lakeflow Jobs overview</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/tasks" rel="noopener" target="_blank">Configure job tasks</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/scheduled" rel="noopener" target="_blank">Schedule jobs</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/parameters" rel="noopener" target="_blank">Job parameters</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/repair-job-failures" rel="noopener" target="_blank">Repair a job run</a></li>
+<li><a href="https://docs.databricks.com/api/workspace/jobs" rel="noopener" target="_blank">Jobs REST API reference</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/" rel="noopener" target="_blank">Azure Data Factory documentation</a></li>
+</ul><p class="ref" style="margin:8px 0 0">Databricks links use the AWS path; switch to the Azure docs for Azure-specific options.</p></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 14</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch14-checklist">
-<label><input type="checkbox"> <strong>Workflow orchestration</strong> coordinates tasks by dependencies and rules.</label>
-<label><input type="checkbox"> <strong>Lakeflow Jobs</strong> manages scheduling, dependencies, retries, notifications, and execution.</label>
-<label><input type="checkbox"> <strong>Declarative pipelines</strong> manage the internal dataset graph; jobs run them.</label>
-<label><input type="checkbox"> <strong>Task dependencies</strong> stop downstream work before upstream work completes.</label>
-<label><input type="checkbox"> <strong>Retries and timeouts</strong> add resilience, provided tasks are idempotent.</label>
-<label><input type="checkbox"> <strong>Job parameters and task values</strong> make workflows reusable and let tasks communicate.</label>
-<label><input type="checkbox"> <strong>Run repair and backfills</strong> support recovery and historical reprocessing.</label>
-<label><input type="checkbox"> <strong>ADF and the REST API</strong> connect Databricks to enterprise platforms.</label>
-<label><input type="checkbox"> <strong>Monitoring and reconciliation</strong> ensure both reliability and business correctness.</label>
-<label><input type="checkbox"> I built the daily job and passed the idempotency, failure, repair, and backfill tests.</label>
+<label><input type="checkbox"/> <strong>Workflow orchestration</strong> coordinates tasks by dependencies and rules.</label>
+<label><input type="checkbox"/> <strong>Lakeflow Jobs</strong> manages scheduling, dependencies, retries, notifications, and execution.</label>
+<label><input type="checkbox"/> <strong>Declarative pipelines</strong> manage the internal dataset graph; jobs run them.</label>
+<label><input type="checkbox"/> <strong>Task dependencies</strong> stop downstream work before upstream work completes.</label>
+<label><input type="checkbox"/> <strong>Retries and timeouts</strong> add resilience, provided tasks are idempotent.</label>
+<label><input type="checkbox"/> <strong>Job parameters and task values</strong> make workflows reusable and let tasks communicate.</label>
+<label><input type="checkbox"/> <strong>Run repair and backfills</strong> support recovery and historical reprocessing.</label>
+<label><input type="checkbox"/> <strong>ADF and the REST API</strong> connect Databricks to enterprise platforms.</label>
+<label><input type="checkbox"/> <strong>Monitoring and reconciliation</strong> ensure both reliability and business correctness.</label>
+<label><input type="checkbox"/> I built the daily job and passed the idempotency, failure, repair, and backfill tests.</label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1342,66 +1115,20 @@ processing_date = {{job.start_time.iso_date}}</pre>
 })();
 </script>
 <div class="callout key"><span class="label">Final project outcome</span><p>A daily workflow that runs Bronze ingestion, Silver cleansing, Gold aggregation, and validation in the right order, with retries, failure notifications, and a recovery strategy that never duplicates data.</p></div>
-
 <div class="next">
 <h3>Next chapter: Advanced Spark Optimization</h3>
 <p>Phase 6 begins. Chapter 15 is about making all of this fast: reading execution plans and the Spark UI, stage and task metrics, shuffles, broadcast vs sort-merge joins, join hints, data skew and Adaptive Query Execution, repartition vs coalesce, partition pruning, small-file problems, and memory management.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-13.html"><span class="mn-label">← Previous</span><span class="mn-title">Declarative Pipelines</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-15.html"><span class="mn-label">Next →</span><span class="mn-title">Spark Optimization</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-13.html"><span>← Previous</span><strong>Chapter 13: Declarative Pipelines</strong></a>
-  <a class="pager-link" href="databricks-chapter-15.html"><span>Next →</span><strong>Chapter 15: Advanced Spark Optimization</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 5 · Chapter 14 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

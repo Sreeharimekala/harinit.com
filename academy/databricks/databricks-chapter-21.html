@@ -1,281 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 21: DevOps & CI/CD</title>
-<meta name="description" content="Chapter 21 of a Databricks learning path: Git workflows, environment configuration, Databricks Asset Bundles, GitHub Actions and Azure DevOps pipelines, approvals and rollback, and Terraform, with a tested example project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DevOps &amp; CI/CD — Chapter 21 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 21 of a Databricks learning path: Git workflows, environment configuration, Databricks Asset Bundles, GitHub Actions and Azure DevOps pipelines, approvals and rollback, and Terraform, with a tested example project."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 21 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s21-1">21.1 Version Control</a></li>
-    <li class="lvl2"><a href="#s21-1-2">Git fundamentals</a></li>
-    <li class="lvl2"><a href="#s21-1-3">Repository layout</a></li>
-    <li class="lvl2"><a href="#s21-1-4">Branches &amp; commits</a></li>
-    <li class="lvl2"><a href="#s21-1-6">Pull requests</a></li>
-    <li class="lvl2"><a href="#s21-1-7">Notebook changes</a></li>
-    <li class="lvl1"><a href="#s21-2">21.2 Deployment</a></li>
-    <li class="lvl2"><a href="#s21-2-2">Dev, test, prod</a></li>
-    <li class="lvl2"><a href="#s21-2-5">Configuration</a></li>
-    <li class="lvl2"><a href="#s21-2-6">Parameters</a></li>
-    <li class="lvl2"><a href="#s21-2-7">Secrets</a></li>
-    <li class="lvl1"><a href="#s21-3">21.3 Asset Bundles</a></li>
-    <li class="lvl2"><a href="#s21-3-3">Project structure</a></li>
-    <li class="lvl2"><a href="#s21-3-4">CLI setup</a></li>
-    <li class="lvl2"><a href="#s21-3-5">databricks.yml</a></li>
-    <li class="lvl2"><a href="#s21-3-6">Job definition</a></li>
-    <li class="lvl2"><a href="#s21-3-7">Pipeline code &amp; tests</a></li>
-    <li class="lvl2"><a href="#s21-3-8">Validate, deploy, run</a></li>
-    <li class="lvl1"><a href="#s21-4">21.4 CI/CD Pipelines</a></li>
-    <li class="lvl2"><a href="#s21-4-1">CI vs CD</a></li>
-    <li class="lvl2"><a href="#s21-4-4">GitHub Actions</a></li>
-    <li class="lvl2"><a href="#s21-4-5">Azure DevOps</a></li>
-    <li class="lvl2"><a href="#s21-4-6">Approvals</a></li>
-    <li class="lvl2"><a href="#s21-4-7">Rollback &amp; releases</a></li>
-    <li class="lvl1"><a href="#s21-5">21.5 Infrastructure as Code</a></li>
-    <li class="lvl2"><a href="#s21-5-2">Terraform basics</a></li>
-    <li class="lvl2"><a href="#s21-5-4">Example configuration</a></li>
-    <li class="lvl2"><a href="#s21-5-5">Provisioning &amp; state</a></li>
-    <li class="lvl1"><a href="#s21-6">21.6 Hands-On Project</a></li>
-    <li class="lvl1"><a href="#s21-7">21.7 Common Mistakes</a></li>
-    <li class="lvl1"><a href="#s21-8">21.8 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s21-9">21.9 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 7 · Chapter 21 · Security, Monitoring, and DevOps</span>
-  <h1>Databricks DevOps and CI/CD</h1>
-  <p class="lead">Manage Databricks code with Git, deploy the same job to development, test, and production with Databricks Asset Bundles, automate testing and deployment with GitHub Actions or Azure DevOps, and provision platform resources with Terraform.</p>
-  <div class="grid-2">
-  <div class="card"><h4>Don't do this</h4><p style="margin-bottom:0">Your customer pipeline works in development. Someone copies the notebooks into production, edits table names by hand, and hopes it works. Nobody can later say which version ran when something broke.</p></div>
-  <div class="card"><h4>Do this</h4><ol style="margin-bottom:0"><li>Store code in Git.</li><li>Review and test changes.</li><li>Validate the deployment configuration.</li><li>Deploy to test.</li><li>Get approval for production.</li><li>Deploy with automation.</li><li>Verify the production job.</li><li>Roll back or recover if needed.</li></ol></div>
-  </div>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Manage Databricks projects with Git.</li>
-    <li>Organize notebook and Python code for deployment.</li>
-    <li>Create dev, test, and prod configurations.</li>
-    <li>Define and deploy jobs with Asset Bundles.</li>
-    <li>Automate tests and deployments with GitHub Actions or Azure DevOps.</li>
-    <li>Manage parameters and secrets securely.</li>
-    <li>Provision resources with Terraform.</li>
-    <li>Build an end-to-end deployment pipeline.</li>
-  </ol></div>
-  <div class="callout"><span class="label">What was actually tested</span><p>The complete example project in this chapter was built and checked locally: <strong>6 unit tests pass</strong> (and fail when the logic is broken), both bundle YAML files pass the official bundle schema from Databricks CLI v1.22.1, both GitHub workflows pass <code>actionlint</code>, and the Terraform configuration passes <code>validate</code> and produces a real <code>plan</code> with Databricks provider v1.95.0. Deploying to a workspace wasn't possible from here. The project is attached as a zip so you can push it to your own repository.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s21-1"><span>21.1</span><strong>Git</strong></a>
-    <a class="chip" href="#s21-2"><span>21.2</span><strong>Deployment</strong></a>
-    <a class="chip" href="#s21-3"><span>21.3</span><strong>Bundles</strong></a>
-    <a class="chip" href="#s21-4"><span>21.4</span><strong>CI/CD</strong></a>
-    <a class="chip" href="#s21-5"><span>21.5</span><strong>Terraform</strong></a>
-    <a class="chip" href="#s21-6"><span>21.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 21.1 ===================== -->
-<h2 id="s21-1"><span class="num">21.1</span>Version Control</h2>
-
-<h3 id="s21-1-1"><span class="num">21.1.1</span>What Is Version Control?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Databricks DevOps and CI/CD</div>
+<div class="brand-sub">Chapter 21 · 9 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s21-1" class="nav-link"><span class="nav-num">21.1</span>Version Control</a>
+<a href="#s21-2" class="nav-link"><span class="nav-num">21.2</span>Deployment</a>
+<a href="#s21-3" class="nav-link"><span class="nav-num">21.3</span>Databricks Asset Bundles</a>
+<a href="#s21-4" class="nav-link"><span class="nav-num">21.4</span>CI/CD Pipelines</a>
+<a href="#s21-5" class="nav-link"><span class="nav-num">21.5</span>Infrastructure as Code</a>
+<a href="#s21-6" class="nav-link"><span class="nav-num">21.6</span>Hands-On Project: Deploy a Job from Development to Production</a>
+<a href="#s21-7" class="nav-link"><span class="nav-num">21.7</span>Common Mistakes in Databricks DevOps</a>
+<a href="#s21-8" class="nav-link"><span class="nav-num">21.8</span>Interview Questions and Answers</a>
+<a href="#s21-9" class="nav-link"><span class="nav-num">21.9</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 7 · Chapter 21 · Security, Monitoring, and DevOps</div><h1>Databricks DevOps and CI/CD</h1>
+<p>Manage Databricks code with Git, deploy the same job to development, test, and production with Databricks Asset Bundles, automate testing and deployment with GitHub Actions or Azure DevOps, and provision platform resources with Terraform.</p>
+<div class="doc-meta"><span class="pill">9 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s21-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.1</span><h2>Version Control</h2></div><div class="content"><h3 id="s21-1-1"><span class="num">21.1.1</span>What Is Version Control?</h3>
 <p>Version control tracks changes to code and configuration over time. It answers: who changed the pipeline, what changed, why, which version is in production, can we restore an earlier one, and what is waiting for approval? In a Databricks project, Git manages Python and SQL files, tests, bundle configuration, job definitions, deployment scripts, and documentation.</p>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python · version 1</span><pre class="code"><code>df = spark.read.table("retail_dev.bronze.customers")
@@ -283,7 +143,6 @@ df.write.mode("append").saveAsTable("retail_dev.silver.customers")
 # Rerunning appends everything again: duplicates</code></pre></div>
 <div class="card"><h4>With Git</h4><p style="margin-bottom:0">When you replace the append with a MERGE, Git shows exactly what changed, reviewers approve it, tests run, and the release is traceable. Without it, you can't establish which code was running when a failure occurred.</p></div>
 </div>
-
 <h3 id="s21-1-2"><span class="num">21.1.2</span>Git Fundamentals</h3>
 <div class="grid-2">
 <pre class="diagram">Working directory
@@ -316,8 +175,7 @@ Pull request -&gt; merge into main</pre>
 <div class="code-wrap"><span class="lang">Bash · one-time setup</span><pre class="code"><code>git config --global user.name "Your Name"
 git config --global user.email "your.email@company.com"   # your approved corporate identity
 git config --list</code></pre></div>
-<p class="ref">Authenticate with SSH or your organization's HTTPS method (e.g. the GitHub CLI or Git Credential Manager). Never put tokens in Git config or scripts. Docs: <a href="https://git-scm.com/doc" target="_blank" rel="noopener">Git documentation</a>.</p>
-
+<p class="ref">Authenticate with SSH or your organization's HTTPS method (e.g. the GitHub CLI or Git Credential Manager). Never put tokens in Git config or scripts. Docs: <a href="https://git-scm.com/doc" rel="noopener" target="_blank">Git documentation</a>.</p>
 <h3 id="s21-1-3"><span class="num">21.1.3</span>Repository Layout</h3>
 <p>This is the layout of the example project used throughout the chapter (and in the attached zip):</p>
 <div class="grid-2">
@@ -341,7 +199,7 @@ git config --list</code></pre></div>
 ├── pyproject.toml            pytest settings
 ├── requirements-dev.txt
 └── .gitignore</pre>
-<div class="card"><h4>Separate concerns</h4><ul style="margin-bottom:0"><li><strong>Notebook:</strong> thin entry point: read parameters, call functions.</li><li><strong>Python package:</strong> reusable, testable transformation logic.</li><li><strong>Tests:</strong> automated checks.</li><li><strong>YAML:</strong> deployment configuration.</li><li><strong>README:</strong> setup and operations.</li></ul><p style="margin:8px 0 0" class="ref">Bundles don't require this exact layout, but separating code, config, tests, and docs makes everything easier to review.</p></div>
+<div class="card"><h4>Separate concerns</h4><ul style="margin-bottom:0"><li><strong>Notebook:</strong> thin entry point: read parameters, call functions.</li><li><strong>Python package:</strong> reusable, testable transformation logic.</li><li><strong>Tests:</strong> automated checks.</li><li><strong>YAML:</strong> deployment configuration.</li><li><strong>README:</strong> setup and operations.</li></ul><p class="ref" style="margin:8px 0 0">Bundles don't require this exact layout, but separating code, config, tests, and docs makes everything easier to review.</p></div>
 </div>
 <div class="code-wrap"><span class="lang">.gitignore</span><pre class="code"><code>.databricks/
 __pycache__/
@@ -352,7 +210,6 @@ __pycache__/
 *.tfstate.*
 .terraform/</code></pre></div>
 <p class="ref"><code>.databricks/</code> is the bundle's local working folder; Terraform state files can contain secrets. Neither belongs in Git.</p>
-
 <h3 id="s21-1-4"><span class="num">21.1.4</span>Branches and Commits</h3>
 <div class="grid-2">
 <pre class="diagram">main                       approved, releasable
@@ -377,7 +234,6 @@ git push -u origin feature/customer-dedup
 <div class="card"><h4>Good commits</h4><ul style="margin-bottom:0"><li>Small and focused on one change.</li><li>Tested where practical.</li><li>Message explains the purpose: "Add duplicate customer key validation", not "Updated code".</li><li>No credentials, no large generated files.</li></ul></div>
 <div class="card"><h4>Branch strategy</h4><p style="margin-bottom:0"><code>main</code> plus short-lived <code>feature/*</code>, <code>bugfix/*</code>, and <code>hotfix/*</code> branches is enough for most data teams. Long-lived branches drift apart and make merging painful. Protect <code>main</code>: require a PR, passing CI, and at least one approval.</p></div>
 </div>
-
 <h3 id="s21-1-6"><span class="num">21.1.5</span>Pull Requests and Code Reviews</h3>
 <div class="grid-2">
 <pre class="diagram">Feature branch
@@ -399,16 +255,11 @@ Production approval
 Deploy to production</pre>
 <div class="card"><h4>Review data pipelines for more than syntax</h4><ul style="margin-bottom:0"><li>Does the transformation produce the right data?</li><li>Is it safe to rerun? Could it duplicate rows?</li><li>Are business rules preserved?</li><li>Are nulls and invalid values handled?</li><li>Are schema changes intentional?</li><li>Are tests included?</li><li>Are environment values externalized?</li><li>Does the config target the right resources?</li><li>Are any secrets exposed?</li></ul></div>
 </div>
-
 <h3 id="s21-1-7"><span class="num">21.1.6</span>Managing Notebook Changes</h3>
 <p>Notebooks can be versioned, but outputs and metadata make diffs noisy. Keep business logic in Python modules and notebooks thin. In Databricks, a <strong>Git folder</strong> (Workspace → Create → Git folder) clones your repository into the workspace so you can branch, commit, and pull from the UI.</p>
 <div class="callout"><span class="label">Source-format notebooks</span><p>A <code>.py</code> file whose first line is <code># Databricks notebook source</code> is a notebook in source format: plain Python that diffs cleanly, with cells separated by <code># COMMAND ----------</code>. The project's <code>src/customer_load.py</code> uses it, which matters because a bundle's <code>notebook_task</code> must point at a notebook.</p></div>
-<p class="ref">Best practices: no secrets or production config in notebooks; keep them focused; reuse shared functions; remove exploratory cells before release; test logic outside notebooks. Treat production notebooks and deployment configuration as software.</p>
-
-<!-- ===================== 21.2 ===================== -->
-<h2 id="s21-2"><span class="num">21.2</span>Deployment</h2>
-<p class="section-intro">Deployment publishes code and configuration (notebooks, Python, job definitions, task dependencies, parameters, compute, pipelines, permissions, libraries) into an environment. Uploading code isn't the end: the deployed job must be configured correctly and verified.</p>
-
+<p class="ref">Best practices: no secrets or production config in notebooks; keep them focused; reuse shared functions; remove exploratory cells before release; test logic outside notebooks. Treat production notebooks and deployment configuration as software.</p></div></section>
+<section class="lesson" id="s21-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.2</span><h2>Deployment</h2></div><div class="content"><p class="section-intro">Deployment publishes code and configuration (notebooks, Python, job definitions, task dependencies, parameters, compute, pipelines, permissions, libraries) into an environment. Uploading code isn't the end: the deployed job must be configured correctly and verified.</p>
 <h3 id="s21-2-2"><span class="num">21.2.1</span>Development, Test, and Production</h3>
 <div class="table-wrap"><table>
 <thead><tr><th></th><th>Development</th><th>Test</th><th>Production</th></tr></thead>
@@ -422,7 +273,6 @@ Deploy to production</pre>
 <tr><td>Runs as</td><td>The developer</td><td>Test service principal</td><td>Prod service principal</td></tr>
 </tbody></table></div>
 <p class="ref">A successful dev run isn't proof of production readiness. Production deployments must be <strong>repeatable</strong>: deploying the same release twice should update the existing job, not create a duplicate. Bundles behave this way because they track what they deployed.</p>
-
 <h3 id="s21-2-5"><span class="num">21.2.2</span>Environment-Specific Configuration</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python · fragile</span><pre class="code"><code># Works in prod... and silently writes prod
@@ -434,26 +284,19 @@ def run_pipeline(spark, source_table, target_table):
     ...</code></pre></div>
 </div>
 <p>The original kept separate <code>config/dev.yml</code> and <code>config/prod.yml</code> files <em>and</em> bundle variables, two sources of truth for the same values. In this chapter's project, the <strong>bundle target is the single source</strong>: each target sets one variable, <code>catalog</code>, and every table name is derived from it (21.3.5).</p>
-
 <h3 id="s21-2-6"><span class="num">21.2.3</span>Parameter Management</h3>
 <p>Parameters let a pipeline receive values (environment, tables, business date, batch ID, mode, paths) without code changes. For a notebook task, <strong>job parameters arrive as widgets</strong>, so the notebook only needs <code>dbutils.widgets.get</code>.</p>
 <div class="callout warn"><span class="label">Validate parameters; don't trust them</span><p>A production job shouldn't accept any target table it's given. The project's <code>validate_parameters</code> rejects unknown environments, a catalog that doesn't match the environment, and tables outside that catalog, so a dev job can't be pointed at <code>prod_catalog</code>. All three rejection cases are unit-tested (21.3.7).</p></div>
-
 <h3 id="s21-2-7"><span class="num">21.2.4</span>Secrets During Deployment</h3>
 <div class="grid-2">
 <div class="card"><h4>Secrets must never be in</h4><ul style="margin-bottom:0"><li>Git repositories.</li><li>Bundle configuration.</li><li>Notebook source.</li><li>Plain job parameters (visible in run details).</li><li>Build logs or deployment output.</li></ul></div>
 <div class="card"><h4>Where they go</h4><ul style="margin-bottom:0"><li><strong>Runtime secrets</strong> (database passwords): secret scopes / Key Vault, read with <code>dbutils.secrets.get(scope, key)</code>. The scope and key are references, not the secret.</li><li><strong>Deployment credentials</strong> (the CI service principal): GitHub environment secrets or Azure DevOps variable groups, or no secret at all with workload identity federation.</li><li>Prefer managed identities wherever supported.</li></ul></div>
-</div>
-
-<!-- ===================== 21.3 ===================== -->
-<h2 id="s21-3"><span class="num">21.3</span>Databricks Asset Bundles</h2>
-<p class="section-intro">The most important topic in this chapter. A bundle defines Databricks resources (jobs, pipelines, their code, environment targets, variables, permissions) as files in Git, and the Databricks CLI deploys them. Recent documentation calls them <strong>Declarative Automation Bundles</strong>; the commands are the same.</p>
-
+</div></div></section>
+<section class="lesson" id="s21-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.3</span><h2>Databricks Asset Bundles</h2></div><div class="content"><p class="section-intro">The most important topic in this chapter. A bundle defines Databricks resources (jobs, pipelines, their code, environment targets, variables, permissions) as files in Git, and the Databricks CLI deploys them. Recent documentation calls them <strong>Declarative Automation Bundles</strong>; the commands are the same.</p>
 <div class="grid-2">
 <div class="card"><h4>Without bundles</h4><ol style="margin-bottom:0"><li>Create the job by hand in dev.</li><li>Recreate it by hand in test.</li><li>Recreate it by hand in prod.</li><li>Set parameters separately each time.</li><li>Check permissions and compute manually.</li></ol><p style="margin:8px 0 0">Environments drift apart.</p></div>
 <div class="card"><h4>With bundles</h4><ol style="margin-bottom:0"><li>Define the job once.</li><li>Define environment targets.</li><li>Validate.</li><li>Deploy to dev and test.</li><li>Deploy the same definition to prod.</li></ol><p style="margin:8px 0 0">Consistent, reviewable, repeatable.</p></div>
 </div>
-
 <h3 id="s21-3-3"><span class="num">21.3.1</span>Bundle Project Structure</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>File</th><th>Purpose</th></tr></thead>
@@ -465,7 +308,6 @@ def run_pipeline(spark, source_table, target_table):
 <tr><td><code>tests/</code></td><td>Automated tests</td></tr>
 </tbody></table></div>
 <p class="ref"><code>databricks bundle init</code> can generate a starter project from a template, which is a good way to see the current recommended layout.</p>
-
 <h3 id="s21-3-4"><span class="num">21.3.2</span>Install and Configure the Databricks CLI</h3>
 <div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code># macOS / Linux (Homebrew); Windows: winget install Databricks.DatabricksCLI
 brew tap databricks/tap &amp;&amp; brew install databricks
@@ -474,8 +316,7 @@ databricks version                       # e.g. Databricks CLI v1.22.1
 # Developer machine: browser-based OAuth login (U2M), saved as a profile
 databricks auth login --host https://adb-1111111111111111.11.azuredatabricks.net
 databricks auth profiles                 # check it worked</code></pre></div>
-<p class="ref">For CI/CD use a service principal with OAuth M2M: set <code>DATABRICKS_CLIENT_ID</code> and <code>DATABRICKS_CLIENT_SECRET</code> as protected secrets (Chapter 19). Never put a person's token on a shared build agent. On Free Edition, log in to your own workspace URL and use only the <code>dev</code> target. Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" target="_blank" rel="noopener">Install the CLI</a>.</p>
-
+<p class="ref">For CI/CD use a service principal with OAuth M2M: set <code>DATABRICKS_CLIENT_ID</code> and <code>DATABRICKS_CLIENT_SECRET</code> as protected secrets (Chapter 19). Never put a person's token on a shared build agent. On Free Edition, log in to your own workspace URL and use only the <code>dev</code> target. Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" rel="noopener" target="_blank">Install the CLI</a>.</p>
 <h3 id="s21-3-5"><span class="num">21.3.3</span>The Bundle Configuration: <code>databricks.yml</code></h3>
 <div class="code-wrap"><span class="lang">YAML · databricks.yml</span><pre class="code"><code>bundle:
   name: retail-customer-pipeline
@@ -529,7 +370,6 @@ targets:
 <div class="card"><h4>How the targets differ</h4><ul style="margin-bottom:0"><li><strong><code>mode: development</code></strong> (dev): prefixes resource names with <code>[dev your.name]</code>, pauses schedules, deploys to your own folder. Several developers can share a workspace without clashing.</li><li><strong><code>mode: production</code></strong> (test, prod): real names, active schedules, plus safety checks on the deployment.</li><li><strong><code>root_path</code></strong>: a shared folder, so deployments don't depend on whoever ran them.</li><li><strong><code>run_as</code></strong>: the job runs as a service principal, never as the deployer.</li><li><strong><code>permissions</code></strong> (prod): support can view, admins manage.</li></ul></div>
 <div class="callout" style="margin:0"><span class="label">Changes from the original, and why</span><p>The original declared three variables (<code>catalog</code>, <code>source_table</code>, <code>target_table</code>) per target, and nothing stopped them disagreeing (e.g. a test catalog with prod tables). Here each target sets only <code>catalog</code>, and tables are derived from it. Test and prod also gained <code>run_as</code>, <code>root_path</code>, and permissions, which the original didn't have, so its prod job would have run as whoever deployed it.</p><p style="margin-bottom:0">Replace the hosts and service-principal application IDs with yours. Mode settings don't replace workspace isolation or approvals (Chapter 19).</p></div>
 </div>
-
 <h3 id="s21-3-6"><span class="num">21.3.4</span>Define the Job</h3>
 <div class="code-wrap"><span class="lang">YAML · resources/customer_job.yml</span><pre class="code"><code>resources:
   jobs:
@@ -567,7 +407,6 @@ targets:
 <div class="card"><h4>Points to notice</h4><ul style="margin-bottom:0"><li><strong>Job parameters</strong> (not task <code>base_parameters</code>) are visible on the job and passed to the notebook as widgets.</li><li><code>${bundle.target}</code> and <code>${var.catalog}</code> are resolved per target.</li><li><code>{{job.run_id}}</code> is resolved at <em>run</em> time (it feeds Chapter 20's monitoring).</li><li>No cluster is defined, so the task runs on <strong>serverless</strong> compute (works on Free Edition). Add <code>job_clusters</code> for classic compute.</li><li>One retry, two minutes apart, for transient failures only (Chapter 20).</li></ul></div>
 <div class="card"><h4>Path resolution</h4><p style="margin-bottom:0">Paths in a resource file are relative to <strong>that file</strong>, so <code>../src/customer_load.py</code> goes up from <code>resources/</code>. During deploy the bundle uploads <code>src/</code> to the target's workspace folder and rewrites the path. A wrong path is one of the most common validation errors.</p></div>
 </div>
-
 <h3 id="s21-3-7"><span class="num">21.3.5</span>The Pipeline Code and Its Tests</h3>
 <div class="code-wrap"><span class="lang">Python · src/retail/transformations.py</span><pre class="code"><code>from pyspark.sql import Window, functions as F
 
@@ -684,7 +523,6 @@ $ pytest
 # Regression check: sort updated_at ascending instead of descending
 E   AssertionError: assert {1: 'Alice', 2: 'Bob'} == {1: 'Alice', 2: 'Bob K.'}</code></pre></div>
 <div class="callout warn"><span class="label">The original CI would have failed on its first run</span><p>The original test did <code>from src.transformations import clean_customers</code> and ran with <code>pytest tests -q</code>, with no <code>spark</code> fixture defined. I reproduced it: collection stops with <code>ModuleNotFoundError: No module named 'src'</code> (pytest puts <code>tests/</code>, not the repository root, on the import path), and even after that the missing fixture would fail every test. The <code>pythonpath</code> setting in <code>pyproject.toml</code> plus <code>conftest.py</code> fix both, and plain <code>pytest</code> now works from the repository root.</p></div>
-
 <h3 id="s21-3-8"><span class="num">21.3.6</span>Validate, Deploy, and Run</h3>
 <div class="code-wrap"><span class="lang">Bash · development cycle</span><pre class="code"><code>databricks bundle validate -t dev      # check config, resolve variables
 databricks bundle deploy -t dev        # upload code, create/update the job
@@ -693,17 +531,13 @@ databricks bundle summary -t dev       # what's deployed, with links
 
 databricks bundle destroy -t dev       # remove your dev copy when finished</code></pre></div>
 <div class="grid-2">
-<div class="card"><h4>Validation catches</h4><ul style="margin-bottom:0"><li>YAML indentation errors.</li><li>Unknown or misspelled keys.</li><li>Missing required properties.</li><li>Wrong file paths.</li><li>Undefined variables.</li><li>Authentication and workspace problems.</li></ul><p style="margin:8px 0 0" class="ref"><code>validate</code> contacts the workspace, so it needs credentials. It doesn't prove the logic is right; tests and a real run do.</p></div>
+<div class="card"><h4>Validation catches</h4><ul style="margin-bottom:0"><li>YAML indentation errors.</li><li>Unknown or misspelled keys.</li><li>Missing required properties.</li><li>Wrong file paths.</li><li>Undefined variables.</li><li>Authentication and workspace problems.</li></ul><p class="ref" style="margin:8px 0 0"><code>validate</code> contacts the workspace, so it needs credentials. It doesn't prove the logic is right; tests and a real run do.</p></div>
 <div class="card"><h4>After deploy and run, verify</h4><ol style="margin-bottom:0"><li>The job exists with the expected name.</li><li>Tasks and parameters are correct.</li><li>Source and target tables are this environment's.</li><li>The deployed code is the intended commit.</li><li>Run-as identity and permissions are right.</li><li>The run succeeds and data checks pass.</li><li>Audit rows are recorded (Chapter 20).</li></ol></div>
 </div>
 <p><strong>Schema check, done here:</strong> without a workspace, I validated both YAML files against the official bundle JSON schema (<code>databricks bundle schema</code>, CLI v1.22.1): 0 errors for each, while a deliberately misspelled key (<code>max_retires</code>) was rejected. Your editor can use the same schema for autocomplete.</p>
 <p>Then promote: <code>validate</code> and <code>deploy</code> with <code>-t test</code>, run and test there, and after approval <code>-t prod</code>. Never use the prod target as a test environment. The deploying identity needs permission to deploy, and the "Service Principal User" role on the run-as service principal.</p>
-<p class="ref">Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" target="_blank" rel="noopener">Declarative Automation Bundles</a>.</p>
-
-<!-- ===================== 21.4 ===================== -->
-<h2 id="s21-4"><span class="num">21.4</span>CI/CD Pipelines</h2>
-
-<h3 id="s21-4-1"><span class="num">21.4.1</span>Continuous Integration, Delivery, and Deployment</h3>
+<p class="ref">Docs: <a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" rel="noopener" target="_blank">Declarative Automation Bundles</a>.</p></div></section>
+<section class="lesson" id="s21-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.4</span><h2>CI/CD Pipelines</h2></div><div class="content"><h3 id="s21-4-1"><span class="num">21.4.1</span>Continuous Integration, Delivery, and Deployment</h3>
 <div class="grid-2">
 <pre class="diagram">Pull request
      |
@@ -739,7 +573,6 @@ Post-deployment validation</pre>
 <tr><td>Smoke</td><td>A small approved run succeeds</td><td>After deploy</td></tr>
 <tr><td>Regression</td><td>Previously correct behavior still works</td><td>CI</td></tr>
 </tbody></table></div>
-
 <h3 id="s21-4-4"><span class="num">21.4.2</span>GitHub Actions</h3>
 <p>Two workflows: <strong>CI</strong> on every pull request, <strong>Deploy</strong> on every merge to main.</p>
 <div class="code-wrap"><span class="lang">YAML · .github/workflows/ci.yml</span><pre class="code"><code>name: CI
@@ -833,8 +666,7 @@ jobs:
 <div class="card"><h4>One-time GitHub setup</h4><ol style="margin-bottom:0"><li><strong>Settings → Environments:</strong> create <code>dev</code>, <code>test</code>, <code>production</code>.</li><li>In each, add secrets <code>DATABRICKS_CLIENT_ID</code> and <code>DATABRICKS_CLIENT_SECRET</code> for <em>that</em> environment's deployment service principal.</li><li>On <code>production</code>: add <strong>required reviewers</strong> and restrict it to the <code>main</code> branch.</li><li><strong>Branch protection</strong> on main: require PRs and the CI checks.</li></ol></div>
 <div class="card"><h4>Why it's built this way</h4><ul style="margin-bottom:0"><li>Environment-scoped secrets: the test job can't read prod credentials.</li><li><code>bundle run</code> waits and fails the workflow if the job fails, so a broken release stops before prod.</li><li><code>concurrency</code> prevents overlapping deployments.</li><li>The step summary records which commit reached prod.</li><li><code>permissions: contents: read</code>: least privilege for the workflow token.</li></ul></div>
 </div>
-<p class="ref">Both workflows pass <code>actionlint</code>. The original CI installed unpinned <code>pyspark</code> and had the import problem above; this one installs pinned versions from <code>requirements-dev.txt</code> and sets up Java explicitly. Pin <code>databricks/setup-cli</code> to a release or commit SHA in real use. To avoid storing a client secret at all, use GitHub OIDC workload identity federation. Docs: <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions</a>.</p>
-
+<p class="ref">Both workflows pass <code>actionlint</code>. The original CI installed unpinned <code>pyspark</code> and had the import problem above; this one installs pinned versions from <code>requirements-dev.txt</code> and sets up Java explicitly. Pin <code>databricks/setup-cli</code> to a release or commit SHA in real use. To avoid storing a client secret at all, use GitHub OIDC workload identity federation. Docs: <a href="https://docs.github.com/en/actions" rel="noopener" target="_blank">GitHub Actions</a>.</p>
 <h3 id="s21-4-5"><span class="num">21.4.3</span>Azure DevOps</h3>
 <p>The same flow with Azure Repos and Azure Pipelines: a CI stage, then deployment jobs bound to <strong>environments</strong>, where approvals and checks live.</p>
 <div class="code-wrap"><span class="lang">YAML · azure-pipelines.yml</span><pre class="code"><code>trigger:
@@ -906,15 +738,13 @@ stages:
                   env:
                     DATABRICKS_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
                     DATABRICKS_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)</code></pre></div>
-<p class="ref">Create variable groups <code>databricks-test</code> and <code>databricks-prod</code> (ideally linked to Key Vault) and environments <code>retail-test</code> and <code>retail-prod</code>, with an approval check on <code>retail-prod</code>. Secret variables aren't visible to scripts unless mapped in <code>env:</code>, as above. Deployment jobs don't check out code automatically, hence <code>checkout: self</code>. This file was syntax-checked only. Docs: <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" target="_blank" rel="noopener">Azure Pipelines</a>.</p>
-
+<p class="ref">Create variable groups <code>databricks-test</code> and <code>databricks-prod</code> (ideally linked to Key Vault) and environments <code>retail-test</code> and <code>retail-prod</code>, with an approval check on <code>retail-prod</code>. Secret variables aren't visible to scripts unless mapped in <code>env:</code>, as above. Deployment jobs don't check out code automatically, hence <code>checkout: self</code>. This file was syntax-checked only. Docs: <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" rel="noopener" target="_blank">Azure Pipelines</a>.</p>
 <h3 id="s21-4-6"><span class="num">21.4.4</span>Deployment Approvals</h3>
 <div class="grid-2">
 <div class="card"><h4>Who approves</h4><p style="margin-bottom:0">A data platform owner, release manager, production support lead, business owner, or designated change approver, configured as GitHub required reviewers or Azure DevOps environment approvals.</p></div>
 <div class="card"><h4>What they confirm</h4><ul style="margin-bottom:0"><li>Tests passed and the change was reviewed.</li><li>The right target environment.</li><li>Release notes are complete.</li><li>The rollback and recovery plan is understood.</li><li>The change is authorized.</li></ul></div>
 </div>
 <p class="ref">Automation doesn't remove the approval; it enforces it.</p>
-
 <h3 id="s21-4-7"><span class="num">21.4.5</span>Rollback and Release Management</h3>
 <p>A release can bring wrong transformations, missing config, bad permissions, slowdowns, wrong table names, failed runs, or bad data. Rollback must cover <strong>code and data</strong>.</p>
 <div class="grid-2">
@@ -947,12 +777,8 @@ RESTORE TABLE prod_catalog.silver.customers
 <tr><td><code>v1.1.0</code></td><td>Latest-version dedup</td><td>Test</td><td><code>8b7d0e4</code></td><td>(automatic)</td><td>Success</td></tr>
 <tr><td><code>v1.1.0</code></td><td>Latest-version dedup</td><td>Production</td><td><code>8b7d0e4</code></td><td>Release manager</td><td>Success</td></tr>
 </tbody></table></div>
-<p class="ref">A release record holds version or commit, description, environment, test results, approvals, timestamp, deploying identity, post-deployment status, and recovery reference. During an incident, knowing the exact deployed commit saves hours.</p>
-
-<!-- ===================== 21.5 ===================== -->
-<h2 id="s21-5"><span class="num">21.5</span>Infrastructure as Code</h2>
-<p class="section-intro">Infrastructure as Code (IaC) defines infrastructure in version-controlled files rather than by clicking: workspaces, Unity Catalog metastores and assignments, access configuration, compute policies, SQL warehouses, storage, and supporting cloud resources. Manual setup leads to drift, missing resources, inconsistent permissions, and untracked changes.</p>
-
+<p class="ref">A release record holds version or commit, description, environment, test results, approvals, timestamp, deploying identity, post-deployment status, and recovery reference. During an incident, knowing the exact deployed commit saves hours.</p></div></section>
+<section class="lesson" id="s21-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.5</span><h2>Infrastructure as Code</h2></div><div class="content"><p class="section-intro">Infrastructure as Code (IaC) defines infrastructure in version-controlled files rather than by clicking: workspaces, Unity Catalog metastores and assignments, access configuration, compute policies, SQL warehouses, storage, and supporting cloud resources. Manual setup leads to drift, missing resources, inconsistent permissions, and untracked changes.</p>
 <h3 id="s21-5-2"><span class="num">21.5.1</span>Terraform Fundamentals</h3>
 <div class="grid-2">
 <pre class="diagram">Write configuration (.tf)
@@ -988,8 +814,7 @@ RESTORE TABLE prod_catalog.silver.customers
 <tr><td>Asset Bundles</td><td>Application: jobs, pipelines, and their code</td></tr>
 <tr><td>CI/CD</td><td>Automate validation, tests, approvals, and deployments for both</td></tr>
 </tbody></table></div>
-<p class="ref">A common split, not a rule. Whatever you choose, <strong>never manage the same resource with two tools</strong>; they'll keep overwriting each other. Docs: <a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener">Terraform</a> · <a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" target="_blank" rel="noopener">Databricks provider</a>.</p>
-
+<p class="ref">A common split, not a rule. Whatever you choose, <strong>never manage the same resource with two tools</strong>; they'll keep overwriting each other. Docs: <a href="https://developer.hashicorp.com/terraform/docs" rel="noopener" target="_blank">Terraform</a> · <a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" rel="noopener" target="_blank">Databricks provider</a>.</p>
 <h3 id="s21-5-4"><span class="num">21.5.2</span>Example Configuration</h3>
 <p>The original example declared a provider, a variable, and an output, but no resources, so applying it would do nothing. This one manages the Chapter 19 compute policy and who may use it, for any environment:</p>
 <div class="code-wrap"><span class="lang">HCL · infra/main.tf</span><pre class="code"><code>terraform {
@@ -1097,7 +922,6 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 Error: Invalid value for variable
 environment must be dev, test or prod.</code></pre></div>
 <p class="ref">I ran this with OpenTofu 1.8.5 (the open-source Terraform fork; same language and commands) because the Terraform download site wasn't reachable from here. <code>validate</code> passed and the plan above is real; <code>apply</code> needs a workspace. Saving the plan with <code>-out</code> guarantees that what was reviewed is exactly what gets applied.</p>
-
 <h3 id="s21-5-5"><span class="num">21.5.3</span>Workspace Provisioning and State</h3>
 <div class="grid-2">
 <pre class="diagram">Terraform (azurerm + databricks providers)
@@ -1111,13 +935,10 @@ environment must be dev, test or prod.</code></pre></div>
    +--&gt; Metastore assignment
    +--&gt; Groups, compute policies, warehouses
    +--&gt; Catalogs, schemas, grants</pre>
-<div class="card"><h4>Automated environment setup</h4><p>With variables per environment, the same configuration creates dev, test, and prod identically, so a new environment is a new <code>.tfvars</code> file plus a reviewed plan. Some identity and workspace settings still need extra automation or admin steps; check the provider docs for each resource.</p><p style="margin-bottom:0" class="ref">Separate state per environment (a different backend <code>key</code>), so a dev change can never plan against prod.</p></div>
+<div class="card"><h4>Automated environment setup</h4><p>With variables per environment, the same configuration creates dev, test, and prod identically, so a new environment is a new <code>.tfvars</code> file plus a reviewed plan. Some identity and workspace settings still need extra automation or admin steps; check the provider docs for each resource.</p><p class="ref" style="margin-bottom:0">Separate state per environment (a different backend <code>key</code>), so a dev change can never plan against prod.</p></div>
 </div>
-<div class="callout warn"><span class="label">Protect the state</span><p>State records every managed resource and can contain secrets. Keep it in a remote backend (Azure Storage, as configured above) with locking, encryption, and restricted access; never commit <code>.tfstate</code> files. Run production <code>apply</code> only from the CI/CD pipeline after plan review, not from laptops.</p></div>
-
-<!-- ===================== 21.6 ===================== -->
-<h2 id="s21-6"><span class="num">21.6</span>Hands-On Project: Deploy a Job from Development to Production</h2>
-<p class="section-intro">Take the customer pipeline from a Git repository through dev, test, and an approved production release. Every file is shown above and included in the attached zip.</p>
+<div class="callout warn"><span class="label">Protect the state</span><p>State records every managed resource and can contain secrets. Keep it in a remote backend (Azure Storage, as configured above) with locking, encryption, and restricted access; never commit <code>.tfstate</code> files. Run production <code>apply</code> only from the CI/CD pipeline after plan review, not from laptops.</p></div></div></section>
+<section class="lesson" id="s21-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.6</span><h2>Hands-On Project: Deploy a Job from Development to Production</h2></div><div class="content"><p class="section-intro">Take the customer pipeline from a Git repository through dev, test, and an approved production release. Every file is shown above and included in the attached zip.</p>
 <pre class="diagram">          Git repository (feature branch)
                      |
                 Pull request
@@ -1143,11 +964,8 @@ environment must be dev, test or prod.</code></pre></div>
 <div class="card"><h4>Step 7: Approve and deploy to production</h4><p style="margin-bottom:0">The workflow pauses at <code>production</code>. Before approving, check the commit, CI and test results, expected impact, and recovery plan. After approval it deploys and records the commit in the run summary. Never use personal credentials for this.</p></div>
 <div class="card"><h4>Step 8: Verify production</h4><p style="margin-bottom:0">The job exists, runs as the prod service principal, targets <code>prod_catalog</code>, has monitoring on (Chapter 20), and its first run passes data-quality checks (Chapter 18).</p></div>
 <div class="card"><h4>Step 9: Practice a rollback (in test)</h4><p style="margin-bottom:0">Merge a deliberately bad change, then roll back by reverting it or redeploying the previous tag. Re-run the tests, check the job configuration, and use <code>RESTORE</code> if data was affected. Document the steps.</p></div>
-</div>
-
-<!-- ===================== 21.7 ===================== -->
-<h2 id="s21-7"><span class="num">21.7</span>Common Mistakes in Databricks DevOps</h2>
-<div class="table-wrap"><table>
+</div></div></section>
+<section class="lesson" id="s21-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.7</span><h2>Common Mistakes in Databricks DevOps</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Mistake</th><th>Why it's dangerous</th><th>Better practice</th></tr></thead>
 <tbody>
 <tr><td>Copying notebooks into production</td><td>Configuration drift</td><td>Version-controlled automated deployment</td></tr>
@@ -1165,11 +983,8 @@ environment must be dev, test or prod.</code></pre></div>
 <tr><td>Applying Terraform without reviewing the plan</td><td>Destroyed resources</td><td>Reviewed saved plan, applied by CI</td></tr>
 <tr><td>Same resource in Terraform and bundles</td><td>Tools overwrite each other</td><td>Clear ownership per resource</td></tr>
 <tr><td>Rolling back code but not data</td><td>Bad data stays</td><td>Data recovery plan (<code>RESTORE</code>, reprocess)</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 21.8 ===================== -->
-<h2 id="s21-8"><span class="num">21.8</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+</tbody></table></div></div></section>
+<section class="lesson" id="s21-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.8</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. What is CI/CD?</summary><div class="answer">Automating validation, testing, and deployment. CI validates every change; continuous delivery keeps changes releasable through approval; continuous deployment releases automatically once checks pass.</div></details>
 <details class="q"><summary>Q2. Why use Git for Databricks projects?</summary><div class="answer">History, collaboration, code review, and the ability to say exactly which version was deployed when an incident occurred, and to restore an earlier one.</div></details>
 <details class="q"><summary>Q3. What are Databricks Asset Bundles?</summary><div class="answer">Configuration-as-code for Databricks resources (jobs, pipelines, their code, targets, variables, permissions), deployed repeatably with the Databricks CLI. Now also called Declarative Automation Bundles.</div></details>
@@ -1186,11 +1001,8 @@ environment must be dev, test or prod.</code></pre></div>
 <details class="q"><summary>Q14. A rollback strategy?</summary><div class="answer">Redeploy a known-good tagged release (or revert), and recover affected data with RESTORE or reprocessing, then document the incident.</div></details>
 <details class="q"><summary>Q15. Preventing dev code from writing prod tables?</summary><div class="answer">Separate workspaces and catalogs with bindings, target-driven config, parameter validation that rejects mismatched catalogs, and restricted prod permissions.</div></details>
 <details class="q"><summary>Q16. Deployment vs execution?</summary><div class="answer">Deployment publishes the job definition and code; execution runs it. A deployment can succeed and the run still fail, so smoke-test after deploying.</div></details>
-<details class="q"><summary>Q17. Securing a production deployment pipeline?</summary><div class="answer">Dedicated deployment identity, environment-scoped secrets, protected branches, required reviews and approvals, bundle validation, automated tests, recorded versions, and post-deployment checks.</div></details>
-
-<!-- ===================== 21.9 ===================== -->
-<h2 id="s21-9"><span class="num">21.9</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q17. Securing a production deployment pipeline?</summary><div class="answer">Dedicated deployment identity, environment-scoped secrets, protected branches, required reviews and approvals, bundle validation, automated tests, recorded versions, and post-deployment checks.</div></details></div></section>
+<section class="lesson" id="s21-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21 · Lesson 21.9</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topics</th><th>Practical activity</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Git fundamentals</td><td>Repository, branch, commit, pull request</td></tr>
@@ -1202,30 +1014,27 @@ environment must be dev, test or prod.</code></pre></div>
 <tr><td>7</td><td>End-to-end</td><td>Dev → test → approved prod; practice a rollback</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://git-scm.com/doc" target="_blank" rel="noopener">Git documentation</a></li>
-<li><a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" target="_blank" rel="noopener">Declarative Automation Bundles (Asset Bundles)</a></li>
-<li><a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" target="_blank" rel="noopener">Install the Databricks CLI</a></li>
-<li><a href="https://docs.databricks.com/aws/en/repos/" target="_blank" rel="noopener">Databricks Git folders</a></li>
-<li><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" target="_blank" rel="noopener">Azure Pipelines</a></li>
-<li><a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener">Terraform</a></li>
-<li><a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" target="_blank" rel="noopener">Databricks Terraform provider</a></li>
-</ul><p style="margin:8px 0 0" class="ref">Some Databricks pages use AWS paths for platform-neutral features; use the Azure Databricks docs for Azure-specific authentication, networking, and provisioning.</p></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://git-scm.com/doc" rel="noopener" target="_blank">Git documentation</a></li>
+<li><a href="https://docs.databricks.com/aws/en/dev-tools/bundles/" rel="noopener" target="_blank">Declarative Automation Bundles (Asset Bundles)</a></li>
+<li><a href="https://docs.databricks.com/aws/en/dev-tools/cli/install" rel="noopener" target="_blank">Install the Databricks CLI</a></li>
+<li><a href="https://docs.databricks.com/aws/en/repos/" rel="noopener" target="_blank">Databricks Git folders</a></li>
+<li><a href="https://docs.github.com/en/actions" rel="noopener" target="_blank">GitHub Actions</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/" rel="noopener" target="_blank">Azure Pipelines</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/docs" rel="noopener" target="_blank">Terraform</a></li>
+<li><a href="https://registry.terraform.io/providers/databricks/databricks/latest/docs" rel="noopener" target="_blank">Databricks Terraform provider</a></li>
+</ul><p class="ref" style="margin:8px 0 0">Some Databricks pages use AWS paths for platform-neutral features; use the Azure Databricks docs for Azure-specific authentication, networking, and provisioning.</p></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 21</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch21-checklist">
-<label><input type="checkbox"> <span><strong>Git</strong> tracks code and configuration changes.</span></label>
-<label><input type="checkbox"> <span><strong>Branches and pull requests</strong> enable review before merging.</span></label>
-<label><input type="checkbox"> <span><strong>Environment configuration</strong> lets the same code run safely everywhere.</span></label>
-<label><input type="checkbox"> <span><strong>Asset Bundles</strong> define and deploy jobs as code, per target.</span></label>
-<label><input type="checkbox"> <span><strong>CI/CD pipelines</strong> automate validation, tests, and deployment.</span></label>
-<label><input type="checkbox"> <span><strong>Automated tests</strong> catch defects before release, and must actually run.</span></label>
-<label><input type="checkbox"> <span><strong>Approvals</strong> govern production changes.</span></label>
-<label><input type="checkbox"> <span><strong>Rollback</strong> restores known-good code and repairs data.</span></label>
-<label><input type="checkbox"> <span><strong>Terraform</strong> manages infrastructure through reviewed plans and protected state.</span></label>
-<label><input type="checkbox"> <span><strong>Production deployment</strong> needs the right identity, validation, monitoring, and verification.</span></label>
+<label><input type="checkbox"/> <span><strong>Git</strong> tracks code and configuration changes.</span></label>
+<label><input type="checkbox"/> <span><strong>Branches and pull requests</strong> enable review before merging.</span></label>
+<label><input type="checkbox"/> <span><strong>Environment configuration</strong> lets the same code run safely everywhere.</span></label>
+<label><input type="checkbox"/> <span><strong>Asset Bundles</strong> define and deploy jobs as code, per target.</span></label>
+<label><input type="checkbox"/> <span><strong>CI/CD pipelines</strong> automate validation, tests, and deployment.</span></label>
+<label><input type="checkbox"/> <span><strong>Automated tests</strong> catch defects before release, and must actually run.</span></label>
+<label><input type="checkbox"/> <span><strong>Approvals</strong> govern production changes.</span></label>
+<label><input type="checkbox"/> <span><strong>Rollback</strong> restores known-good code and repairs data.</span></label>
+<label><input type="checkbox"/> <span><strong>Terraform</strong> manages infrastructure through reviewed plans and protected state.</span></label>
+<label><input type="checkbox"/> <span><strong>Production deployment</strong> needs the right identity, validation, monitoring, and verification.</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1244,67 +1053,21 @@ environment must be dev, test or prod.</code></pre></div>
   update();
 })();
 </script>
-
 <div class="callout key"><span class="label">Recommended production pattern</span><p><strong>Git</strong> for version control, <strong>Asset Bundles</strong> for Databricks application deployment, <strong>CI/CD</strong> for tests and release governance, and <strong>Terraform</strong> for infrastructure. Keep responsibilities clear, and make every production deployment repeatable, auditable, and recoverable.</p></div>
-
 <div class="next">
 <h3>Next chapter: Databricks Cost Optimization</h3>
 <p>Chapter 22 completes Phase 7 with cost: DBUs and how compute is billed, serverless versus classic pricing, SQL warehouse and storage costs, choosing and sizing compute, scheduling, auto-termination and autoscaling, query optimization, and using system tables to find and cut waste.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-20.html"><span class="mn-label">← Previous</span><span class="mn-title">Monitoring &amp; Troubleshooting</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-22.html"><span class="mn-label">Next →</span><span class="mn-title">Cost Optimization</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-20.html"><span>← Previous</span><strong>Chapter 20: Monitoring &amp; Troubleshooting</strong></a>
-  <a class="pager-link" href="databricks-chapter-22.html"><span>Next →</span><strong>Chapter 22: Cost Optimization</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 7 · Chapter 21 of 24</footer>
-</div>
-</main>
-</div>
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

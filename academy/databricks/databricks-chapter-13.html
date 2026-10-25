@@ -1,290 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 13: Declarative Pipelines</title>
-<meta name="description" content="Chapter 13 of a Databricks learning path: Lakeflow Spark Declarative Pipelines, streaming tables, materialized views, expectations, AUTO CDC, event logs, and an orders pipeline project.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Declarative Pipelines — Chapter 13 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 13 of a Databricks learning path: Lakeflow Spark Declarative Pipelines, streaming tables, materialized views, expectations, AUTO CDC, event logs, and an orders pipeline project."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 13 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s13-1">13.1 Fundamentals</a></li>
-    <li class="lvl2"><a href="#s13-1-1">What is a declarative pipeline?</a></li>
-    <li class="lvl2"><a href="#s13-1-2">Declarative vs imperative</a></li>
-    <li class="lvl2"><a href="#s13-1-3">Pipeline architecture</a></li>
-    <li class="lvl2"><a href="#s13-1-4">Components</a></li>
-    <li class="lvl2"><a href="#s13-1-5">Configuration</a></li>
-    <li class="lvl2"><a href="#s13-1-6">Data dependencies</a></li>
-    <li class="lvl2"><a href="#s13-1-7">Execution modes</a></li>
-    <li class="lvl1"><a href="#s13-2">13.2 Building Pipelines</a></li>
-    <li class="lvl2"><a href="#s13-2-1">Creating a pipeline</a></li>
-    <li class="lvl2"><a href="#s13-2-2">SQL pipelines</a></li>
-    <li class="lvl2"><a href="#s13-2-3">Python pipelines</a></li>
-    <li class="lvl2"><a href="#s13-2-4">Streaming tables</a></li>
-    <li class="lvl2"><a href="#s13-2-5">Materialized views</a></li>
-    <li class="lvl2"><a href="#s13-2-6">Temporary views</a></li>
-    <li class="lvl2"><a href="#s13-2-7">Incremental processing</a></li>
-    <li class="lvl1"><a href="#s13-3">13.3 Data Quality</a></li>
-    <li class="lvl2"><a href="#s13-3-1">Expectations</a></li>
-    <li class="lvl2"><a href="#s13-3-2">Tracking violations</a></li>
-    <li class="lvl2"><a href="#s13-3-3">Dropping records</a></li>
-    <li class="lvl2"><a href="#s13-3-4">Failing updates</a></li>
-    <li class="lvl2"><a href="#s13-3-5">Quality metrics</a></li>
-    <li class="lvl2"><a href="#s13-3-6">Invalid source data</a></li>
-    <li class="lvl1"><a href="#s13-4">13.4 Advanced Development</a></li>
-    <li class="lvl2"><a href="#s13-4-1">CDC</a></li>
-    <li class="lvl2"><a href="#s13-4-2">Slowly changing dimensions</a></li>
-    <li class="lvl2"><a href="#s13-4-3">AUTO CDC INTO</a></li>
-    <li class="lvl2"><a href="#s13-4-4">Incremental transforms</a></li>
-    <li class="lvl2"><a href="#s13-4-5">Event logs</a></li>
-    <li class="lvl2"><a href="#s13-4-6">Dependency graphs</a></li>
-    <li class="lvl2"><a href="#s13-4-7">Troubleshooting</a></li>
-    <li class="lvl1"><a href="#s13-5">13.5 Operations</a></li>
-    <li class="lvl2"><a href="#s13-5-1">Config management</a></li>
-    <li class="lvl2"><a href="#s13-5-2">Pipeline updates</a></li>
-    <li class="lvl2"><a href="#s13-5-3">Dev &amp; production</a></li>
-    <li class="lvl2"><a href="#s13-5-4">Monitoring</a></li>
-    <li class="lvl2"><a href="#s13-5-5">Failure recovery</a></li>
-    <li class="lvl2"><a href="#s13-5-6">Performance tuning</a></li>
-    <li class="lvl1"><a href="#s13-6">13.6 Project: Orders Pipeline</a></li>
-    <li class="lvl2"><a href="#s13-6-1">Steps 1–2: Data &amp; Bronze</a></li>
-    <li class="lvl2"><a href="#s13-6-3">Steps 3–5: Silver &amp; Gold</a></li>
-    <li class="lvl2"><a href="#s13-6-6">Steps 6–8: Run &amp; verify</a></li>
-    <li class="lvl1"><a href="#s13-7">13.7 Enhancements</a></li>
-    <li class="lvl1"><a href="#s13-8">13.8 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s13-9">13.9 Practice Plan</a></li>
-    <li class="lvl1"><a href="#s13-10">13.10 Documentation</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 5 · Chapter 13 · Data Engineering &amp; Pipeline Development</span>
-  <h1>Lakeflow Spark Declarative Pipelines</h1>
-  <p class="lead">Declare <em>what</em> each dataset should contain and let Databricks work out the order, the incremental updates, and the recovery. This chapter covers streaming tables, materialized views, data-quality expectations, <code>AUTO CDC</code> for change data and slowly changing dimensions, event logs, and an orders pipeline from raw JSON to a Gold sales table.</p>
-  <p class="ref">Formerly <strong>Delta Live Tables (DLT)</strong>. You'll still see that name and the old <code>import dlt</code> module in older material. Level: intermediate to advanced.</p>
-  <div class="callout key"><span class="label">By the end of this chapter you will be able to</span>
-  <ol style="margin-bottom:0">
-    <li>Explain declarative versus imperative pipelines.</li>
-    <li>Build pipelines in SQL and Python with streaming tables, materialized views, and temporary views.</li>
-    <li>Apply data-quality expectations that track, drop, or fail on invalid records.</li>
-    <li>Use <code>AUTO CDC</code> for change data capture and SCD Type 1/2.</li>
-    <li>Read event logs and dependency graphs to troubleshoot.</li>
-    <li>Manage configuration, environments, monitoring, recovery, and performance.</li>
-    <li>Build an orders pipeline that validates, deduplicates, and produces Gold sales.</li>
-  </ol></div>
-  <div class="chips">
-    <a class="chip" href="#s13-1"><span>13.1</span><strong>Fundamentals</strong></a>
-    <a class="chip" href="#s13-2"><span>13.2</span><strong>Building</strong></a>
-    <a class="chip" href="#s13-3"><span>13.3</span><strong>Data Quality</strong></a>
-    <a class="chip" href="#s13-4"><span>13.4</span><strong>CDC &amp; Advanced</strong></a>
-    <a class="chip" href="#s13-5"><span>13.5</span><strong>Operations</strong></a>
-    <a class="chip" href="#s13-6"><span>13.6</span><strong>Project</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 13.1 ===================== -->
-<h2 id="s13-1"><span class="num">13.1</span>Fundamentals</h2>
-
-<h3 id="s13-1-1"><span class="num">13.1.1</span>What Is a Declarative Pipeline?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Lakeflow Spark Declarative Pipelines</div>
+<div class="brand-sub">Chapter 13 · 10 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s13-1" class="nav-link"><span class="nav-num">13.1</span>Fundamentals</a>
+<a href="#s13-2" class="nav-link"><span class="nav-num">13.2</span>Building Pipelines</a>
+<a href="#s13-3" class="nav-link"><span class="nav-num">13.3</span>Data Quality</a>
+<a href="#s13-4" class="nav-link"><span class="nav-num">13.4</span>Advanced Pipeline Development</a>
+<a href="#s13-5" class="nav-link"><span class="nav-num">13.5</span>Operational Management</a>
+<a href="#s13-6" class="nav-link"><span class="nav-num">13.6</span>Hands-On Project: Orders Ingestion and Gold Sales Pipeline</a>
+<a href="#s13-7" class="nav-link"><span class="nav-num">13.7</span>Project Enhancements</a>
+<a href="#s13-8" class="nav-link"><span class="nav-num">13.8</span>Common Interview Questions</a>
+<a href="#s13-9" class="nav-link"><span class="nav-num">13.9</span>Recommended Learning and Practice Plan</a>
+<a href="#s13-10" class="nav-link"><span class="nav-num">13.10</span>Official Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 5 · Chapter 13 · Data Engineering &amp; Pipeline Development</div><h1>Lakeflow Spark Declarative Pipelines</h1>
+<p>Declare <em>what</em> each dataset should contain and let Databricks work out the order, the incremental updates, and the recovery. This chapter covers streaming tables, materialized views, data-quality expectations, <code>AUTO CDC</code> for change data and slowly changing dimensions, event logs, and an orders pipeline from raw JSON to a Gold sales table.</p>
+<div class="doc-meta"><span class="pill">10 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s13-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.1</span><h2>Fundamentals</h2></div><div class="content"><h3 id="s13-1-1"><span class="num">13.1.1</span>What Is a Declarative Pipeline?</h3>
 <p>An e-commerce company wants to read orders, validate them, remove duplicates, calculate sales metrics, and store the results for Power BI. Traditionally you write code for each step <em>and</em> manage the run order, scheduling, retries, and dependencies yourself, as you did in Chapters 11 and 12.</p>
 <p>A <strong>declarative pipeline</strong> flips this around: you define the datasets you want and how they relate, and the framework manages execution.</p>
 <div class="grid-2">
@@ -331,7 +183,6 @@ WHERE order_id IS NOT NULL;
 <tr><td>Analytics</td><td>Sales summaries for Power BI</td></tr>
 </tbody></table></div>
 </div>
-
 <h3 id="s13-1-2"><span class="num">13.1.2</span>Declarative Versus Imperative Programming</h3>
 <div class="grid-2">
 <div class="card"><h4>Imperative = <em>how</em></h4><p>You define each step and control execution: read, filter, dedupe, write.</p>
@@ -359,7 +210,6 @@ WHERE order_id IS NOT NULL;</pre></div>
 <tr><td>Example</td><td>PySpark batch script</td><td>Lakeflow dataset definitions</td></tr>
 </tbody></table></div>
 <div class="callout"><span class="label">Does declarative mean no code?</span><p>No. You still write SQL or Python. The difference is that you describe datasets and relationships instead of implementing the whole orchestration lifecycle. You still need to understand data modeling, schema changes, data quality, and performance.</p></div>
-
 <h3 id="s13-1-3"><span class="num">13.1.3</span>Pipeline Architecture</h3>
 <p>A typical pipeline follows the Medallion Architecture from Chapter 11.</p>
 <div class="grid-2">
@@ -402,7 +252,6 @@ WHERE order_id IS NOT NULL;</pre></div>
 </div>
 </div>
 <p class="ref">Bronze preserves the original records for investigation; Silver validates, deduplicates, and standardizes; Gold is business-ready.</p>
-
 <h3 id="s13-1-4"><span class="num">13.1.4</span>Pipeline Architecture Components</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>#</th><th>Component</th><th>What it is</th></tr></thead>
@@ -415,7 +264,6 @@ WHERE order_id IS NOT NULL;</pre></div>
 <tr><td>6</td><td>Event log</td><td>Execution, errors, data quality, operational events</td></tr>
 <tr><td>7</td><td>Monitoring</td><td>Pipeline UI, event logs, and metrics</td></tr>
 </tbody></table></div>
-
 <h3 id="s13-1-5"><span class="num">13.1.5</span>Pipeline Configuration</h3>
 <p>Configuration defines how a pipeline runs and where its datasets live: name, default catalog and schema, compute (serverless or classic), triggered or continuous mode, development or production mode, configuration parameters, notifications, and permissions.</p>
 <div class="grid-2">
@@ -432,7 +280,6 @@ WHERE order_id IS NOT NULL;</pre></div>
 <div class="card"><h4>Development vs production mode</h4><p><strong>Development:</strong> faster iteration; compute is reused between updates and failures aren't retried automatically, so you see errors quickly.</p><p style="margin-bottom:0"><strong>Production:</strong> reproducibility, controlled deployment, automatic retries, and strict access control.</p></div>
 </div>
 <div class="callout warn"><span class="label">Keep environments out of code</span><p>Don't hard-code environment-specific paths or credentials in transformation code. Use pipeline parameters (13.5.1).</p></div>
-
 <h3 id="s13-1-6"><span class="num">13.1.6</span>Data Dependencies</h3>
 <p>A dataset depends on another when it reads that dataset. The framework reads those references and works out the run order. You never write "run Silver, then Gold".</p>
 <div class="grid-2">
@@ -458,7 +305,6 @@ sales_gold</pre>
 </div>
 <p>If <code>orders_silver</code> fails, <code>sales_gold</code> can't refresh correctly. The update status and graph show which downstream datasets were affected.</p>
 <div class="card"><h4>Best practices</h4><ol style="margin-bottom:0"><li>Keep transformations logically separated.</li><li>Avoid unnecessary dependencies.</li><li>Use meaningful dataset names.</li><li>Validate schemas at important boundaries.</li><li>Understand the graph before changing upstream definitions.</li></ol></div>
-
 <h3 id="s13-1-7"><span class="num">13.1.7</span>Pipeline Execution</h3>
 <div class="grid-2">
 <div class="card"><h4>Triggered</h4><p>Processes available work, then completes. For daily batches, hourly transforms, scheduled refreshes, periodic reporting.</p>
@@ -477,12 +323,8 @@ sales_gold</pre>
 <tr><td>Latency</td><td>Trigger frequency + run time</td><td>Lower latency possible</td></tr>
 <tr><td>Cost</td><td>Suits periodic workloads</td><td>Consider always-on compute cost</td></tr>
 </tbody></table></div>
-<div class="callout key"><span class="label">Key takeaway</span><p>Choose the mode by required freshness, source characteristics, operational needs, and cost.</p></div>
-
-<!-- ===================== 13.2 ===================== -->
-<h2 id="s13-2"><span class="num">13.2</span>Building Pipelines</h2>
-
-<h3 id="s13-2-1"><span class="num">13.2.1</span>Creating a Pipeline</h3>
+<div class="callout key"><span class="label">Key takeaway</span><p>Choose the mode by required freshness, source characteristics, operational needs, and cost.</p></div></div></section>
+<section class="lesson" id="s13-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.2</span><h2>Building Pipelines</h2></div><div class="content"><h3 id="s13-2-1"><span class="num">13.2.1</span>Creating a Pipeline</h3>
 <div class="grid-2">
 <div class="card"><h4>You need</h4><ul style="margin-bottom:0"><li>A Databricks workspace.</li><li>Permission to create pipelines.</li><li>Access to the target catalog and schema.</li><li>Compute (serverless is simplest).</li><li>Source data, or permission to read it.</li></ul></div>
 <div class="card"><h4>In the workspace</h4><ol style="margin-bottom:0"><li>Open <strong>Jobs &amp; Pipelines</strong> → <strong>Create</strong> → <strong>ETL pipeline</strong>.</li><li>Name it and choose the default catalog and schema.</li><li>Add SQL or Python source files.</li><li>Configure compute and execution mode.</li><li>Validate (<strong>Dry run</strong>), then run an update.</li><li>Inspect the graph and output datasets.</li></ol><p class="ref" style="margin:8px 0 0">UI labels change between releases.</p></div>
@@ -499,7 +341,6 @@ sales_gold</pre>
 <tr><td>updated_at</td><td>TIMESTAMP</td><td>Last source update time</td></tr>
 </tbody></table></div>
 <p class="ref">This differs from Chapter 12's CSV-based <code>orders_raw</code>. The hands-on project (13.6) creates its own source from JSON files, so you don't need this table to follow along.</p>
-
 <h3 id="s13-2-2"><span class="num">13.2.2</span>SQL-Based Pipelines</h3>
 <p>SQL suits transformations expressed as relational operations: filtering, joins, aggregations, window functions, standardization, and data-quality rules.</p>
 <div class="code-wrap"><span class="lang">SQL · Silver</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver
@@ -544,7 +385,6 @@ GROUP BY order_date;</code></pre></div>
 <tr><td>2026-10-21</td><td>COMPLETED</td><td>145</td><td>319000</td><td>2200</td></tr>
 </tbody></table></div>
 <p class="ref">Illustrative values. Notice <code>orders_silver</code> is referenced by its short name: inside a pipeline, datasets resolve against the pipeline's default catalog and schema.</p>
-
 <h3 id="s13-2-3"><span class="num">13.2.3</span>Python-Based Pipelines</h3>
 <p>Python combines PySpark transformations with the pipeline API. For new work, use <code>from pyspark import pipelines as dp</code>, not the legacy <code>import dlt</code>.</p>
 <div class="table-wrap"><table>
@@ -595,7 +435,6 @@ def sales_gold():
 <tr><td>SQL-first team</td><td>SQL</td></tr>
 </tbody></table></div>
 <p class="ref">One pipeline can mix SQL and Python files.</p>
-
 <h3 id="s13-2-4"><span class="num">13.2.4</span>Streaming Tables</h3>
 <p>A streaming table processes each input record once, tracking what it has already seen rather than rebuilding everything. It's ideal for ingesting files that keep arriving (<code>orders_001.json</code>, <code>orders_002.json</code>, …).</p>
 <div class="grid-2">
@@ -639,7 +478,6 @@ FROM STREAM read_files(
 <tr><td>Handles joins, aggregations, window functions</td><td>Limited (stateful streaming rules)</td><td>Yes</td></tr>
 <tr><td>Example</td><td>Raw order ingestion</td><td>Daily sales summary</td></tr>
 </tbody></table></div>
-
 <h3 id="s13-2-5"><span class="num">13.2.5</span>Materialized Views</h3>
 <p>A materialized view stores its query result and keeps it up to date through managed refreshes. A report that sums 500 million orders on every open is expensive; a materialized view stores the daily totals and maintains them as the source changes.</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW daily_sales
@@ -660,7 +498,6 @@ GROUP BY order_date;</code></pre></div>
 <tr><td>Maintenance</td><td>Runs against underlying data</td><td>Platform maintains results</td></tr>
 </tbody></table></div>
 <p class="ref">Common uses: daily sales, customer purchase summaries, product metrics, monthly financials, Power BI datasets. The actual benefit depends on the query and refresh behavior.</p>
-
 <h3 id="s13-2-6"><span class="num">13.2.6</span>Temporary Views</h3>
 <p>A temporary view is a reusable intermediate result inside the pipeline, so several downstream datasets don't repeat the same logic. It is <strong>not</strong> published as a table.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark import pipelines as dp
@@ -684,7 +521,6 @@ def sales_gold():
         .agg(F.sum("amount").alias("total_sales"))
     )</code></pre></div>
 <div class="callout"><span class="label">Important distinction</span><p>Don't treat a temporary view as a durable Bronze, Silver, or Gold table, and don't assume it's cached. Use a streaming table or materialized view when you need persistence.</p></div>
-
 <h3 id="s13-2-7"><span class="num">13.2.7</span>Incremental Processing</h3>
 <div class="grid-2">
 <pre class="diagram">Full load:
@@ -701,12 +537,8 @@ Incremental load:
 FROM source_orders
 WHERE updated_at &gt; :last_successful_watermark;</code></pre></div>
 <p class="ref">Lakeflow doesn't fill in this placeholder for you. Watermarks need careful handling of late records, old timestamps, deletes, and retries (Chapter 12). Streaming tables avoid the problem by tracking progress themselves.</p>
-<div class="callout warn"><span class="label">Not always incremental</span><p>Declaring a materialized view doesn't guarantee incremental refresh. Depending on the query and source changes, the framework may recompute fully. (On serverless pipelines, incremental refresh is attempted when the query supports it.)</p></div>
-
-<!-- ===================== 13.3 ===================== -->
-<h2 id="s13-3"><span class="num">13.3</span>Data Quality</h2>
-<p class="section-intro">A pipeline can run successfully and still produce wrong results: missing IDs, duplicates, negative amounts, invalid customers or dates, unsupported statuses. Expectations validate records during processing.</p>
-
+<div class="callout warn"><span class="label">Not always incremental</span><p>Declaring a materialized view doesn't guarantee incremental refresh. Depending on the query and source changes, the framework may recompute fully. (On serverless pipelines, incremental refresh is attempted when the query supports it.)</p></div></div></section>
+<section class="lesson" id="s13-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.3</span><h2>Data Quality</h2></div><div class="content"><p class="section-intro">A pipeline can run successfully and still produce wrong results: missing IDs, duplicates, negative amounts, invalid customers or dates, unsupported statuses. Expectations validate records during processing.</p>
 <h3 id="s13-3-1"><span class="num">13.3.1</span>Data Quality Expectations</h3>
 <p>An expectation is a Boolean condition each record should satisfy, e.g. <code>order_id IS NOT NULL</code>, <code>amount &gt;= 0</code>, <code>status IN ('COMPLETED', 'CANCELLED', 'PENDING')</code>.</p>
 <div class="table-wrap"><table>
@@ -716,7 +548,6 @@ WHERE updated_at &gt; :last_successful_watermark;</code></pre></div>
 <tr><td><code>EXPECT (…) ON VIOLATION DROP ROW</code></td><td><code>@dp.expect_or_drop</code></td><td><strong>Drop</strong> the row</td></tr>
 <tr><td><code>EXPECT (…) ON VIOLATION FAIL UPDATE</code></td><td><code>@dp.expect_or_fail</code></td><td><strong>Fail</strong> the update</td></tr>
 </tbody></table></div>
-
 <h3 id="s13-3-2"><span class="num">13.3.2</span>Validating Records: Track Violations</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -735,7 +566,6 @@ SELECT *
 FROM retail_dev.bronze.orders_raw;</code></pre></div>
 </div>
 <p>All five rows stay in the dataset, and the event log records how many violated each rule. That's useful when a source starts producing missing IDs, a business team must investigate negative amounts, or a migration changed a field's behavior. You see the problem without losing data.</p>
-
 <h3 id="s13-3-3"><span class="num">13.3.3</span>Dropping Invalid Records</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver (
     CONSTRAINT valid_order_id
@@ -757,7 +587,6 @@ FROM retail_dev.bronze.orders_raw;</code></pre></div>
 <tbody><tr><td>1001</td><td>C101</td><td>2500</td></tr></tbody></table></div>
 </div>
 <div class="callout warn"><span class="label">Dropped means gone</span><p>Dropping doesn't create a quarantine table. If you need to investigate or replay invalid rows, build a separate invalid-records dataset (Enhancement 1 in 13.7 includes a worked solution).</p></div>
-
 <h3 id="s13-3-4"><span class="num">13.3.4</span>Failing Pipelines for Invalid Records</h3>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_strict (
     CONSTRAINT valid_order_id
@@ -775,7 +604,6 @@ FROM retail_dev.bronze.orders_raw;</code></pre></div>
 <tr><td><strong>Drop</strong></td><td>The rule is well understood; excluding rows is acceptable; invalid data is monitored or captured separately</td></tr>
 <tr><td><strong>Track</strong></td><td>You're evaluating source quality; no rejection rule is agreed yet; you need violation rates; the pipeline must keep running during investigation</td></tr>
 </tbody></table></div>
-
 <h3 id="s13-3-5"><span class="num">13.3.5</span>Tracking Data Quality Metrics</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -787,7 +615,6 @@ FROM retail_dev.bronze.orders_raw;</code></pre></div>
 <tbody><tr><td>Total source records</td><td>100,000</td></tr><tr><td>Valid records</td><td>99,780</td></tr><tr><td>Invalid records</td><td>220</td></tr><tr><td>Success rate</td><td>99.78%</td></tr><tr><td>Update status</td><td>Completed</td></tr></tbody></table></div>
 </div>
 <p>Monitor total records, passed, violated, dropped, failed updates, and <strong>trends over time</strong>. Expectation results appear on each dataset in the pipeline UI and in the event log (query in 13.4.5).</p>
-
 <h3 id="s13-3-6"><span class="num">13.3.6</span>Handling Invalid Source Data</h3>
 <div class="grid-2">
 <div class="card"><h4>Four approaches</h4><ol style="margin-bottom:0"><li><strong>Reject:</strong> exclude from Silver.</li><li><strong>Quarantine:</strong> keep invalid records in a separate dataset for correction and replay.</li><li><strong>Fail:</strong> stop on critical violations.</li><li><strong>Correct:</strong> apply a deterministic, approved fix such as <code>UPPER(TRIM(status))</code>, which turns <code>completed</code>, <code>Completed</code>, and <code>COMPLETED</code> into one value. Never "fix" ambiguous values.</li></ol></div>
@@ -810,12 +637,8 @@ orders_silver   Data investigation</pre>
 <tr><td>Duplicate order</td><td>Deduplicate by a defined business rule</td></tr>
 <tr><td>Invalid status</td><td>Quarantine or track</td></tr>
 <tr><td>Malformed source file</td><td>Ingestion error management</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 13.4 ===================== -->
-<h2 id="s13-4"><span class="num">13.4</span>Advanced Pipeline Development</h2>
-
-<h3 id="s13-4-1"><span class="num">13.4.1</span>Change Data Capture (CDC)</h3>
+</tbody></table></div></div></section>
+<section class="lesson" id="s13-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.4</span><h2>Advanced Pipeline Development</h2></div><div class="content"><h3 id="s13-4-1"><span class="num">13.4.1</span>Change Data Capture (CDC)</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
 <thead><tr><th>customer_id</th><th>customer_name</th><th>city</th></tr></thead>
@@ -826,7 +649,6 @@ orders_silver   Data investigation</pre>
 <tbody><tr><td>C101</td><td>UPDATE</td><td>Bengaluru</td></tr><tr><td>C102</td><td>DELETE</td><td>Chennai</td></tr></tbody></table></div>
 </div>
 <p>CDC applies just these changes instead of reloading the table. A robust implementation needs a stable business key, the operation type, a reliable ordering (sequence or commit time), and handling for duplicate events, late changes, deletes, and schema evolution.</p>
-
 <h3 id="s13-4-2"><span class="num">13.4.2</span>Slowly Changing Dimensions (SCD)</h3>
 <p>When Ravi (C101) moves from Hyderabad to Bengaluru, what should the customer dimension show?</p>
 <div class="grid-2">
@@ -837,7 +659,6 @@ orders_silver   Data investigation</pre>
 <div class="table-wrap" style="margin:0"><table><thead><tr><th>city</th><th>start</th><th>end</th><th>current</th></tr></thead><tbody><tr><td>Hyderabad</td><td>2025-01-01</td><td>2026-07-01</td><td>false</td></tr><tr><td>Bengaluru</td><td>2026-07-01</td><td>NULL</td><td>true</td></tr></tbody></table></div>
 <p style="margin:8px 0 0">A new row per change. Use when reports must show history ("sales by the city the customer lived in at the time").</p></div>
 </div>
-
 <h3 id="s13-4-3"><span class="num">13.4.3</span>AUTO CDC INTO</h3>
 <p><code>AUTO CDC</code> (formerly <code>APPLY CHANGES INTO</code>) applies a change feed to a target streaming table. It orders changes by a sequence column, keeps the latest state, handles deletes, and can maintain SCD Type 1 or 2 for you. That's everything you'd otherwise hand-write with <code>MERGE</code> and window functions in Chapter 12.</p>
 <div class="grid-2">
@@ -883,14 +704,12 @@ COLUMNS * EXCEPT (operation, sequence)
 STORED AS SCD TYPE 2;</code></pre></div>
 <p class="ref">For SCD Type 2, the target automatically gets <code>__START_AT</code> and <code>__END_AT</code> columns; the current row is the one where <code>__END_AT IS NULL</code>. I added the delete handling and column exclusion that the original example left out.</p>
 <div class="callout warn"><span class="label">Important considerations</span><ul style="margin-bottom:0"><li>The source needs a reliable key and sequence field, and sequence values must reflect true change order.</li><li>Deletes must be represented in the feed to be applied.</li><li>Plan for duplicate and late-arriving changes.</li><li>Source change format and target schema must be compatible.</li><li>Check current docs for the options your runtime supports.</li></ul></div>
-
 <h3 id="s13-4-4"><span class="num">13.4.4</span>Incremental Transformations</h3>
 <p>With 200 million historical transactions and 100,000 new ones a day, recomputing everything daily is wasteful. A streaming ingestion table processes just each day's new files (100,000 → 120,000 → 95,000), and a materialized view like <code>SELECT order_date, SUM(amount) … GROUP BY order_date</code> may be maintained incrementally when supported.</p>
 <div class="grid-2">
 <div class="card"><h4>Most valuable when</h4><ul style="margin-bottom:0"><li>History is large.</li><li>Changes are small relative to the total.</li><li>The source identifies changes reliably.</li><li>Transformations support incremental maintenance.</li></ul></div>
 <div class="card"><h4>Less benefit when</h4><ul style="margin-bottom:0"><li>Most historical records change often.</li><li>The transformation needs global recomputation.</li><li>The source can't reliably identify changes.</li></ul></div>
 </div>
-
 <h3 id="s13-4-5"><span class="num">13.4.5</span>Pipeline Event Logs</h3>
 <p>The event log records update status, dataset progress, expectation results, errors, and operational metadata. It's especially useful when the visible error message doesn't explain the root cause.</p>
 <div class="code-wrap"><span class="lang">SQL · starting points</span><pre class="code"><code>-- Recent events (pipeline ID is in the pipeline's details panel)
@@ -916,7 +735,6 @@ WHERE event_type = 'flow_progress'
 ORDER BY timestamp DESC;</code></pre></div>
 <p class="ref"><code>details</code> is JSON; the <code>:</code> syntax extracts nested fields. Availability and schema of <code>event_log()</code> can vary, so start with <code>SELECT *</code> to inspect the columns.</p>
 <div class="card"><h4>Investigating a failed update (e.g. schema mismatch)</h4><ol class="steps"><li>Identify the failed update.</li><li>Find the related error event.</li><li>Inspect the affected dataset.</li><li>Identify the incompatible source field.</li><li>Correct the schema or transformation.</li><li>Rerun the update.</li><li>Verify downstream datasets complete.</li></ol></div>
-
 <h3 id="s13-4-6"><span class="num">13.4.6</span>Dependency Graphs</h3>
 <div class="grid-2">
 <pre class="diagram">     orders_bronze
@@ -931,7 +749,6 @@ sales_gold    customer_sales</pre>
 <div class="card"><h4>The graph helps you</h4><ul style="margin-bottom:0"><li>Understand data flow.</li><li>Identify upstream dependencies.</li><li>See the blast radius of a failure.</li><li>Find unnecessary transformations.</li><li>Investigate downstream failures.</li></ul></div>
 </div>
 <p>If <code>orders_bronze</code> succeeds but <code>orders_silver</code> fails, both Gold datasets are affected. Focus on the Silver transformation instead of debugging each Gold dataset.</p>
-
 <h3 id="s13-4-7"><span class="num">13.4.7</span>Pipeline Troubleshooting</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Problem</th><th>Possible cause</th><th>Investigation</th></tr></thead>
@@ -966,12 +783,8 @@ HAVING COUNT(*) &gt; 1;
 SELECT SUM(order_count) AS aggregated_orders,
        SUM(total_sales) AS aggregated_sales
 FROM sales_gold;</code></pre></div>
-<p class="ref">Gold should reconcile with Silver when both use the same filters and grain. If not, check for intentional filters or a different grain. Outside the pipeline, qualify dataset names with the pipeline's catalog and schema.</p>
-
-<!-- ===================== 13.5 ===================== -->
-<h2 id="s13-5"><span class="num">13.5</span>Operational Management</h2>
-
-<h3 id="s13-5-1"><span class="num">13.5.1</span>Pipeline Configuration Management</h3>
+<p class="ref">Gold should reconcile with Silver when both use the same filters and grain. If not, check for intentional filters or a different grain. Outside the pipeline, qualify dataset names with the pipeline's catalog and schema.</p></div></section>
+<section class="lesson" id="s13-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.5</span><h2>Operational Management</h2></div><div class="content"><h3 id="s13-5-1"><span class="num">13.5.1</span>Pipeline Configuration Management</h3>
 <p>Dev, QA, and production differ in catalogs, storage, source connections, permissions, compute, and operational needs, e.g. <code>retail_dev.bronze.orders_raw</code> vs <code>retail_prod.bronze.orders_raw</code>. Production should use its own configuration <strong>without editing transformation code</strong>.</p>
 <p>Add a key-value pair under the pipeline's <strong>Configuration</strong> settings (e.g. <code>source_catalog = retail_dev</code>) and reference it:</p>
 <div class="grid-2">
@@ -988,7 +801,6 @@ def orders_silver():
     ).filter("order_id IS NOT NULL")</code></pre></div>
 </div>
 <p class="ref">For repeatable multi-environment deployments, keep pipeline code in Git and deploy with Databricks Asset Bundles (Chapter 21).</p>
-
 <h3 id="s13-5-2"><span class="num">13.5.2</span>Pipeline Updates</h3>
 <div class="grid-2">
 <pre class="diagram">Update starts
@@ -1013,7 +825,6 @@ Update completes or fails</pre>
 <div class="card"><h4>Changing a transformation</h4><p>Change <code>SUM(amount) AS total_sales</code> to <code>SUM(amount) * 1.05 AS total_sales</code>, and the framework determines what must be recomputed downstream.</p><p><strong>Before deploying:</strong></p><ol style="margin-bottom:0"><li>Validate the code.</li><li>Check types and schemas.</li><li>Review the dependency graph.</li><li>Test with representative data.</li><li>Run the update.</li><li>Validate counts and totals.</li><li>Confirm downstream reports.</li></ol></div>
 </div>
 <p class="ref">To rebuild a streaming table from scratch (e.g. after a logic fix), use <strong>Full refresh</strong> on that table, which reprocesses all source data. Use it deliberately: it can be expensive, and sources that no longer retain old data can't be replayed.</p>
-
 <h3 id="s13-5-3"><span class="num">13.5.3</span>Development and Production Environments</h3>
 <div class="grid-2">
 <div class="card"><h4>Purpose per environment</h4><p><strong>Development:</strong> write transformations, test expectations, experiment with schema changes, investigate failures.</p><p><strong>QA:</strong> reconciliation, regression, performance, CDC validation, end-to-end tests.</p><p style="margin-bottom:0"><strong>Production:</strong> scheduled execution, controlled releases, monitoring, incident handling.</p></div>
@@ -1029,7 +840,6 @@ Update completes or fails</pre>
 <tr><td>Monitoring</td><td>Basic</td><td>Validated</td><td>Required</td></tr>
 </tbody></table></div>
 </div>
-
 <h3 id="s13-5-4"><span class="num">13.5.4</span>Monitoring Execution</h3>
 <div class="grid-2">
 <div class="card"><h4>Execution</h4><ul style="margin-bottom:0"><li>Update status and duration.</li><li>Failed datasets and retries.</li><li>Source ingestion delays.</li><li>Compute failures.</li><li>Downstream impact.</li></ul></div>
@@ -1046,7 +856,6 @@ Update completes or fails</pre>
 <tr><td>Freshness</td><td>Within SLA</td></tr>
 </tbody></table></div>
 <p class="ref">Base thresholds on business requirements. A 50% drop in daily orders might be an ingestion failure or a real business event, so alert people to investigate rather than assume.</p>
-
 <h3 id="s13-5-5"><span class="num">13.5.5</span>Failure Recovery</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Scenario</th><th>Examples</th><th>Response</th></tr></thead>
@@ -1057,7 +866,6 @@ Update completes or fails</pre>
 <tr><td>4. Incorrect business results</td><td>Totals too high, duplicates, wrong history</td><td>Restrict consumption → find affected period → trace graph → fix → reprocess → validate with stakeholders</td></tr>
 </tbody></table></div>
 <div class="callout warn"><span class="label">Important</span><p>Retrying doesn't fix bad source data or logic. A successful update is not proof of correct output.</p></div>
-
 <h3 id="s13-5-6"><span class="num">13.5.6</span>Performance Tuning</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">SQL · select only what you need</span><pre class="code"><code>-- Instead of
@@ -1071,11 +879,8 @@ FROM orders_silver
 WHERE status = 'COMPLETED'
 GROUP BY order_date;</code></pre></div>
 </div>
-<div class="card"><ol style="margin-bottom:0" start="3"><li><strong>Avoid unnecessary shuffles:</strong> large joins, <code>GROUP BY</code>, <code>DISTINCT</code>. Check plans and metrics.</li><li><strong>Choose good layouts:</strong> liquid clustering, file sizes, data skipping, statistics. Don't partition on high-cardinality columns.</li><li><strong>Use incremental processing</strong> where eligible.</li><li><strong>Avoid needless full recomputation:</strong> does the requirement really need all history?</li><li><strong>Monitor skew:</strong> a few heavy keys slow joins and aggregations.</li><li><strong>Right-size compute</strong> for volume, complexity, concurrency, frequency, and latency. Bigger isn't always proportionally faster.</li></ol></div>
-
-<!-- ===================== 13.6 ===================== -->
-<h2 id="s13-6"><span class="num">13.6</span>Hands-On Project: Orders Ingestion and Gold Sales Pipeline</h2>
-<p class="section-intro">Build a pipeline that ingests order files, preserves raw records, validates mandatory fields, removes duplicates, produces Silver and Gold datasets, supports incremental ingestion, and tracks data quality.</p>
+<div class="card"><ol start="3" style="margin-bottom:0"><li><strong>Avoid unnecessary shuffles:</strong> large joins, <code>GROUP BY</code>, <code>DISTINCT</code>. Check plans and metrics.</li><li><strong>Choose good layouts:</strong> liquid clustering, file sizes, data skipping, statistics. Don't partition on high-cardinality columns.</li><li><strong>Use incremental processing</strong> where eligible.</li><li><strong>Avoid needless full recomputation:</strong> does the requirement really need all history?</li><li><strong>Monitor skew:</strong> a few heavy keys slow joins and aggregations.</li><li><strong>Right-size compute</strong> for volume, complexity, concurrency, frequency, and latency. Bigger isn't always proportionally faster.</li></ol></div></div></section>
+<section class="lesson" id="s13-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.6</span><h2>Hands-On Project: Orders Ingestion and Gold Sales Pipeline</h2></div><div class="content"><p class="section-intro">Build a pipeline that ingests order files, preserves raw records, validates mandatory fields, removes duplicates, produces Silver and Gold datasets, supports incremental ingestion, and tracks data quality.</p>
 <pre class="diagram">     ORDER JSON FILES (volume)
                |
                v
@@ -1098,7 +903,6 @@ GROUP BY order_date;</code></pre></div>
                |
                v
          POWER BI REPORTS</pre>
-
 <h3 id="s13-6-1"><span class="num">13.6.1</span>Step 1: Create the Source Data</h3>
 <div class="code-wrap"><span class="lang">SQL · run in a notebook or SQL editor</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.bronze;
 CREATE SCHEMA IF NOT EXISTS retail_dev.analytics;      -- pipeline target
@@ -1115,7 +919,6 @@ CREATE VOLUME IF NOT EXISTS retail_dev.bronze.orders_json;</code></pre></div>
 <div class="card"><h4>Business rules</h4><ul style="margin-bottom:0"><li><code>order_id</code> uniquely identifies an order.</li><li>For duplicates, keep the latest <code>updated_at</code>.</li><li>Missing IDs and negative amounts don't enter Silver.</li><li>Invalid records stay in Bronze for investigation.</li><li>Allowed statuses: COMPLETED, CANCELLED, PENDING.</li></ul></div>
 </div>
 <p class="ref">On Free Edition, replace <code>retail_dev</code> with a catalog you own (e.g. <code>workspace</code>) throughout.</p>
-
 <h4>Step 2: Create the pipeline and the Bronze streaming table</h4>
 <p>Create an ETL pipeline (13.2.1) with default catalog <code>retail_dev</code> and schema <code>analytics</code>. Add one SQL file to it. Steps 2, 4, and 5 all go in this file:</p>
 <div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH STREAMING TABLE orders_bronze
@@ -1132,7 +935,6 @@ FROM STREAM read_files(
                amount DECIMAL(18,2), status STRING, updated_at TIMESTAMP'
 );</code></pre></div>
 <p class="ref">Prefer Python? The <code>@dp.table</code> version in 13.2.4 is equivalent; pipelines can mix languages. The explicit schema assumes valid JSON; for production, configure rescued data and error handling.</p>
-
 <h3 id="s13-6-3"><span class="num">13.6.3</span>Step 3: Why Silver Isn't a Streaming Table</h3>
 <p>The tempting design is a streaming Silver dataset with a <code>row_number()</code> window to keep the latest version of each order. <strong>That doesn't work:</strong> Structured Streaming doesn't support ranking window functions like <code>row_number()</code> over an unbounded stream. The query fails to start. The source document's own correction says the same, so the broken code isn't repeated here.</p>
 <div class="table-wrap"><table>
@@ -1142,7 +944,6 @@ FROM STREAM read_files(
 <tr><td>B. Streaming deduplication</td><td><code>dropDuplicatesWithinWatermark</code> on a reliable event key</td><td>Append-only events; first-arrival wins; late data bounded</td></tr>
 <tr><td>C. CDC</td><td><code>AUTO CDC</code> keyed on <code>order_id</code>, sequenced by <code>updated_at</code></td><td>Orders get updated and the latest version must win, at scale</td></tr>
 </tbody></table></div>
-
 <h4>Step 4: Create the Silver dataset</h4>
 <p>Add to the same pipeline file. It reads the Bronze streaming table in batch mode (no <code>STREAM</code>):</p>
 <div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_silver (
@@ -1185,7 +986,6 @@ WHERE row_num = 1;</code></pre></div>
 <div class="card"><h4>What it does</h4><ul style="margin-bottom:0"><li><strong>Normalizes</strong> status (<code>" cancelled "</code> → <code>CANCELLED</code>).</li><li><strong>Deduplicates</strong>: one row per <code>order_id</code>, the latest <code>updated_at</code> wins.</li><li><strong>Validates</strong>: the expectations drop rows that break any rule and record the counts.</li></ul></div>
 <div class="callout" style="margin:0"><span class="label">Notes</span><p>The <code>WHERE order_id IS NOT NULL</code> keeps all null-ID rows from being ranked together as one "order"; the expectation still records them. Ranking runs <em>before</em> validation, so if an order's latest version is invalid, the order is dropped rather than falling back to an older version. If two versions share a timestamp, add a tie-breaker such as a source sequence number.</p></div>
 </div>
-
 <h4>Step 5: Create the Gold sales table</h4>
 <div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW sales_gold
 COMMENT 'Daily sales by order status'
@@ -1206,7 +1006,6 @@ GROUP BY order_date, status;</code></pre></div>
 <tr><td>2026-10-20</td><td>CANCELLED</td><td>1</td><td>900.00</td><td>900.00</td></tr>
 </tbody></table></div>
 <p class="ref">O1002 counted once (the 11:30 version), the null-ID order and O1005 excluded, O1003 normalized to CANCELLED.</p>
-
 <h3 id="s13-6-6"><span class="num">13.6.6</span>Step 6: Run the Pipeline</h3>
 <div class="grid-2">
 <div class="card"><ol class="steps"><li>Click <strong>Dry run</strong> to validate definitions without processing data.</li><li>Click <strong>Run pipeline</strong> to start an update.</li><li>Watch the graph: Bronze, then Silver, then Gold.</li><li>Click <code>orders_silver</code> to see expectation results: 1 row failing <code>valid_order_id</code>, 1 failing <code>valid_amount</code>.</li><li>Inspect the output tables.</li></ol></div>
@@ -1220,7 +1019,6 @@ orders_silver
      v
 sales_gold</pre>
 </div>
-
 <h4>Step 7: Validate the results</h4>
 <p>Run in a separate notebook or SQL editor, using full names:</p>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Silver row count (expected: 3)
@@ -1249,7 +1047,6 @@ SELECT SUM(order_count) AS total_orders, SUM(total_sales) AS total_sales
 FROM retail_dev.analytics.sales_gold;</code></pre></div>
 <p class="ref">This reconciliation holds because each Silver row is one order and Gold includes every status with no extra filter. Bronze still holds all 6 raw rows for investigation.</p>
 <div class="callout key"><span class="label">Test incremental ingestion</span><p>Upload a second file (e.g. a new order O1006 and an update to O1001), then run the pipeline again. Bronze ingests <em>only</em> the new file, and Silver/Gold reflect the change. No file is read twice.</p></div>
-
 <h4>Step 8: Implement monitoring</h4>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -1271,12 +1068,8 @@ FROM retail_dev.analytics.sales_gold
 GROUP BY order_date
 ORDER BY order_date DESC;</code></pre></div>
 </div>
-<p class="ref">For automated monitoring, combine these with the event-log queries (13.4.5) and alerts. Scheduling the pipeline comes in Chapter 14.</p>
-
-<!-- ===================== 13.7 ===================== -->
-<h2 id="s13-7"><span class="num">13.7</span>Project Enhancements</h2>
-
-<h3>Enhancement 1: Add a quarantine dataset</h3>
+<p class="ref">For automated monitoring, combine these with the event-log queries (13.4.5) and alerts. Scheduling the pipeline comes in Chapter 14.</p></div></section>
+<section class="lesson" id="s13-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.7</span><h2>Project Enhancements</h2></div><div class="content"><h3>Enhancement 1: Add a quarantine dataset</h3>
 <p>Capture records with missing order IDs, missing customer IDs, negative amounts, or invalid statuses, with a reason for each.</p>
 <details class="q"><summary>Show a solution</summary><div class="answer">
 <div class="code-wrap"><span class="lang">SQL · pipeline file</span><pre class="code"><code>CREATE OR REFRESH MATERIALIZED VIEW orders_quarantine
@@ -1301,17 +1094,13 @@ WHERE order_id IS NULL
 <tbody><tr><td>NULL</td><td>1200.00</td><td>Missing order ID</td></tr><tr><td>O1005</td><td>-500.00</td><td>Negative order amount</td></tr></tbody></table></div>
 <p style="margin-bottom:0">Verified on the sample data. The conditions mirror Silver's expectations, so every Bronze row ends up in either Silver or quarantine (apart from duplicate versions, which are collapsed on purpose).</p>
 </div></details>
-
 <div class="grid-2">
 <div class="card"><h4>Enhancement 2: SCD Type 2 customers</h4><p style="margin-bottom:0">Build a customer dimension preserving historical locations: stable customer ID, correctly ordered changes, retained history, a current-record flag, and validated <code>__START_AT</code>/<code>__END_AT</code>. Use the <code>AUTO CDC … STORED AS SCD TYPE 2</code> pattern from 13.4.3.</p></div>
 <div class="card"><h4>Enhancement 3: Incremental processing</h4><p style="margin-bottom:0">Add daily files and confirm repeated updates don't re-ingest processed files. Remember: file-level and business-key deduplication solve different problems.</p></div>
 <div class="card"><h4>Enhancement 4: Event-log monitoring</h4><p style="margin-bottom:0">Build a dataset or dashboard with update status, duration, failed expectations, error events, record counts, and last successful processing time.</p></div>
 <div class="card"><h4>Enhancement 5: CDC for orders</h4><p style="margin-bottom:0">Replace the batch Silver with <code>AUTO CDC</code> keyed on <code>order_id</code>, sequenced by <code>updated_at</code> (option C). Handle deletes if required, and validate against the source change history.</p></div>
-</div>
-
-<!-- ===================== 13.8 ===================== -->
-<h2 id="s13-8"><span class="num">13.8</span>Common Interview Questions</h2>
-<p>Try answering each before revealing the answer.</p>
+</div></div></section>
+<section class="lesson" id="s13-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.8</span><h2>Common Interview Questions</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. What is Lakeflow Spark Declarative Pipelines?</summary><div class="answer">A Databricks capability (formerly Delta Live Tables) for defining and managing data pipelines with declarative SQL and Python dataset definitions; the framework handles dependencies, execution, incremental processing, and recovery.</div></details>
 <details class="q"><summary>Q2. Streaming table vs materialized view?</summary><div class="answer">A streaming table processes each new source record once (ideal for ingestion and append-style flows); a materialized view stores a query result that the platform keeps correct through managed refreshes (ideal for joins and aggregations).</div></details>
 <details class="q"><summary>Q3. Bronze, Silver, and Gold?</summary><div class="answer">Bronze preserves incoming data; Silver holds validated, standardized data; Gold holds business-ready datasets and aggregations.</div></details>
@@ -1327,11 +1116,8 @@ WHERE order_id IS NULL
 <details class="q"><summary>Q13. Why preserve Bronze data?</summary><div class="answer">It's the raw reference for audits, source investigations, replay, and validating downstream transformations.</div></details>
 <details class="q"><summary>Q14. Why does business-key deduplication matter?</summary><div class="answer">Multiple records for the same order or entity must be resolved by a defined rule (e.g. latest version wins). <code>DISTINCT</code> only removes identical rows.</div></details>
 <details class="q"><summary>Q15. What should be monitored in production?</summary><div class="answer">Update status, duration, freshness, data quality, record counts, duplicates, source ingestion, and downstream business metrics.</div></details>
-<details class="q"><summary>Q16. Why can't the streaming Silver use <code>row_number()</code>?</summary><div class="answer">Ranking window functions over an unbounded stream aren't supported in Structured Streaming. Use a batch materialized view, streaming dedup with a watermark, or <code>AUTO CDC</code>.</div></details>
-
-<!-- ===================== 13.9 ===================== -->
-<h2 id="s13-9"><span class="num">13.9</span>Recommended Learning and Practice Plan</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q16. Why can't the streaming Silver use <code>row_number()</code>?</summary><div class="answer">Ranking window functions over an unbounded stream aren't supported in Structured Streaming. Use a batch materialized view, streaming dedup with a watermark, or <code>AUTO CDC</code>.</div></details></div></section>
+<section class="lesson" id="s13-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.9</span><h2>Recommended Learning and Practice Plan</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topic</th><th>Practical exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Fundamentals</td><td>Understand architecture and dependencies</td></tr>
@@ -1342,32 +1128,26 @@ WHERE order_id IS NULL
 <tr><td>6</td><td>CDC and SCD</td><td>Current-state and historical dimensions</td></tr>
 <tr><td>7</td><td>Monitoring and troubleshooting</td><td>Event logs and simulated failures</td></tr>
 </tbody></table></div>
-<div class="card"><h4>Final practical assignment</h4><ol style="margin-bottom:0"><li>Ingest JSON order files into Bronze.</li><li>Validate required fields.</li><li>Normalize order status.</li><li>Deduplicate with a deterministic business rule.</li><li>Quarantine invalid records.</li><li>Create a Gold sales aggregation.</li><li>Implement incremental ingestion.</li><li>Monitor data quality.</li><li>Investigate a simulated failure.</li><li>Reconcile Gold against Silver.</li></ol><p style="margin:8px 0 0"><strong>Done when</strong> the pipeline produces correct business results, preserves enough to investigate invalid records, supports incremental ingestion, and gives clear evidence when something goes wrong.</p></div>
-
-<!-- ===================== 13.10 ===================== -->
-<h2 id="s13-10"><span class="num">13.10</span>Official Documentation</h2>
-<p>The docs are the reference for current syntax, API support, and runtime behavior. These links use the AWS path; Azure and GCP versions are available from the same pages.</p>
+<div class="card"><h4>Final practical assignment</h4><ol style="margin-bottom:0"><li>Ingest JSON order files into Bronze.</li><li>Validate required fields.</li><li>Normalize order status.</li><li>Deduplicate with a deterministic business rule.</li><li>Quarantine invalid records.</li><li>Create a Gold sales aggregation.</li><li>Implement incremental ingestion.</li><li>Monitor data quality.</li><li>Investigate a simulated failure.</li><li>Reconcile Gold against Silver.</li></ol><p style="margin:8px 0 0"><strong>Done when</strong> the pipeline produces correct business results, preserves enough to investigate invalid records, supports incremental ingestion, and gives clear evidence when something goes wrong.</p></div></div></section>
+<section class="lesson" id="s13-10"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13 · Lesson 13.10</span><h2>Official Documentation</h2></div><div class="content"><p>The docs are the reference for current syntax, API support, and runtime behavior. These links use the AWS path; Azure and GCP versions are available from the same pages.</p>
 <div class="card"><ul style="margin-bottom:0">
-<li><a href="https://docs.databricks.com/aws/en/ldp/" target="_blank" rel="noopener">Lakeflow Spark Declarative Pipelines overview</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ldp/developer/python-ref" target="_blank" rel="noopener">Develop pipelines with Python</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ldp/developer/sql-ref" target="_blank" rel="noopener">Develop pipelines with SQL</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ldp/expectations" target="_blank" rel="noopener">Manage data quality with expectations</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ldp/cdc" target="_blank" rel="noopener">Change data capture (AUTO CDC)</a></li>
-<li><a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/" target="_blank" rel="noopener">Auto Loader</a></li>
-</ul></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://docs.databricks.com/aws/en/ldp/" rel="noopener" target="_blank">Lakeflow Spark Declarative Pipelines overview</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/developer/python-ref" rel="noopener" target="_blank">Develop pipelines with Python</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/developer/sql-ref" rel="noopener" target="_blank">Develop pipelines with SQL</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/expectations" rel="noopener" target="_blank">Manage data quality with expectations</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ldp/cdc" rel="noopener" target="_blank">Change data capture (AUTO CDC)</a></li>
+<li><a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/" rel="noopener" target="_blank">Auto Loader</a></li>
+</ul></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 13</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch13-checklist">
-<label><input type="checkbox"> <strong>Declarative programming</strong> defines the intended datasets and transformations.</label>
-<label><input type="checkbox"> <strong>Bronze, Silver, and Gold</strong> separate raw ingestion, data quality, and analytics.</label>
-<label><input type="checkbox"> <strong>Streaming tables and materialized views</strong> serve different, complementary purposes.</label>
-<label><input type="checkbox"> <strong>Expectations</strong> track, drop, or fail on invalid records.</label>
-<label><input type="checkbox"> <strong>CDC and SCD</strong> handle source changes and historical dimension data.</label>
-<label><input type="checkbox"> <strong>Incremental processing</strong> reduces computation when sources and transformations support it.</label>
-<label><input type="checkbox"> <strong>Event logs and monitoring</strong> are essential for diagnosing failures.</label>
-<label><input type="checkbox"> <strong>Reconciliation</strong> verifies business correctness, even when an update succeeds.</label>
+<label><input type="checkbox"/> <strong>Declarative programming</strong> defines the intended datasets and transformations.</label>
+<label><input type="checkbox"/> <strong>Bronze, Silver, and Gold</strong> separate raw ingestion, data quality, and analytics.</label>
+<label><input type="checkbox"/> <strong>Streaming tables and materialized views</strong> serve different, complementary purposes.</label>
+<label><input type="checkbox"/> <strong>Expectations</strong> track, drop, or fail on invalid records.</label>
+<label><input type="checkbox"/> <strong>CDC and SCD</strong> handle source changes and historical dimension data.</label>
+<label><input type="checkbox"/> <strong>Incremental processing</strong> reduces computation when sources and transformations support it.</label>
+<label><input type="checkbox"/> <strong>Event logs and monitoring</strong> are essential for diagnosing failures.</label>
+<label><input type="checkbox"/> <strong>Reconciliation</strong> verifies business correctness, even when an update succeeds.</label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1386,66 +1166,20 @@ WHERE order_id IS NULL
   update();
 })();
 </script>
-
 <div class="next">
 <h3>Next chapter: Lakeflow Jobs and Workflow Orchestration</h3>
 <p>Chapter 14 puts everything on a schedule. You'll learn jobs versus pipelines; notebook, Python, SQL, and pipeline tasks; dependencies, parallel and conditional execution; retries, timeouts, notifications, job parameters, and task values; repairing failed runs; backfills; and integration with Azure Data Factory and the REST API.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-12.html"><span class="mn-label">← Previous</span><span class="mn-title">Data Ingestion</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-14.html"><span class="mn-label">Next →</span><span class="mn-title">Lakeflow Jobs</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-12.html"><span>← Previous</span><strong>Chapter 12: Data Ingestion</strong></a>
-  <a class="pager-link" href="databricks-chapter-14.html"><span>Next →</span><strong>Chapter 14: Lakeflow Jobs</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 5 · Chapter 13 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

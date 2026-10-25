@@ -1,256 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 24: End-to-End Project</title>
-<meta name="description" content="Capstone chapter of a Databricks learning path: a tested retail lakehouse with Bronze, Silver, Gold, SCD Type 2, point-in-time facts, a quality gate, Lakeflow job bundle, Power BI views, and recovery.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>End-to-End Project — Chapter 24 | Databricks | HarinIT Academy</title><meta name="description" content="Capstone chapter of a Databricks learning path: a tested retail lakehouse with Bronze, Silver, Gold, SCD Type 2, point-in-time facts, a quality gate, Lakeflow job bundle, Power BI views, and recovery."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 24 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s24-1">24.1 Project Overview</a></li>
-    <li class="lvl1"><a href="#s24-2">24.2 Technology Stack</a></li>
-    <li class="lvl1"><a href="#s24-3">24.3 Source Datasets</a></li>
-    <li class="lvl1"><a href="#s24-4">24.4 Environment</a></li>
-    <li class="lvl1"><a href="#s24-5">24.5 Sample Data</a></li>
-    <li class="lvl1"><a href="#s24-6">24.6 Bronze Layer</a></li>
-    <li class="lvl1"><a href="#s24-7">24.7 Incremental Ingestion</a></li>
-    <li class="lvl1"><a href="#s24-8">24.8 Silver Layer</a></li>
-    <li class="lvl1"><a href="#s24-9">24.9 MERGE</a></li>
-    <li class="lvl1"><a href="#s24-10">24.10 SCD Type 2</a></li>
-    <li class="lvl1"><a href="#s24-11">24.11 Gold Layer</a></li>
-    <li class="lvl1"><a href="#s24-12">24.12 Aggregations</a></li>
-    <li class="lvl1"><a href="#s24-13">24.13 Quality &amp; Reconciliation</a></li>
-    <li class="lvl1"><a href="#s24-14">24.14 Monitoring</a></li>
-    <li class="lvl1"><a href="#s24-15">24.15 Orchestration</a></li>
-    <li class="lvl1"><a href="#s24-16">24.16 Performance</a></li>
-    <li class="lvl1"><a href="#s24-17">24.17 Security</a></li>
-    <li class="lvl1"><a href="#s24-18">24.18 Power BI</a></li>
-    <li class="lvl1"><a href="#s24-19">24.19 CI/CD</a></li>
-    <li class="lvl1"><a href="#s24-20">24.20 Recovery</a></li>
-    <li class="lvl1"><a href="#s24-21">24.21 Validation Checklist</a></li>
-    <li class="lvl1"><a href="#s24-22">24.22 Four-Week Plan</a></li>
-    <li class="lvl1"><a href="#s24-23">24.23 Deliverables</a></li>
-    <li class="lvl1"><a href="#summary">Course Complete</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 8 · Chapter 24 · Capstone Project</span>
-  <h1>Real-World End-to-End Data Engineering Project</h1>
-  <p class="lead">Build an enterprise retail data platform that combines the whole course: ingest six source datasets, process them through Bronze, Silver, and Gold, keep customer history with SCD Type 2, validate and reconcile every run, orchestrate with Lakeflow Jobs, monitor, secure with Unity Catalog, report in Power BI, and deploy with Git and bundles.</p>
-  <div class="callout key"><span class="label">The working project, tested and downloadable</span><p>The core of this chapter was built and run end to end: practice data in three batches → Bronze → Silver (PySpark on Spark 4) → SCD2 dimension, product dimension, point-in-time sales fact, and aggregates (the Gold SQL, run with DuckDB's MERGE because Delta isn't available outside Databricks) → quality gate. It was rerun to prove idempotency and given a corrupted run to prove the gate stops it. The job bundle passes the official bundle schema. Everything is in <strong>enterprise-retail-platform.zip</strong>, attached with this page. The outputs shown are real.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s24-5"><span>24.5</span><strong>Data</strong></a>
-    <a class="chip" href="#s24-8"><span>24.8</span><strong>Silver</strong></a>
-    <a class="chip" href="#s24-10"><span>24.10</span><strong>SCD2</strong></a>
-    <a class="chip" href="#s24-11"><span>24.11</span><strong>Gold</strong></a>
-    <a class="chip" href="#s24-13"><span>24.13</span><strong>Quality</strong></a>
-    <a class="chip" href="#s24-15"><span>24.15</span><strong>Orchestration</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 24.1 ===================== -->
-<h2 id="s24-1"><span class="num">24.1</span>Project Overview</h2>
-<div class="grid-2">
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Real-World End-to-End Data Engineering Project</div>
+<div class="brand-sub">Chapter 24 · 23 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s24-1" class="nav-link"><span class="nav-num">24.1</span>Project Overview</a>
+<a href="#s24-2" class="nav-link"><span class="nav-num">24.2</span>Technology Stack</a>
+<a href="#s24-3" class="nav-link"><span class="nav-num">24.3</span>Step 1: Design the Source Datasets</a>
+<a href="#s24-4" class="nav-link"><span class="nav-num">24.4</span>Step 2: Create the Databricks Environment</a>
+<a href="#s24-5" class="nav-link"><span class="nav-num">24.5</span>Step 3: Generate Sample Data</a>
+<a href="#s24-6" class="nav-link"><span class="nav-num">24.6</span>Step 4: Build the Bronze Layer</a>
+<a href="#s24-7" class="nav-link"><span class="nav-num">24.7</span>Step 5: Implement Incremental Ingestion</a>
+<a href="#s24-8" class="nav-link"><span class="nav-num">24.8</span>Step 6: Build the Silver Layer</a>
+<a href="#s24-9" class="nav-link"><span class="nav-num">24.9</span>Step 7: Implement Delta Lake MERGE</a>
+<a href="#s24-10" class="nav-link"><span class="nav-num">24.10</span>Step 8: Implement SCD Type 2 for Customer History</a>
+<a href="#s24-11" class="nav-link"><span class="nav-num">24.11</span>Step 9: Build the Gold Layer</a>
+<a href="#s24-12" class="nav-link"><span class="nav-num">24.12</span>Step 10: Inventory and Daily Sales Aggregations</a>
+<a href="#s24-13" class="nav-link"><span class="nav-num">24.13</span>Step 11: Data Quality and Reconciliation</a>
+<a href="#s24-14" class="nav-link"><span class="nav-num">24.14</span>Step 12: Build the Monitoring Framework</a>
+<a href="#s24-15" class="nav-link"><span class="nav-num">24.15</span>Step 13: Orchestrate with Lakeflow Jobs</a>
+<a href="#s24-16" class="nav-link"><span class="nav-num">24.16</span>Step 14: Optimize Performance</a>
+<a href="#s24-17" class="nav-link"><span class="nav-num">24.17</span>Step 15: Secure with Unity Catalog</a>
+<a href="#s24-18" class="nav-link"><span class="nav-num">24.18</span>Step 16: Connect Power BI</a>
+<a href="#s24-19" class="nav-link"><span class="nav-num">24.19</span>Step 17: Implement CI/CD</a>
+<a href="#s24-20" class="nav-link"><span class="nav-num">24.20</span>Step 18: Document Recovery and Rollback</a>
+<a href="#s24-21" class="nav-link"><span class="nav-num">24.21</span>Final Project Validation Checklist</a>
+<a href="#s24-22" class="nav-link"><span class="nav-num">24.22</span>Suggested Four-Week Implementation Plan</a>
+<a href="#s24-23" class="nav-link"><span class="nav-num">24.23</span>Final Deliverables</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Course Complete</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 8 · Chapter 24 · Capstone Project</div><h1>Real-World End-to-End Data Engineering Project</h1>
+<p>Build an enterprise retail data platform that combines the whole course: ingest six source datasets, process them through Bronze, Silver, and Gold, keep customer history with SCD Type 2, validate and reconcile every run, orchestrate with Lakeflow Jobs, monitor, secure with Unity Catalog, report in Power BI, and deploy with Git and bundles.</p>
+<div class="doc-meta"><span class="pill">23 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s24-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.1</span><h2>Project Overview</h2></div><div class="content"><div class="grid-2">
 <div class="card"><h4>Business scenario</h4><p>A retail company runs customer, product, order, inventory, and payment systems. Data is scattered, reports are slow, and nobody can reconcile them with the sources. The platform must answer:</p><ol style="margin-bottom:0"><li>What are total sales, and are they rising?</li><li>Which products and customers drive revenue?</li><li>Which products are low on stock?</li><li>How have customer details changed?</li><li>Are pipelines running, and is the data complete and accurate?</li><li>What does processing cost?</li></ol></div>
 <div class="card"><h4>You will</h4><ul style="margin-bottom:0"><li>Build an end-to-end pipeline over six datasets.</li><li>Ingest incrementally into Bronze.</li><li>Clean and validate into Silver.</li><li>MERGE incrementally and keep SCD2 history.</li><li>Model Gold facts and dimensions.</li><li>Automate quality checks and reconciliation.</li><li>Orchestrate with Lakeflow Jobs; monitor failures and missed schedules.</li><li>Optimize, secure, report, and deploy.</li></ul></div>
 </div>
@@ -269,11 +168,8 @@ details.q summary{line-height:1.5}
                       |                             |
               Databricks SQL / Power BI        ML / AI apps (Chapter 23)
 
-  Cross-cutting: Unity Catalog | quality gate | monitoring | CI/CD | security | cost</pre>
-
-<!-- ===================== 24.2 ===================== -->
-<h2 id="s24-2"><span class="num">24.2</span>Technology Stack</h2>
-<div class="table-wrap"><table>
+  Cross-cutting: Unity Catalog | quality gate | monitoring | CI/CD | security | cost</pre></div></section>
+<section class="lesson" id="s24-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.2</span><h2>Technology Stack</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Component</th><th>Technology</th><th>Chapter</th></tr></thead>
 <tbody>
 <tr><td>Processing</td><td>Azure Databricks, Python, PySpark</td><td>3, 7–10</td></tr>
@@ -288,11 +184,8 @@ details.q summary{line-height:1.5}
 <tr><td>Cost</td><td>Billing system tables</td><td>22</td></tr>
 <tr><td>Reporting</td><td>Databricks SQL, Power BI</td><td>17, 23</td></tr>
 </tbody></table></div>
-<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/" target="_blank" rel="noopener">Azure Databricks</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/data-governance/unity-catalog/" target="_blank" rel="noopener">Unity Catalog</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/jobs/" target="_blank" rel="noopener">Lakeflow Jobs</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/ingestion/cloud-object-storage/auto-loader/" target="_blank" rel="noopener">Auto Loader</a>.</p>
-
-<!-- ===================== 24.3 ===================== -->
-<h2 id="s24-3"><span class="num">24.3</span>Step 1: Design the Source Datasets</h2>
-<div class="table-wrap"><table>
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/" rel="noopener" target="_blank">Azure Databricks</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/data-governance/unity-catalog/" rel="noopener" target="_blank">Unity Catalog</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/jobs/" rel="noopener" target="_blank">Lakeflow Jobs</a> · <a href="https://learn.microsoft.com/en-us/azure/databricks/ingestion/cloud-object-storage/auto-loader/" rel="noopener" target="_blank">Auto Loader</a>.</p></div></section>
+<section class="lesson" id="s24-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.3</span><h2>Step 1: Design the Source Datasets</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Dataset</th><th>Key</th><th>Columns</th><th>Notes</th></tr></thead>
 <tbody>
 <tr><td>customers</td><td><code>customer_id</code></td><td>customer_name, email, city, state, customer_segment, updated_at</td><td>Changes over time: SCD2</td></tr>
@@ -303,11 +196,8 @@ details.q summary{line-height:1.5}
 <tr><td>inventory</td><td><code>inventory_event_id</code></td><td>product_id, store_id, event_timestamp, quantity_change, event_type</td><td>Signed movements; stock = sum of movements</td></tr>
 </tbody></table></div>
 <div class="callout warn"><span class="label">Payments vs order items: a fan-out trap</span><p>Joining order items to payments and summing sales multiplies amounts, since each item repeats for every payment. In the project data this naive join reports <strong>277,000.00</strong> when true sales are <strong>163,500.00</strong> (verified). Always aggregate payments to the order level first (24.13).</p></div>
-<p class="ref">For inventory, confirm whether the source sends movements, snapshots, or both; summing snapshots double-counts.</p>
-
-<!-- ===================== 24.4 ===================== -->
-<h2 id="s24-4"><span class="num">24.4</span>Step 2: Create the Databricks Environment</h2>
-<div class="grid-2">
+<p class="ref">For inventory, confirm whether the source sends movements, snapshots, or both; summing snapshots double-counts.</p></div></section>
+<section class="lesson" id="s24-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.4</span><h2>Step 2: Create the Databricks Environment</h2></div><div class="content"><div class="grid-2">
 <div class="code-wrap"><span class="lang">SQL · sql/setup.sql</span><pre class="code"><code>-- Run once (needs CREATE CATALOG permission; on Free Edition use the
 -- "workspace" catalog instead and replace retail_dev throughout)
 CREATE CATALOG IF NOT EXISTS retail_dev;
@@ -334,11 +224,8 @@ retail-data/
     archive/
     quarantine/</pre>
 <div class="card"><h4>Storage and environments</h4><p style="margin-bottom:0">Use a Unity Catalog <strong>volume</strong> or an <strong>external location</strong> backed by a storage credential (Chapter 19), never account keys in notebooks. Use a catalog per environment (<code>retail_dev</code>, <code>retail_test</code>, <code>retail_prod</code>) bound to its workspace.</p></div>
-</div>
-
-<!-- ===================== 24.5 ===================== -->
-<h2 id="s24-5"><span class="num">24.5</span>Step 3: Generate Sample Data</h2>
-<p>The original generated each table once and <strong>overwrote</strong> Bronze with <code>current_timestamp()</code> as every record's <code>updated_at</code>. That can't exercise incremental loads, history, or late data, and the load-time timestamps break the SCD2 join later (24.10). This generator delivers data in <strong>three batches</strong> with realistic timestamps and <strong>appends</strong> to Bronze, exactly as real extracts arrive:</p>
+</div></div></section>
+<section class="lesson" id="s24-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.5</span><h2>Step 3: Generate Sample Data</h2></div><div class="content"><p>The original generated each table once and <strong>overwrote</strong> Bronze with <code>current_timestamp()</code> as every record's <code>updated_at</code>. That can't exercise incremental loads, history, or late data, and the load-time timestamps break the SCD2 join later (24.10). This generator delivers data in <strong>three batches</strong> with realistic timestamps and <strong>appends</strong> to Bronze, exactly as real extracts arrive:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Batch</th><th>What happens</th><th>Tests</th></tr></thead>
 <tbody>
@@ -418,11 +305,8 @@ for name, rows in batches[BATCH].items():
           .write.mode("append")                       # Bronze keeps every delivery
           .saveAsTable(f"retail_dev.bronze.{name}_raw"))
     print(f"batch {BATCH}: {len(rows)} rows -&gt; bronze.{name}_raw")</code></pre></div></div></details>
-<p class="ref">In the job, <code>batch</code> and <code>batch_id</code> come from job parameters. Validate each dataset on its own before adding orchestration.</p>
-
-<!-- ===================== 24.6 ===================== -->
-<h2 id="s24-6"><span class="num">24.6</span>Step 4: Build the Bronze Layer</h2>
-<p>Bronze stores source data with minimal change: preserve values, capture ingestion metadata, support replay, keep source identifiers and file lineage. It must never silently drop records.</p>
+<p class="ref">In the job, <code>batch</code> and <code>batch_id</code> come from job parameters. Validate each dataset on its own before adding orchestration.</p></div></section>
+<section class="lesson" id="s24-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.6</span><h2>Step 4: Build the Bronze Layer</h2></div><div class="content"><p>Bronze stores source data with minimal change: preserve values, capture ingestion metadata, support replay, keep source identifiers and file lineage. It must never silently drop records.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Metadata column</th><th>Purpose</th></tr></thead>
 <tbody>
@@ -449,11 +333,8 @@ base = "/Volumes/retail_dev/landing/retail_files"
     .option("checkpointLocation", f"{base}/_checkpoints/customers")
     .trigger(availableNow=True)                              # process what's there, then stop
     .toTable("retail_dev.bronze.customers_raw"))</code></pre></div>
-<p class="ref">One stream and one checkpoint per source. Never delete a checkpoint between runs, or files are reprocessed. <code>availableNow</code> suits scheduled jobs and is the trigger serverless supports. Rescue mode keeps unexpected data but doesn't replace schema validation. For six small daily files, batch reads are fine too.</p>
-
-<!-- ===================== 24.7 ===================== -->
-<h2 id="s24-7"><span class="num">24.7</span>Step 5: Implement Incremental Ingestion</h2>
-<div class="grid-2">
+<p class="ref">One stream and one checkpoint per source. Never delete a checkpoint between runs, or files are reprocessed. <code>availableNow</code> suits scheduled jobs and is the trigger serverless supports. Rescue mode keeps unexpected data but doesn't replace schema validation. For six small daily files, batch reads are fine too.</p></div></section>
+<section class="lesson" id="s24-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.7</span><h2>Step 5: Implement Incremental Ingestion</h2></div><div class="content"><div class="grid-2">
 <div class="card"><h4>Files</h4><p style="margin-bottom:0">Auto Loader's checkpoint remembers which files were processed, so each run ingests only new files.</p></div>
 <div class="card"><h4>Databases</h4><p style="margin-bottom:0">Prefer CDC or source change tracking. A timestamp watermark is a fallback: updates can arrive late, timestamps can tie, and sources correct old rows. Define handling for deletes, late updates, and overlapping windows.</p></div>
 </div>
@@ -465,11 +346,8 @@ base = "/Volumes/retail_dev/landing/retail_files"
 );</code></pre></div>
 <div class="card"><h4>Safe sequence</h4><ol style="margin-bottom:0"><li>Read the last committed watermark.</li><li>Extract <code>updated_at &gt; watermark − overlap</code> (e.g. 15 min) up to a fixed upper bound.</li><li>Append to Bronze.</li><li>Validate the batch.</li><li><strong>Only then</strong> commit the upper bound as the new watermark.</li></ol></div>
 </div>
-<p class="ref">The overlap re-reads a few already-loaded rows on purpose; that's harmless because Silver keeps the latest version per key. Advancing the watermark before data is persisted causes silent data loss (Chapter 18).</p>
-
-<!-- ===================== 24.8 ===================== -->
-<h2 id="s24-8"><span class="num">24.8</span>Step 6: Build the Silver Layer</h2>
-<p>Silver standardizes types and text, validates required fields and rules, logs rejects, and keeps <strong>the latest version of each business key</strong>. Rebuilding Silver from all of Bronze is deterministic, so rerunning it is always safe; at larger scale, process only new Bronze rows and MERGE (24.9).</p>
+<p class="ref">The overlap re-reads a few already-loaded rows on purpose; that's harmless because Silver keeps the latest version per key. Advancing the watermark before data is persisted causes silent data loss (Chapter 18).</p></div></section>
+<section class="lesson" id="s24-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.8</span><h2>Step 6: Build the Silver Layer</h2></div><div class="content"><p>Silver standardizes types and text, validates required fields and rules, logs rejects, and keeps <strong>the latest version of each business key</strong>. Rebuilding Silver from all of Bronze is deterministic, so rerunning it is always safe; at larger scale, process only new Bronze rows and MERGE (24.9).</p>
 <div class="code-wrap"><span class="lang">Python · src/silver.py</span><pre class="code"><code># Databricks notebook source
 # Rebuilds every Silver table from Bronze: clean, validate, and keep the latest
 # version of each business key. Deterministic, so it is safe to rerun.
@@ -535,11 +413,8 @@ ops.rejected_customers
 customer_id  customer_name  rejection_reason     _batch_id
 NULL         Unknown        MISSING_CUSTOMER_ID  B001</code></pre></div>
 <div class="callout"><span class="label">Fixes from testing</span><p><strong>Rejects were logged again on every run.</strong> Because Silver rebuilds from all of Bronze, the bad batch-1 record was re-logged in batches 2 and 3 (verified: 3 copies). Logging only rows whose <code>_batch_id</code> is the current batch records it once. <strong>Ties:</strong> the original's dedup ordered only by <code>updated_at</code>; ingestion time now breaks ties, so the re-sent C002 can't win. <strong>Normalization:</strong> IDs are upper-cased and state is title-cased too, so <code>c001</code> and <code>C001</code> are one customer.</p></div>
-<p class="ref">One reason column per row records the first failing rule; use the Chapter 18 framework if you need all violations. Validity rules per entity: products need a non-negative price, items a positive quantity and non-negative discount, orders a customer.</p>
-
-<!-- ===================== 24.9 ===================== -->
-<h2 id="s24-9"><span class="num">24.9</span>Step 7: Implement Delta Lake MERGE</h2>
-<p><code>MERGE INTO</code> updates matches and inserts new rows in one transaction. The product dimension (Type 1: overwrite changes) is a clean example:</p>
+<p class="ref">One reason column per row records the first failing rule; use the Chapter 18 framework if you need all violations. Validity rules per entity: products need a non-negative price, items a positive quantity and non-negative discount, orders a customer.</p></div></section>
+<section class="lesson" id="s24-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.9</span><h2>Step 7: Implement Delta Lake MERGE</h2></div><div class="content"><p><code>MERGE INTO</code> updates matches and inserts new rows in one transaction. The product dimension (Type 1: overwrite changes) is a clean example:</p>
 <div class="code-wrap"><span class="lang">SQL · sql/03_dim_product.sql</span><pre class="code"><code>MERGE INTO retail_dev.gold.dim_product AS t
 USING retail_dev.silver.products AS s
 ON t.product_id = s.product_id
@@ -558,11 +433,8 @@ product_id  current_unit_price
 P001        65000.00
 P002        25000.00
 P003         5500.00     (was 5000.00)</code></pre></div>
-</div>
-
-<!-- ===================== 24.10 ===================== -->
-<h2 id="s24-10"><span class="num">24.10</span>Step 8: Implement SCD Type 2 for Customer History</h2>
-<p>When C001 moves from Hyderabad to Chennai, Type 1 would overwrite the city; Type 2 closes the old version and adds a new current one, so past sales stay with Hyderabad.</p>
+</div></div></section>
+<section class="lesson" id="s24-10"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.10</span><h2>Step 8: Implement SCD Type 2 for Customer History</h2></div><div class="content"><p>When C001 moves from Hyderabad to Chennai, Type 1 would overwrite the city; Type 2 closes the old version and adds a new current one, so past sales stay with Hyderabad.</p>
 <div class="code-wrap"><span class="lang">SQL · sql/01_gold_tables.sql</span><pre class="code"><code>CREATE TABLE IF NOT EXISTS retail_dev.gold.dim_customer (
     customer_key      BIGINT GENERATED ALWAYS AS IDENTITY,   -- one per version
     customer_id       STRING,                                 -- business key
@@ -636,12 +508,9 @@ WHERE NOT EXISTS (SELECT 1 FROM retail_dev.gold.dim_customer d
 <div class="callout warn"><span class="label">The original's first versions started at load time</span><p>The original gave a new customer <code>effective_from = updated_at</code>, and its sample data set <code>updated_at</code> to the load time. Any order placed before the load then matches no version, so a point-in-time fact join silently drops it. Tested with one customer loaded today and an order from 1 October: <strong>0 fact rows</strong> with the original rule, <strong>1</strong> with the fix. A customer's first version now starts at <code>1900-01-01</code>. (Chapter 17 found the same bug.)</p></div>
 <div class="grid-2">
 <div class="card"><h4>Other improvements, all tested</h4><ul style="margin-bottom:0"><li><strong>Replay guard:</strong> step A only closes a version if the incoming record is <em>newer</em>. C002 re-sent with an old timestamp changed nothing.</li><li><strong>Simpler step B:</strong> insert wherever a customer has no current version (new customers and those closed in step A), instead of comparing every attribute again.</li><li><strong>Retry-safe:</strong> if step B fails after step A, rerunning inserts the missing versions. Running Gold twice more after batch 2 changed nothing (5 versions, 5 facts, 163,500.00 before and after).</li></ul></div>
-<div class="card"><h4>Still to handle in production</h4><ul style="margin-bottom:0"><li>Several changes for one customer in one batch (process them in order).</li><li>Late changes older than the current version.</li><li>Deleted or deactivated customers.</li><li>Equal timestamps (tie-breakers).</li><li>Concurrent writers.</li></ul><p style="margin:8px 0 0" class="ref">Lakeflow Declarative Pipelines' <code>AUTO CDC</code> (<code>STORED AS SCD TYPE 2</code>) handles ordering and late data for you once the pattern is understood.</p></div>
-</div>
-
-<!-- ===================== 24.11 ===================== -->
-<h2 id="s24-11"><span class="num">24.11</span>Step 9: Build the Gold Layer</h2>
-<div class="grid-2">
+<div class="card"><h4>Still to handle in production</h4><ul style="margin-bottom:0"><li>Several changes for one customer in one batch (process them in order).</li><li>Late changes older than the current version.</li><li>Deleted or deactivated customers.</li><li>Equal timestamps (tie-breakers).</li><li>Concurrent writers.</li></ul><p class="ref" style="margin:8px 0 0">Lakeflow Declarative Pipelines' <code>AUTO CDC</code> (<code>STORED AS SCD TYPE 2</code>) handles ordering and late data for you once the pattern is understood.</p></div>
+</div></div></section>
+<section class="lesson" id="s24-11"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.11</span><h2>Step 9: Build the Gold Layer</h2></div><div class="content"><div class="grid-2">
 <div class="code-wrap"><span class="lang">SQL · sql/00_dim_date.sql</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.dim_date AS
 SELECT d                                    AS date_key,
        YEAR(d)                              AS calendar_year,
@@ -694,12 +563,9 @@ OI005          O004      2026-10-07  4             C001         Chennai    25000
 After batch 3: OI003 removed (O002 cancelled) -&gt; 4 rows, 143,500.00</code></pre></div>
 <div class="grid-2">
 <div class="card"><h4>Why point-in-time matters</h4><div class="table-wrap" style="margin:0"><table><thead><tr><th>City</th><th>At sale</th><th>Original (current)</th></tr></thead><tbody><tr><td>Hyderabad</td><td>118,500.00</td><td>0</td></tr><tr><td>Chennai</td><td>45,000.00</td><td>163,500.00</td></tr></tbody></table></div><p style="margin:8px 0 0">The original joined facts to the <em>current</em> customer version, rewriting history: every C001 sale moved to Chennai (verified).</p></div>
-<div class="card"><h4>What the MERGE handles</h4><ul style="margin-bottom:0"><li>New completed items: inserted.</li><li>O003 completing later: inserted on the next run.</li><li>Corrections: updated only when values differ.</li><li>O002 cancelled: <code>WHEN NOT MATCHED BY SOURCE</code> deletes it.</li><li>O005 (unknown customer): not inserted yet; picked up automatically when the customer arrives.</li></ul><p style="margin:8px 0 0" class="ref">On a large fact, scope the source and the delete clause to recent dates.</p></div>
-</div>
-
-<!-- ===================== 24.12 ===================== -->
-<h2 id="s24-12"><span class="num">24.12</span>Step 10: Inventory and Daily Sales Aggregations</h2>
-<div class="code-wrap"><span class="lang">SQL · sql/05_aggregates.sql</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.daily_sales AS
+<div class="card"><h4>What the MERGE handles</h4><ul style="margin-bottom:0"><li>New completed items: inserted.</li><li>O003 completing later: inserted on the next run.</li><li>Corrections: updated only when values differ.</li><li>O002 cancelled: <code>WHEN NOT MATCHED BY SOURCE</code> deletes it.</li><li>O005 (unknown customer): not inserted yet; picked up automatically when the customer arrives.</li></ul><p class="ref" style="margin:8px 0 0">On a large fact, scope the source and the delete clause to recent dates.</p></div>
+</div></div></section>
+<section class="lesson" id="s24-12"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.12</span><h2>Step 10: Inventory and Daily Sales Aggregations</h2></div><div class="content"><div class="code-wrap"><span class="lang">SQL · sql/05_aggregates.sql</span><pre class="code"><code>CREATE OR REPLACE TABLE retail_dev.gold.daily_sales AS
 SELECT order_date,
        COUNT(DISTINCT order_id) AS total_orders,
        SUM(quantity)            AS units_sold,
@@ -726,11 +592,8 @@ P001        S001      99      (100 - 1)
 P002        S001      47      (50 - 2 - 1)
 P003        S001      18      (20 - 4 - 1 - 1 + 4 returned)</code></pre></div>
 <div class="card"><h4>Notes</h4><ul style="margin-bottom:0"><li>Both are full rebuilds: simple and always consistent with the fact. For very large tables, recompute only affected dates.</li><li>Stock = sum of movements only if history is complete from a known opening balance.</li><li>With snapshots, take the latest snapshot plus later movements.</li></ul></div>
-</div>
-
-<!-- ===================== 24.13 ===================== -->
-<h2 id="s24-13"><span class="num">24.13</span>Step 11: Data Quality and Reconciliation</h2>
-<p>A pipeline can succeed and still be wrong. Each check below returns a failure count; the reconciliation compares Silver to Gold.</p>
+</div></div></section>
+<section class="lesson" id="s24-13"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.13</span><h2>Step 11: Data Quality and Reconciliation</h2></div><div class="content"><p>A pipeline can succeed and still be wrong. Each check below returns a failure count; the reconciliation compares Silver to Gold.</p>
 <div class="code-wrap"><span class="lang">SQL · sql/06_quality_checks.sql</span><pre class="code"><code>-- One row per check (failures = 0 means PASS)
 SELECT 'SILVER_DUPLICATE_CUSTOMER_IDS' AS check_name, COUNT(*) AS failures
 FROM (SELECT customer_id FROM retail_dev.silver.customers GROUP BY customer_id HAVING COUNT(*) &gt; 1)
@@ -868,11 +731,8 @@ held back for missing customers=5500.00 unexplained=-64000.00
 RuntimeError: Critical quality checks failed for B003-dup:
   ['FACT_DUPLICATE_ORDER_ITEMS', 'SALES_RECONCILIATION_UNEXPLAINED']</code></pre></div>
 </div>
-<p class="ref">The orphan order is a <strong>warning</strong>, not a failure: customers can arrive after their orders, and the fact MERGE picks the order up automatically when they do. If it persists past an agreed time, escalate it. Some teams load such facts against an "unknown customer" member (key −1) instead; either way, document it.</p>
-
-<!-- ===================== 24.14 ===================== -->
-<h2 id="s24-14"><span class="num">24.14</span>Step 12: Build the Monitoring Framework</h2>
-<p>Reuse Chapter 20's tested framework instead of building a new one. Each task records RUNNING, then SUCCESS or FAILED with counts and a categorized error, and re-raises so the job fails correctly:</p>
+<p class="ref">The orphan order is a <strong>warning</strong>, not a failure: customers can arrive after their orders, and the fact MERGE picks the order up automatically when they do. If it persists past an agreed time, escalate it. Some teams load such facts against an "unknown customer" member (key −1) instead; either way, document it.</p></div></section>
+<section class="lesson" id="s24-14"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.14</span><h2>Step 12: Build the Monitoring Framework</h2></div><div class="content"><p>Reuse Chapter 20's tested framework instead of building a new one. Each task records RUNNING, then SUCCESS or FAILED with counts and a categorized error, and re-raises so the job fails correctly:</p>
 <div class="code-wrap"><span class="lang">Python · wrapping a task (Chapter 20)</span><pre class="code"><code>%run ../ops/monitoring        # execute_monitored_pipeline, classify_error, ...
 
 def build_silver():
@@ -897,16 +757,13 @@ execute_monitored_pipeline(
 <tr><td>Retries</td><td>Unstable dependencies</td><td>System tables</td></tr>
 <tr><td>Cost per run</td><td>Efficiency</td><td>Chapter 22</td></tr>
 </tbody></table></div>
-<div class="card"><h4>Missed schedules: five cases</h4><p>The load must finish by 05:00 IST. Detect when it:</p><ol style="margin-bottom:0"><li>didn't start (MISSING),</li><li>is still running past the deadline (OVERDUE),</li><li>failed,</li><li>succeeded but Gold is stale,</li><li>succeeded but reconciliation failed.</li></ol><p style="margin:8px 0 0" class="ref">Cases 1–3: add <code>retail_daily_load</code> to Chapter 20's SLA registry (handles time zones). Case 4: a freshness check (below). Case 5: the quality gate.</p></div>
+<div class="card"><h4>Missed schedules: five cases</h4><p>The load must finish by 05:00 IST. Detect when it:</p><ol style="margin-bottom:0"><li>didn't start (MISSING),</li><li>is still running past the deadline (OVERDUE),</li><li>failed,</li><li>succeeded but Gold is stale,</li><li>succeeded but reconciliation failed.</li></ol><p class="ref" style="margin:8px 0 0">Cases 1–3: add <code>retail_daily_load</code> to Chapter 20's SLA registry (handles time zones). Case 4: a freshness check (below). Case 5: the quality gate.</p></div>
 </div>
 <div class="code-wrap"><span class="lang">SQL · freshness check</span><pre class="code"><code>SELECT MAX(order_date)                           AS latest_order_date,
        datediff(current_date(), MAX(order_date)) AS days_behind
 FROM retail_dev.gold.fact_sales;          -- alert if days_behind &amp;gt; 1</code></pre></div>
-<p class="ref">Alert on critical task failure, SLA breach, missing data, critical quality failure, repeated retries, and unexpected cost, via job notifications, SQL alerts, or Chapter 20's dispatcher. Azure Monitor or an incident tool can sit on top.</p>
-
-<!-- ===================== 24.15 ===================== -->
-<h2 id="s24-15"><span class="num">24.15</span>Step 13: Orchestrate with Lakeflow Jobs</h2>
-<div class="grid-2">
+<p class="ref">Alert on critical task failure, SLA breach, missing data, critical quality failure, repeated retries, and unexpected cost, via job notifications, SQL alerts, or Chapter 20's dispatcher. Azure Monitor or an incident tool can sit on top.</p></div></section>
+<section class="lesson" id="s24-15"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.15</span><h2>Step 13: Orchestrate with Lakeflow Jobs</h2></div><div class="content"><div class="grid-2">
 <pre class="diagram">        ingest_bronze
               |
         build_silver
@@ -1006,21 +863,15 @@ FROM retail_dev.gold.fact_sales;          -- alert if days_behind &amp;gt; 1</co
 05:00  SLA: reporting ready
        (buffer for a retry or a fix)</code></pre></div>
 </div>
-<p class="ref">Every task here is idempotent (Silver rebuilds, MERGE, full-rebuild aggregates), so retries and repair runs are safe. The original warned that retrying a duplicating append makes things worse; this design avoids appends after Bronze. The file passes the official bundle schema (CLI v1.22.1); <code>max_concurrent_runs: 1</code> prevents overlapping loads.</p>
-
-<!-- ===================== 24.16 ===================== -->
-<h2 id="s24-16"><span class="num">24.16</span>Step 14: Optimize Performance</h2>
-<p>Measure first (Chapter 15). Then:</p>
+<p class="ref">Every task here is idempotent (Silver rebuilds, MERGE, full-rebuild aggregates), so retries and repair runs are safe. The original warned that retrying a duplicating append makes things worse; this design avoids appends after Bronze. The file passes the official bundle schema (CLI v1.22.1); <code>max_concurrent_runs: 1</code> prevents overlapping loads.</p></div></section>
+<section class="lesson" id="s24-16"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.16</span><h2>Step 14: Optimize Performance</h2></div><div class="content"><p>Measure first (Chapter 15). Then:</p>
 <div class="grid-2">
 <div class="card"><h4>Plans and joins</h4><ul style="margin-bottom:0"><li><code>explain("formatted")</code>: look for full scans, exchanges, and the join strategy.</li><li>Broadcast small dimensions: <code>sales.join(broadcast(products), "product_id")</code>, only if they're genuinely small. AQE often does it automatically.</li><li>Skew: find heavy keys (Chapter 20); prefer AQE skew handling; salt only specific cases.</li></ul></div>
 <div class="card"><h4>Layout and compute</h4><ul style="margin-bottom:0"><li>Liquid clustering on <code>fact_sales</code> by <code>order_date</code> (and <code>customer_key</code> if filtered on).</li><li>Predictive optimization for compaction and statistics (Chapter 23).</li><li>No partitioning by high-cardinality columns.</li><li>Compare compute options by cost per successful run, not speed alone (Chapter 22).</li></ul></div>
 </div>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>ALTER TABLE retail_dev.gold.fact_sales CLUSTER BY (order_date);
-ALTER CATALOG retail_dev ENABLE PREDICTIVE OPTIMIZATION;</code></pre></div>
-
-<!-- ===================== 24.17 ===================== -->
-<h2 id="s24-17"><span class="num">24.17</span>Step 15: Secure with Unity Catalog</h2>
-<div class="grid-2">
+ALTER CATALOG retail_dev ENABLE PREDICTIVE OPTIMIZATION;</code></pre></div></div></section>
+<section class="lesson" id="s24-17"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.17</span><h2>Step 15: Secure with Unity Catalog</h2></div><div class="content"><div class="grid-2">
 <div class="table-wrap"><table>
 <thead><tr><th>Role</th><th>Access</th></tr></thead>
 <tbody>
@@ -1040,11 +891,8 @@ GRANT SELECT ON TABLE retail_prod.gold.daily_sales TO `dbx-business-analysts`;
 ALTER TABLE retail_prod.gold.dim_customer
   ALTER COLUMN email SET MASK retail_prod.security.mask_email;</code></pre></div>
 </div>
-<p class="ref">Separate catalogs per environment with workspace bindings; no hard-coded credentials (identity-based storage access, secret scopes only where needed); data minimization: <code>v_sales</code> exposes no email. Reporting users never get the Silver tables.</p>
-
-<!-- ===================== 24.18 ===================== -->
-<h2 id="s24-18"><span class="num">24.18</span>Step 16: Connect Power BI</h2>
-<p>Expose approved Gold views through a SQL warehouse; connect Power BI with the Azure Databricks connector (server hostname and HTTP path from the warehouse's Connection details), signing in with Entra ID or a service principal. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/partners/bi/power-bi" target="_blank" rel="noopener">Connect Power BI</a>.</p>
+<p class="ref">Separate catalogs per environment with workspace bindings; no hard-coded credentials (identity-based storage access, secret scopes only where needed); data minimization: <code>v_sales</code> exposes no email. Reporting users never get the Silver tables.</p></div></section>
+<section class="lesson" id="s24-18"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.18</span><h2>Step 16: Connect Power BI</h2></div><div class="content"><p>Expose approved Gold views through a SQL warehouse; connect Power BI with the Azure Databricks connector (server hostname and HTTP path from the warehouse's Connection details), signing in with Entra ID or a service principal. Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/partners/bi/power-bi" rel="noopener" target="_blank">Connect Power BI</a>.</p>
 <div class="code-wrap"><span class="lang">SQL · sql/08_reporting.sql</span><pre class="code"><code>-- One wide, governed view for Power BI: each sale with the customer as they were
 -- at the time of sale AND as they are now, plus product and calendar attributes
 CREATE OR REPLACE VIEW retail_dev.gold.v_sales AS
@@ -1077,7 +925,7 @@ v_sales by city
 customer_city_at_sale  customer_city_now  sales
 Chennai                Chennai             25000.00
 Hyderabad              Chennai            118500.00</code></pre></div>
-<div class="card"><h4>Why the view</h4><p>The original's executive query counted <code>DISTINCT customer_key</code>, which counts <em>versions</em>: C001 counted twice after moving. The view carries the business <code>customer_id</code> and gives report authors both "city at sale" and "city now" without needing to understand SCD2.</p><p style="margin-bottom:0" class="ref">Use Import or DirectQuery depending on size and freshness; let Power BI aggregate the view rather than pulling raw tables.</p></div>
+<div class="card"><h4>Why the view</h4><p>The original's executive query counted <code>DISTINCT customer_key</code>, which counts <em>versions</em>: C001 counted twice after moving. The view carries the business <code>customer_id</code> and gives report authors both "city at sale" and "city now" without needing to understand SCD2.</p><p class="ref" style="margin-bottom:0">Use Import or DirectQuery depending on size and freshness; let Power BI aggregate the view rather than pulling raw tables.</p></div>
 </div>
 <div class="table-wrap"><table>
 <thead><tr><th>Page</th><th>Contents</th></tr></thead>
@@ -1087,11 +935,8 @@ Hyderabad              Chennai            118500.00</code></pre></div>
 <tr><td>3 · Customers</td><td>By segment, top customers, by city at sale vs now</td></tr>
 <tr><td>4 · Inventory</td><td>Stock by product and store, low-stock list, recent movements</td></tr>
 <tr><td>5 · Pipeline health</td><td>Success rate, failures, duration, last success, freshness, quality results (<code>ops.validation_audit</code>)</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 24.19 ===================== -->
-<h2 id="s24-19"><span class="num">24.19</span>Step 17: Implement CI/CD</h2>
-<div class="grid-2">
+</tbody></table></div></div></section>
+<section class="lesson" id="s24-19"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.19</span><h2>Step 17: Implement CI/CD</h2></div><div class="content"><div class="grid-2">
 <pre class="diagram">enterprise-retail-platform/      (the attached zip)
 ├── databricks.yml
 ├── resources/
@@ -1133,11 +978,8 @@ targets:
 <div class="code-wrap"><span class="lang">Bash</span><pre class="code"><code>databricks bundle validate -t dev --var="warehouse_id=&amp;lt;warehouse id&amp;gt;"
 databricks bundle deploy   -t dev --var="warehouse_id=&amp;lt;warehouse id&amp;gt;"
 databricks bundle run      -t dev retail_daily_load --params batch=1,batch_id=B001</code></pre></div>
-<p class="ref">The flow is Chapter 21's: pull request → tests + bundle validate → merge → deploy to test + smoke run → approval → production. To promote across environments, replace the hard-coded <code>retail_dev</code> in the SQL with a parameter (SQL file tasks accept parameters, used as <code>IDENTIFIER(:catalog || '.gold.fact_sales')</code>) and set it per target. The bundle files were schema-validated; deployment wasn't run here.</p>
-
-<!-- ===================== 24.20 ===================== -->
-<h2 id="s24-20"><span class="num">24.20</span>Step 18: Document Recovery and Rollback</h2>
-<div class="table-wrap"><table>
+<p class="ref">The flow is Chapter 21's: pull request → tests + bundle validate → merge → deploy to test + smoke run → approval → production. To promote across environments, replace the hard-coded <code>retail_dev</code> in the SQL with a parameter (SQL file tasks accept parameters, used as <code>IDENTIFIER(:catalog || '.gold.fact_sales')</code>) and set it per target. The bundle files were schema-validated; deployment wasn't run here.</p></div></section>
+<section class="lesson" id="s24-20"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.20</span><h2>Step 18: Document Recovery and Rollback</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Scenario</th><th>Recovery</th><th>Why it works here</th></tr></thead>
 <tbody>
 <tr><td>Source file missing</td><td>Wait, then notify the source owner</td><td>SLA check flags MISSING</td></tr>
@@ -1151,57 +993,45 @@ databricks bundle run      -t dev retail_daily_load --params batch=1,batch_id=B0
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>DESCRIBE HISTORY retail_dev.gold.fact_sales;
 SELECT * FROM retail_dev.gold.fact_sales VERSION AS OF 5;     -- inspect
 RESTORE TABLE retail_dev.gold.fact_sales TO VERSION AS OF 5;  -- roll back</code></pre></div>
-<p class="ref">Time travel isn't a backup: it's limited by log and file retention and <code>VACUUM</code>, and doesn't survive storage loss or table replacement. Define retention, backups, RPO/RTO, and rebuild procedures. Here, Bronze is the true safety net: keep its retention long enough to rebuild everything downstream.</p>
-
-<!-- ===================== 24.21 ===================== -->
-<h2 id="s24-21"><span class="num">24.21</span>Final Project Validation Checklist</h2>
-<p>Tick items as you complete them; ticks are saved in this browser. Items marked ✓ are demonstrated by the tested project.</p>
+<p class="ref">Time travel isn't a backup: it's limited by log and file retention and <code>VACUUM</code>, and doesn't survive storage loss or table replacement. Define retention, backups, RPO/RTO, and rebuild procedures. Here, Bronze is the true safety net: keep its retention long enough to rebuild everything downstream.</p></div></section>
+<section class="lesson" id="s24-21"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.21</span><h2>Final Project Validation Checklist</h2></div><div class="content"><p>Tick items as you complete them; ticks are saved in this browser. Items marked ✓ are demonstrated by the tested project.</p>
 <div class="card checklist" id="ch24-project-checklist">
 <p style="margin:0 0 6px"><strong>Ingestion</strong></p>
-<label><input type="checkbox"> <span>All six datasets ingest; initial and incremental loads work ✓</span></label>
-<label><input type="checkbox"> <span>Ingestion metadata and source files captured; schema changes rescued</span></label>
-<label><input type="checkbox"> <span>Reprocessing never loses data (watermark after persist)</span></label>
+<label><input type="checkbox"/> <span>All six datasets ingest; initial and incremental loads work ✓</span></label>
+<label><input type="checkbox"/> <span>Ingestion metadata and source files captured; schema changes rescued</span></label>
+<label><input type="checkbox"/> <span>Reprocessing never loses data (watermark after persist)</span></label>
 <p style="margin:10px 0 6px"><strong>Bronze and Silver</strong></p>
-<label><input type="checkbox"> <span>Types standardized; invalid records captured once per batch ✓</span></label>
-<label><input type="checkbox"> <span>Deterministic dedup with tie-breaker; replays can't win ✓</span></label>
-<label><input type="checkbox"> <span>Late-arriving records handled; merges retry-safe ✓</span></label>
+<label><input type="checkbox"/> <span>Types standardized; invalid records captured once per batch ✓</span></label>
+<label><input type="checkbox"/> <span>Deterministic dedup with tie-breaker; replays can't win ✓</span></label>
+<label><input type="checkbox"/> <span>Late-arriving records handled; merges retry-safe ✓</span></label>
 <p style="margin:10px 0 6px"><strong>Gold</strong></p>
-<label><input type="checkbox"> <span>Fact grain documented; SCD2 history preserved ✓</span></label>
-<label><input type="checkbox"> <span>Sales correct; history uses the version valid at sale ✓</span></label>
-<label><input type="checkbox"> <span>Inventory matches source semantics; aggregates reconcile ✓</span></label>
+<label><input type="checkbox"/> <span>Fact grain documented; SCD2 history preserved ✓</span></label>
+<label><input type="checkbox"/> <span>Sales correct; history uses the version valid at sale ✓</span></label>
+<label><input type="checkbox"/> <span>Inventory matches source semantics; aggregates reconcile ✓</span></label>
 <p style="margin:10px 0 6px"><strong>Quality, orchestration, monitoring</strong></p>
-<label><input type="checkbox"> <span>Mandatory, duplicate, referential, financial checks recorded in audit tables ✓</span></label>
-<label><input type="checkbox"> <span>Job dependencies, retries, and notifications configured and tested</span></label>
-<label><input type="checkbox"> <span>Missed schedules and stale data detected</span></label>
+<label><input type="checkbox"/> <span>Mandatory, duplicate, referential, financial checks recorded in audit tables ✓</span></label>
+<label><input type="checkbox"/> <span>Job dependencies, retries, and notifications configured and tested</span></label>
+<label><input type="checkbox"/> <span>Missed schedules and stale data detected</span></label>
 <p style="margin:10px 0 6px"><strong>Security, performance, delivery</strong></p>
-<label><input type="checkbox"> <span>UC permissions, environment separation, protected credentials, masked PII</span></label>
-<label><input type="checkbox"> <span>Plans reviewed; layout, compute, runtime and cost baselines documented</span></label>
-<label><input type="checkbox"> <span>Power BI connected; metrics reconcile; pipeline health visible</span></label>
-<label><input type="checkbox"> <span>Code in Git; bundle validated; tests before promotion; recovery documented</span></label>
+<label><input type="checkbox"/> <span>UC permissions, environment separation, protected credentials, masked PII</span></label>
+<label><input type="checkbox"/> <span>Plans reviewed; layout, compute, runtime and cost baselines documented</span></label>
+<label><input type="checkbox"/> <span>Power BI connected; metrics reconcile; pipeline health visible</span></label>
+<label><input type="checkbox"/> <span>Code in Git; bundle validated; tests before promotion; recovery documented</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
-</div>
-
-<!-- ===================== 24.22 ===================== -->
-<h2 id="s24-22"><span class="num">24.22</span>Suggested Four-Week Implementation Plan</h2>
-<div class="table-wrap"><table>
+</div></div></section>
+<section class="lesson" id="s24-22"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.22</span><h2>Suggested Four-Week Implementation Plan</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Week</th><th>Focus</th><th>Complete</th><th>Exit criterion</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Ingestion and Silver</td><td>Sample data (3 batches), Bronze, incremental ingestion, Silver, rejects</td><td>Rerunning ingestion creates no unexplained duplicates and loses nothing</td></tr>
 <tr><td>2</td><td>Modeling</td><td>Product and customer (SCD2) dimensions, date, fact, inventory, daily sales</td><td>Gold reconciles to the documented rules (the batch-2 numbers above)</td></tr>
 <tr><td>3</td><td>Reliability</td><td>Quality gate, audit tables, job, retries, notifications, SLA monitoring, permissions</td><td>You can trigger a failure, detect it, investigate, and recover safely</td></tr>
 <tr><td>4</td><td>Production readiness</td><td>Baselines, optimization, Power BI, Git, bundle, tests, recovery docs</td><td>Another engineer can deploy, operate, and troubleshoot it from your docs</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 24.23 ===================== -->
-<h2 id="s24-23"><span class="num">24.23</span>Final Deliverables</h2>
-<div class="grid-2">
+</tbody></table></div></div></section>
+<section class="lesson" id="s24-23"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24 · Lesson 24.23</span><h2>Final Deliverables</h2></div><div class="content"><div class="grid-2">
 <div class="card"><h4>Your repository should contain</h4><ol style="margin-bottom:0"><li>Source data generation</li><li>Bronze ingestion</li><li>Silver transformation</li><li>Gold facts and dimensions</li><li>Incremental MERGE logic</li><li>SCD Type 2</li><li>Quality framework</li><li>Reconciliation and audit tables</li><li>Lakeflow job configuration</li><li>Monitoring and notifications</li><li>Unity Catalog security</li><li>Power BI dashboard</li><li>Git and CI/CD configuration</li><li>Automated tests</li><li>Architecture docs</li><li>Operations guide</li><li>Recovery procedures</li><li>Performance and cost assessment</li></ol></div>
-<div class="card"><h4>What makes it production-oriented</h4><p>Not that notebooks run, but that the platform:</p><ul style="margin-bottom:0"><li>processes new and changed data correctly,</li><li>recovers safely from failures,</li><li>preserves history,</li><li>detects incorrect or incomplete data,</li><li>meets reporting deadlines,</li><li>protects sensitive information,</li><li>scales within performance and cost limits,</li><li>deploys consistently,</li><li>can be run by someone other than its author.</li></ul><p style="margin:8px 0 0" class="ref">The zip already covers items 1–8 and part of 9; the rest are yours to add.</p></div>
-</div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Course Complete</h2>
-<div class="callout key"><span class="label">You've finished the Databricks learning path</span><p>Twenty-four chapters: from what a lakehouse is, through Spark, Delta, ingestion, modeling, quality, security, monitoring, DevOps, cost, and advanced topics, to a complete platform. You now have a portfolio project that shows <strong>end-to-end data engineering</strong>, not just familiarity with PySpark commands: reliable, testable, governed, observable, and ready to support real reporting.</p></div>
+<div class="card"><h4>What makes it production-oriented</h4><p>Not that notebooks run, but that the platform:</p><ul style="margin-bottom:0"><li>processes new and changed data correctly,</li><li>recovers safely from failures,</li><li>preserves history,</li><li>detects incorrect or incomplete data,</li><li>meets reporting deadlines,</li><li>protects sensitive information,</li><li>scales within performance and cost limits,</li><li>deploys consistently,</li><li>can be run by someone other than its author.</li></ul><p class="ref" style="margin:8px 0 0">The zip already covers items 1–8 and part of 9; the rest are yours to add.</p></div>
+</div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 24</span><h2>Course Complete</h2></div><div class="content"><div class="callout key"><span class="label">You've finished the Databricks learning path</span><p>Twenty-four chapters: from what a lakehouse is, through Spark, Delta, ingestion, modeling, quality, security, monitoring, DevOps, cost, and advanced topics, to a complete platform. You now have a portfolio project that shows <strong>end-to-end data engineering</strong>, not just familiarity with PySpark commands: reliable, testable, governed, observable, and ready to support real reporting.</p></div>
 <div class="grid-2">
 <div class="card"><h4>Next steps</h4><ol style="margin-bottom:0"><li>Run the zip on Free Edition: batch 1, 2, 3, and compare with the outputs above.</li><li>Swap the sample generator for Auto Loader on real files.</li><li>Add Chapter 21's tests and GitHub workflows.</li><li>Build the Power BI report and the pipeline-health page.</li><li>Pick your Chapter 23 specialization.</li><li>Consider the Databricks Certified Data Engineer Associate exam.</li></ol></div>
 <div class="card"><h4>Talking about it in interviews</h4><ul style="margin-bottom:0"><li>Why SCD2 first versions start at 1900-01-01, and what breaks otherwise.</li><li>Why facts join to the version valid at sale time.</li><li>How the quality gate distinguishes explained from unexplained differences.</li><li>Why every task is idempotent, and how you proved it.</li><li>How a payment fan-out nearly doubled sales.</li></ul></div>
@@ -1221,61 +1051,17 @@ RESTORE TABLE retail_dev.gold.fact_sales TO VERSION AS OF 5;  -- roll back</code
   inputs.forEach(function(i,n){ if(saved[n]) i.checked=true; i.addEventListener('change',update); });
   update();
 })();
-</script>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-23.html"><span>← Previous</span><strong>Chapter 23: Advanced Topics</strong></a>
-  <a class="pager-link" href="databricks-chapter-1.html"><span>Back to start →</span><strong>Chapter 1: Introduction</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 8 · Chapter 24 of 24 · Course complete</footer>
+</script></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-23.html"><span class="mn-label">← Previous</span><span class="mn-title">Advanced Topics</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="index.html"><span class="mn-label">Finish →</span><span class="mn-title">Course Home</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-</main>
-</div>
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

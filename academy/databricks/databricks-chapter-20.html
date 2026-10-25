@@ -1,283 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 20: Monitoring & Troubleshooting</title>
-<meta name="description" content="Chapter 20 of a Databricks learning path: job and pipeline monitoring, SLA detection, Spark troubleshooting, data pipeline errors, system tables, alerting, and a tested monitoring framework.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Monitoring &amp; Troubleshooting — Chapter 20 | Databricks | HarinIT Academy</title><meta name="description" content="Chapter 20 of a Databricks learning path: job and pipeline monitoring, SLA detection, Spark troubleshooting, data pipeline errors, system tables, alerting, and a tested monitoring framework."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 20 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s20-1">20.1 Monitoring Fundamentals</a></li>
-    <li class="lvl2"><a href="#s20-1-2">Architecture</a></li>
-    <li class="lvl2"><a href="#s20-1-3">Job &amp; pipeline runs</a></li>
-    <li class="lvl2"><a href="#s20-1-5">Notebooks &amp; queries</a></li>
-    <li class="lvl2"><a href="#s20-1-7">Compute &amp; cluster events</a></li>
-    <li class="lvl1"><a href="#s20-2">20.2 Job Monitoring</a></li>
-    <li class="lvl2"><a href="#s20-2-1">Run states</a></li>
-    <li class="lvl2"><a href="#s20-2-2">Duration &amp; baselines</a></li>
-    <li class="lvl2"><a href="#s20-2-3">Retries</a></li>
-    <li class="lvl2"><a href="#s20-2-4">Task &amp; dependency failures</a></li>
-    <li class="lvl2"><a href="#s20-2-5">Delays &amp; SLAs</a></li>
-    <li class="lvl2"><a href="#s20-2-7">Notifications</a></li>
-    <li class="lvl1"><a href="#s20-3">20.3 Spark Troubleshooting</a></li>
-    <li class="lvl2"><a href="#s20-3-2">Slow jobs</a></li>
-    <li class="lvl2"><a href="#s20-3-3">Executor &amp; driver failures</a></li>
-    <li class="lvl2"><a href="#s20-3-5">Out of memory</a></li>
-    <li class="lvl2"><a href="#s20-3-6">Shuffle failures</a></li>
-    <li class="lvl2"><a href="#s20-3-7">Data skew</a></li>
-    <li class="lvl2"><a href="#s20-3-8">Stage &amp; task retries</a></li>
-    <li class="lvl1"><a href="#s20-4">20.4 Pipeline Troubleshooting</a></li>
-    <li class="lvl2"><a href="#s20-4-1">Schema &amp; types</a></li>
-    <li class="lvl2"><a href="#s20-4-3">Duplicates &amp; missing rows</a></li>
-    <li class="lvl2"><a href="#s20-4-5">Connectivity &amp; permissions</a></li>
-    <li class="lvl2"><a href="#s20-4-7">Ingestion failures</a></li>
-    <li class="lvl2"><a href="#s20-4-8">Delta conflicts</a></li>
-    <li class="lvl1"><a href="#s20-5">20.5 Monitoring &amp; Alerting</a></li>
-    <li class="lvl2"><a href="#s20-5-2">Event logs &amp; audit</a></li>
-    <li class="lvl2"><a href="#s20-5-4">System tables</a></li>
-    <li class="lvl2"><a href="#s20-5-6">Usage &amp; Azure Monitor</a></li>
-    <li class="lvl1"><a href="#s20-6">20.6 Monitoring Framework</a></li>
-    <li class="lvl2"><a href="#s20-6-2">Steps 1–2: Tables</a></li>
-    <li class="lvl2"><a href="#s20-6-4">Step 3: Framework code</a></li>
-    <li class="lvl2"><a href="#s20-6-6">Steps 4–5: Pipeline &amp; run</a></li>
-    <li class="lvl2"><a href="#s20-6-8">Step 6: SLA monitor</a></li>
-    <li class="lvl2"><a href="#s20-6-10">Step 7: Alerts</a></li>
-    <li class="lvl2"><a href="#s20-6-11">Step 8: Recovery</a></li>
-    <li class="lvl1"><a href="#s20-7">20.7 Dashboard</a></li>
-    <li class="lvl1"><a href="#s20-8">20.8 End-to-End Project</a></li>
-    <li class="lvl1"><a href="#s20-9">20.9 Production Improvements</a></li>
-    <li class="lvl1"><a href="#s20-10">20.10 Interview Questions</a></li>
-    <li class="lvl1"><a href="#s20-11">20.11 Plan &amp; Docs</a></li>
-    <li class="lvl1"><a href="#summary">Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 7 · Chapter 20 · Security, Monitoring, and DevOps</span>
-  <h1>Databricks Monitoring and Troubleshooting</h1>
-  <p class="lead">Monitor jobs and pipelines, troubleshoot Spark failures, diagnose data-pipeline problems, set up alerting, and build a production-ready monitoring framework. This is the production-support chapter: pipeline reliability, incident handling, and SLA compliance.</p>
-  <div class="callout key"><span class="label">Five questions every monitoring solution must answer</span>
-  <ol style="margin-bottom:0">
-    <li><strong>What happened?</strong> Which pipeline or task failed?</li>
-    <li><strong>When?</strong> When did it start, finish, or fall behind?</li>
-    <li><strong>Why?</strong> What was the root cause?</li>
-    <li><strong>What was affected?</strong> Which tables, records, or downstream jobs?</li>
-    <li><strong>What next?</strong> Retry, recover, alert, or escalate?</li>
-  </ol></div>
-  <div class="callout"><span class="label">Verified on Spark 4</span><p>The framework in 20.6 (wrapper, error classification, retries, schema contract, SLA monitor, alert de-duplication, KPI and slow-run queries) and the skew demo in 20.3.7 were all run locally, and the outputs shown are real. System tables, job settings, and Azure Monitor are Databricks or Azure only and are marked as untested where they appear.</p></div>
-  <div class="chips">
-    <a class="chip" href="#s20-1"><span>20.1</span><strong>Fundamentals</strong></a>
-    <a class="chip" href="#s20-2"><span>20.2</span><strong>Job Monitoring</strong></a>
-    <a class="chip" href="#s20-3"><span>20.3</span><strong>Spark</strong></a>
-    <a class="chip" href="#s20-4"><span>20.4</span><strong>Pipelines</strong></a>
-    <a class="chip" href="#s20-5"><span>20.5</span><strong>Alerting</strong></a>
-    <a class="chip" href="#s20-6"><span>20.6</span><strong>Framework</strong></a>
-  </div>
-</section>
-
-<!-- ===================== 20.1 ===================== -->
-<h2 id="s20-1"><span class="num">20.1</span>Monitoring Fundamentals</h2>
-
-<h3 id="s20-1-1"><span class="num">20.1.1</span>What Is Monitoring?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">Databricks Monitoring and Troubleshooting</div>
+<div class="brand-sub">Chapter 20 · 11 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s20-1" class="nav-link"><span class="nav-num">20.1</span>Monitoring Fundamentals</a>
+<a href="#s20-2" class="nav-link"><span class="nav-num">20.2</span>Job Monitoring</a>
+<a href="#s20-3" class="nav-link"><span class="nav-num">20.3</span>Spark Troubleshooting</a>
+<a href="#s20-4" class="nav-link"><span class="nav-num">20.4</span>Data Pipeline Troubleshooting</a>
+<a href="#s20-5" class="nav-link"><span class="nav-num">20.5</span>Monitoring and Alerting</a>
+<a href="#s20-6" class="nav-link"><span class="nav-num">20.6</span>Building a Monitoring Framework</a>
+<a href="#s20-7" class="nav-link"><span class="nav-num">20.7</span>Building an Operational Dashboard</a>
+<a href="#s20-8" class="nav-link"><span class="nav-num">20.8</span>End-to-End Hands-On Project</a>
+<a href="#s20-9" class="nav-link"><span class="nav-num">20.9</span>Recommended Production Design Improvements</a>
+<a href="#s20-10" class="nav-link"><span class="nav-num">20.10</span>Interview Questions and Answers</a>
+<a href="#s20-11" class="nav-link"><span class="nav-num">20.11</span>Seven-Day Learning Plan and Documentation</a>
+<div class="nav-group-label">Practice &amp; Review</div>
+<a href="#summary" class="nav-link">Chapter Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 7 · Chapter 20 · Security, Monitoring, and DevOps</div><h1>Databricks Monitoring and Troubleshooting</h1>
+<p>Monitor jobs and pipelines, troubleshoot Spark failures, diagnose data-pipeline problems, set up alerting, and build a production-ready monitoring framework. This is the production-support chapter: pipeline reliability, incident handling, and SLA compliance.</p>
+<div class="doc-meta"><span class="pill">11 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s20-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.1</span><h2>Monitoring Fundamentals</h2></div><div class="content"><h3 id="s20-1-1"><span class="num">20.1.1</span>What Is Monitoring?</h3>
 <p>Monitoring is the continuous observation of jobs, pipelines, compute, queries, and data processing to spot failures, performance problems, and operational risks.</p>
 <div class="grid-2">
 <pre class="diagram">SQL Server / Oracle / REST API
@@ -307,7 +167,6 @@ details.q summary{line-height:1.5}
 <tr><td>Recovery</td><td>Restore processing</td><td>Fix the schema and rerun</td></tr>
 <tr><td>Prevention</td><td>Reduce recurrence</td><td>Add schema validation and tests</td></tr>
 </tbody></table></div>
-
 <h3 id="s20-1-2"><span class="num">20.1.2</span>Monitoring Architecture</h3>
 <div class="grid-2">
 <div class="card"><h4>Five layers</h4><ol style="margin-bottom:0">
@@ -338,7 +197,6 @@ details.q summary{line-height:1.5}
        Monitoring dashboard</pre>
 </div>
 <div class="callout warn"><span class="label">Different data, different places</span><p>Job run history, Spark logs, SQL query history, audit events, and Azure resource metrics are separate sources with separate interfaces. A real implementation typically uses system tables for run history, Delta tables for application-specific audit, and Azure Monitor for selected platform telemetry.</p></div>
-
 <h3 id="s20-1-3"><span class="num">20.1.3</span>Job and Pipeline Run Monitoring</h3>
 <div class="grid-2">
 <pre class="diagram">job_retail_daily_load
@@ -375,13 +233,11 @@ details.q summary{line-height:1.5}
 <tr><td>Report refresh</td><td>Skipped</td><td>0 min</td></tr>
 </tbody></table></div>
 <p class="ref">"Pipeline failed" alone gives support little to go on; "Silver transformation failed after 35 minutes, two downstream stages skipped" points straight at the problem. Capture both pipeline-level and task-level status.</p>
-
 <h3 id="s20-1-5"><span class="num">20.1.4</span>Notebook Execution History and Query History</h3>
 <div class="grid-2">
 <div class="card"><h4>Notebook history</h4><p>Shows executed cells, output, exceptions, durations, associated Spark jobs, and logs. Useful for development and interactive debugging, but <strong>not a substitute for production monitoring</strong>: production code should write structured, queryable records (20.6).</p><p class="ref" style="margin-bottom:0">Each <code>count()</code> is a separate Spark job. Count deliberately, not after every step.</p></div>
 <div class="card"><h4>Query history</h4><p>Finds slow and failed SQL statements, large scans, expensive joins, and repeated queries. A report that went from 20 seconds to 15 minutes could be more data, lost pruning, a bad join strategy, skew, contention, or changed logic.</p><p class="ref" style="margin-bottom:0">Query history shows <em>which</em> statement and <em>when</em>; diagnosing <em>why</em> may also need the query profile, plan, and Spark UI.</p></div>
 </div>
-
 <h3 id="s20-1-7"><span class="num">20.1.5</span>Compute Utilization and Cluster Events</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Metric (40-minute job)</th><th>Observation</th><th>Possible interpretation</th></tr></thead>
@@ -393,12 +249,8 @@ details.q summary{line-height:1.5}
 <tr><td>Workers</td><td>Many idle</td><td>A bottleneck in one stage</td></tr>
 </tbody></table></div>
 <p class="ref">These are clues, not conclusions; correlate several. On classic compute, see the compute's <strong>Metrics</strong> tab; serverless exposes less infrastructure detail, so rely more on the query profile and Spark UI.</p>
-<p><strong>Cluster events</strong> (start, terminate, resize, configuration change, driver restart, lost workers) explain failures that the job itself can't. If a job fails after compute terminates unexpectedly, check in order: the run timeline, the compute event log, driver logs, executor logs, cloud or network events, and whether the termination was expected. A job failure and a compute failure are related but distinct; record both.</p>
-
-<!-- ===================== 20.2 ===================== -->
-<h2 id="s20-2"><span class="num">20.2</span>Job Monitoring</h2>
-
-<h3 id="s20-2-1"><span class="num">20.2.1</span>Successful and Failed Runs</h3>
+<p><strong>Cluster events</strong> (start, terminate, resize, configuration change, driver restart, lost workers) explain failures that the job itself can't. If a job fails after compute terminates unexpectedly, check in order: the run timeline, the compute event log, driver logs, executor logs, cloud or network events, and whether the termination was expected. A job failure and a compute failure are related but distinct; record both.</p></div></section>
+<section class="lesson" id="s20-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.2</span><h2>Job Monitoring</h2></div><div class="content"><h3 id="s20-2-1"><span class="num">20.2.1</span>Successful and Failed Runs</h3>
 <p>Don't treat every non-success state as a failure. These are the <code>result_state</code> values in Databricks' job system tables:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>State</th><th>Meaning</th><th>Typical response</th></tr></thead>
@@ -412,7 +264,6 @@ details.q summary{line-height:1.5}
 <tr><td><code>NULL</code></td><td>Still running (intermediate row)</td><td>Watch duration</td></tr>
 </tbody></table></div>
 <p class="ref">Names differ between the UI, the Jobs API, and system tables. Our own audit table (20.6) uses <code>RUNNING</code>, <code>SUCCESS</code>, and <code>FAILED</code>.</p>
-
 <h3 id="s20-2-2"><span class="num">20.2.2</span>Execution Duration and Baselines</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>SELECT pipeline_name, run_id, start_time, end_time,
@@ -448,7 +299,6 @@ ORDER BY start_time DESC</code></pre></div>
 <div class="code-wrap"><span class="lang">Output (verified: 9 successful runs of 700–780 s, then one of 2000 s)</span><pre class="code"><code>pipeline_name  run_id  duration_seconds  p90_previous  times_p90
 pl_orders      o9      2000              780           2.6</code></pre></div>
 <p class="ref">The 1.5× factor and five-run minimum are starting points; tune them. Compare like with like: a full reload shouldn't be judged against incremental runs.</p>
-
 <h3 id="s20-2-3"><span class="num">20.2.3</span>Retry Tracking</h3>
 <div class="grid-2">
 <div class="card"><h4>Retry these (transient)</h4><ul style="margin-bottom:0"><li>Temporary network interruptions.</li><li>Transient service errors.</li><li>Temporary throttling.</li><li>Some infrastructure interruptions.</li></ul></div>
@@ -465,7 +315,6 @@ Classify the error
 <div class="code-wrap"><span class="lang">Output (verified)</span><pre class="code"><code>Timeout twice, then success   -&gt; "ok" after 3 attempts, delays [2, 4]
 Schema contract violation     -&gt; raised immediately, attempts: 1</code></pre></div>
 <p class="ref">For whole tasks, prefer the job's built-in retry settings (<code>max_retries</code>, <code>min_retry_interval_millis</code>; see 20.2.7). Custom retries suit a single call inside a task, such as one API request.</p>
-
 <h3 id="s20-2-4"><span class="num">20.2.4</span>Task-Level and Dependency Failures</h3>
 <div class="grid-2">
 <pre class="diagram">Task A: Extract customers   SUCCEEDED
@@ -476,10 +325,9 @@ Task D: Build sales summary BLOCKED / SKIPPED
 <div class="card"><h4>Record for the failed task</h4><p style="margin-bottom:0">Job ID, job run ID, failed task key, task run ID, error message, attempt number, start and end times, upstream dependencies, and downstream tasks skipped or blocked.</p></div>
 </div>
 <p>Task D's state is a <strong>consequence</strong>, not a second problem. Alert on the first failure in the dependency chain; <code>job_task_run_timeline</code> (20.5.4) gives the task-level view.</p>
-
 <h3 id="s20-2-5"><span class="num">20.2.5</span>Delayed Jobs and SLA Monitoring</h3>
 <div class="grid-2">
-<div class="card"><h4>Two different delays</h4><p><strong>Start delay</strong> = actual start − expected start<br><strong>Completion delay</strong> = actual completion − expected completion</p><p style="margin-bottom:0">Scheduled 2:00–3:00 AM, actual 2:25–3:20 AM: start delay 25 min, completion delay 20 min. Find whether scheduling, queueing, upstream delays, or slow execution caused it.</p></div>
+<div class="card"><h4>Two different delays</h4><p><strong>Start delay</strong> = actual start − expected start<br/><strong>Completion delay</strong> = actual completion − expected completion</p><p style="margin-bottom:0">Scheduled 2:00–3:00 AM, actual 2:25–3:20 AM: start delay 25 min, completion delay 20 min. Find whether scheduling, queueing, upstream delays, or slow execution caused it.</p></div>
 <div class="card"><h4>A data-pipeline SLA might say</h4><ul style="margin-bottom:0"><li>Complete by 5:00 AM.</li><li>Process the latest source batch.</li><li>Meet a completeness threshold.</li><li>Stay under an agreed failure rate.</li><li>Data ready before business hours.</li></ul></div>
 </div>
 <div class="grid-2">
@@ -491,7 +339,6 @@ Delay:      17 minutes</pre>
 <div class="callout key" style="margin:0"><span class="label">SLA ≠ duration</span><p>A 20-minute run misses its SLA if it starts too late; a 40-minute run meets it if the deadline allows. And three cases need detecting, not one: <strong>finished late</strong>, <strong>still running past the deadline</strong>, and <strong>never started</strong>. A missing record is not a success. 20.6.8 builds a monitor for all three.</p></div>
 </div>
 <p class="ref">An SLA record should hold pipeline, business date, expected and actual times, threshold, breach duration, current status, and notification status.</p>
-
 <h3 id="s20-2-7"><span class="num">20.2.6</span>Failure Notifications</h3>
 <p>Decide which failures alert, who receives them, whether to alert during retries or only on final failure, how to de-duplicate, how to escalate, and how recovery is confirmed. Here's what that looks like in a job's settings (the JSON view or the Jobs API):</p>
 <div class="code-wrap"><span class="lang">JSON · job settings (excerpt)</span><pre class="code"><code>{
@@ -532,12 +379,8 @@ Error category: SCHEMA_MISMATCH
 First action:   Check the source schema change;
                 open the failed task's output.</code></pre></div>
 </div>
-<p class="ref">Webhook destinations (Teams, Slack, PagerDuty) are set up by an admin and added under <code>webhook_notifications</code>. The JSON wasn't run here; the keys follow the Jobs API. Never put passwords, tokens, or customer data in alerts. Docs: <a href="https://docs.databricks.com/aws/en/jobs/notifications" target="_blank" rel="noopener">Job notifications</a>.</p>
-
-<!-- ===================== 20.3 ===================== -->
-<h2 id="s20-3"><span class="num">20.3</span>Spark Troubleshooting</h2>
-
-<h3 id="s20-3-1"><span class="num">20.3.1</span>Spark Execution Fundamentals</h3>
+<p class="ref">Webhook destinations (Teams, Slack, PagerDuty) are set up by an admin and added under <code>webhook_notifications</code>. The JSON wasn't run here; the keys follow the Jobs API. Never put passwords, tokens, or customer data in alerts. Docs: <a href="https://docs.databricks.com/aws/en/jobs/notifications" rel="noopener" target="_blank">Job notifications</a>.</p></div></section>
+<section class="lesson" id="s20-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.3</span><h2>Spark Troubleshooting</h2></div><div class="content"><h3 id="s20-3-1"><span class="num">20.3.1</span>Spark Execution Fundamentals</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df = spark.read.table("retail_dev.bronze.orders")
 filtered_df = df.filter("order_status = 'COMPLETED'")
@@ -557,7 +400,6 @@ grouped_df.write.mode("overwrite").saveAsTable(
    Executors     (run the tasks)</pre>
 </div>
 <p class="ref"><strong>Driver:</strong> plans and schedules. <strong>Executor:</strong> runs tasks and caches data. <strong>Stage:</strong> operations between shuffle boundaries. <strong>Task:</strong> one partition's work. (Chapter 3 covered this in depth.)</p>
-
 <h3 id="s20-3-2"><span class="num">20.3.2</span>Slow Spark Jobs</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Cause</th><th>Typical symptom</th><th>Investigation</th></tr></thead>
@@ -576,7 +418,6 @@ grouped_df.write.mode("overwrite").saveAsTable(
 <div class="card"><h4>Typical fixes</h4><ul style="margin-bottom:0"><li>Filter earlier when semantically valid.</li><li>Select only needed columns.</li><li>Avoid unnecessary shuffles.</li><li>Handle skewed keys.</li><li>Improve data layout.</li><li>Choose suitable compute.</li></ul></div>
 </div>
 <p class="ref">Don't just add workers. If one skewed partition or a bad join is the problem, more workers help little.</p>
-
 <h3 id="s20-3-3"><span class="num">20.3.3</span>Executor and Driver Failures</h3>
 <div class="grid-2">
 <div class="card"><h4>Executor failures</h4><p>Causes: OOM, worker or infrastructure failure, process killed, resource exhaustion, dependency problems. Symptoms: repeated task failures, executors vanishing from the Spark UI, stage retries, eventual job failure.</p><ol style="margin-bottom:0"><li>Find the failed task and stage.</li><li>Read executor logs.</li><li>One executor or many?</li><li>Check memory, disk, CPU.</li><li>Read the exception and exit reason.</li><li>Does one partition always fail? Then inspect its data.</li><li>Decide: data, code, or infrastructure.</li></ol></div>
@@ -590,7 +431,6 @@ rows = spark.table("retail_dev.bronze.orders").collect()
       .show())</code></pre></div></div>
 </div>
 <p class="ref">Use <code>collect()</code> and <code>toPandas()</code> only when the result is known to be small. The driver log shows "Driver is temporarily unavailable" or similar when it has restarted.</p>
-
 <h3 id="s20-3-5"><span class="num">20.3.4</span>Out-of-Memory Errors</h3>
 <div class="grid-2">
 <div class="card"><h4>Driver memory pressure</h4><ul style="margin-bottom:0"><li>Collecting large datasets.</li><li>Large Python objects.</li><li>Large metadata structures.</li><li>Driver-side processing of big results.</li></ul></div>
@@ -598,11 +438,9 @@ rows = spark.table("retail_dev.bronze.orders").collect()
 </div>
 <p><strong>Cache only what you reuse.</strong> <code>df.cache()</code> pays off when a DataFrame is used several times and recomputing it is expensive; for a single-use DataFrame it wastes memory. (Serverless doesn't support <code>cache()</code> on DataFrames at all.)</p>
 <p class="ref">Approach: which process died (driver or executor)? Read the exception and logs, check partition sizes, review joins and aggregations, drop unnecessary caching, avoid large collects, consider another strategy, and resize compute only once you understand the bottleneck.</p>
-
 <h3 id="s20-3-6"><span class="num">20.3.5</span>Shuffle Failures</h3>
 <p>A shuffle redistributes data so rows with the same key meet, e.g. for <code>df.groupBy("customer_id").sum("sales_amount")</code>. Failures are linked to executor loss, disk pressure, network interruptions, huge shuffles, memory pressure, and oversized partitions.</p>
 <p class="ref">Inspect shuffle read/write volume, spill, stage retry history, executor failures, task-duration variation, and disk. A shuffle isn't a problem in itself; it's normal distributed processing. Reduce <em>unnecessary</em> shuffles and make necessary ones reliable (Chapter 15's AQE and partition sizing help).</p>
-
 <h3 id="s20-3-7"><span class="num">20.3.6</span>Data Skew</h3>
 <p>Skew is uneven data across partitions. If one <code>customer_id</code> (say, a "walk-in customer" placeholder) holds 40% of rows, its partition dwarfs the rest and the stage waits for that one task.</p>
 <div class="code-wrap"><span class="lang">Python · detect and handle skew</span><pre class="code"><code>from pyspark.sql import functions as F
@@ -645,7 +483,6 @@ salted result identical: True</code></pre></div>
 <div class="card"><h4>How to address</h4><ul style="margin-bottom:0"><li><strong>AQE skew-join handling</strong> (on by default in Databricks) splits oversized partitions in joins.</li><li><strong>Broadcast</strong> a genuinely small dimension.</li><li><strong>Two-phase aggregation</strong> (salting, step 3) for skewed group-bys.</li><li>Handle special keys separately where business logic allows.</li></ul></div>
 </div>
 <p class="ref">Salting is safe for <em>sums and counts</em> (verified identical above) because partial results combine. It's not safe for every aggregate (e.g. <code>count(DISTINCT …)</code> needs care) and salted <em>joins</em> require replicating the other side. Don't apply it blindly.</p>
-
 <h3 id="s20-3-8"><span class="num">20.3.7</span>Stage Retries and Task Failures</h3>
 <div class="grid-2">
 <pre class="diagram">Stage 12
@@ -661,11 +498,8 @@ salted result identical: True</code></pre></div>
 <tr><td>Visible as</td><td>Failed attempts in the Spark UI</td><td>A new attempt / run in job history</td></tr>
 </tbody></table></div>
 </div>
-<p class="ref">A recovered task failure doesn't usually need an incident, but repeated retries lengthen runs and signal degradation. Don't count every task retry as a new pipeline run.</p>
-
-<!-- ===================== 20.4 ===================== -->
-<h2 id="s20-4"><span class="num">20.4</span>Data Pipeline Troubleshooting</h2>
-<p class="section-intro">Many production incidents come from source data or pipeline logic, not Spark. The framework's <code>classify_error</code> (20.6.3) maps these to categories; the table below shows what it returned for real Spark 4 errors.</p>
+<p class="ref">A recovered task failure doesn't usually need an incident, but repeated retries lengthen runs and signal degradation. Don't count every task retry as a new pipeline run.</p></div></section>
+<section class="lesson" id="s20-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.4</span><h2>Data Pipeline Troubleshooting</h2></div><div class="content"><p class="section-intro">Many production incidents come from source data or pipeline logic, not Spark. The framework's <code>classify_error</code> (20.6.3) maps these to categories; the table below shows what it returned for real Spark 4 errors.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Real error (verified)</th><th>Category</th></tr></thead>
 <tbody>
@@ -674,7 +508,6 @@ salted result identical: True</code></pre></div>
 <tr><td><code>ConnectionError: Connection refused by sql-prod:1433</code></td><td>SOURCE_CONNECTIVITY</td></tr>
 <tr><td><code>ZeroDivisionError</code> (a bug)</td><td>UNKNOWN</td></tr>
 </tbody></table></div>
-
 <h3 id="s20-4-1"><span class="num">20.4.1</span>Schema Mismatch and Invalid Data Types</h3>
 <p>The pipeline expects <code>customer_id BIGINT</code>; the source now sends <code>STRING</code>. Or a required column disappears or is renamed. The original checked only column <em>names</em> and suggested comparing <code>df.schema</code> for types. The framework's <code>validate_schema_contract</code> does both:</p>
 <div class="grid-2">
@@ -698,7 +531,6 @@ classify_error -&gt; SCHEMA_MISMATCH</code></pre></div>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>typed_df = source_df.withColumn("amount_decimal", F.expr("try_cast(amount AS DECIMAL(18,2))"))
 invalid_records = typed_df.filter(F.col("amount").isNotNull() &amp; F.col("amount_decimal").isNull())</code></pre></div>
 <p class="ref">Then: count and sample them, apply correction or rejection rules, store rejects, alert above a threshold, never silently drop. Also treat blanks, whitespace, and formatted values like <code>"₹1,200"</code> explicitly.</p>
-
 <h3 id="s20-4-3"><span class="num">20.4.2</span>Duplicate and Missing Records</h3>
 <div class="grid-2">
 <div class="card"><h4>Duplicates come from</h4><ul style="margin-bottom:0"><li>Repeated source events.</li><li>Overlapping incremental loads.</li><li>Incorrect joins (fan-out).</li><li>Retries of non-idempotent appends.</li><li>Source-system duplication.</li><li>Missing deduplication.</li></ul></div>
@@ -712,7 +544,6 @@ invalid_records = typed_df.filter(F.col("amount").isNotNull() &amp; F.col("amoun
                     "order_id", "left_anti"))</code></pre></div>
 </div>
 <p class="ref"><code>dropDuplicates</code> keeps an arbitrary row; when duplicates differ, keep the latest by a reliable timestamp with a window (the 20.6 pipeline does this). Compare source and target for the <em>same batch</em>, and remember equal counts don't prove a match. Chapter 18's validation framework covers all of this.</p>
-
 <h3 id="s20-4-5"><span class="num">20.4.3</span>Source Connectivity and Permission Errors</h3>
 <div class="grid-2">
 <div class="card"><h4>Connectivity checklist</h4><ol style="margin-bottom:0"><li>Identify the source and endpoint.</li><li>Read the exact exception.</li><li>DNS resolves? Host reachable?</li><li>Port open?</li><li>Authentication mechanism correct, credentials not expired?</li><li>Identity has source permissions?</li><li>Source available, not throttling?</li><li>Retry only if transient.</li></ol></div>
@@ -729,7 +560,6 @@ invalid_records = typed_df.filter(F.col("amount").isNotNull() &amp; F.col("amoun
 </tbody></table></div>
 </div>
 <div class="callout key"><span class="label">Troubleshooting rule</span><p>A connection <em>timeout</em> is usually network, not a missing <code>SELECT</code>. Find which layer rejected the operation before changing any permission (Chapter 19). Never log passwords, connection strings, or tokens; the framework's <code>sanitize_message</code> masks common patterns (verified: <code>Password=Sup3rS3cret; token: dapi0123…</code> → <code>Password=***; token=***</code>).</p></div>
-
 <h3 id="s20-4-7"><span class="num">20.4.4</span>Ingestion Failures</h3>
 <div class="grid-2">
 <div class="card"><h4>Causes and what to record</h4><p>Missing, malformed, or corrupted files; schema changes; API failures; incomplete uploads; wrong watermarks; auth errors; unsupported types.</p><p style="margin-bottom:0">Record: source system, input path or batch ID, file name, expected and actual counts, start and end, validation outcome, rejected count, error, recovery status. (Auto Loader's <code>_rescued_data</code> and <code>_metadata.file_path</code>, Chapter 12, help here.)</p></div>
@@ -746,7 +576,6 @@ Validate counts and keys
 Commit / publish</pre>
 </div>
 <p class="ref">Delta writes are transactional per table, not across a multi-table pipeline. If it fails midway, recovery must account for what already committed (Chapter 18, 18.4).</p>
-
 <h3 id="s20-4-8"><span class="num">20.4.5</span>Delta Transaction Conflicts</h3>
 <p>Concurrent operations conflict when they make incompatible changes to overlapping data: e.g. Job A <code>MERGE</code>s customer updates while Job B <code>DELETE</code>s obsolete customers. One fails with an exception such as <code>ConcurrentAppendException</code> or <code>ConcurrentDeleteReadException</code> and must be retried.</p>
 <div class="grid-2">
@@ -755,12 +584,8 @@ Commit / publish</pre>
 -- job (job id / run id), operationParameters</code></pre></div>
 <div class="card"><h4>Troubleshoot and prevent</h4><ul style="margin-bottom:0"><li>Capture the full exception; identify table and operation.</li><li>Find overlapping writers and schedules.</li><li>Retry only if the operation is idempotent (e.g. a MERGE).</li><li>Give critical tables one owning pipeline.</li><li>Make MERGE conditions specific (e.g. include the partition or date) so writers touch disjoint data.</li><li>Don't retry schema or logical conflicts.</li></ul></div>
 </div>
-<p class="ref">A conflict doesn't mean corruption: Delta's optimistic concurrency rejected a commit to <em>protect</em> the table. That's why the framework doesn't classify <code>DELTA_CONFLICT</code> as automatically retryable; add it to <code>TRANSIENT_CATEGORIES</code> only for idempotent writes. Docs: <a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" target="_blank" rel="noopener">Isolation levels and write conflicts</a>.</p>
-
-<!-- ===================== 20.5 ===================== -->
-<h2 id="s20-5"><span class="num">20.5</span>Monitoring and Alerting</h2>
-
-<h3 id="s20-5-2"><span class="num">20.5.1</span>Job Notifications, Pipeline Event Logs, and Audit</h3>
+<p class="ref">A conflict doesn't mean corruption: Delta's optimistic concurrency rejected a commit to <em>protect</em> the table. That's why the framework doesn't classify <code>DELTA_CONFLICT</code> as automatically retryable; add it to <code>TRANSIENT_CATEGORIES</code> only for idempotent writes. Docs: <a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" rel="noopener" target="_blank">Isolation levels and write conflicts</a>.</p></div></section>
+<section class="lesson" id="s20-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.5</span><h2>Monitoring and Alerting</h2></div><div class="content"><h3 id="s20-5-2"><span class="num">20.5.1</span>Job Notifications, Pipeline Event Logs, and Audit</h3>
 <p><strong>Job notifications</strong> (20.2.6) are the first line: final-failure alerts to the support team, duration warnings, and webhooks, configured per job or task. Avoid an email for every transient retry.</p>
 <p><strong>Pipeline event logs.</strong> Lakeflow Spark Declarative Pipelines record updates, progress, data-quality expectation results, errors, and flow details in an event log you can query:</p>
 <div class="code-wrap"><span class="lang">SQL · declarative pipeline event log</span><pre class="code"><code>SELECT timestamp, event_type, level, message
@@ -773,7 +598,6 @@ ORDER BY timestamp DESC;</code></pre></div>
 <div class="card"><h4>Security auditing asks</h4><ul style="margin-bottom:0"><li>Who accessed the data?</li><li>Who changed a permission?</li><li>Which identity ran an operation?</li><li>Who changed the job configuration?</li></ul></div>
 </div>
 <p class="ref">Correlate the two, but a custom audit table never replaces platform audit logs (<code>system.access.audit</code>, Chapter 19).</p>
-
 <h3 id="s20-5-4"><span class="num">20.5.2</span>System Tables and Query History</h3>
 <p>System tables are queryable, account-wide records of job runs, queries, audit events, billing, and more. An admin must enable them and grant access, and availability and retention vary. As the original advises, start with <code>SHOW TABLES IN system.lakeflow</code> and <code>DESCRIBE</code> before building queries. The key job tables:</p>
 <div class="table-wrap"><table>
@@ -821,8 +645,7 @@ WHERE start_time &amp;gt;= current_date()
   AND (execution_status = 'FAILED' OR total_duration_ms &amp;gt; 300000)
 ORDER BY total_duration_ms DESC
 LIMIT 50;</code></pre></div>
-<p class="ref">The system-table queries weren't run here (they need a workspace); column names follow the current system-table reference. Query text can contain business-sensitive literals, so restrict access to query history. Docs: <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" target="_blank" rel="noopener">Jobs system tables</a>.</p>
-
+<p class="ref">The system-table queries weren't run here (they need a workspace); column names follow the current system-table reference. Query text can contain business-sensitive literals, so restrict access to query history. Docs: <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" rel="noopener" target="_blank">Jobs system tables</a>.</p>
 <h3 id="s20-5-6"><span class="num">20.5.3</span>Usage Monitoring, Azure Monitor, and External Tools</h3>
 <p><strong>Usage:</strong> which workloads and teams cost most, which jobs keep getting more expensive, which compute is idle? <code>system.billing.usage</code> with tags (Chapter 19, 19.5.3) answers by workspace, job, owner, environment, cost center, SKU, and period. Don't infer cost from duration; use the usage records.</p>
 <div class="grid-2">
@@ -841,14 +664,11 @@ Action groups
       +--&gt; Email
       +--&gt; SMS / voice
       +--&gt; Webhook / ITSM</pre>
-<div class="card"><h4>Azure Monitor</h4><p>Diagnostic settings send chosen Databricks <strong>audit-log categories</strong> (jobs, clusters, accounts, notebooks…) to Log Analytics, where alert rules and action groups notify people. Spark-level metrics and job run history are <em>not</em> automatically there; use Databricks-native sources for those.</p><p style="margin-bottom:0" class="ref">Log Analytics ingestion and retention cost money. Collect only the categories that feed actionable alerts, check for sensitive data, and expand later.</p></div>
+<div class="card"><h4>Azure Monitor</h4><p>Diagnostic settings send chosen Databricks <strong>audit-log categories</strong> (jobs, clusters, accounts, notebooks…) to Log Analytics, where alert rules and action groups notify people. Spark-level metrics and job run history are <em>not</em> automatically there; use Databricks-native sources for those.</p><p class="ref" style="margin-bottom:0">Log Analytics ingestion and retention cost money. Collect only the categories that feed actionable alerts, check for sensitive data, and expand later.</p></div>
 </div>
 <p><strong>External tools</strong> (Teams, email, ServiceNow, PagerDuty) connect through job webhook notifications, Databricks SQL alerts, Azure Monitor action groups, or your own dispatcher (20.6.10). A good alert carries environment, pipeline, run ID, failure time, failed task, error category, business impact, a link to the run, and a first action. Keep raw stack traces and data out of broad channels.</p>
-<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" target="_blank" rel="noopener">Monitoring Azure Databricks</a>.</p>
-
-<!-- ===================== 20.6 ===================== -->
-<h2 id="s20-6"><span class="num">20.6</span>Building a Monitoring Framework</h2>
-<p class="section-intro">We'll build application-level monitoring with PySpark and Delta that records each run's status, timings, row counts, and categorized errors; detects failed, late, overdue, and missing runs against a schedule; and sends de-duplicated alerts. Everything in this section was run on Spark 4.</p>
+<p class="ref">Docs: <a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" rel="noopener" target="_blank">Monitoring Azure Databricks</a>.</p></div></section>
+<section class="lesson" id="s20-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.6</span><h2>Building a Monitoring Framework</h2></div><div class="content"><p class="section-intro">We'll build application-level monitoring with PySpark and Delta that records each run's status, timings, row counts, and categorized errors; detects failed, late, overdue, and missing runs against a schedule; and sends de-duplicated alerts. Everything in this section was run on Spark 4.</p>
 <pre class="diagram">  Databricks job --{{job.run_id}}--&gt; execute_monitored_pipeline()
                                          |  writes RUNNING, then SUCCESS / FAILED
                                          v
@@ -871,7 +691,6 @@ Action groups
 <li>The SLA check was conceptual; it's now a working query with a schedule registry and time zones, plus a de-duplicating alert dispatcher.</li>
 <li>The sample pipeline kept an arbitrary duplicate and computed its output twice. It now keeps the latest version and counts what was committed.</li>
 </ol></div>
-
 <h3 id="s20-6-2"><span class="num">20.6.1</span>Steps 1–2: Create the Monitoring Tables</h3>
 <div class="code-wrap"><span class="lang">SQL · execution audit (append-only events)</span><pre class="code"><code>CREATE SCHEMA IF NOT EXISTS retail_dev.ops;
 
@@ -917,7 +736,6 @@ SELECT * EXCEPT (rn) FROM (
 <div class="table-wrap"><table>
 <thead><tr><th>Pipeline</th><th>Task</th><th>Status</th><th>Duration (s)</th></tr></thead>
 <tbody><tr><td><code>retail_daily_load</code></td><td><code>load_customers</code></td><td>SUCCESS</td><td>240</td></tr><tr><td><code>retail_daily_load</code></td><td><code>load_orders</code></td><td>FAILED</td><td>720</td></tr><tr><td><code>retail_daily_load</code></td><td><code>build_sales_summary</code></td><td>SKIPPED</td><td>0</td></tr></tbody></table></div>
-
 <h3 id="s20-6-4"><span class="num">20.6.2</span>Step 3: The Framework Code</h3>
 <p>Save as a notebook or <code>monitoring.py</code> and import it. It contains the audit writer, error classification and sanitizing, the monitored-pipeline wrapper, transient-only retries, and the schema contract check.</p>
 <div class="code-wrap"><span class="lang">Python · monitoring.py</span><pre class="code"><code>import json
@@ -1097,7 +915,6 @@ def validate_schema_contract(df, expected_schema, allow_extra_columns=True):
 <div class="card"><h4>Why the wrapper re-raises</h4><p style="margin-bottom:0">Catching the exception to log it would otherwise make the notebook, and therefore the job run, look successful. Re-raising keeps the job FAILED, so job notifications and retries still work.</p></div>
 <div class="card"><h4>What it can't catch</h4><p style="margin-bottom:0">If compute is lost or the run is killed, the <code>except</code> block never runs and only the RUNNING row exists. The SLA monitor shows it as OVERDUE, and 20.9 reconciles audit rows against system-table run history.</p></div>
 </div>
-
 <h3 id="s20-6-6"><span class="num">20.6.3</span>Steps 4–5: A Sample Pipeline, Run Under Monitoring</h3>
 <div class="code-wrap"><span class="lang">Python · customer_pipeline.py</span><pre class="code"><code>from pyspark.sql import Window, functions as F
 from pyspark.sql.types import LongType, StringType, StructField, StructType, TimestampType
@@ -1167,7 +984,6 @@ customer_load  run-B   RUNNING  NULL    NULL    NOT_EVALUATED  NULL
 customer_load  run-B   FAILED   NULL    NULL    NOT_EVALUATED  SCHEMA_MISMATCH
 product_load   run-C   RUNNING  NULL    NULL    NOT_EVALUATED  NULL
 product_load   run-C   SUCCESS  10      10      BREACHED       NULL</code></pre></div>
-
 <h4>Query the monitoring data</h4>
 <div class="code-wrap"><span class="lang">SQL</span><pre class="code"><code>-- Recent runs (one row each)
 SELECT pipeline_name, run_id, status, start_time, end_time, duration_seconds,
@@ -1187,7 +1003,6 @@ SELECT pipeline_name, run_id, end_time, sla_deadline,
 FROM retail_dev.ops.pipeline_run_latest
 WHERE sla_status = 'BREACHED'
 ORDER BY end_time DESC;</code></pre></div>
-
 <h3 id="s20-6-8"><span class="num">20.6.4</span>Step 6: SLA Breach Detection (Late, Overdue, Missing)</h3>
 <p>The wrapper can only judge runs that finish. A <strong>separate scheduled check</strong> compares the registry against actual runs, which catches runs still going past their deadline and runs that never started. Schedule it every 15 minutes in the early morning.</p>
 <div class="code-wrap"><span class="lang">SQL · sla_check.sql (parameters :run_date and :as_of)</span><pre class="code"><code>WITH expected AS (
@@ -1229,7 +1044,6 @@ pl_products       MEDIUM    r3      FAILED   FAILED     0             02:45
 pl_orders         HIGH      r4      RUNNING  OVERDUE    60            03:30
 pl_sales_summary  CRITICAL  NULL    NULL     MISSING    15            04:15</code></pre></div>
 <p class="ref">Customers is judged by its <em>latest</em> attempt (the successful retry), so it's MET. <code>make_timestamp(…, sla_timezone)</code> converts 02:30 IST to the correct UTC instant whatever the session time zone. Store timestamps in UTC; keep the business time zone in the registry.</p>
-
 <h3 id="s20-6-10"><span class="num">20.6.5</span>Step 7: Failure Alerting with De-duplication</h3>
 <p>The dispatcher sends one alert per <em>environment + pipeline + run (or date) + state</em> and records every attempt. Since the check runs every 15 minutes, without de-duplication the overdue orders run would alert four times an hour.</p>
 <div class="code-wrap"><span class="lang">Python · alerts.py</span><pre class="code"><code>from datetime import datetime, timezone
@@ -1312,7 +1126,6 @@ Deadline (UTC): 2026-10-24 22:00:00
 Severity: HIGH
 First action: open the job run, check the failed task and the audit row.</code></pre></div>
 <p class="ref">The webhook URL lives in a secret, never in code. Teams webhook payload formats vary by how your admin set the webhook up, so check yours. A genuinely new incident (a new run ID or a new state) still alerts. <strong>Simpler alternative:</strong> a Databricks SQL alert on the SLA query ("rows where <code>sla_state</code> is FAILED, OVERDUE, or MISSING &gt; 0") notifies without any Python.</p>
-
 <h3 id="s20-6-11"><span class="num">20.6.6</span>Step 8: Automated Recovery</h3>
 <div class="grid-2">
 <div class="table-wrap"><table>
@@ -1341,11 +1154,8 @@ Classify error
       |
       +--&gt; Unknown --------------&gt; alert support</pre>
 </div>
-<p class="ref">Retries are only safe if the pipeline is <strong>idempotent</strong>: unique batch IDs, deterministic source boundaries, dedup on a defined key, MERGE or <code>replaceWhere</code>, processed-batch tracking, and recovery steps for partial multi-table writes (Chapter 18).</p>
-
-<!-- ===================== 20.7 ===================== -->
-<h2 id="s20-7"><span class="num">20.7</span>Building an Operational Dashboard</h2>
-<p>Support engineers should see at a glance what's healthy, what failed, and what needs attention.</p>
+<p class="ref">Retries are only safe if the pipeline is <strong>idempotent</strong>: unique batch IDs, deterministic source boundaries, dedup on a defined key, MERGE or <code>replaceWhere</code>, processed-batch tracking, and recovery steps for partial multi-table writes (Chapter 18).</p></div></section>
+<section class="lesson" id="s20-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.7</span><h2>Building an Operational Dashboard</h2></div><div class="content"><p>Support engineers should see at a glance what's healthy, what failed, and what needs attention.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>KPI</th><th>Definition</th><th>Decide</th></tr></thead>
 <tbody>
@@ -1383,11 +1193,8 @@ WHERE start_time &gt;= current_timestamp() - INTERVAL 30 DAYS</code></pre></div>
 +--------------------------------------------------------+
 | Slow runs (slow_runs.sql) | Reconciliation variance    |
 +--------------------------------------------------------+</pre>
-<p class="ref">Build it as a Databricks AI/BI dashboard (each tile a query above) or in Power BI. If Power BI connects, its identity should read only the <code>ops</code> schema.</p>
-
-<!-- ===================== 20.8 ===================== -->
-<h2 id="s20-8"><span class="num">20.8</span>End-to-End Hands-On Project</h2>
-<p class="section-intro">Build a production monitoring solution for four daily pipelines that tracks execution, captures failures, records duration, and alerts when a pipeline fails or misses its SLA.</p>
+<p class="ref">Build it as a Databricks AI/BI dashboard (each tile a query above) or in Power BI. If Power BI connects, its identity should read only the <code>ops</code> schema.</p></div></section>
+<section class="lesson" id="s20-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.8</span><h2>End-to-End Hands-On Project</h2></div><div class="content"><p class="section-intro">Build a production monitoring solution for four daily pipelines that tracks execution, captures failures, records duration, and alerts when a pipeline fails or misses its SLA.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Pipeline</th><th>Purpose</th><th>Expected completion (IST)</th></tr></thead>
 <tbody>
@@ -1421,11 +1228,8 @@ WHERE start_time &gt;= current_timestamp() - INTERVAL 30 DAYS</code></pre></div>
 <tr><td>Hung run</td><td><code>time.sleep</code> past deadline</td><td>OVERDUE ✓</td></tr>
 </tbody></table></div>
 </div>
-<p class="ref">✓ = verified locally with the code in this chapter. Repeat them in your workspace as the final check.</p>
-
-<!-- ===================== 20.9 ===================== -->
-<h2 id="s20-9"><span class="num">20.9</span>Recommended Production Design Improvements</h2>
-<div class="grid-2">
+<p class="ref">✓ = verified locally with the code in this chapter. Repeat them in your workspace as the final check.</p></div></section>
+<section class="lesson" id="s20-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.9</span><h2>Recommended Production Design Improvements</h2></div><div class="content"><div class="grid-2">
 <div class="card"><h4>1. Independent run detection</h4><p style="margin-bottom:0">Don't rely only on code reporting its own failure. Use run history (system tables, Jobs API) to see actual run states.</p></div>
 <div class="card"><h4>2. Reliable audit writes</h4><p style="margin-bottom:0">Fallback logging (done) plus a reconciliation that finds runs with no audit record (below).</p></div>
 <div class="card"><h4>3. Business dates vs timestamps</h4><p style="margin-bottom:0">Store UTC; keep the business time zone (e.g. IST) for SLAs. Never mix naive and UTC timestamps (done in the registry).</p></div>
@@ -1445,11 +1249,8 @@ WHERE r.result_state IS NOT NULL
   AND NOT EXISTS (
         SELECT 1 FROM retail_dev.ops.pipeline_execution_audit AS a
         WHERE a.run_id = CAST(r.run_id AS STRING));</code></pre></div>
-<p class="ref">Any row means the wrapper didn't run, couldn't write, or wasn't given <code>{{job.run_id}}</code>. Also alert if the SLA check job itself hasn't succeeded in the last 30 minutes (a job health rule or its own <code>on_failure</code> notification), and periodically send a test alert to prove delivery works.</p>
-
-<!-- ===================== 20.10 ===================== -->
-<h2 id="s20-10"><span class="num">20.10</span>Interview Questions and Answers</h2>
-<p>Try answering each before revealing the answer.</p>
+<p class="ref">Any row means the wrapper didn't run, couldn't write, or wasn't given <code>{{job.run_id}}</code>. Also alert if the SLA check job itself hasn't succeeded in the last 30 minutes (a job health rule or its own <code>on_failure</code> notification), and periodically send a test alert to prove delivery works.</p></div></section>
+<section class="lesson" id="s20-10"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.10</span><h2>Interview Questions and Answers</h2></div><div class="content"><p>Try answering each before revealing the answer.</p>
 <details class="q"><summary>Q1. How do you monitor Databricks jobs in production?</summary><div class="answer">Jobs UI for investigation; system tables (<code>job_run_timeline</code>, <code>job_task_run_timeline</code>) or the Jobs API for automated monitoring; application audit tables for row counts and errors; job notifications and alerts on top.</div></details>
 <details class="q"><summary>Q2. Job-level vs task-level monitoring?</summary><div class="answer">Job-level tracks the overall run; task-level identifies which task failed, was skipped or blocked, or ran long, so you find the root cause rather than the consequence.</div></details>
 <details class="q"><summary>Q3. How do you detect a pipeline that didn't run?</summary><div class="answer">Keep an expected-run registry and compare it with actual runs; flag MISSING after the deadline. A missing record must never be read as success.</div></details>
@@ -1469,11 +1270,8 @@ WHERE r.result_state IS NOT NULL
 <details class="q"><summary>Q17. Why write a RUNNING record at start?</summary><div class="answer">So runs that hang or are killed are visible as overdue; an end-only record leaves no trace of them.</div></details>
 <details class="q"><summary>Q18. Why is result_state sometimes NULL in job_run_timeline?</summary><div class="answer">Runs are sliced hourly; only the final row of a run has result_state. Filter IS NOT NULL for outcomes.</div></details>
 <details class="q"><summary>Q19. How do you avoid alert storms from a check that runs every 15 minutes?</summary><div class="answer">De-duplicate on environment + pipeline + run + state, record deliveries, and only alert again for genuinely new incidents or failed deliveries.</div></details>
-<details class="q"><summary>Q20. How do you know the monitoring itself is working?</summary><div class="answer">Reconcile job runs against audit records, alert when the monitor job fails or stops running, and periodically test alert delivery.</div></details>
-
-<!-- ===================== 20.11 ===================== -->
-<h2 id="s20-11"><span class="num">20.11</span>Seven-Day Learning Plan and Documentation</h2>
-<div class="table-wrap"><table>
+<details class="q"><summary>Q20. How do you know the monitoring itself is working?</summary><div class="answer">Reconcile job runs against audit records, alert when the monitor job fails or stops running, and periodically test alert delivery.</div></details></div></section>
+<section class="lesson" id="s20-11"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20 · Lesson 20.11</span><h2>Seven-Day Learning Plan and Documentation</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Day</th><th>Topics</th><th>Practical exercise</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Fundamentals, run history</td><td>Inspect successful and failed runs; find the failed task</td></tr>
@@ -1485,30 +1283,27 @@ WHERE r.result_state IS NOT NULL
 <tr><td>7</td><td>End-to-end project</td><td>Run all failure tests; build the dashboard</td></tr>
 </tbody></table></div>
 <div class="card"><h4>Official documentation</h4><ul style="margin-bottom:0">
-<li><a href="https://docs.databricks.com/aws/en/jobs/" target="_blank" rel="noopener">Databricks Lakeflow Jobs</a></li>
-<li><a href="https://docs.databricks.com/aws/en/jobs/notifications" target="_blank" rel="noopener">Job notifications</a></li>
-<li><a href="https://docs.databricks.com/aws/en/admin/system-tables/" target="_blank" rel="noopener">System tables</a> · <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" target="_blank" rel="noopener">Jobs system tables</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" target="_blank" rel="noopener">Monitoring Azure Databricks</a></li>
-<li><a href="https://spark.apache.org/docs/latest/web-ui.html" target="_blank" rel="noopener">Apache Spark web UI</a></li>
-<li><a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html" target="_blank" rel="noopener">Spark SQL performance tuning</a></li>
-<li><a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" target="_blank" rel="noopener">Delta isolation levels and write conflicts</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" target="_blank" rel="noopener">Azure Monitor</a></li>
-</ul></div>
-
-<!-- ===================== Summary ===================== -->
-<h2 id="summary">Chapter Summary</h2>
-<p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
+<li><a href="https://docs.databricks.com/aws/en/jobs/" rel="noopener" target="_blank">Databricks Lakeflow Jobs</a></li>
+<li><a href="https://docs.databricks.com/aws/en/jobs/notifications" rel="noopener" target="_blank">Job notifications</a></li>
+<li><a href="https://docs.databricks.com/aws/en/admin/system-tables/" rel="noopener" target="_blank">System tables</a> · <a href="https://docs.databricks.com/aws/en/admin/system-tables/jobs" rel="noopener" target="_blank">Jobs system tables</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/admin/monitor/" rel="noopener" target="_blank">Monitoring Azure Databricks</a></li>
+<li><a href="https://spark.apache.org/docs/latest/web-ui.html" rel="noopener" target="_blank">Apache Spark web UI</a></li>
+<li><a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html" rel="noopener" target="_blank">Spark SQL performance tuning</a></li>
+<li><a href="https://docs.databricks.com/aws/en/optimizations/isolation-level" rel="noopener" target="_blank">Delta isolation levels and write conflicts</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" rel="noopener" target="_blank">Azure Monitor</a></li>
+</ul></div></div></section>
+<section class="lesson-extra" id="summary"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 20</span><h2>Chapter Summary</h2></div><div class="content"><p>Tick each concept once you can explain it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch20-checklist">
-<label><input type="checkbox"> <span><strong>Monitoring architecture</strong> collects execution, compute, query, and data information from different sources.</span></label>
-<label><input type="checkbox"> <span><strong>Job monitoring</strong> tracks outcomes, duration, retries, and task dependencies.</span></label>
-<label><input type="checkbox"> <span><strong>SLA monitoring</strong> detects late, overdue, and missing runs against a schedule.</span></label>
-<label><input type="checkbox"> <span><strong>Spark troubleshooting</strong> means drivers, executors, stages, tasks, shuffles, and skew.</span></label>
-<label><input type="checkbox"> <span><strong>Pipeline troubleshooting</strong> covers schema, types, duplicates, missing rows, and connectivity.</span></label>
-<label><input type="checkbox"> <span><strong>Delta conflicts</strong> are retried only when the write is idempotent.</span></label>
-<label><input type="checkbox"> <span><strong>System tables</strong> give an independent view beyond notebook logs.</span></label>
-<label><input type="checkbox"> <span><strong>Azure Monitor</strong> alerts on the telemetry you choose to send it.</span></label>
-<label><input type="checkbox"> <span><strong>Audit tables</strong> record each run's status, counts, and categorized errors.</span></label>
-<label><input type="checkbox"> <span>A <strong>production framework</strong> alerts without storms, recovers safely, and monitors itself.</span></label>
+<label><input type="checkbox"/> <span><strong>Monitoring architecture</strong> collects execution, compute, query, and data information from different sources.</span></label>
+<label><input type="checkbox"/> <span><strong>Job monitoring</strong> tracks outcomes, duration, retries, and task dependencies.</span></label>
+<label><input type="checkbox"/> <span><strong>SLA monitoring</strong> detects late, overdue, and missing runs against a schedule.</span></label>
+<label><input type="checkbox"/> <span><strong>Spark troubleshooting</strong> means drivers, executors, stages, tasks, shuffles, and skew.</span></label>
+<label><input type="checkbox"/> <span><strong>Pipeline troubleshooting</strong> covers schema, types, duplicates, missing rows, and connectivity.</span></label>
+<label><input type="checkbox"/> <span><strong>Delta conflicts</strong> are retried only when the write is idempotent.</span></label>
+<label><input type="checkbox"/> <span><strong>System tables</strong> give an independent view beyond notebook logs.</span></label>
+<label><input type="checkbox"/> <span><strong>Azure Monitor</strong> alerts on the telemetry you choose to send it.</span></label>
+<label><input type="checkbox"/> <span><strong>Audit tables</strong> record each run's status, counts, and categorized errors.</span></label>
+<label><input type="checkbox"/> <span>A <strong>production framework</strong> alerts without storms, recovers safely, and monitors itself.</span></label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1527,67 +1322,21 @@ WHERE r.result_state IS NOT NULL
   update();
 })();
 </script>
-
 <div class="callout key"><span class="label">Production-support recommendation</span><p>Start with three components: <strong>run-history monitoring</strong>, a <strong>Delta-based audit framework</strong>, and <strong>SLA and failure alerts</strong>. Once they're reliable, add Spark performance diagnostics, reconciliation, cost monitoring, and smarter automated recovery.</p></div>
-
 <div class="next">
 <h3>Next chapter: Databricks DevOps and CI/CD</h3>
 <p>Chapter 21 puts everything into version control and automated delivery: Git branching, pull requests and code reviews, environment-specific configuration, Databricks Asset Bundles for defining and deploying jobs and pipelines, and CI/CD pipelines with automated tests and GitHub Actions.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-19.html"><span class="mn-label">← Previous</span><span class="mn-title">Security &amp; Administration</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-21.html"><span class="mn-label">Next →</span><span class="mn-title">DevOps &amp; CI/CD</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-19.html"><span>← Previous</span><strong>Chapter 19: Security &amp; Administration</strong></a>
-  <a class="pager-link" href="databricks-chapter-21.html"><span>Next →</span><strong>Chapter 21: DevOps &amp; CI/CD</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 7 · Chapter 20 of 24</footer>
-</div>
-</main>
-</div>
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

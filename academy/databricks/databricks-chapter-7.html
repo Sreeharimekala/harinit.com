@@ -1,288 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Databricks Chapter 7: PySpark</title>
-<meta name="description" content="Databricks Tutorial — Chapter 7: PySpark Fundamentals. DataFrames, schemas, operations, joins, aggregations, windows, UDFs, nested data, JSON, pivoting, and a retail transformation pipeline.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#fbfaf8; --surface:#ffffff; --surface-2:#f4f2ee; --text:#1d1b19; --muted:#5f5a54;
-  --border:#e6e2dc; --accent:#e0452b; --accent-soft:#fdeee9; --link:#c2381f;
-  --note:#2f6fdb; --note-bg:#edf3fd; --key:#1f8a5a; --key-bg:#e9f6ef; --warn:#b7791f; --warn-bg:#fdf5e6;
-  --code-bg:#1f1d1b; --code-text:#f1ede7; --diagram-bg:#f4f2ee; --diagram-text:#2b2825;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-    --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-    --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-    --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-    --shadow:none;
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
   }
+</script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PySpark — Chapter 7 | Databricks | HarinIT Academy</title><meta name="description" content="Databricks Tutorial — Chapter 7: PySpark Fundamentals. DataFrames, schemas, operations, joins, aggregations, windows, UDFs, nested data, JSON, pivoting, and a retail transformation pipeline."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#ff6b4a;--accent-hover:#ff8a70;--accent-2:#ffb347;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(255,107,74,.12);--hover-bg:rgba(255,107,74,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#ff6b4a;--glyph-ink:#7b8496;
+  --btn-border:#ff6b4a;--btn-bg-tint:#2a1a16;--btn-ink:#ff6b4a;
+  --current-bg:#2e1f1a;--current-ink:#ff6b4a;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
 }
-:root[data-theme="dark"]{
-  --bg:#141312; --surface:#1c1b19; --surface-2:#252320; --text:#ece8e2; --muted:#a59f97;
-  --border:#33302c; --accent:#ff6a4d; --accent-soft:#3a201a; --link:#ff8a70;
-  --note:#7aa7f5; --note-bg:#1b2538; --key:#5fcf98; --key-bg:#17291f; --warn:#e8b25a; --warn-bg:#2d2416;
-  --code-bg:#0e0d0c; --code-text:#ece8e2; --diagram-bg:#211f1c; --diagram-text:#e2ddd6;
-  --shadow:none;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
-a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}
-#progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);text-decoration:none}
-.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
-.top-actions{display:flex;gap:8px}
-.icon-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
-.icon-btn:hover{border-color:var(--accent)}
-#menuBtn{display:none}
-
-/* Layout */
-.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
-aside.toc{position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;padding:28px 18px 40px 20px;border-right:1px solid var(--border)}
-.toc h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toc ol{list-style:none;margin:0;padding:0}
-.toc li a{display:block;padding:4px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
-.toc li a:hover{color:var(--text);background:var(--surface-2)}
-.toc li a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
-.toc .lvl1 > a{font-weight:600;color:var(--text);margin-top:10px}
-.toc .lvl2 a{padding-left:20px;font-size:13px}
-main{padding:40px 48px 80px;min-width:0}
-.content{max-width:780px}
-
-/* Hero */
-.hero{padding:8px 0 32px;border-bottom:1px solid var(--border);margin-bottom:24px}
-.eyebrow{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px}
-.hero h1{font-size:clamp(30px,5vw,44px);line-height:1.12;letter-spacing:-.025em;margin:16px 0 12px;font-weight:800}
-.hero p.lead{font-size:18px;color:var(--muted);margin:0 0 22px}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.chip{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.chip span{display:block;font-size:12px;color:var(--accent);font-weight:700}
-.chip strong{font-size:14px;font-weight:600}
-.chip:hover{border-color:var(--accent)}
-
-/* Typography */
-h2{font-size:30px;letter-spacing:-.02em;line-height:1.2;margin:64px 0 8px;padding-top:8px;font-weight:800}
-h2 .num{color:var(--accent);margin-right:10px}
-h3{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;font-weight:700;line-height:1.3}
-h3 .num{color:var(--muted);font-weight:600;margin-right:8px;font-size:.85em}
-h4{font-size:17px;margin:28px 0 6px;font-weight:700}
-h5{font-size:15px;margin:20px 0 4px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-p{margin:0 0 14px}
-ul,ol{padding-left:22px;margin:0 0 16px}
-li{margin:3px 0}
-.section-intro{color:var(--muted);font-size:17px}
-
-/* Code & diagrams */
-pre{margin:16px 0 20px;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.55}
-pre.code{background:var(--code-bg);color:var(--code-text);position:relative}
-pre.diagram{background:var(--diagram-bg);color:var(--diagram-text);border:1px solid var(--border);line-height:1.35}
-code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
-:not(pre) > code{background:var(--surface-2);border:1px solid var(--border);padding:1px 6px;border-radius:5px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(255,107,74,.06);border:1px solid rgba(255,107,74,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><style>
+/* Databricks chapter components, styled for the shared Academy theme */
+.content code{font-family:var(--mono);font-size:.88em}
+.content :not(pre)>code{background:var(--panel-2);border:1px solid var(--rule);padding:1px 6px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.content h3 .num{font-family:var(--mono);font-size:.68em;color:var(--accent);margin-right:10px;font-weight:600}
+.content h5{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 6px}
 .code-wrap{position:relative}
-.code-wrap .lang{position:absolute;top:8px;right:60px;font-size:11px;color:#a59f97;font-family:Inter,sans-serif;text-transform:uppercase;letter-spacing:.06em}
-.copy{position:absolute;top:6px;right:8px;font:500 11px Inter,sans-serif;color:#d8d2ca;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 8px;cursor:pointer}
-.copy:hover{background:rgba(255,255,255,.16)}
-
-/* Tables */
-.table-wrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
-th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
-th{background:var(--surface-2);font-weight:600;font-size:13px;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-td:first-child{font-weight:600}
-
-/* Callouts */
-.callout{border-left:4px solid var(--note);background:var(--note-bg);padding:14px 18px;border-radius:0 10px 10px 0;margin:18px 0 22px}
-.callout p:last-child,.callout ul:last-child{margin-bottom:0}
-.callout .label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--note);margin-bottom:4px}
-.callout.key{border-color:var(--key);background:var(--key-bg)}
-.callout.key .label{color:var(--key)}
-.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
-.callout.warn .label{color:var(--warn)}
-
-/* Cards */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0 22px}
-.card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface);box-shadow:var(--shadow)}
-.card h4{margin-top:0}
-.card ul{margin-bottom:0}
-.steps{counter-reset:s;list-style:none;padding:0}
-.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--border)}
-.steps li:last-child{border-bottom:none}
-.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
-
-.ref{font-size:14px;color:var(--muted)}
-.ref a{font-weight:600}
-
-/* Practice */
-details.q{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:10px 0;padding:0 16px}
-details.q summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}
+.code-wrap pre.code{padding-top:36px}
+.code-wrap .lang{position:absolute;top:14px;left:21px;z-index:2;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);max-width:calc(100% - 110px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{position:absolute;top:10px;right:10px;z-index:2;font:500 11px var(--sans);color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:3px 9px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+.content .card p,.content .callout p,.content details p,.content td p,.content .next p,.content p.ref,.content p.section-intro{text-indent:0;padding-left:0}
+.content .card ul,.content .card ol,.content .callout ul,.content .callout ol,.content details ul,.content details ol,.content .next ul,.content .next ol{padding-left:22px;margin-left:0}
+.content p.ref{font-size:14px;color:var(--ink-faint)}
+.content p.section-intro{font-size:16.5px;color:var(--ink)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0 24px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;background:var(--panel)}
+.content>.card{margin:12px 0 24px}
+.content .card h4{margin-top:0;text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+.content .card>:last-child{margin-bottom:0}
+.content .callout{background:#151b26;border:1px solid var(--rule);border-left:4px solid #7aa7f5;border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 22px}
+.content .callout .label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7aa7f5;margin-bottom:6px}
+.content .callout.key{background:#14211a;border-left-color:#5fcf98}.content .callout.key .label{color:#5fcf98}
+.content .callout.warn{background:#251f15;border-left-color:#e8b25a}.content .callout.warn .label{color:#e8b25a}
+.content .callout>:last-child{margin-bottom:0}
+.content td:first-child{font-weight:600;color:var(--ink)}
+.content th{white-space:nowrap}
+details.q{border:1px solid var(--rule);border-radius:8px;background:var(--panel);margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--ink);list-style:none;line-height:1.5}
 details.q summary::-webkit-details-marker{display:none}
 details.q summary::before{content:"+";display:inline-block;width:18px;color:var(--accent);font-weight:800}
-details.q[open] summary::before{content:"–"}
-details.q ol{padding-bottom:10px}
-
-.next{margin-top:56px;padding:22px 24px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
-.next h3{margin-top:0}
-footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
-
-/* Chapter pager */
-.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
-.pager-link{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-decoration:none;color:var(--text);box-shadow:var(--shadow)}
-.pager-link:last-child{text-align:right}
-.pager-link span{display:block;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
-.pager-link strong{font-size:14.5px;font-weight:600}
-.pager-link em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
-a.pager-link:hover{border-color:var(--accent)}
-.pager-link.disabled{opacity:.6}
-@media (max-width:600px){.pager{grid-template-columns:1fr}.pager-link:last-child{text-align:left}}
-
-/* Code label spacing + revealable answers */
-pre.code{padding-top:32px}
-.code-wrap .lang{max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.q[open] summary::before{content:"\2013"}
 details.q .answer{padding:0 0 14px}
-details.q .answer > p{font-size:15px}
-details.q summary{line-height:1.5}
-
-/* Responsive */
-@media (max-width:960px){
-  .layout{grid-template-columns:1fr}
-  #menuBtn{display:inline-block}
-  aside.toc{position:fixed;top:57px;left:0;width:290px;max-width:85vw;background:var(--bg);z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  aside.toc.open{transform:none}
-  main{padding:28px 16px 64px}
-  h2{font-size:25px}
-  h3{font-size:19px}
-}
-.code-wrap .lang{z-index:2;top:26px}
-/* Checklist */
-.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border);cursor:pointer}
+.content ol.steps{counter-reset:s;list-style:none;padding-left:0;margin-left:0}
+.content ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--rule)}
+.content ol.steps li:last-child{border-bottom:none}
+.content ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--active-bg);color:var(--accent);font:700 13px var(--mono);display:grid;place-items:center}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--rule);cursor:pointer;color:var(--ink-dim)}
 .checklist label:last-of-type{border-bottom:none}
 .checklist input{margin-top:6px;accent-color:var(--accent);width:16px;height:16px;flex:none}
-
-:not(pre) > code{overflow-wrap:anywhere}
-.content > .card{margin:16px 0 22px}
-/* Mobile header + drawer polish */
-.icon-btn{white-space:nowrap}
-@media (max-width:960px){aside.toc{box-shadow:none}aside.toc.open{box-shadow:0 10px 30px rgba(0,0,0,.2)}}
-@media (max-width:480px){.brand{font-size:0;gap:0}.topbar{padding:10px 16px}}
-
-@media print{
-  .topbar,aside.toc,#progress,.copy{display:none!important}
-  .layout{display:block}
-  main{padding:0}
-  pre.code{background:#f4f2ee;color:#1d1b19}
-  h2{page-break-before:always}
-}
-</style>
-<link rel="stylesheet" href="../academy-navigation.css"><script src="../databricks-lessons.js" defer></script><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head>
-<body>
-<div id="progress"></div>
-
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button class="icon-btn" id="menuBtn" aria-label="Open contents">☰ Contents</button>
-    <a class="brand" href="#top"><span class="brand-mark">DB</span>Databricks Learning Path</a>
-  </div>
-  <div class="top-actions">
-    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
-  </div>
-</header>
-
-<div class="layout">
-<aside class="toc" id="toc">
-  <h4>Chapter 7 contents</h4>
-  <ol>
-    <li class="lvl1"><a href="#s7-1">7.1 Introduction to PySpark</a></li>
-    <li class="lvl2"><a href="#s7-1-1">What is PySpark?</a></li>
-    <li class="lvl2"><a href="#s7-1-2">PySpark vs pandas</a></li>
-    <li class="lvl2"><a href="#s7-1-3">SparkSession</a></li>
-    <li class="lvl2"><a href="#s7-1-4">Spark DataFrames</a></li>
-    <li class="lvl2"><a href="#s7-1-5">From Python collections</a></li>
-    <li class="lvl2"><a href="#s7-1-6">Loading data</a></li>
-    <li class="lvl1"><a href="#s7-2">7.2 Schema Management</a></li>
-    <li class="lvl2"><a href="#s7-2-1">Explicit schemas</a></li>
-    <li class="lvl2"><a href="#s7-2-2">Data types</a></li>
-    <li class="lvl2"><a href="#s7-2-3">DataFrame with schema</a></li>
-    <li class="lvl2"><a href="#s7-2-4">Inference vs explicit</a></li>
-    <li class="lvl1"><a href="#s7-3">7.3 DataFrame Operations</a></li>
-    <li class="lvl2"><a href="#s7-3-1">select()</a></li>
-    <li class="lvl2"><a href="#s7-3-2">filter() / where()</a></li>
-    <li class="lvl2"><a href="#s7-3-3">withColumn()</a></li>
-    <li class="lvl2"><a href="#s7-3-4">withColumnRenamed()</a></li>
-    <li class="lvl2"><a href="#s7-3-5">drop()</a></li>
-    <li class="lvl2"><a href="#s7-3-6">distinct / dropDuplicates</a></li>
-    <li class="lvl2"><a href="#s7-3-7">orderBy()</a></li>
-    <li class="lvl2"><a href="#s7-3-8">groupBy()</a></li>
-    <li class="lvl2"><a href="#s7-3-9">agg()</a></li>
-    <li class="lvl2"><a href="#s7-3-10">union / unionByName</a></li>
-    <li class="lvl1"><a href="#s7-4">7.4 Joins and Aggregations</a></li>
-    <li class="lvl2"><a href="#s7-4-1">Inner join</a></li>
-    <li class="lvl2"><a href="#s7-4-2">Left join</a></li>
-    <li class="lvl2"><a href="#s7-4-3">Full outer join</a></li>
-    <li class="lvl2"><a href="#s7-4-4">Left anti join</a></li>
-    <li class="lvl2"><a href="#s7-4-5">Left semi join</a></li>
-    <li class="lvl2"><a href="#s7-4-6">Multiple-column joins</a></li>
-    <li class="lvl2"><a href="#s7-4-7">Aggregation functions</a></li>
-    <li class="lvl2"><a href="#s7-4-8">Conditional aggregations</a></li>
-    <li class="lvl2"><a href="#s7-4-9">Duplicate keys</a></li>
-    <li class="lvl2"><a href="#s7-4-10">Null handling</a></li>
-    <li class="lvl1"><a href="#s7-5">7.5 Advanced PySpark</a></li>
-    <li class="lvl2"><a href="#s7-5-1">Window functions</a></li>
-    <li class="lvl2"><a href="#s7-5-2">UDFs</a></li>
-    <li class="lvl2"><a href="#s7-5-3">Higher-order functions</a></li>
-    <li class="lvl2"><a href="#s7-5-4">Arrays and maps</a></li>
-    <li class="lvl2"><a href="#s7-5-5">Structs</a></li>
-    <li class="lvl2"><a href="#s7-5-6">explode()</a></li>
-    <li class="lvl2"><a href="#s7-5-7">Pivot</a></li>
-    <li class="lvl2"><a href="#s7-5-8">Unpivot</a></li>
-    <li class="lvl2"><a href="#s7-5-9">Complex JSON</a></li>
-    <li class="lvl1"><a href="#s7-6">7.6 Project: Retail Pipeline</a></li>
-    <li class="lvl2"><a href="#p-setup">Steps 1–5: Source data</a></li>
-    <li class="lvl2"><a href="#p-clean">Steps 6–9: Clean &amp; validate</a></li>
-    <li class="lvl2"><a href="#p-enrich">Steps 10–14: Enrich &amp; aggregate</a></li>
-    <li class="lvl2"><a href="#p-recon">Steps 15–16: Reconcile &amp; save</a></li>
-    <li class="lvl1"><a href="#s7-7">7.7 Performance Practices</a></li>
-    <li class="lvl1"><a href="#s7-8">7.8 Troubleshooting</a></li>
-    <li class="lvl1"><a href="#s7-9">7.9 Knowledge Check</a></li>
-    <li class="lvl1"><a href="#s7-10">7.10 Summary</a></li>
-  </ol>
-</aside>
-
-<main id="top">
-<div class="content">
-
-<section class="hero">
-  <span class="eyebrow">Phase 3 · Chapter 7 · PySpark &amp; Data Transformation</span>
-  <h1>PySpark Fundamentals</h1>
-  <p class="lead">Process real-world data with Python and Apache Spark: transform large datasets, join multiple sources, handle complex data structures, and build a practical retail transformation pipeline.</p>
-  <p>PySpark is one of the core technologies for scalable ETL and ELT pipelines in Databricks. Throughout this chapter, a retail company's customer, product, order, and order-item datasets are your running example; your job is to turn them into clean, reliable data ready for reporting and analytics.</p>
-  <div class="table-wrap"><table>
-  <thead><tr><th>Section</th><th>Topic</th><th>What you'll learn</th></tr></thead>
-  <tbody>
-  <tr><td><a href="#s7-1">7.1</a></td><td>Introduction to PySpark</td><td>SparkSession, DataFrames, Python collections, loading data</td></tr>
-  <tr><td><a href="#s7-2">7.2</a></td><td>Schema Management</td><td>Data types, explicit schemas, schema inference</td></tr>
-  <tr><td><a href="#s7-3">7.3</a></td><td>DataFrame Operations</td><td>Selecting, filtering, transforming, sorting, grouping, combining</td></tr>
-  <tr><td><a href="#s7-4">7.4</a></td><td>Joins and Aggregations</td><td>Joining datasets, duplicates and nulls, calculating metrics</td></tr>
-  <tr><td><a href="#s7-5">7.5</a></td><td>Advanced PySpark</td><td>Windows, UDFs, arrays, maps, structs, JSON, pivoting</td></tr>
-  <tr><td><a href="#s7-6">7.6</a></td><td>Hands-on project</td><td>End-to-end customer, product, order, and order-item pipeline</td></tr>
-  </tbody></table></div>
-</section>
-
-<!-- ===================== 7.1 ===================== -->
-<h2 id="s7-1"><span class="num">7.1</span>Introduction to PySpark</h2>
-
-<h3 id="s7-1-1"><span class="num">7.1.1</span>What is PySpark?</h3>
+.content .next{margin-top:48px;padding:22px 24px;border-radius:10px;background:var(--panel-2);border:1px solid var(--rule);border-left:4px solid var(--accent)}
+.content .next h3{margin-top:0}
+.lesson-extra{padding-top:64px;margin-top:-16px;border-top:1px solid var(--rule);scroll-margin-top:24px}
+.lesson-extra .lesson-eyebrow{color:var(--ink-faint)}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../databricks-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script></head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Databricks — HarinIT Academy</div>
+<div class="brand-title">PySpark Fundamentals</div>
+<div class="brand-sub">Chapter 7 · 10 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#s7-1" class="nav-link"><span class="nav-num">7.1</span>Introduction to PySpark</a>
+<a href="#s7-2" class="nav-link"><span class="nav-num">7.2</span>Schema Management</a>
+<a href="#s7-3" class="nav-link"><span class="nav-num">7.3</span>DataFrame Operations</a>
+<a href="#s7-4" class="nav-link"><span class="nav-num">7.4</span>Joins and Aggregations</a>
+<a href="#s7-5" class="nav-link"><span class="nav-num">7.5</span>Advanced PySpark</a>
+<a href="#s7-6" class="nav-link"><span class="nav-num">7.6</span>Hands-on Project: Retail Data Transformation Pipeline</a>
+<a href="#s7-7" class="nav-link"><span class="nav-num">7.7</span>Important PySpark Performance Practices</a>
+<a href="#s7-8" class="nav-link"><span class="nav-num">7.8</span>Common PySpark Errors and Troubleshooting</a>
+<a href="#s7-9" class="nav-link"><span class="nav-num">7.9</span>Knowledge Check</a>
+<a href="#s7-10" class="nav-link"><span class="nav-num">7.10</span>Summary</a>
+</nav><main id="top">
+<header class="doc-header"><div class="doc-kicker">Phase 3 · Chapter 7 · PySpark &amp; Data Transformation</div><h1>PySpark Fundamentals</h1>
+<p>Process real-world data with Python and Apache Spark: transform large datasets, join multiple sources, handle complex data structures, and build a practical retail transformation pipeline.</p>
+<div class="doc-meta"><span class="pill">10 lessons</span><span class="pill">Databricks</span><span class="pill">HarinIT Academy</span></div></header>
+<section class="lesson" id="s7-1"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.1</span><h2>Introduction to PySpark</h2></div><div class="content"><h3 id="s7-1-1"><span class="num">7.1.1</span>What is PySpark?</h3>
 <div class="callout key"><span class="label">Simple definition</span><p>PySpark is the Python API for Apache Spark. It lets you write Python code that Spark executes with its distributed processing engine, across multiple CPU cores or machines.</p></div>
 <p>Imagine 500 million sales records. With pandas you might write:</p>
 <div class="code-wrap"><span class="lang">Python · pandas</span><pre class="code"><code>import pandas as pd
@@ -338,18 +190,17 @@ result.show()</code></pre></div>
  Results combined
  or written out</pre>
 <ol class="steps">
-  <li>You write Python code.</li>
-  <li>PySpark builds a Spark execution plan.</li>
-  <li>The Spark driver coordinates the work.</li>
-  <li>Spark divides the work into tasks.</li>
-  <li>Executors process data partitions.</li>
-  <li>Spark combines the results or writes the output.</li>
+<li>You write Python code.</li>
+<li>PySpark builds a Spark execution plan.</li>
+<li>The Spark driver coordinates the work.</li>
+<li>Spark divides the work into tasks.</li>
+<li>Executors process data partitions.</li>
+<li>Spark combines the results or writes the output.</li>
 </ol>
 </div>
 <div class="callout"><span class="label">Important</span><p>PySpark doesn't mean Python itself distributes your code across machines. PySpark talks to Spark's execution engine, which manages the distributed processing.</p></div>
 <h4>Common use cases</h4>
 <p>Processing large CSV, JSON, and Parquet datasets; transforming Delta Lake tables; joining large datasets; cleaning and validating source data; building Bronze → Silver → Gold pipelines; reporting aggregations; streaming; and preparing data for machine learning. A typical Databricks pipeline reads customer data from Azure Data Lake Storage, cleans it with PySpark, and writes Delta tables.</p>
-
 <h3 id="s7-1-2"><span class="num">7.1.2</span>PySpark versus pandas</h3>
 <p>Both offer DataFrame APIs, but their execution models differ.</p>
 <div class="table-wrap"><table>
@@ -396,7 +247,6 @@ result.show()</code></pre></div>
 </div>
 <p>Both return customers with sales above 4,000. PySpark can distribute the operation when the DataFrame is backed by distributed data and multiple executors are available.</p>
 <div class="callout key"><span class="label">Practical rule</span><p>Use pandas for small, local datasets. Use PySpark when you need distributed execution, Databricks integration, or scalable processing.</p></div>
-
 <h3 id="s7-1-3"><span class="num">7.1.3</span>Creating a SparkSession</h3>
 <p><code>SparkSession</code> is the entry point for Spark DataFrames and Spark SQL. In Databricks notebooks, one named <code>spark</code> is available automatically.</p>
 <div class="grid-2">
@@ -442,7 +292,6 @@ spark = (
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>print(spark.version)                  # Spark version
 print(spark.sparkContext.appName)     # current application</code></pre></div>
 <p class="ref">The Spark UI, where available, shows jobs, stages, tasks, and execution details. On serverless compute, <code>spark.sparkContext</code> may not be accessible.</p>
-
 <h3 id="s7-1-4"><span class="num">7.1.4</span>Working with Spark DataFrames</h3>
 <p>A Spark DataFrame is a distributed collection of rows organized into named columns.</p>
 <div class="table-wrap"><table>
@@ -474,7 +323,6 @@ customers_df.filter(customers_df.age &gt;= 30).show()   # Ravi and Arjun</code><
  |-- city: string (nullable = true)
  |-- age: long (nullable = true)</pre>
 <p class="ref">Python integers are inferred as Spark's <code>LongType</code> here.</p>
-
 <h3 id="s7-1-5"><span class="num">7.1.5</span>Creating DataFrames from Python collections</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">A · list of tuples</span><pre class="code"><code>data = [
@@ -524,7 +372,6 @@ df.show()</code></pre></div>
 </div>
 <p class="ref">For reliable production pipelines, define the schema explicitly rather than relying on inference.</p>
 <div class="callout warn"><span class="label">Performance consideration</span><p><code>spark.createDataFrame()</code> is convenient for small local collections. Don't collect millions of records into a Python list and then build a DataFrame: the data lands in driver memory first and can cause memory problems.</p></div>
-
 <h3 id="s7-1-6"><span class="num">7.1.6</span>Loading data into DataFrames</h3>
 <p>In data engineering, data usually comes from storage rather than hand-built lists. Spark supports CSV, JSON, Parquet, ORC, Delta, and more.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># A. CSV (paths are examples; use your own locations)
@@ -561,11 +408,8 @@ df = spark.sql("""
     WHERE city = 'Hyderabad'
 """)</code></pre></div>
 <p>PySpark and Spark SQL are complementary: use whichever expresses the transformation most clearly.</p>
-<div class="callout"><span class="label">Section 7.1 recap</span><p>You now know what PySpark is, how it differs from pandas, what a SparkSession does, how to create and inspect DataFrames, and how to read CSV, JSON, Parquet, and Delta data.</p></div>
-
-<!-- ===================== 7.2 ===================== -->
-<h2 id="s7-2"><span class="num">7.2</span>Schema Management</h2>
-<p>A schema defines a dataset's structure: column names, data types, nullability, and nested structures. It's essential in production pipelines.</p>
+<div class="callout"><span class="label">Section 7.1 recap</span><p>You now know what PySpark is, how it differs from pandas, what a SparkSession does, how to create and inspect DataFrames, and how to read CSV, JSON, Parquet, and Delta data.</p></div></div></section>
+<section class="lesson" id="s7-2"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.2</span><h2>Schema Management</h2></div><div class="content"><p>A schema defines a dataset's structure: column names, data types, nullability, and nested structures. It's essential in production pipelines.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Column</th><th>Type</th><th>Example</th></tr></thead>
 <tbody>
@@ -576,7 +420,6 @@ df = spark.sql("""
 <tr><td>order_status</td><td>String</td><td>Completed</td></tr>
 </tbody></table></div>
 <p>Without schema management, data can be misread. A monetary amount read as a string makes calculations harder and error-prone.</p>
-
 <h3 id="s7-2-1"><span class="num">7.2.1</span>Defining an explicit schema</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql.types import (
     StructType,
@@ -596,12 +439,11 @@ customer_schema = StructType([
     StructField("age", IntegerType(), True)
 ])</code></pre></div>
 <div class="grid-2">
-  <div class="card"><h4>StructType</h4><p style="margin-bottom:0">A schema made up of multiple fields: the whole table structure.</p></div>
-  <div class="card"><h4>StructField</h4><p>Defines one column:</p><p style="margin-bottom:0"><code>StructField("column_name", DataType(), nullable=True)</code></p></div>
+<div class="card"><h4>StructType</h4><p style="margin-bottom:0">A schema made up of multiple fields: the whole table structure.</p></div>
+<div class="card"><h4>StructField</h4><p>Defines one column:</p><p style="margin-bottom:0"><code>StructField("column_name", DataType(), nullable=True)</code></p></div>
 </div>
 <p><code>StructField("customer_id", LongType(), False)</code> defines a long-integer column named <code>customer_id</code> with <code>nullable=False</code>.</p>
 <div class="callout warn"><span class="label">Important</span><p><code>nullable=False</code> declares an expectation. It doesn't replace explicit data-quality validation, and it doesn't guarantee every source or transformation will reject nulls.</p></div>
-
 <h3 id="s7-2-2"><span class="num">7.2.2</span>Important PySpark data types</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>PySpark type</th><th>Purpose</th><th>Example</th></tr></thead>
@@ -619,10 +461,9 @@ customer_schema = StructType([
 <tr><td>StructType</td><td>Nested record</td><td>{"city": "Hyderabad"}</td></tr>
 </tbody></table></div>
 <div class="grid-2">
-  <div class="card"><h4>DecimalType(12, 2)</h4><p style="margin-bottom:0">Up to 12 total digits, 2 after the decimal point, e.g. <code>1234567890.12</code>. For currency and financial calculations, fixed-precision decimals are generally preferable to floating-point.</p></div>
-  <div class="card"><h4>TimestampType and time zones</h4><p style="margin-bottom:0">Be deliberate with timestamps from multiple systems. Sources may be UTC, local time, or timezone-free. Don't assume they share an interpretation.</p></div>
+<div class="card"><h4>DecimalType(12, 2)</h4><p style="margin-bottom:0">Up to 12 total digits, 2 after the decimal point, e.g. <code>1234567890.12</code>. For currency and financial calculations, fixed-precision decimals are generally preferable to floating-point.</p></div>
+<div class="card"><h4>TimestampType and time zones</h4><p style="margin-bottom:0">Be deliberate with timestamps from multiple systems. Sources may be UTC, local time, or timezone-free. Don't assume they share an interpretation.</p></div>
 </div>
-
 <h3 id="s7-2-3"><span class="num">7.2.3</span>Create a DataFrame using an explicit schema</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from datetime import date
 from decimal import Decimal
@@ -673,7 +514,6 @@ orders_df = spark.createDataFrame(
 
 orders_df.printSchema()
 orders_df.show()</code></pre></div>
-
 <h3 id="s7-2-4"><span class="num">7.2.4</span>Schema inference versus explicit schemas</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Schema inference</span><pre class="code"><code>df = (
@@ -701,11 +541,8 @@ orders_df.show()</code></pre></div>
 <tr><td>Dates and timestamps</td><td>Define and validate formats</td></tr>
 <tr><td>Nested JSON</td><td>Define or carefully inspect the nested schema</td></tr>
 <tr><td>Frequently changing source</td><td>Combine schema controls with data-quality checks</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 7.3 ===================== -->
-<h2 id="s7-3"><span class="num">7.3</span>DataFrame Operations</h2>
-<p class="section-intro">The core of everyday PySpark development. Most transformations build a logical plan rather than immediately processing every row.</p>
+</tbody></table></div></div></section>
+<section class="lesson" id="s7-3"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.3</span><h2>DataFrame Operations</h2></div><div class="content"><p class="section-intro">The core of everyday PySpark development. Most transformations build a logical plan rather than immediately processing every row.</p>
 <div class="code-wrap"><span class="lang">Python · sample product data</span><pre class="code"><code>from pyspark.sql import functions as F
 
 products_data = [
@@ -720,7 +557,6 @@ products_df = spark.createDataFrame(
     products_data,
     ["product_id", "product_name", "category", "price", "stock_quantity"]
 )</code></pre></div>
-
 <h3 id="s7-3-1"><span class="num">7.3.1</span>select()</h3>
 <p>Choose columns or calculate new expressions.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.select(
@@ -735,7 +571,6 @@ products_df.select(
     (F.col("price") * 1.18).alias("price_with_tax")
 ).show()</code></pre></div>
 <p class="ref">The actual tax rate depends on the product and applicable rules.</p>
-
 <h3 id="s7-3-2"><span class="num">7.3.2</span>filter() and where()</h3>
 <p>Both filter rows by a condition; they are equivalent.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.filter(F.col("price") &gt; 20000).show()
@@ -754,7 +589,6 @@ products_df.filter(
 <div class="table-wrap"><table>
 <thead><tr><th>Operator</th><th>Meaning</th></tr></thead>
 <tbody><tr><td><code>&amp;</code></td><td>AND</td></tr><tr><td><code>|</code></td><td>OR</td></tr><tr><td><code>~</code></td><td>NOT</td></tr></tbody></table></div>
-
 <h3 id="s7-3-3"><span class="num">7.3.3</span>withColumn()</h3>
 <p>Add a column or replace an existing one.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># New column: unit price x stock quantity
@@ -778,14 +612,12 @@ customers_df = customers_df.withColumn(
 )</code></pre></div>
 <div class="callout warn"><span class="label">Careful with casts</span><p>Invalid conversions may produce nulls or errors depending on the data type and Spark's evaluation mode.</p></div>
 <div class="callout key"><span class="label">Performance tip</span><p>Avoid long chains of many <code>withColumn()</code> calls when one <code>select()</code> can express the transformations more clearly.</p></div>
-
 <h3 id="s7-3-4"><span class="num">7.3.4</span>withColumnRenamed()</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>renamed_df = products_df.withColumnRenamed(
     "product_name",
     "product_description"
 )</code></pre></div>
 <p>This returns a <em>new</em> DataFrame; the original isn't modified in place. The result goes into a new variable here so <code>products_df</code> keeps its columns for the examples that follow.</p>
-
 <h3 id="s7-3-5"><span class="num">7.3.5</span>drop()</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>trimmed_df = products_df.drop("stock_quantity")
 
@@ -794,7 +626,6 @@ trimmed_df = products_df.drop(
     "price_category"
 )</code></pre></div>
 <p class="ref">Confirm dropped columns aren't needed by downstream transformations.</p>
-
 <h3 id="s7-3-6"><span class="num">7.3.6</span>distinct() and dropDuplicates()</h3>
 <div class="grid-2">
 <div class="card"><h4>distinct()</h4><p>Removes duplicate rows across <strong>all</strong> columns.</p><div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>df_distinct = products_df.distinct()</code></pre></div></div>
@@ -803,7 +634,6 @@ trimmed_df = products_df.drop(
 )</code></pre></div></div>
 </div>
 <div class="callout warn"><span class="label">Important</span><p>If several records share a <code>product_id</code>, <code>dropDuplicates(["product_id"])</code> doesn't let you choose which one survives. When duplicates have different update timestamps, use a window function to keep the latest valid record deterministically (Section 7.5).</p></div>
-
 <h3 id="s7-3-7"><span class="num">7.3.7</span>orderBy()</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.orderBy(F.col("price").desc()).show()
 
@@ -814,7 +644,6 @@ products_df.orderBy(
     F.col("price").desc()
 ).show()</code></pre></div>
 <p class="ref">On a large distributed DataFrame, a global sort can be expensive because Spark coordinates data across partitions.</p>
-
 <h3 id="s7-3-8"><span class="num">7.3.8</span>groupBy()</h3>
 <div class="grid-2">
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.groupBy(
@@ -829,7 +658,6 @@ products_df.orderBy(
         F.col("price") * F.col("stock_quantity")
     ).alias("total_stock_value")
 ).show()</code></pre></div>
-
 <h3 id="s7-3-9"><span class="num">7.3.9</span>agg()</h3>
 <p><code>agg()</code> computes multiple aggregates at once, with or without grouping.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_df.groupBy("category").agg(
@@ -846,7 +674,6 @@ products_df.agg(
     F.avg("price").alias("average_price"),
     F.sum("stock_quantity").alias("total_stock")
 ).show()</code></pre></div>
-
 <h3 id="s7-3-10"><span class="num">7.3.10</span>union() and unionByName()</h3>
 <p>Both combine DataFrames vertically.</p>
 <div class="grid-2">
@@ -880,11 +707,8 @@ combined.show()</code></pre></div>
     df2,
     allowMissingColumns=True   # missing columns are filled with nulls
 )</code></pre></div>
-<p class="ref">Convenient when source schemas evolve, but it can also hide an unexpected schema change.</p>
-
-<!-- ===================== 7.4 ===================== -->
-<h2 id="s7-4"><span class="num">7.4</span>Joins and Aggregations</h2>
-<p class="section-intro">Joins are among the most important operations in data engineering.</p>
+<p class="ref">Convenient when source schemas evolve, but it can also hide an unexpected schema change.</p></div></section>
+<section class="lesson" id="s7-4"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.4</span><h2>Joins and Aggregations</h2></div><div class="content"><p class="section-intro">Joins are among the most important operations in data engineering.</p>
 <div class="grid-2">
 <div><h5>Customers</h5><div class="table-wrap"><table>
 <thead><tr><th>customer_id</th><th>customer_name</th></tr></thead>
@@ -907,7 +731,6 @@ orders_df = spark.createDataFrame(
     ],
     ["order_id", "customer_id", "amount"]
 )</code></pre></div>
-
 <h3 id="s7-4-1"><span class="num">7.4.1</span>Inner join</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>inner_df = orders_df.join(
     customers_df,
@@ -917,7 +740,6 @@ orders_df = spark.createDataFrame(
 
 inner_df.show()</code></pre></div>
 <p>Returns orders for customers 101 and 102 only. Order 5004 is excluded (customer 104 doesn't exist), and customer 103 is absent (no orders). Use it when you only want records with matching keys on both sides: orders with valid customers, sales with matching products, transactions with matching accounts.</p>
-
 <h3 id="s7-4-2"><span class="num">7.4.2</span>Left join</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>left_df = orders_df.join(
     customers_df,
@@ -925,7 +747,6 @@ inner_df.show()</code></pre></div>
     how="left"
 )</code></pre></div>
 <p>Includes order 5004 with a null customer name. Use it to keep every record from the primary dataset even when a lookup is missing, which is common in ETL validation, where you keep all incoming orders while flagging those with invalid customers.</p>
-
 <h3 id="s7-4-3"><span class="num">7.4.3</span>Full outer join</h3>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>full_df = orders_df.join(
     customers_df,
@@ -933,7 +754,6 @@ inner_df.show()</code></pre></div>
     how="full_outer"
 )</code></pre></div>
 <p>Keeps matching customers and orders, orders without customers, and customers without orders. Use it for reconciliation, for example finding records missing from either a source or target table.</p>
-
 <h3 id="s7-4-4"><span class="num">7.4.4</span>Left anti join</h3>
 <p>Returns left-side records with <strong>no</strong> matching key on the right.</p>
 <div class="grid-2">
@@ -952,7 +772,6 @@ inner_df.show()</code></pre></div>
     on="customer_id",
     how="left_anti"
 )</code></pre></div>
-
 <h3 id="s7-4-5"><span class="num">7.4.5</span>Left semi join</h3>
 <p>Returns left-side records that <strong>do</strong> have a match, without adding right-side columns: a distributed "exists" filter.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_orders = orders_df.join(
@@ -967,7 +786,6 @@ inner_df.show()</code></pre></div>
 <tr><td>Left semi</td><td>Matching rows from the left side only</td></tr>
 <tr><td>Left anti</td><td>Left-side rows with no matching right-side key</td></tr>
 </tbody></table></div>
-
 <h3 id="s7-4-6"><span class="num">7.4.6</span>Multiple-column joins</h3>
 <p>Sometimes one key isn't enough; for example, product prices that vary by currency. Join on several columns as a composite key:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>result_df = order_items_df.join(
@@ -989,7 +807,6 @@ result_df = a.join(
     "left"
 )</code></pre></div>
 <p class="ref">Illustrative: assumes <code>order_items_df</code> and <code>product_prices_df</code> DataFrames that both have <code>product_id</code> and <code>currency_code</code> columns. Use aliases when column names overlap or the join condition is complex.</p>
-
 <h3 id="s7-4-7"><span class="num">7.4.7</span>Aggregation functions</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
@@ -1011,7 +828,6 @@ result_df = a.join(
     F.max("amount").alias("maximum_order_amount")
 ).show()</code></pre></div>
 <div class="callout warn"><span class="label">Important</span><p><code>first()</code> and collection aggregations don't give a deterministic business ordering. For the latest or earliest record, use a defined ordering such as a window function.</p></div>
-
 <h3 id="s7-4-8"><span class="num">7.4.8</span>Conditional aggregations</h3>
 <p>Count completed and pending orders, and completed revenue, per customer:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_status_df = spark.createDataFrame(
@@ -1042,7 +858,6 @@ customer_metrics = orders_status_df.groupBy("customer_id").agg(
 
 customer_metrics.show()</code></pre></div>
 <p class="ref">Widely used for reporting and business KPIs.</p>
-
 <h3 id="s7-4-9"><span class="num">7.4.9</span>Handling duplicate keys</h3>
 <p>Duplicate keys are a frequent cause of incorrect aggregations.</p>
 <div class="grid-2">
@@ -1081,7 +896,6 @@ customers_latest = (
     .drop("row_num")
 )</code></pre></div>
 <p class="ref">Include a reliable tie-breaker in the ordering if records can share timestamps.</p>
-
 <h3 id="s7-4-10"><span class="num">7.4.10</span>Null handling</h3>
 <p>Nulls are missing or unknown values, not zero or an empty string.</p>
 <p class="ref">Here <code>df</code> stands for any DataFrame with <code>customer_name</code>, <code>city</code>, and <code>age</code> columns.</p>
@@ -1106,12 +920,8 @@ df = df.withColumn(
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>F.col("a.customer_id").eqNullSafe(
     F.col("b.customer_id")
 )</code></pre></div>
-<p class="ref">Use null-safe joins only when matching two missing keys is logically correct. In most customer and transaction joins, null keys should be investigated, not matched.</p>
-
-<!-- ===================== 7.5 ===================== -->
-<h2 id="s7-5"><span class="num">7.5</span>Advanced PySpark</h2>
-<p class="section-intro">Features you'll need for more complex production transformations.</p>
-
+<p class="ref">Use null-safe joins only when matching two missing keys is logically correct. In most customer and transaction joins, null keys should be investigated, not matched.</p></div></section>
+<section class="lesson" id="s7-5"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.5</span><h2>Advanced PySpark</h2></div><div class="content"><p class="section-intro">Features you'll need for more complex production transformations.</p>
 <h3 id="s7-5-1"><span class="num">7.5.1</span>Window functions</h3>
 <p>Window functions calculate across related rows without collapsing them into one row per group: latest record per customer, ranking products, running totals, comparing with the previous row, finding duplicates.</p>
 <div class="code-wrap"><span class="lang">Python · rank orders by amount</span><pre class="code"><code>from pyspark.sql.window import Window
@@ -1166,7 +976,6 @@ df = orders_df.withColumn(
     F.sum("amount").over(w)
 )</code></pre></div>
 <div class="callout"><span class="label">Performance note</span><p>Window functions often make Spark repartition and sort data. Partition sensibly and avoid unnecessary windows over very large datasets.</p></div>
-
 <h3 id="s7-5-2"><span class="num">7.5.2</span>User-defined functions (UDFs)</h3>
 <p>A UDF applies custom Python logic to DataFrame values.</p>
 <div class="code-wrap"><span class="lang">Python · UDF version</span><pre class="code"><code>from pyspark.sql.functions import udf
@@ -1197,7 +1006,6 @@ df = orders_df.withColumn(
      .otherwise("Low")
 )</code></pre></div>
 <p><strong>Use a UDF when</strong> the logic can't reasonably be expressed with built-in functions, you need specialized Python, and you've measured the performance impact and found it acceptable. Pandas UDFs process data in batches and can be faster for some workloads, but test them; they aren't automatically faster.</p>
-
 <h3 id="s7-5-3"><span class="num">7.5.3</span>Higher-order functions</h3>
 <p>Higher-order functions work on elements inside arrays or maps without exploding each element into its own row.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>array_df = spark.createDataFrame(
@@ -1231,7 +1039,6 @@ result_df = array_df.withColumn(
 <tr><td><code>aggregate()</code></td><td>Reduce elements into one result</td></tr>
 </tbody></table></div>
 <p class="ref">Especially useful for nested JSON data.</p>
-
 <h3 id="s7-5-4"><span class="num">7.5.4</span>Arrays and maps</h3>
 <p>An <strong>array</strong> stores multiple elements in one column, e.g. <code>["Laptop", "Mouse", "Keyboard"]</code>. A <strong>map</strong> stores key-value pairs, e.g. <code>{"color": "Black", "size": "Large"}</code>.</p>
 <div class="grid-2">
@@ -1269,7 +1076,6 @@ map_df = map_df.withColumn(
 )</code></pre></div>
 </div>
 <p class="ref">Maps suit flexible attributes, but frequently queried business attributes are easier to govern as explicit columns.</p>
-
 <h3 id="s7-5-5"><span class="num">7.5.5</span>Structs</h3>
 <p>A struct is a nested record within a column, such as an address with city, state, and pincode.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>struct_df = spark.createDataFrame(
@@ -1291,7 +1097,6 @@ struct_df.select(
     F.col("address.city").alias("city")
 ).show()</code></pre></div>
 <p class="ref">Structs are common in nested JSON and semi-structured data.</p>
-
 <h3 id="s7-5-6"><span class="num">7.5.6</span>explode()</h3>
 <p><code>explode()</code> turns array elements into individual rows.</p>
 <div class="grid-2">
@@ -1314,7 +1119,6 @@ exploded_df.show()</code></pre></div>
 <tbody><tr><td>5001</td><td>1</td></tr><tr><td>5001</td><td>2</td></tr><tr><td>5001</td><td>3</td></tr><tr><td>5002</td><td>2</td></tr><tr><td>5002</td><td>4</td></tr></tbody></table></div>
 </div>
 <p class="ref">Use <code>explode_outer()</code> to keep rows whose array is null or empty; plain <code>explode()</code> drops them.</p>
-
 <h3 id="s7-5-7"><span class="num">7.5.7</span>Pivot</h3>
 <p>Pivot turns distinct values of one column into separate columns.</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>sales_df = spark.createDataFrame(
@@ -1339,7 +1143,6 @@ pivot_df.show()</code></pre></div>
 <thead><tr><th>region</th><th>Jan</th><th>Feb</th></tr></thead>
 <tbody><tr><td>North</td><td>1500</td><td>1800</td></tr><tr><td>South</td><td>1000</td><td>1200</td></tr></tbody></table></div>
 <p class="ref">Listing the expected pivot values saves Spark from discovering every distinct value and gives predictable output columns.</p>
-
 <h3 id="s7-5-8"><span class="num">7.5.8</span>Unpivot</h3>
 <p>Unpivot turns multiple columns into rows, here with Spark SQL's <code>stack()</code>:</p>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>wide_df = spark.createDataFrame(
@@ -1366,7 +1169,6 @@ unpivot_df.show()</code></pre></div>
 <thead><tr><th>region</th><th>month</th><th>sales</th></tr></thead>
 <tbody><tr><td>North</td><td>Jan</td><td>1500</td></tr><tr><td>North</td><td>Feb</td><td>1800</td></tr><tr><td>South</td><td>Jan</td><td>1000</td></tr><tr><td>South</td><td>Feb</td><td>1200</td></tr></tbody></table></div>
 <p class="ref">Values passed to <code>stack()</code> need compatible types in each output position. Unpivoting is handy for turning spreadsheet-style reports into normalized analytical data. Recent Spark versions also offer <code>DataFrame.unpivot()</code>.</p>
-
 <h3 id="s7-5-9"><span class="num">7.5.9</span>Complex JSON processing</h3>
 <p>Real-world APIs often return nested JSON: a top-level order ID, a nested customer object, and an array of items.</p>
 <div class="code-wrap"><span class="lang">JSON</span><pre class="code"><code>{
@@ -1439,11 +1241,8 @@ items_flat_df = items_flat_df.withColumn(
 <div class="table-wrap"><table>
 <thead><tr><th>order_id</th><th>product_id</th><th>quantity</th><th>unit_price</th><th>line_total</th></tr></thead>
 <tbody><tr><td>5001</td><td>1</td><td>2</td><td>500</td><td>1000</td></tr><tr><td>5001</td><td>2</td><td>1</td><td>1000</td><td>1000</td></tr></tbody></table></div>
-<div class="callout key"><span class="label">Production note</span><p>Read JSON files from storage with <code>spark.read.json(path)</code>. When a DataFrame holds one JSON string per row, <code>from_json()</code> with an explicit schema is often right. In production, define nested schemas explicitly and validate malformed records rather than relying entirely on inference.</p></div>
-
-<!-- ===================== 7.6 ===================== -->
-<h2 id="s7-6"><span class="num">7.6</span>Hands-on Project: Retail Data Transformation Pipeline</h2>
-<p class="section-intro">Build a PySpark pipeline over four datasets (customers, products, orders, and order items) using logic similar to a Bronze → Silver → Gold architecture.</p>
+<div class="callout key"><span class="label">Production note</span><p>Read JSON files from storage with <code>spark.read.json(path)</code>. When a DataFrame holds one JSON string per row, <code>from_json()</code> with an explicit schema is often right. In production, define nested schemas explicitly and validate malformed records rather than relying entirely on inference.</p></div></div></section>
+<section class="lesson" id="s7-6"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.6</span><h2>Hands-on Project: Retail Data Transformation Pipeline</h2></div><div class="content"><p class="section-intro">Build a PySpark pipeline over four datasets (customers, products, orders, and order items) using logic similar to a Bronze → Silver → Gold architecture.</p>
 <div class="card"><h4>The pipeline will</h4><ol class="steps">
 <li>Create source DataFrames with defined schemas.</li>
 <li>Clean customer and product records.</li>
@@ -1469,7 +1268,6 @@ Order Items ──────&gt; Item Validation ────&gt; Silver Order
                                               ▼                             ▼
                                        Customer Sales                Product Sales</pre>
 <p>You'll build an in-memory version first; the same transformations later adapt to Delta tables.</p>
-
 <h3 id="p-setup">Steps 1–5: Create the source data</h3>
 <h4>Step 1: Import the libraries</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>from pyspark.sql import functions as F
@@ -1486,7 +1284,6 @@ from pyspark.sql.window import Window
 
 from datetime import date
 from decimal import Decimal</code></pre></div>
-
 <h4>Step 2: Create the customer dataset</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customers_data = [
     (101, "Ravi Kumar", "Hyderabad", "Active"),
@@ -1507,7 +1304,6 @@ customers_df = spark.createDataFrame(customers_data, customers_schema)
 
 customers_df.show()
 customers_df.printSchema()</code></pre></div>
-
 <h4>Step 3: Create the product dataset</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_data = [
     (1, "Laptop", "Electronics", Decimal("55000.00")),
@@ -1525,7 +1321,6 @@ products_schema = StructType([
 ])
 
 products_df = spark.createDataFrame(products_data, products_schema)</code></pre></div>
-
 <h4>Step 4: Create the order dataset</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>orders_data = [
     (5001, 101, date(2026, 10, 20), "Completed"),
@@ -1544,7 +1339,6 @@ orders_schema = StructType([
 
 orders_df = spark.createDataFrame(orders_data, orders_schema)</code></pre></div>
 <div class="callout"><span class="label">Deliberate problem</span><p>Order 5005 references customer 999, who doesn't exist. You'll catch it in Step 8.</p></div>
-
 <h4>Step 5: Create the order-item dataset</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_items_data = [
     (1, 5001, 1, 1, Decimal("55000.00")),
@@ -1565,7 +1359,6 @@ order_items_schema = StructType([
 ])
 
 order_items_df = spark.createDataFrame(order_items_data, order_items_schema)</code></pre></div>
-
 <h3 id="p-clean">Steps 6–9: Clean and validate</h3>
 <h4>Step 6: Clean the customer dataset</h4>
 <p>Trim spaces, normalize status, replace missing cities with "Unknown", and remove duplicate customer IDs (a simple demonstration rule).</p>
@@ -1587,7 +1380,6 @@ order_items_df = spark.createDataFrame(order_items_data, order_items_schema)</co
 
 customers_clean_df.show()</code></pre></div>
 <p class="ref">IDs are unique in this sample. With conflicting versions of a customer in production, use a defined rule (such as keeping the most recent valid record) instead of <code>dropDuplicates()</code>.</p>
-
 <h4>Step 7: Clean the product dataset</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>products_clean_df = (
     products_df
@@ -1600,7 +1392,6 @@ customers_clean_df.show()</code></pre></div>
     .dropDuplicates(["product_id"])
 )</code></pre></div>
 <p class="ref">A basic rule set. In production, also check conflicting duplicate products and required business constraints.</p>
-
 <h4>Step 8: Validate order customer keys</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>invalid_orders_df = orders_df.join(
     customers_clean_df.select("customer_id"),
@@ -1619,7 +1410,6 @@ invalid_orders_df.show()</code></pre></div>
     on="customer_id",
     how="left_semi"
 )</code></pre></div>
-
 <h4>Step 9: Validate order-item keys</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code># Items whose order isn't valid
 invalid_order_items_df = order_items_df.join(
@@ -1651,7 +1441,6 @@ invalid_price_items_df = order_items_df.filter(
     .filter(F.col("quantity").isNotNull() &amp; (F.col("quantity") &gt; 0))
     .filter(F.col("unit_price").isNotNull() &amp; (F.col("unit_price") &gt;= 0))
 )</code></pre></div>
-
 <h3 id="p-enrich">Steps 10–14: Enrich and aggregate</h3>
 <h4>Step 10: Calculate line totals</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>valid_order_items_df = valid_order_items_df.withColumn(
@@ -1659,7 +1448,6 @@ invalid_price_items_df = order_items_df.filter(
     (F.col("quantity") * F.col("unit_price")).cast(DecimalType(14, 2))
 )</code></pre></div>
 <p class="ref">Two mobiles at 25,000 each give a line total of 50,000.</p>
-
 <h4>Step 11: Enrich order items with product information</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_items_enriched_df = (
     valid_order_items_df.alias("oi")
@@ -1675,7 +1463,6 @@ invalid_price_items_df = order_items_df.filter(
         F.col("oi.line_total")
     )
 )</code></pre></div>
-
 <h4>Step 12: Calculate order totals</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>order_totals_df = order_items_enriched_df.groupBy("order_id").agg(
     F.sum("line_total").alias("order_total"),
@@ -1711,7 +1498,6 @@ orders_enriched_df.orderBy("order_id").show(truncate=False)</code></pre></div>
 <tr><td>5003</td><td>Arjun Reddy</td><td>Pending</td><td>12,000.00</td><td>1</td><td>1</td></tr>
 <tr><td>5004</td><td>Ravi Kumar</td><td>Completed</td><td>25,000.00</td><td>1</td><td>1</td></tr>
 </tbody></table></div>
-
 <h4>Step 13: Calculate sales by customer</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>customer_sales_df = (
     orders_enriched_df
@@ -1733,7 +1519,6 @@ customer_sales_df.show(truncate=False)</code></pre></div>
 <tr><td>Arjun Reddy</td><td>Chennai</td><td>1</td><td>12,000.00</td><td>12,000.00</td></tr>
 </tbody></table></div>
 <p class="ref">Expected values worked out by hand from the sample data; Spark may show extra decimal places. Note the pending order 5003 is included. Filter on <code>order_status</code> if your report should count completed orders only.</p>
-
 <h4>Step 14: Calculate sales by product</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>product_sales_df = (
     order_items_enriched_df
@@ -1756,7 +1541,6 @@ product_sales_df.show(truncate=False)</code></pre></div>
 <tr><td>Desk</td><td>Furniture</td><td>1</td><td>12,000.00</td><td>1</td></tr>
 <tr><td>Chair</td><td>Furniture</td><td>1</td><td>5,000.00</td><td>1</td></tr>
 </tbody></table></div>
-
 <h3 id="p-recon">Steps 15–16: Reconcile and save</h3>
 <h4>Step 15: Perform reconciliation checks</h4>
 <p>Pipelines should validate results, not just produce output tables.</p>
@@ -1789,7 +1573,6 @@ order_total_sum = orders_enriched_df.agg(F.sum("order_total").alias("total"))
 
 line_total_sum.show()    # 183,000.00
 order_total_sum.show()   # 183,000.00</code></pre></div>
-
 <h4>Step 16: Save the results as Delta tables</h4>
 <div class="code-wrap"><span class="lang">Python</span><pre class="code"><code>(
     customers_clean_df.write
@@ -1833,24 +1616,18 @@ order_total_sum.show()   # 183,000.00</code></pre></div>
     .saveAsTable("main.retail.gold_product_sales")
 )</code></pre></div>
 <div class="callout warn"><span class="label">Before running these commands</span><p>Make sure the <code>main.retail</code> catalog and schema exist, you can create or replace tables, and the target is meant for this exercise. <code>mode("overwrite")</code> replaces existing data and may affect table metadata. Use a development schema for learning.</p></div>
-<p class="ref">A production pipeline would use incremental processing, audit columns, error handling, and data-quality checks rather than blindly overwriting every table.</p>
-
-<!-- ===================== 7.7 ===================== -->
-<h2 id="s7-7"><span class="num">7.7</span>Important PySpark Performance Practices</h2>
-<div class="grid-2">
-  <div class="card"><h4>1. Prefer built-in functions</h4><p style="margin-bottom:0"><code>F.upper(F.col("customer_name"))</code> beats a Python UDF for simple string conversion.</p></div>
-  <div class="card"><h4>2. Select only required columns</h4><p style="margin-bottom:0"><code>df.select("customer_id", "customer_name", "city")</code>. Column pruning reduces data processed.</p></div>
-  <div class="card"><h4>3. Filter early when logically safe</h4><p style="margin-bottom:0"><code>customers_df.filter(F.col("status") == "ACTIVE")</code> reduces downstream work; Spark may push filters to the source.</p></div>
-  <div class="card"><h4>4. Avoid unnecessary actions</h4><p style="margin-bottom:0"><code>count()</code>, <code>show()</code>, and <code>collect()</code> each trigger computation. Never <code>collect()</code> large datasets.</p></div>
-  <div class="card"><h4>5. Broadcast small lookups when appropriate</h4><p style="margin-bottom:0"><code>large_df.join(F.broadcast(small_lookup_df), on="product_id", how="left")</code>. Check size, executor memory, and the plan first.</p></div>
-  <div class="card"><h4>6. Avoid unnecessary repartitioning</h4><p style="margin-bottom:0"><code>df.repartition(8)</code> may add a shuffle. Use it when the benefit justifies the cost.</p></div>
-  <div class="card"><h4>7. Inspect the execution plan</h4><p style="margin-bottom:0"><code>result_df.explain("formatted")</code> shows scans, exchanges, joins, and other operators.</p></div>
-  <div class="card"><h4>8. Cache only when reuse justifies it</h4><p style="margin-bottom:0"><code>df.cache()</code> for repeated use; <code>df.unpersist()</code> when done.</p></div>
-</div>
-
-<!-- ===================== 7.8 ===================== -->
-<h2 id="s7-8"><span class="num">7.8</span>Common PySpark Errors and Troubleshooting</h2>
-<div class="table-wrap"><table>
+<p class="ref">A production pipeline would use incremental processing, audit columns, error handling, and data-quality checks rather than blindly overwriting every table.</p></div></section>
+<section class="lesson" id="s7-7"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.7</span><h2>Important PySpark Performance Practices</h2></div><div class="content"><div class="grid-2">
+<div class="card"><h4>1. Prefer built-in functions</h4><p style="margin-bottom:0"><code>F.upper(F.col("customer_name"))</code> beats a Python UDF for simple string conversion.</p></div>
+<div class="card"><h4>2. Select only required columns</h4><p style="margin-bottom:0"><code>df.select("customer_id", "customer_name", "city")</code>. Column pruning reduces data processed.</p></div>
+<div class="card"><h4>3. Filter early when logically safe</h4><p style="margin-bottom:0"><code>customers_df.filter(F.col("status") == "ACTIVE")</code> reduces downstream work; Spark may push filters to the source.</p></div>
+<div class="card"><h4>4. Avoid unnecessary actions</h4><p style="margin-bottom:0"><code>count()</code>, <code>show()</code>, and <code>collect()</code> each trigger computation. Never <code>collect()</code> large datasets.</p></div>
+<div class="card"><h4>5. Broadcast small lookups when appropriate</h4><p style="margin-bottom:0"><code>large_df.join(F.broadcast(small_lookup_df), on="product_id", how="left")</code>. Check size, executor memory, and the plan first.</p></div>
+<div class="card"><h4>6. Avoid unnecessary repartitioning</h4><p style="margin-bottom:0"><code>df.repartition(8)</code> may add a shuffle. Use it when the benefit justifies the cost.</p></div>
+<div class="card"><h4>7. Inspect the execution plan</h4><p style="margin-bottom:0"><code>result_df.explain("formatted")</code> shows scans, exchanges, joins, and other operators.</p></div>
+<div class="card"><h4>8. Cache only when reuse justifies it</h4><p style="margin-bottom:0"><code>df.cache()</code> for repeated use; <code>df.unpersist()</code> when done.</p></div>
+</div></div></section>
+<section class="lesson" id="s7-8"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.8</span><h2>Common PySpark Errors and Troubleshooting</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Problem</th><th>Likely cause</th><th>Recommended approach</th></tr></thead>
 <tbody>
 <tr><td>Cannot infer schema</td><td>Empty or ambiguous input</td><td>Define an explicit schema</td></tr>
@@ -1863,13 +1640,10 @@ order_total_sum.show()   # 183,000.00</code></pre></div>
 <tr><td>Nulls after casting</td><td>Invalid source values</td><td>Validate and quarantine malformed records</td></tr>
 <tr><td>Incorrect union results</td><td><code>union()</code> aligns by position</td><td>Use <code>unionByName()</code></td></tr>
 <tr><td>Unexpected aggregation results</td><td>Nulls, duplicates, wrong grouping keys</td><td>Validate data and aggregation logic</td></tr>
-</tbody></table></div>
-
-<!-- ===================== 7.9 ===================== -->
-<h2 id="s7-9"><span class="num">7.9</span>Knowledge Check</h2>
-<p>Try answering these before moving on.</p>
-<details class="q"><summary>1. What is PySpark? &nbsp;A) A Python web framework · B) The Python API for Apache Spark · C) A database management system · D) A file format</summary><div class="answer"><p><strong>Answer: B.</strong> PySpark is the Python API for Apache Spark (Section 7.1.1).</p></div></details>
-<details class="q" open><summary>Conceptual questions 2–10</summary>
+</tbody></table></div></div></section>
+<section class="lesson" id="s7-9"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.9</span><h2>Knowledge Check</h2></div><div class="content"><p>Try answering these before moving on.</p>
+<details class="q"><summary>1. What is PySpark?  A) A Python web framework · B) The Python API for Apache Spark · C) A database management system · D) A file format</summary><div class="answer"><p><strong>Answer: B.</strong> PySpark is the Python API for Apache Spark (Section 7.1.1).</p></div></details>
+<details class="q" open=""><summary>Conceptual questions 2–10</summary>
 <ol start="2">
 <li>What is the primary difference between pandas and PySpark? Explain how their execution models differ and when you'd choose each.</li>
 <li>What is a SparkSession, and what role does it play in DataFrame operations?</li>
@@ -1892,11 +1666,8 @@ order_total_sum.show()   # 183,000.00</code></pre></div>
 <li>Transform a nested JSON order into a flat order-item DataFrame.</li>
 <li>Identify duplicate product IDs and explain how you'd decide which record to keep.</li>
 </ol>
-</div>
-
-<!-- ===================== 7.10 ===================== -->
-<h2 id="s7-10"><span class="num">7.10</span>Summary</h2>
-<div class="table-wrap"><table>
+</div></div></section>
+<section class="lesson" id="s7-10"><div class="lesson-head"><span class="lesson-eyebrow">Chapter 7 · Lesson 7.10</span><h2>Summary</h2></div><div class="content"><div class="table-wrap"><table>
 <thead><tr><th>Topic</th><th>Skills acquired</th></tr></thead>
 <tbody>
 <tr><td>PySpark fundamentals</td><td>SparkSession, DataFrames, reading data</td></tr>
@@ -1912,20 +1683,19 @@ order_total_sum.show()   # 183,000.00</code></pre></div>
 <tr><td>Project</td><td>Customer, product, order, and order-item pipeline</td></tr>
 <tr><td>Performance</td><td>Built-in functions, broadcast joins, caching, execution plans</td></tr>
 </tbody></table></div>
-
 <h3 id="checklist">What you should be able to do now</h3>
 <p>Tick each skill once you've practiced it. Your ticks are saved in this browser.</p>
 <div class="card checklist" id="ch7-checklist">
-<label><input type="checkbox"> Create and manipulate Spark DataFrames.</label>
-<label><input type="checkbox"> Define explicit schemas and use appropriate data types.</label>
-<label><input type="checkbox"> Read common file formats and Delta tables.</label>
-<label><input type="checkbox"> Transform datasets using PySpark functions.</label>
-<label><input type="checkbox"> Join multiple datasets without unintentionally multiplying records.</label>
-<label><input type="checkbox"> Calculate customer and product metrics.</label>
-<label><input type="checkbox"> Handle duplicate records and missing keys.</label>
-<label><input type="checkbox"> Flatten nested JSON data.</label>
-<label><input type="checkbox"> Build a basic retail data transformation pipeline.</label>
-<label><input type="checkbox"> Save transformed datasets as Delta tables in Databricks.</label>
+<label><input type="checkbox"/> Create and manipulate Spark DataFrames.</label>
+<label><input type="checkbox"/> Define explicit schemas and use appropriate data types.</label>
+<label><input type="checkbox"/> Read common file formats and Delta tables.</label>
+<label><input type="checkbox"/> Transform datasets using PySpark functions.</label>
+<label><input type="checkbox"/> Join multiple datasets without unintentionally multiplying records.</label>
+<label><input type="checkbox"/> Calculate customer and product metrics.</label>
+<label><input type="checkbox"/> Handle duplicate records and missing keys.</label>
+<label><input type="checkbox"/> Flatten nested JSON data.</label>
+<label><input type="checkbox"/> Build a basic retail data transformation pipeline.</label>
+<label><input type="checkbox"/> Save transformed datasets as Delta tables in Databricks.</label>
 <p class="ref checklist-count" style="margin:10px 0 0"></p>
 </div>
 <script>
@@ -1944,66 +1714,20 @@ order_total_sum.show()   # 183,000.00</code></pre></div>
   update();
 })();
 </script>
-
 <div class="next">
 <h3>Next chapter: Reading and Writing Data in Databricks</h3>
 <p style="margin-bottom:0">Chapter 8 builds on these fundamentals: CSV, JSON, Parquet, and Delta; file paths; managed and external tables; write modes; partitioned writes; schema evolution; and practical ingestion patterns.</p>
+</div></div></section><style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style><nav class="module-nav"><a class="module-nav-link prev" href="databricks-chapter-6.html"><span class="mn-label">← Previous</span><span class="mn-title">Spark</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="databricks-chapter-8.html"><span class="mn-label">Next →</span><span class="mn-title">Read &amp; Write</span></a></nav></main></div><script>document.querySelectorAll('pre.code').forEach(function(pre){var host=pre.parentElement.classList.contains('code-wrap')?pre.parentElement:pre;var b=document.createElement('button');b.type='button';b.className='copy';b.textContent='Copy';b.addEventListener('click',function(){var t=pre.innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1400);}).catch(function(){b.textContent='Select & copy';});});host.appendChild(b);});</script><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#ff6b4a;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
 </div>
-
-<nav class="pager">
-  <a class="pager-link" href="databricks-chapter-6.html"><span>← Previous</span><strong>Chapter 6: Apache Spark Fundamentals</strong></a>
-  <a class="pager-link" href="databricks-chapter-8.html"><span>Next →</span><strong>Chapter 8: Reading and Writing Data</strong></a>
-</nav>
-
-<footer>Databricks Learning Path · Phase 3 · Chapter 7 of 24</footer>
-</div>
-</main>
-</div>
-
-
 <script>
-(function(){
-  // Theme toggle
-  var root=document.documentElement;
-  try{var saved=localStorage.getItem('db-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
-  document.getElementById('themeBtn').addEventListener('click',function(){
-    var cur=root.getAttribute('data-theme');
-    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    var next=cur==='dark'?'light':'dark';
-    root.setAttribute('data-theme',next);
-    try{localStorage.setItem('db-theme',next);}catch(e){}
-  });
-
-  // Mobile menu
-  var toc=document.getElementById('toc');
-  document.getElementById('menuBtn').addEventListener('click',function(){toc.classList.toggle('open');});
-  toc.addEventListener('click',function(e){if(e.target.tagName==='A') toc.classList.remove('open');});
-
-  // Copy buttons
-  document.querySelectorAll('pre.code').forEach(function(pre){
-    var b=document.createElement('button'); b.className='copy'; b.textContent='Copy';
-    b.addEventListener('click',function(){
-      var t=pre.innerText;
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){
-        b.textContent='Copied'; setTimeout(function(){b.textContent='Copy';},1400);
-      }).catch(function(){b.textContent='Select & copy';});
-    });
-    pre.appendChild(b);
-  });
-
-  // Progress bar + active TOC link
-  var bar=document.getElementById('progress');
-  var links=[].slice.call(document.querySelectorAll('.toc a'));
-  var targets=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
-  function onScroll(){
-    var h=document.documentElement; var max=h.scrollHeight-h.clientHeight;
-    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<targets.length;i++){ if(targets[i] && targets[i].getBoundingClientRect().top<120) idx=i; }
-    links.forEach(function(l,i){l.classList.toggle('active',i===idx);});
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
   }
-  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
-})();
-</script>
-</body>
-</html>
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>
