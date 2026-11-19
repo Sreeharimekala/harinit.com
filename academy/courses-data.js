@@ -37,7 +37,7 @@ window.HARINIT_COURSES = [
     description: 'Learn Python, SQL, Mathematics, Data Structures, Statistics, Data Analysis, Machine Learning, Deep Learning, NLP, MLOps, Generative AI, LLMs, and real-world AI/ML projects.',
     stats: [
       { label: '12 Modules', sub: 'Beginner → Advanced' },
-      { label: '270 Lessons', sub: 'Focused practical learning' },
+      { label: '214 Lessons', sub: 'Focused practical learning' },
       { label: 'Hands-on Learning', sub: 'Build as you learn' },
       { label: 'Capstone Projects', sub: 'Apply your knowledge' }
     ],
