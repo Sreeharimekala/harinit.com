@@ -535,8 +535,8 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Your First Notebook</h3>
   <ol class="steps">
-    <li>In your workspace, click <strong>+ New item → Notebook</strong>.</li>
-    <li>On the left, click <strong>Add data items → Existing data sources</strong> and attach <code>SalesLakehouse</code> (from Module 2). This makes <code>Files/</code> and <code>Tables/</code> paths work.</li>
+    <li>In your workspace, click <strong>+ New item → Notebook</strong> and rename it <code>nb_sales_sandbox_spark_basics</code>.</li>
+    <li>On the left, click <strong>Add data items → Existing data sources</strong> and attach <code>lh_sales_bronze</code> (from Module 2). This makes <code>Files/</code> and <code>Tables/</code> paths work.</li>
     <li>You get an empty <strong>cell</strong>. The language selector at the top says <strong>PySpark (Python)</strong>. Type the code below and press <strong>Shift + Enter</strong> to run it.</li>
   </ol>
   <div class="nb-cell">
@@ -2387,23 +2387,23 @@ load_date      = "2026-08-22"</code></pre>
   <h3>Orchestration: Parent and Child Notebooks</h3>
   <p>A 2,000-line notebook is unmaintainable. Split work into focused notebooks and have a parent run them:</p>
   <div class="canvas">
-    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">NB_MASTER_DAILY_LOAD (parent)</div>
+    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">nb_sales_master_daily_load (parent)</div>
     <div class="canvas-row">
-      <div class="act act-copy">NB_01_INGEST<small>Files → Bronze</small></div><div class="flow-arrow">→</div>
-      <div class="act act-df">NB_02_CLEAN<small>Bronze → Silver</small></div><div class="flow-arrow">→</div>
-      <div class="act act-nb">NB_03_GOLD<small>Silver → Gold</small></div><div class="flow-arrow">→</div>
-      <div class="act act-ok">NB_04_VALIDATE</div>
+      <div class="act act-copy">nb_sales_bronze_ingest_files<small>Files → Bronze</small></div><div class="flow-arrow">→</div>
+      <div class="act act-df">nb_sales_silver_clean_sales<small>Bronze → Silver</small></div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_gold_build_facts<small>Silver → Gold</small></div><div class="flow-arrow">→</div>
+      <div class="act act-ok">nb_sales_util_validate</div>
     </div>
   </div>
 <pre><code># Run a child notebook with parameters; wait up to 600 s; get its exit value back
 result = notebookutils.notebook.run(
-    "NB_02_CLEAN",                       # notebook name in this workspace
+    "nb_sales_silver_clean_sales",                       # notebook name in this workspace
     600,                                 # timeout in seconds
     {"load_date": load_date, "target_table": "Customers"}
 )
 print(result)                            # whatever the child passed to exit()</code></pre>
   <p>Inside the child, return a result with <code>exit</code>:</p>
-<pre><code># last cell of NB_02_CLEAN
+<pre><code># last cell of nb_sales_silver_clean_sales
 import json
 notebookutils.notebook.exit(json.dumps({"status": "SUCCESS", "rows": clean_count}))</code></pre>
   <p>The parent can parse that and decide what to run next. (Fabric also lets a pipeline run notebooks directly as activities — Module 3 — which is the usual choice for scheduling; notebook-calls-notebook is for logic that needs results mid-flow.)</p>
@@ -2411,7 +2411,7 @@ notebookutils.notebook.exit(json.dumps({"status": "SUCCESS", "rows": clean_count
   <h4>Why child notebooks?</h4>
   <ul class="checklist">
     <li>Each one can be tested on its own</li>
-    <li>Reuse — <code>NB_02_CLEAN</code> works for Customers, Products and Orders via parameters</li>
+    <li>Reuse — <code>nb_sales_silver_clean_sales</code> works for Customers, Products and Orders via parameters</li>
     <li>A failure points to one small notebook, not line 1,847</li>
     <li>Different people can own different steps</li>
   </ul>
@@ -2525,7 +2525,7 @@ notebookutils.notebook.exit(json.dumps({"processed": len(summary), "rows": sum(s
     <li>Validate before archiving; archive, don't delete, so you can reprocess</li>
     <li>Catch exceptions to log context, then re-raise</li>
     <li>Return a structured result with <code>notebookutils.notebook.exit()</code></li>
-    <li>Name notebooks with a prefix and sequence: <code>NB_01_INGEST_SALES</code></li>
+    <li>Name notebooks <code>nb_&lt;project&gt;_&lt;layer&gt;_&lt;action&gt;_&lt;entity&gt;</code>: <code>nb_sales_bronze_ingest_orders</code></li>
     <li>Schedule with a pipeline; use <code>notebook.run</code> for in-flow logic only</li>
   </ul>
 

@@ -567,7 +567,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <div class="compare">
     <div class="compare-col">
       <h4 style="color:var(--accent)">Option A — One Lakehouse, prefixed tables</h4>
-<pre class="tree" style="margin:6px 0"><code><span class="f">LH_Sales</span>
+<pre class="tree" style="margin:6px 0"><code><span class="f">lh_sales</span>
 └── <span class="f">Tables</span>
     ├── <span class="t">Bronze_Orders</span>
     ├── <span class="t">Silver_Orders</span>
@@ -577,13 +577,13 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
     </div>
     <div class="compare-col">
       <h4 style="color:var(--accent)">Option B — One Lakehouse per layer</h4>
-<pre class="tree" style="margin:6px 0"><code><span class="f">LH_Bronze</span>   → restricted
-<span class="f">LH_Silver</span>   → engineers + analysts
-<span class="f">LH_Gold</span>     → BI developers, Power BI</code></pre>
+<pre class="tree" style="margin:6px 0"><code><span class="f">lh_sales_bronze</span>   → restricted
+<span class="f">lh_sales_silver</span>   → engineers + analysts
+<span class="f">lh_sales_gold</span>     → BI developers, Power BI</code></pre>
       <p style="font-size:0.85rem">Clear permission boundaries per layer. Common in production; often with separate Dev / Test / Prod workspaces.</p>
     </div>
   </div>
-  <div class="callout-tip">In Option B, a notebook attached to <code>LH_Silver</code> reads Bronze with a OneLake Shortcut or a fully-qualified name (<code>LH_Bronze.Bronze_Orders</code>) — no copying between layers.</div>
+  <div class="callout-tip">In Option B, a notebook attached to <code>lh_sales_silver</code> reads Bronze with a OneLake Shortcut or a fully-qualified name (<code>lh_sales_bronze.Bronze_Orders</code>) — no copying between layers.</div>
 
   <h3>What Goes Where — Quick Test</h3>
   <div class="table-wrap">
@@ -641,7 +641,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Raw Files vs Bronze Tables</h3>
   <p>These are not the same thing. Raw files are what landed; Bronze is the queryable Delta copy with metadata:</p>
-<pre class="tree"><code><span class="f">LH_Sales</span>
+<pre class="tree"><code><span class="f">lh_sales</span>
 ├── <span class="f">Files</span>
 │   └── <span class="f">Raw/Sales/</span>
 │       ├── Sales_20260821.csv     <span class="d">← landing zone (Module 3 pipelines put files here)</span>
@@ -1916,25 +1916,37 @@ fact = (lines.alias("f")
   </div>
 
   <h3>Workspace Layout</h3>
-<pre class="tree"><code><span class="f">WS_Sales_Dev</span>                        <span class="d">← and WS_Sales_Test, WS_Sales_Prod (Module 11)</span>
-├── <span class="t">LH_Bronze</span>   <span class="t">LH_Silver</span>   <span class="t">LH_Gold</span>
+<pre class="tree"><code><span class="f">Retail Sales – Data Engineering [DEV]</span>   <span class="d">← plus [TEST] and [PROD] copies (Module 11)</span>
+├── <span class="t">lh_sales_bronze</span>   <span class="t">lh_sales_silver</span>   <span class="t">lh_sales_gold</span>
 ├── <span class="f">Pipelines</span>
-│   ├── PL_00_MASTER_DAILY
-│   └── PL_01_INGEST_SQL · PL_02_INGEST_API · PL_03_INGEST_FILES
-├── <span class="f">Notebooks</span>
-│   ├── NB_10_BRONZE_LOAD             <span class="d">← one parameterised notebook for all Bronze tables</span>
-│   ├── NB_20_SILVER_CUSTOMERS · NB_21_SILVER_PRODUCTS · NB_22_SILVER_ORDERS
-│   ├── NB_30_DIM_CUSTOMER_SCD2 · NB_31_DIM_PRODUCT · NB_32_DIM_STORE · NB_33_DIM_DATE
-│   ├── NB_40_FACT_SALES
-│   ├── NB_50_GOLD_AGGREGATES
-│   └── NB_90_VALIDATE · NB_99_UTILS   <span class="d">← shared functions (hash, surrogate keys, logging)</span>
-└── <span class="t">SM_Sales</span> (semantic model) · <span class="t">RPT_Sales</span> · <span class="t">RPT_DataQuality</span></code></pre>
-  <p>The numbering is the run order, and it groups notebooks by layer. Shared functions live in <code>NB_99_UTILS</code> and are loaded with <code>%run NB_99_UTILS</code> so <code>with_hash</code> and <code>add_surrogate_key</code> are written once.</p>
+│   ├── pl_sales_master_daily
+│   ├── pl_sales_ingest_sql
+│   ├── pl_sales_ingest_api
+│   └── pl_sales_ingest_files
+└── <span class="f">Notebooks</span>
+    ├── nb_sales_bronze_load_tables   <span class="d">← one notebook for all Bronze tables</span>
+    ├── nb_sales_silver_transform_customers
+    ├── nb_sales_silver_transform_products
+    ├── nb_sales_silver_transform_orders
+    ├── nb_sales_gold_build_dim_customer
+    ├── nb_sales_gold_build_dim_product
+    ├── nb_sales_gold_build_dim_store
+    ├── nb_sales_gold_build_dim_date
+    ├── nb_sales_gold_build_fact_sales
+    ├── nb_sales_gold_build_aggregates
+    ├── nb_sales_util_data_quality
+    └── nb_sales_util_functions   <span class="d">← shared helpers</span>
+
+<span class="f">Retail Sales – Analytics [DEV]</span>
+├── <span class="t">sm_sales_performance</span>   <span class="d">← semantic model</span>
+├── Sales Performance Dashboard
+└── Data Quality Dashboard</code></pre>
+  <p>The layer in each name groups notebooks by stage, and the master pipeline sets the run order. Shared functions live in <code>nb_sales_util_functions</code> and are loaded with <code>%run nb_sales_util_functions</code> so <code>with_hash</code> and <code>add_surrogate_key</code> are written once.</p>
 
   <h3>Orchestration and Dependencies</h3>
   <p>A master pipeline runs the steps in dependency order. Steps that don't depend on each other run in parallel:</p>
   <div class="canvas">
-    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">PL_00_MASTER_DAILY</div>
+    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">pl_sales_master_daily</div>
     <div class="canvas-row">
       <div style="display:flex;flex-direction:column;gap:6px">
         <div class="act act-copy">Ingest SQL</div><div class="act act-copy">Ingest API</div><div class="act act-copy">Ingest Files</div>
@@ -1981,9 +1993,9 @@ fact = (lines.alias("f")
   <div class="table-wrap">
     <table class="sample-table">
       <tr><th>RunID</th><th>Step</th><th>Status</th><th>RowsIn</th><th>RowsOut</th><th>RowsRejected</th><th>LoggedAt</th></tr>
-      <tr><td>R0822</td><td>NB_22_SILVER_ORDERS</td><td>SUCCESS</td><td>125,410</td><td>124,980</td><td>430</td><td>02:14</td></tr>
-      <tr><td>R0822</td><td>NB_30_DIM_CUSTOMER_SCD2</td><td>SUCCESS</td><td>85,200</td><td>85,231</td><td>0</td><td>02:16</td></tr>
-      <tr><td>R0822</td><td>NB_40_FACT_SALES</td><td>SUCCESS</td><td>124,980</td><td>124,980</td><td>0</td><td>02:19</td></tr>
+      <tr><td>R0822</td><td>nb_sales_silver_transform_orders</td><td>SUCCESS</td><td>125,410</td><td>124,980</td><td>430</td><td>02:14</td></tr>
+      <tr><td>R0822</td><td>nb_sales_gold_build_dim_customer</td><td>SUCCESS</td><td>85,200</td><td>85,231</td><td>0</td><td>02:16</td></tr>
+      <tr><td>R0822</td><td>nb_sales_gold_build_fact_sales</td><td>SUCCESS</td><td>124,980</td><td>124,980</td><td>0</td><td>02:19</td></tr>
     </table>
   </div>
 

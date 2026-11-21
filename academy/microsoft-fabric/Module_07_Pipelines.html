@@ -996,10 +996,10 @@ FROM stg.Orders</code></pre>
   <div class="canvas">
     <div class="canvas-row">
       <div class="act act-ctl">ForEach Source system</div><div class="flow-arrow">→</div>
-      <div class="act act-pl">Invoke pl_load_system<small>SystemName = @item().Name</small></div>
+      <div class="act act-pl">Invoke pl_sales_load_system<small>SystemName = @item().Name</small></div>
     </div>
     <div class="canvas-row" style="margin-top:8px">
-      <div style="color:#d0dde8;font-size:0.75rem;font-weight:700">pl_load_system:</div>
+      <div style="color:#d0dde8;font-size:0.75rem;font-weight:700">pl_sales_load_system:</div>
       <div class="act act-ctl">Lookup tables for SystemName</div><div class="flow-arrow">→</div>
       <div class="act act-ctl">ForEach Table</div><div class="flow-arrow">→</div>
       <div class="act act-copy">Copy</div>
@@ -1138,10 +1138,10 @@ VALUES ('@{pipeline().RunId}', '@{pipeline().Pipeline}', '@{item().TableName}',
   <p>Build small pipelines that each do one job, and a parent that calls them:</p>
   <div class="canvas">
     <div class="canvas-row">
-      <div class="act act-pl">pl_master</div><div class="flow-arrow">→</div>
-      <div class="act act-pl">Invoke pl_ingest_bronze</div><div class="flow-arrow">→</div>
-      <div class="act act-pl">Invoke pl_build_silver</div><div class="flow-arrow">→</div>
-      <div class="act act-pl">Invoke pl_build_gold</div><div class="flow-arrow">→</div>
+      <div class="act act-pl">pl_sales_master_daily</div><div class="flow-arrow">→</div>
+      <div class="act act-pl">Invoke pl_sales_ingest_bronze</div><div class="flow-arrow">→</div>
+      <div class="act act-pl">Invoke pl_sales_build_silver</div><div class="flow-arrow">→</div>
+      <div class="act act-pl">Invoke pl_sales_build_gold</div><div class="flow-arrow">→</div>
       <div class="act act-sp">Semantic model refresh</div>
     </div>
   </div>
@@ -1176,10 +1176,10 @@ VALUES ('@{pipeline().RunId}', '@{pipeline().Pipeline}', '@{item().TableName}',
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Create a notebook with a parameter cell (<code>table_name</code>, <code>load_date</code>) that counts rows and exits with JSON.</li>
+    <li>Create a notebook <code>nb_sales_util_row_count</code> with a parameter cell (<code>table_name</code>, <code>load_date</code>) that counts rows and exits with JSON.</li>
     <li>Call it from a pipeline, pass both parameters, and set a variable to the <code>rows_out</code> value from the exit JSON.</li>
     <li>Make the notebook raise an exception when the count is 0; confirm the activity fails.</li>
-    <li>Split your pipeline into pl_master + two children with Invoke pipeline; pass LoadDate through.</li>
+    <li>Split your pipeline into pl_sales_master_daily + two children with Invoke pipeline; pass LoadDate through.</li>
   </ol>
 
   <div class="callout-interview">A Notebook activity passes values through base parameters that override the notebook's parameter cell, and the notebook returns a value with notebookutils.notebook.exit — ideally a JSON string read with json(output.result.exitValue). To fail the pipeline, the notebook should raise an exception, not exit. The Stored procedure activity runs one procedure with typed parameters; the Script activity runs any T-SQL and can return result sets. Large workflows are split into parent and child pipelines with Invoke pipeline, which keeps each pipeline testable, avoids nesting limits, isolates variables and can return values to the parent. Other integration activities include Semantic model refresh, Dataflow Gen2, Web, KQL, Teams and Outlook.</div>
@@ -1420,8 +1420,8 @@ Error: @{activity('Copy Table').error.message}</code></pre>
   <h3>Architecture</h3>
   <div class="arch-layers">
     <div class="arch-layer"><div class="arch-layer-num">🗂️</div><div><div class="arch-layer-name">Control</div><div class="arch-layer-desc">ops.PipelineConfig · ops.Watermark · ops.PipelineRunLog</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🎛️</div><div><div class="arch-layer-name">Orchestrate</div><div class="arch-layer-desc">pl_master · pl_ingest_table (child) · pl_transform</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">⚙️</div><div><div class="arch-layer-name">Compute</div><div class="arch-layer-desc">Copy activity · nb_silver_generic · etl.usp_LoadGold</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🎛️</div><div><div class="arch-layer-name">Orchestrate</div><div class="arch-layer-desc">pl_sales_master_daily · pl_sales_ingest_table (child) · pl_sales_transform</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">⚙️</div><div><div class="arch-layer-name">Compute</div><div class="arch-layer-desc">Copy activity · nb_sales_silver_transform_generic · etl.usp_LoadGold</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">💾</div><div><div class="arch-layer-name">Store</div><div class="arch-layer-desc">Bronze Lakehouse · Silver Lakehouse · Gold Warehouse</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">📊</div><div><div class="arch-layer-name">Serve</div><div class="arch-layer-desc">Semantic model · Monitoring report on RunLog</div></div></div>
   </div>
@@ -1454,7 +1454,7 @@ INSERT INTO ops.PipelineConfig VALUES
 INSERT INTO ops.Watermark VALUES
  ('Customers','1900-01-01'), ('Orders','1900-01-01');</code></pre>
 
-  <h3>Step 2 — Child Pipeline <code>pl_ingest_table</code></h3>
+  <h3>Step 2 — Child Pipeline <code>pl_sales_ingest_table</code></h3>
   <p>Parameters: <code>TableName, SourceQuery, LoadType, WatermarkColumn, BatchID</code>. One table, end to end:</p>
   <div class="canvas">
     <div class="canvas-row">
@@ -1482,17 +1482,17 @@ SET WatermarkValue = (SELECT MAX(@{pipeline().parameters.WatermarkColumn})
 WHERE TableName = '@{pipeline().parameters.TableName}';</code></pre>
   <div class="callout-tip">Taking the new watermark from the <em>loaded</em> data (MAX of the column in Bronze) rather than from <code>utcNow()</code> means rows modified while the copy was running aren't skipped.</div>
 
-  <h3>Step 3 — Master Pipeline <code>pl_master</code></h3>
+  <h3>Step 3 — Master Pipeline <code>pl_sales_master_daily</code></h3>
   <div class="canvas">
     <div class="canvas-row">
       <div class="act act-ctl">Set BatchID</div><div class="flow-arrow">→</div>
       <div class="act act-ctl">Lookup config<small>IsActive = 1 ORDER BY LoadOrder</small></div><div class="flow-arrow">→</div>
       <div class="act act-ctl">ForEach (batch 4)</div><div class="flow-arrow">→ inside →</div>
-      <div class="act act-pl">Invoke pl_ingest_table<small>@item().* + BatchID</small></div>
+      <div class="act act-pl">Invoke pl_sales_ingest_table<small>@item().* + BatchID</small></div>
     </div>
     <div class="canvas-row" style="margin-top:10px">
       <span class="edge-ok">ForEach success →</span>
-      <div class="act act-nb">nb_silver_generic</div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_silver_transform_generic</div><div class="flow-arrow">→</div>
       <div class="act act-sp">usp_LoadGold</div><div class="flow-arrow">→</div>
       <div class="act act-sp">Semantic model refresh</div><div class="flow-arrow">→</div>
       <div class="act act-ok">Teams: ✅ summary</div>
@@ -1508,7 +1508,7 @@ WHERE TableName = '@{pipeline().parameters.TableName}';</code></pre>
 
   <h3>Step 4 — Schedule, Concurrency, Monitoring Report</h3>
   <ul class="checklist">
-    <li>Schedule <code>pl_master</code> daily at 02:00 local time; concurrency 1</li>
+    <li>Schedule <code>pl_sales_master_daily</code> daily at 02:00 local time; concurrency 1</li>
     <li>Build a small Power BI page on <code>ops.PipelineRunLog</code>: runs per day, failures, rows loaded, duration per table</li>
     <li>Add a table to the load: insert a config row (and a watermark row if incremental). No pipeline change.</li>
   </ul>
