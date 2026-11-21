@@ -1,0 +1,572 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Understand agent architecture, tools, memory, multi-step workflows and human approval. Build bounded agents that can act safely inside n8n."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI Agents — Chapter 19 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src svg{width:100%;height:auto;display:block}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">AI Agents</div>
+<div class="brand-sub">Chapter 19 · 17 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning outcomes</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">19.1</span>What is an AI agent?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">19.2</span>AI agent architecture</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">19.3</span>AI Agent Node</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">19.4</span>AI tools</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">19.5</span>Agent memory</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">19.6</span>Short-term memory</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">19.7</span>Long-term memory</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">19.8</span>Tool calling</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">19.9</span>Multi-step reasoning</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">19.10</span>Human approval workflows</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">19.11</span>AI agent error handling</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">19.12</span>Multi-agent architecture</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">🛠️</span>Practical labs</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">🎯</span>Interview questions and answers</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">✅</span>Chapter completion checklist</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">📚</span>Official learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 5 · Chapter 19</div><h1>AI Agents</h1><p class="page-subtitle">Understand agent architecture, tools, memory, multi-step workflows and human approval. Build bounded agents that can act safely inside n8n.</p><div class="meta-row"><span class="meta-pill">Phase <b>5</b></span><span class="meta-pill">Topics <b>12</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is an AI agent?; AI agent architecture; AI Agent Node; AI tools; Agent memory; Short-term memory; Long-term memory; Tool calling; Multi-step reasoning; Human approval workflows; AI agent error handling; Multi-agent architecture. <br><strong>Before you start:</strong> complete Chapter 18 – LLM Integrations. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning outcomes</h2></div>
+<div class="src"><p>Build a sound conceptual foundation, understand the n8n integration patterns, and design AI workflows that are useful, secure, observable and reliable.</p><div class="grid"><div class="tile"><b>Understand</b><br/>Core AI concepts and architecture.</div><div class="tile"><b>Build</b><br/>Connect models, tools and data.</div><div class="tile"><b>Control</b><br/>Validate outputs and apply human approval.</div><div class="tile"><b>Operate</b><br/>Manage cost, latency, security and failures.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">19.1</div><h2>What is an AI agent?</h2></div>
+<div class="src"><p>An AI agent is a model-driven system that can decide which steps or tools to use to pursue a goal within defined instructions and permissions. Unlike a simple prompt-response call, an agent may select tools, inspect results and continue for multiple steps.</p><p>Agent autonomy should be bounded. Define allowed tools, maximum iterations, timeout, budget and actions that require approval.</p></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">19.2</div><h2>AI agent architecture</h2></div>
+<div class="src"><div class="diagram"><svg aria-label="Agent loop: decide, call a tool, observe the result and continue within limits." role="img" viewbox="0 0 800 150"><defs><marker id="arr" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs><rect fill="#eee8ff" height="68" rx="10" stroke="#8054c8" width="139.6" x="15.0" y="28"></rect><text fill="#32156d" font-size="13" text-anchor="middle" x="84.8" y="68">User goal</text><path d="M156.6 62 H168.6" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="2"></path><rect fill="#e4f5fb" height="68" rx="10" stroke="#8054c8" width="139.6" x="172.6" y="28"></rect><text fill="#32156d" font-size="13" text-anchor="middle" x="242.4" y="68">Agent / LLM</text><path d="M314.2 62 H326.2" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="2"></path><rect fill="#fff3df" height="68" rx="10" stroke="#8054c8" width="139.6" x="330.2" y="28"></rect><text fill="#32156d" font-size="13" text-anchor="middle" x="400.0" y="68">Tool selection</text><path d="M471.8 62 H483.8" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="2"></path><rect fill="#eaf8f1" height="68" rx="10" stroke="#8054c8" width="139.6" x="487.8" y="28"></rect><text fill="#32156d" font-size="13" text-anchor="middle" x="557.6" y="68">Tool execution</text><path d="M629.4 62 H641.4" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="2"></path><rect fill="#eee8ff" height="68" rx="10" stroke="#8054c8" width="139.6" x="645.4" y="28"></rect><text fill="#32156d" font-size="13" text-anchor="middle" x="715.2" y="68">Observe / respond</text><text fill="#586579" font-size="12" text-anchor="middle" x="400" y="130">Agent loop: decide, call a tool, observe the result and continue within limits.</text></svg></div><p>The model proposes tool calls; the orchestration layer executes them and returns results. The model should not be treated as a trusted execution environment. Validate tool inputs and outputs outside the model.</p></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">19.3</div><h2>AI Agent Node</h2></div>
+<div class="src"><p>n8n's AI Agent node coordinates a model with connected tools. Depending on n8n version, agent type and available sub-nodes, configuration can include a chat model, tools, memory and optional output parsing.</p><ol><li>Define a narrow task and agent instructions.</li><li>Connect a supported chat model.</li><li>Attach only the tools required.</li><li>Set iteration/time limits where available.</li><li>Inspect intermediate steps and final output.</li><li>Test with ambiguous, malicious and failure inputs.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">19.4</div><h2>AI tools</h2></div>
+<div class="src"><p>Tools let an agent interact with systems—for example, search a knowledge base, query a database, retrieve a ticket or create a draft. Each tool should have a clear name, description, input schema and permission boundary.</p><div class="warn">A tool description is not a security boundary. Enforce authorization and input validation in the actual workflow/tool implementation.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">19.5</div><h2>Agent memory</h2></div>
+<div class="src"><p>Memory provides context across steps or conversations. It may hold recent messages, summaries or retrieved facts. Memory is not automatically accurate or appropriate to retain forever.</p><ul><li>Define what is stored and why.</li><li>Set retention and deletion policies.</li><li>Separate users/sessions to prevent data leakage.</li><li>Do not store credentials or unnecessary sensitive data.</li><li>Allow users to correct or clear retained context through approved controls.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">19.6</div><h2>Short-term memory</h2></div>
+<div class="src"><p>Short-term memory preserves context within a conversation or agent session. It can help resolve follow-up references but consumes context tokens and may include stale or irrelevant details.</p><p>Use session identifiers consistently, bound history length and summarize older turns when needed. Confirm how the chosen n8n memory component scopes sessions.</p></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">19.7</div><h2>Long-term memory</h2></div>
+<div class="src"><p>Long-term memory persists selected information beyond a single session, often using a database or vector store. It requires governance: consent/notice, purpose limitation, access control, retention, deletion and correction.</p><p>Prefer explicit user-approved facts or curated knowledge over silently storing every conversation. Retrieval should filter by tenant/user and permissions.</p></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">19.8</div><h2>Tool calling</h2></div>
+<div class="src"><p>Tool calling is the model's structured request for an external operation. A workflow/tool implementation receives arguments, validates them, performs the operation and returns a result.</p><ol><li>Define a narrow tool contract.</li><li>Validate types, allowed values and required identifiers.</li><li>Check user authorization independently of the model.</li><li>Apply timeouts and rate limits.</li><li>Return minimal, sanitized results.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">19.9</div><h2>Multi-step reasoning</h2></div>
+<div class="src"><p>An agent may plan a sequence such as search a record, inspect status, prepare a draft and request approval. Each step can fail or return misleading information. Keep steps observable and constrain the loop.</p><p>For predictable business processes, explicit n8n branches and sub-workflows may be safer than giving an agent broad autonomy.</p></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">19.10</div><h2>Human approval workflows</h2></div>
+<div class="src"><p>Require approval before high-impact or irreversible actions such as sending external communications, changing production records, issuing refunds, deleting files or modifying access.</p><ol><li>Agent prepares a proposed action.</li><li>Workflow displays the proposed payload and evidence.</li><li>Approver accepts, rejects or edits.</li><li>Workflow checks approval identity and expiry.</li><li>Only then does a restricted action node execute.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">19.11</div><h2>AI agent error handling</h2></div>
+<div class="src"><p>Common failures include tool timeouts, invalid arguments, missing permissions, empty retrieval, model refusal, iteration exhaustion and malformed output.</p><ul><li>Set maximum iterations and execution time.</li><li>Validate tool schemas and outputs.</li><li>Retry transient errors only when safe.</li><li>Use idempotency keys for writes.</li><li>Provide a graceful fallback to a person or deterministic workflow.</li><li>Log tool name, sanitized arguments, outcome and correlation ID.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">19.12</div><h2>Multi-agent architecture</h2></div>
+<div class="src"><p>A multi-agent design divides work among specialized agents, such as a researcher, analyst and reviewer. It can improve separation of concerns but increases orchestration complexity, latency, cost and failure modes.</p><p>Use it only when a single agent or deterministic workflow cannot meet the requirement. Define agent responsibilities, shared data contracts, termination conditions and conflict resolution.</p></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical labs</h2></div>
+<div class="src"><h3>Lab 1 – Read-only knowledge agent</h3><ol><li>Create a small approved knowledge source.</li><li>Configure an agent with a read-only search tool.</li><li>Ask questions answerable from the source.</li><li>Require citations or document references in the response.</li><li>Test questions outside the knowledge base and ensure the agent admits uncertainty.</li></ol><h3>Lab 2 – Human approval before ticket update</h3><ol><li>Provide the agent a read-only ticket lookup tool.</li><li>Ask it to propose a ticket priority or description update.</li><li>Send proposed changes to an approval step.</li><li>Execute the update only after explicit approval.</li><li>Record approver, decision and resulting ticket ID.</li></ol><h3>Lab 3 – Failure testing</h3><ol><li>Simulate tool timeout, invalid arguments and permission denial.</li><li>Set maximum iterations and a bounded timeout.</li><li>Ensure failures route to a safe fallback.</li><li>Verify no duplicate write occurs after retry.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Interview questions and answers</h2></div>
+<div class="src"><ol><li><b>What is an AI agent?</b><br/>A model-driven system that selects and uses tools to pursue a goal within instructions and constraints.</li><li><b>How does an agent differ from a simple LLM call?</b><br/>An agent can choose tools and perform iterative actions rather than only returning one response.</li><li><b>What is the AI Agent node?</b><br/>An n8n node that orchestrates a model with connected tools and optional memory.</li><li><b>What is a tool?</b><br/>A callable capability such as search, database lookup or ticket creation exposed to an agent.</li><li><b>Why validate tool arguments?</b><br/>Model-generated arguments can be invalid, unsafe or unauthorized.</li><li><b>What is short-term memory?</b><br/>Context retained during a conversation or agent session.</li><li><b>What is long-term memory?</b><br/>Selected information persisted across sessions, often in a database or vector store.</li><li><b>What is tool calling?</b><br/>A model's structured request to invoke an external function/tool.</li><li><b>Why limit agent iterations?</b><br/>To prevent unbounded loops, excessive cost and long-running executions.</li><li><b>When is human approval required?</b><br/>Before consequential, irreversible, external or privileged actions.</li><li><b>How do you prevent duplicate tool writes?</b><br/>Use idempotency keys, stable request IDs and safe retry design.</li><li><b>When use multi-agent architecture?</b><br/>When distinct specialized roles provide enough benefit to justify extra orchestration and cost.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Chapter completion checklist</h2></div>
+<div class="src"><ul class="check"><li>What is an AI agent?</li><li>AI agent architecture</li><li>AI Agent Node</li><li>AI tools</li><li>Agent memory</li><li>Short-term memory</li><li>Long-term memory</li><li>Tool calling</li><li>Multi-step reasoning</li><li>Human approval workflows</li><li>AI agent error handling</li><li>Multi-agent architecture</li><li>I completed the practical labs and can explain security, limitations and failure handling.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official learning resources</h2></div>
+<div class="src"><ul><li><a href="https://docs.n8n.io/advanced-ai/agent/" rel="noopener" target="_blank">n8n AI Agent documentation</a></li><li><a href="https://docs.n8n.io/advanced-ai/" rel="noopener" target="_blank">n8n human fallback / workflow patterns</a></li><li><a href="https://docs.n8n.io/advanced-ai/" rel="noopener" target="_blank">n8n tools documentation</a></li><li><a href="https://owasp.org/www-project-top-10-for-large-language-model-applications/" rel="noopener" target="_blank">OWASP Top 10 for LLM Applications</a></li></ul><p class="small">n8n AI features, node names and supported model providers evolve. Verify the exact configuration in the documentation for your installed n8n version and provider account.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_18_LLM_Integrations.html"><span class="mn-label">← Previous</span><span class="mn-title">LLM Integrations</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_20_LangChain_and_n8n.html"><span class="mn-label">Next →</span><span class="mn-title">LangChain &amp; n8n</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

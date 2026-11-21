@@ -1,0 +1,860 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Learn how n8n communicates with external applications and services using HTTP and REST APIs. This chapter moves from API fundamentals to authenticated, paginated, resilient API workflows."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>API Integration — Chapter 12 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .diagram .diagram svg{width:100%;height:auto;display:block}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">API Integration</div>
+<div class="brand-sub">Chapter 12 · 23 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning outcomes</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">12.1</span>What is an API?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">12.2</span>REST API fundamentals</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">12.3</span>HTTP methods</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">12.4</span>HTTP Request node</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">12.5</span>Request headers</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">12.6</span>Query parameters</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">12.7</span>Request body</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">12.8</span>API responses</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">12.9</span>HTTP status codes</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">12.10</span>Pagination</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">12.11</span>Rate limiting</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">12.12</span>API retries</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">12.13</span>API authentication</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">12.14</span>OAuth 2.0</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">12.15</span>Bearer tokens</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">12.16</span>API keys</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">🛠️</span>Practical labs</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">📐</span>Production-ready API workflow pattern</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">🔧</span>Troubleshooting guide</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">🎯</span>Interview questions and answers</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">✅</span>Chapter completion checklist</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">📚</span>Official learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 3 · Chapter 12</div><h1>API Integration</h1><p class="page-subtitle">Learn how n8n communicates with external applications and services using HTTP and REST APIs. This chapter moves from API fundamentals to authenticated, paginated, resilient API workflows.</p><div class="meta-row"><span class="meta-pill">Phase <b>3</b></span><span class="meta-pill">Topics <b>16</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is an API?; REST API fundamentals; HTTP methods: GET, POST, PUT, PATCH, DELETE; HTTP Request Node; Request headers; Query parameters; Request body; API responses; Status codes; Pagination; Rate limiting; API retries; API authentication; OAuth 2.0; Bearer tokens; API keys. <br><strong>Before you start:</strong> complete Chapter 11 – JavaScript Programming in n8n. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning outcomes</h2></div>
+<div class="src"><p>By the end of this chapter, you should be able to design an n8n workflow that calls an external REST API, sends parameters and JSON data, interprets responses, authenticates securely, handles pagination and rate limits, and recovers from temporary failures.</p>
+<div class="grid">
+<div class="tile"><b>Understand</b><br/>APIs, REST, HTTP methods and status codes.</div>
+<div class="tile"><b>Build</b><br/>HTTP Request workflows with headers, query parameters and bodies.</div>
+<div class="tile"><b>Secure</b><br/>API keys, bearer tokens and OAuth 2.0 credentials.</div>
+<div class="tile"><b>Harden</b><br/>Pagination, retries, rate limits and error handling.</div>
+</div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">12.1</div><h2>What is an API?</h2></div>
+<div class="src"><p>An <b>Application Programming Interface (API)</b> is a defined way for one software system to request data or actions from another system. It exposes a controlled set of operations without requiring the caller to know the internal implementation.</p>
+<p>For example, an order-management system may expose an API that lets n8n retrieve orders, create a customer, or update an order status. n8n acts as the client; the external application hosts the API.</p>
+<div class="diagram"><svg aria-label="API request and response diagram" role="img" viewbox="0 0 820 190">
+<defs><marker id="arr" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="92" rx="12" stroke="#8054c8" width="190" x="20" y="45"></rect><text fill="#32156d" font-size="18" font-weight="bold" text-anchor="middle" x="115" y="82">n8n workflow</text><text fill="#32156d" font-size="13" text-anchor="middle" x="115" y="108">API client</text>
+<rect fill="#e4f5fb" height="92" rx="12" stroke="#1595b4" width="190" x="315" y="45"></rect><text fill="#07566b" font-size="18" font-weight="bold" text-anchor="middle" x="410" y="82">API endpoint</text><text fill="#07566b" font-size="13" text-anchor="middle" x="410" y="108">Contract / routes</text>
+<rect fill="#eaf8f1" height="92" rx="12" stroke="#15966a" width="190" x="610" y="45"></rect><text fill="#07583f" font-size="18" font-weight="bold" text-anchor="middle" x="705" y="82">Application</text><text fill="#07583f" font-size="13" text-anchor="middle" x="705" y="108">Data / business logic</text>
+<path d="M210 72 H305" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="3"></path><text fill="#51328c" font-size="12" text-anchor="middle" x="257" y="60">HTTP request</text>
+<path d="M505 72 H600" marker-end="url(#arr)" stroke="#6d42bd" stroke-width="3"></path><text fill="#51328c" font-size="12" text-anchor="middle" x="552" y="60">Process</text>
+<path d="M600 118 H505" marker-end="url(#arr)" stroke="#15966a" stroke-width="2"></path><path d="M305 118 H210" marker-end="url(#arr)" stroke="#15966a" stroke-width="2"></path><text fill="#087f5b" font-size="13" text-anchor="middle" x="410" y="165">HTTP response: status + headers + data</text>
+</svg></div>
+<h3>API example</h3>
+<p>Imagine a service provides this endpoint:</p><pre>GET https://api.example.com/v1/customers/1001</pre>
+<p>The API may return a JSON representation of customer 1001. The exact URL, fields, authentication and allowed operations are defined by that service's API documentation.</p>
+<h3>Why APIs matter in n8n</h3>
+<ul><li>Connect SaaS applications that do not have a dedicated n8n node.</li><li>Read from or write to databases and business platforms through their APIs.</li><li>Combine information from multiple systems into one workflow.</li><li>Automate actions such as creating tickets, updating CRM records or sending notifications.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">12.2</div><h2>REST API fundamentals</h2></div>
+<div class="src"><p><b>REST</b> (Representational State Transfer) is an architectural style commonly used to build web APIs. REST APIs typically expose resources through URLs and use standard HTTP methods to operate on those resources.</p>
+<h3>Core concepts</h3>
+<ul><li><b>Resource:</b> the thing being accessed, such as customers, orders or invoices.</li><li><b>Endpoint:</b> the URL through which a resource or operation is accessed.</li><li><b>HTTP method:</b> indicates the intended action.</li><li><b>Representation:</b> the data returned or submitted, often JSON.</li><li><b>Stateless request:</b> each request carries the information required to process it; the server does not rely on hidden client session state for the request.</li></ul>
+<table><tr><th>Endpoint example</th><th>Meaning</th></tr>
+<tr><td><code>/v1/customers</code></td><td>Customer collection</td></tr><tr><td><code>/v1/customers/1001</code></td><td>One customer</td></tr><tr><td><code>/v1/orders?status=open</code></td><td>Orders filtered by status</td></tr><tr><td><code>/v1/orders/5001/items</code></td><td>Items belonging to an order</td></tr></table>
+<div class="note"><b>Important:</b> REST is a design style, not a guarantee that every API behaves identically. Read the provider's API documentation for endpoint paths, required fields, authentication, limits and response formats.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">12.3</div><h2>HTTP methods</h2></div>
+<div class="src"><p>HTTP methods communicate the operation the client wants the server to perform.</p>
+<table><tr><th>Method</th><th>Common purpose</th><th>Example</th><th>Typical behaviour</th></tr>
+<tr><td><b>GET</b></td><td>Read data</td><td><code>GET /customers/1001</code></td><td>Retrieve a resource; should not change server state.</td></tr>
+<tr><td><b>POST</b></td><td>Create or trigger an operation</td><td><code>POST /customers</code></td><td>Submit data; may create a new resource.</td></tr>
+<tr><td><b>PUT</b></td><td>Replace a resource</td><td><code>PUT /customers/1001</code></td><td>Usually sends the complete replacement representation.</td></tr>
+<tr><td><b>PATCH</b></td><td>Partially update a resource</td><td><code>PATCH /customers/1001</code></td><td>Changes selected fields.</td></tr>
+<tr><td><b>DELETE</b></td><td>Delete a resource</td><td><code>DELETE /customers/1001</code></td><td>Requests removal of a resource.</td></tr></table>
+<h3>GET example</h3><pre>GET /v1/orders?status=OPEN
+Accept: application/json</pre>
+<h3>POST example</h3><pre>POST /v1/customers
+Content-Type: application/json
+
+{
+  "name": "Asha Rao",
+  "email": "asha@example.com"
+}</pre>
+<h3>PUT versus PATCH</h3>
+<p>If a customer has name, email and phone fields, a PUT request may require the complete resource representation. A PATCH request may send only the phone field that needs changing. Actual requirements depend on the API.</p>
+<div class="warning"><b>Be careful with write methods.</b> POST, PUT, PATCH and DELETE can modify production data. Test against a sandbox or test record first, and confirm whether repeating a request is safe.</div></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">12.4</div><h2>HTTP Request node</h2></div>
+<div class="src"><p>The <b>HTTP Request</b> node is n8n's general-purpose node for making HTTP requests to external endpoints. It is useful when a service has no dedicated integration node or when you need to call a custom endpoint.</p>
+<h3>Typical configuration process</h3>
+<ol><li>Add an HTTP Request node to the workflow.</li><li>Select the HTTP method.</li><li>Enter the endpoint URL.</li><li>Choose or configure authentication.</li><li>Add headers, query parameters and a body if required.</li><li>Configure response handling and options as needed.</li><li>Execute with a safe test request and inspect the output.</li></ol>
+<div class="diagram"><svg aria-label="HTTP Request node configuration flow" role="img" viewbox="0 0 820 250">
+<defs><marker id="arr2" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="58" rx="9" stroke="#8054c8" width="175" x="20" y="20"></rect><text fill="#32156d" font-size="15" text-anchor="middle" x="107" y="55">Method + URL</text>
+<rect fill="#e4f5fb" height="58" rx="9" stroke="#1595b4" width="175" x="225" y="20"></rect><text fill="#07566b" font-size="15" text-anchor="middle" x="312" y="55">Authentication</text>
+<rect fill="#fff3df" height="58" rx="9" stroke="#d49b35" width="175" x="430" y="20"></rect><text fill="#80520a" font-size="15" text-anchor="middle" x="517" y="55">Headers / Params</text>
+<rect fill="#eaf8f1" height="58" rx="9" stroke="#15966a" width="165" x="635" y="20"></rect><text fill="#07583f" font-size="15" text-anchor="middle" x="717" y="55">Body (if needed)</text>
+<path d="M195 49 H215 M400 49 H420 M605 49 H625" marker-end="url(#arr2)" stroke="#6d42bd" stroke-width="2"></path>
+<path d="M717 78 V125 H410" fill="none" marker-end="url(#arr2)" stroke="#6d42bd" stroke-width="2"></path>
+<rect fill="#edeef5" height="55" rx="10" stroke="#758097" width="240" x="290" y="125"></rect><text fill="#26344c" font-size="16" font-weight="bold" text-anchor="middle" x="410" y="158">Send HTTP request</text>
+<path d="M410 180 V205" marker-end="url(#arr2)" stroke="#15966a" stroke-width="2"></path>
+<rect fill="#eaf8f1" height="35" rx="8" stroke="#15966a" width="240" x="290" y="207"></rect><text fill="#07583f" font-size="14" text-anchor="middle" x="410" y="230">Response data + status</text>
+</svg></div>
+<h3>Example: retrieve orders</h3>
+<p>Use a GET request to the endpoint specified by your API provider. The following is a documentation-style example, not a live endpoint:</p>
+<pre>Method: GET
+URL: https://api.example.com/v1/orders
+Query parameter: status = OPEN
+Header: Accept = application/json</pre>
+<p>After execution, inspect the node output. Depending on the node settings and API response, you may receive an object, an array of records, or response metadata along with the body.</p>
+<h3>Dynamic values</h3>
+<p>Fields can use n8n expressions. For example, a customer ID from an incoming item might be referenced as:</p>
+<pre>https://api.example.com/v1/customers/{{ $json.customerId }}</pre>
+<p>Ensure the incoming item actually contains <code>customerId</code>. Use the expression editor to select fields and preview evaluated values.</p></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">12.5</div><h2>Request headers</h2></div>
+<div class="src"><p>Headers are key-value metadata sent with an HTTP request. They tell the server how to interpret the request or identify the client.</p>
+<table><tr><th>Header</th><th>Purpose</th><th>Example</th></tr>
+<tr><td><code>Accept</code></td><td>Response formats the client can accept</td><td><code>application/json</code></td></tr>
+<tr><td><code>Content-Type</code></td><td>Format of the request body</td><td><code>application/json</code></td></tr>
+<tr><td><code>Authorization</code></td><td>Authentication credentials or token</td><td><code>Bearer &lt;token&gt;</code></td></tr>
+<tr><td><code> User-Agent</code></td><td>Identifies the calling client (when required)</td><td>Application-specific value</td></tr></table>
+<h3>Example request</h3><pre>GET /v1/customers
+Host: api.example.com
+Accept: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN</pre>
+<p>In n8n, add headers using the HTTP Request node's header parameters or a supported authentication credential. Prefer built-in credential handling for secrets instead of typing tokens directly into workflow fields.</p></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">12.6</div><h2>Query parameters</h2></div>
+<div class="src"><p>Query parameters are values appended to a URL after <code>?</code>. They commonly control filtering, sorting, searching, pagination or optional response fields.</p>
+<pre>GET https://api.example.com/v1/orders?status=OPEN&amp;limit=100</pre>
+<p>Here, <code>status</code> and <code>limit</code> are query parameters. Multiple parameters are separated by <code>&amp;</code>.</p>
+<table><tr><th>Parameter</th><th>Possible meaning</th></tr><tr><td><code>status=OPEN</code></td><td>Return open orders only</td></tr><tr><td><code>limit=100</code></td><td>Return up to 100 records</td></tr><tr><td><code>page=2</code></td><td>Request page 2</td></tr><tr><td><code>sort=createdAt</code></td><td>Sort by creation time, if supported</td></tr></table>
+<p>Configure query parameters in the node's dedicated Query Parameters section rather than manually concatenating strings when possible. This makes expressions and URL encoding easier to manage.</p></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">12.7</div><h2>Request body</h2></div>
+<div class="src"><p>A request body carries data from the client to the API. It is commonly used with POST, PUT and PATCH. Many APIs expect JSON, but some use form data, URL-encoded data, XML or binary content.</p>
+<h3>JSON body example</h3><pre>{
+  "customerId": 1001,
+  "status": "APPROVED",
+  "comment": "Validated by workflow"
+}</pre>
+<h3>Dynamic body values in n8n</h3><pre>{
+  "customerId": "{{ $json.customerId }}",
+  "status": "{{ $json.newStatus }}"
+}</pre>
+<p>When using the expression editor, you can also set individual fields to expressions. Confirm that values are sent with the correct data types: numeric IDs should not accidentally become strings if the API expects numbers.</p>
+<div class="note"><b>Content-Type:</b> For a JSON request body, APIs commonly expect <code>Content-Type: application/json</code>. Follow the API's documentation.</div></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">12.8</div><h2>API responses</h2></div>
+<div class="src"><p>An HTTP response is the server's reply to a request. It generally contains a status code, response headers and (often) a response body.</p>
+<div class="grid">
+<div class="tile"><b>Status code</b><br/>Indicates the outcome category, such as success or client error.</div>
+<div class="tile"><b>Headers</b><br/>Provide metadata such as content type, rate-limit information or pagination links.</div>
+<div class="tile"><b>Body</b><br/>Contains returned data or an error description, often in JSON.</div>
+</div>
+<h3>Example JSON response</h3><pre>{
+  "data": [
+    { "id": 1001, "name": "Asha Rao" },
+    { "id": 1002, "name": "Ravi Kumar" }
+  ],
+  "nextPage": 2
+}</pre>
+<p>In n8n, inspect the HTTP Request node's output to understand its structure. If the API nests records under <code>data</code>, downstream nodes should reference that path rather than assuming the records are at the root.</p></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">12.9</div><h2>HTTP status codes</h2></div>
+<div class="src"><p>Status codes are grouped into classes. These are common examples; an API may define additional application-specific error codes in its response body.</p>
+<table><tr><th>Code</th><th>Meaning</th><th>Typical next step</th></tr>
+<tr><td><b>200 OK</b></td><td>Request succeeded</td><td>Process response.</td></tr>
+<tr><td><b>201 Created</b></td><td>Resource created</td><td>Capture returned ID/location.</td></tr>
+<tr><td><b>202 Accepted</b></td><td>Accepted for asynchronous processing</td><td>Poll a status endpoint if required.</td></tr>
+<tr><td><b>204 No Content</b></td><td>Success with no response body</td><td>Continue without expecting JSON data.</td></tr>
+<tr><td><b>400 Bad Request</b></td><td>Invalid request or payload</td><td>Check endpoint, parameters and body.</td></tr>
+<tr><td><b>401 Unauthorized</b></td><td>Missing or invalid authentication</td><td>Check token, credentials and expiry.</td></tr>
+<tr><td><b>403 Forbidden</b></td><td>Authenticated but not permitted</td><td>Check scopes, roles and permissions.</td></tr>
+<tr><td><b>404 Not Found</b></td><td>Endpoint or resource not found</td><td>Check URL, API version and ID.</td></tr>
+<tr><td><b>409 Conflict</b></td><td>Conflict with current resource state</td><td>Check duplicates or version/state rules.</td></tr>
+<tr><td><b>429 Too Many Requests</b></td><td>Rate limit exceeded</td><td>Wait according to provider guidance.</td></tr>
+<tr><td><b>500 Internal Server Error</b></td><td>Server-side failure</td><td>Retry cautiously; capture details.</td></tr>
+<tr><td><b>502 / 503 / 504</b></td><td>Gateway, service unavailable or timeout</td><td>Retry with backoff when safe.</td></tr></table>
+<div class="warning">A 200 response does not always mean the business operation succeeded. Some APIs return an application-level error inside a 200 response body. Validate both HTTP status and response content where the provider requires it.</div></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">12.10</div><h2>Pagination</h2></div>
+<div class="src"><p>APIs often split large result sets into pages to reduce response size and server load. A workflow must request each page until the API indicates there are no more records.</p>
+<h3>Common pagination patterns</h3>
+<ul><li><b>Page number:</b> <code>?page=1&amp;limit=100</code>, then page 2, 3, and so on.</li><li><b>Offset / limit:</b> <code>?offset=0&amp;limit=100</code>, then offset 100, 200, etc.</li><li><b>Cursor:</b> response provides a next cursor that is sent in the next request.</li><li><b>Next URL:</b> response provides a complete URL or link for the next page.</li></ul>
+<div class="diagram"><svg aria-label="API pagination sequence" role="img" viewbox="0 0 820 190">
+<defs><marker id="arr3" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="75" rx="10" stroke="#8054c8" width="145" x="20" y="35"></rect><text fill="#32156d" font-size="15" text-anchor="middle" x="92" y="65">Request page 1</text><text fill="#32156d" font-size="12" text-anchor="middle" x="92" y="88">cursor / page=1</text>
+<rect fill="#e4f5fb" height="75" rx="10" stroke="#1595b4" width="145" x="225" y="35"></rect><text fill="#07566b" font-size="15" text-anchor="middle" x="297" y="65">Receive page 1</text><text fill="#07566b" font-size="12" text-anchor="middle" x="297" y="88">records + next token</text>
+<rect fill="#fff3df" height="75" rx="10" stroke="#d49b35" width="145" x="430" y="35"></rect><text fill="#80520a" font-size="15" text-anchor="middle" x="502" y="65">Request next page</text><text fill="#80520a" font-size="12" text-anchor="middle" x="502" y="88">use next token</text>
+<rect fill="#eaf8f1" height="75" rx="10" stroke="#15966a" width="165" x="635" y="35"></rect><text fill="#07583f" font-size="15" text-anchor="middle" x="717" y="65">No next page</text><text fill="#07583f" font-size="12" text-anchor="middle" x="717" y="88">finish / combine data</text>
+<path d="M165 72 H215 M370 72 H420 M575 72 H625" marker-end="url(#arr3)" stroke="#6d42bd" stroke-width="2"></path>
+<path d="M502 110 V150 H297 V110" fill="none" marker-end="url(#arr3)" stroke="#1595b4" stroke-dasharray="5 4" stroke-width="2"></path><text fill="#07566b" font-size="12" text-anchor="middle" x="400" y="171">Repeat until the API signals completion</text>
+</svg></div>
+<h3>How to implement in n8n</h3>
+<p>First check whether the HTTP Request node version and the API support built-in pagination options. Configure the pagination parameter or next-page expression according to the provider's response format. If the API uses a custom pattern, build a controlled loop using workflow logic, carrying the next page number or cursor between requests.</p>
+<h3>Page-number example (conceptual)</h3><pre>Initial page = 1
+Page size = 100
+
+Repeat:
+  Call GET /orders?page={{ page }}&amp;limit=100
+  Process or collect returned records
+  If response says another page exists:
+      page = page + 1
+  Else:
+      stop</pre>
+<div class="warning">Avoid infinite pagination loops. Define a reliable stop condition, handle empty pages, and consider a maximum-page safeguard. For cursor APIs, use the exact cursor returned by the server rather than inventing or incrementing one.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">12.11</div><h2>Rate limiting</h2></div>
+<div class="src"><p>Rate limiting restricts how many requests a client can make during a time window. For example, an API may allow 100 requests per minute per account. Limits vary by provider, endpoint, user or application.</p>
+<h3>How to recognize it</h3>
+<ul><li>The API returns HTTP <code>429 Too Many Requests</code>.</li><li>Response headers may include limit, remaining-request or reset-time information.</li><li>The response body may explain the quota or retry delay.</li></ul>
+<h3>Good practices</h3>
+<ul><li>Read the provider's quota documentation.</li><li>Use batching or bulk endpoints when available.</li><li>Reduce unnecessary repeated calls; cache reference data where appropriate.</li><li>Limit concurrency when many items trigger requests.</li><li>Respect <code>Retry-After</code> when provided.</li><li>Use backoff rather than immediately sending another request.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">12.12</div><h2>API retries</h2></div>
+<div class="src"><p>A retry repeats a request after a failure. Retries help with temporary network issues, timeouts and service interruptions, but they must be designed carefully.</p>
+<h3>Exponential backoff</h3>
+<p>Instead of retrying every second, increase the delay between attempts. A simple pattern is 1 second, 2 seconds, 4 seconds, 8 seconds, subject to a maximum delay and maximum attempt count.</p>
+<table><tr><th>Attempt</th><th>Example wait</th></tr><tr><td>1</td><td>1 second</td></tr><tr><td>2</td><td>2 seconds</td></tr><tr><td>3</td><td>4 seconds</td></tr><tr><td>4</td><td>8 seconds</td></tr></table>
+<h3>n8n implementation approaches</h3>
+<ul><li>Use the HTTP Request node's available retry / timeout options where suitable for your n8n version.</li><li>Use an error workflow or controlled loop with a Wait node for custom retry policies.</li><li>Set a maximum number of attempts and route exhausted failures to an alert or error log.</li><li>Capture endpoint, attempt number, status code and error message for diagnosis.</li></ul>
+<div class="warning"><b>Idempotency matters.</b> Repeating a GET is generally safe. Repeating a POST that creates a payment or order could create duplicates unless the API supports an idempotency key or another deduplication mechanism. Do not blindly retry every 4xx or 5xx response.</div></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">12.13</div><h2>API authentication</h2></div>
+<div class="src"><p>Authentication establishes who or what is making the request. Authorization determines what that identity is allowed to do. APIs may use API keys, bearer tokens, OAuth 2.0, basic authentication, signed requests or other mechanisms.</p>
+<h3>Authentication design checklist</h3>
+<ul><li>Identify the exact authentication method required by the provider.</li><li>Use n8n credentials or an approved secret store for sensitive values.</li><li>Request only the permissions needed by the workflow.</li><li>Use HTTPS so credentials are protected in transit.</li><li>Plan for token expiry, rotation and revocation.</li><li>Never expose secrets in workflow names, notes, logs, screenshots or exported examples.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">12.14</div><h2>OAuth 2.0</h2></div>
+<div class="src"><p><b>OAuth 2.0</b> is an authorization framework that lets an application obtain limited access to a resource on behalf of a user or as an application, without asking the workflow to store the user's password.</p>
+<h3>Typical authorization-code flow</h3>
+<ol><li>The user is redirected to the provider's authorization page.</li><li>The user signs in and approves requested permissions (scopes).</li><li>The provider redirects to the registered callback URL with an authorization code.</li><li>The client exchanges the code for an access token, and often a refresh token.</li><li>The client sends the access token when calling protected API endpoints.</li><li>When the access token expires, a refresh flow may obtain a new one.</li></ol>
+<div class="diagram"><svg aria-label="OAuth authorization code flow" role="img" viewbox="0 0 820 260">
+<defs><marker id="arr4" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="58" rx="10" stroke="#8054c8" width="220" x="20" y="20"></rect><text fill="#32156d" font-size="15" text-anchor="middle" x="130" y="55">User / browser</text>
+<rect fill="#e4f5fb" height="58" rx="10" stroke="#1595b4" width="220" x="300" y="20"></rect><text fill="#07566b" font-size="15" text-anchor="middle" x="410" y="55">Authorization server</text>
+<rect fill="#eaf8f1" height="58" rx="10" stroke="#15966a" width="220" x="580" y="20"></rect><text fill="#07583f" font-size="15" text-anchor="middle" x="690" y="55">n8n / client app</text>
+<path d="M240 39 H290" marker-end="url(#arr4)" stroke="#6d42bd" stroke-width="2"></path><text fill="#51328c" font-size="11" text-anchor="middle" x="265" y="29">Authorize</text>
+<path d="M300 68 H250" marker-end="url(#arr4)" stroke="#15966a" stroke-width="2"></path><text fill="#087f5b" font-size="11" text-anchor="middle" x="275" y="91">Sign in / consent</text>
+<path d="M240 110 H690 V88" fill="none" marker-end="url(#arr4)" stroke="#6d42bd" stroke-width="2"></path><text fill="#51328c" font-size="11" text-anchor="middle" x="470" y="104">Authorization code via redirect</text>
+<path d="M690 78 V145 H520" fill="none" marker-end="url(#arr4)" stroke="#6d42bd" stroke-width="2"></path><text fill="#51328c" font-size="11" text-anchor="middle" x="605" y="137">Exchange code for token</text>
+<path d="M520 175 H690 V155" fill="none" marker-end="url(#arr4)" stroke="#15966a" stroke-width="2"></path><text fill="#087f5b" font-size="11" text-anchor="middle" x="605" y="194">Access token (+ refresh token)</text>
+<rect fill="#fff3df" height="42" rx="8" stroke="#d49b35" width="220" x="580" y="210"></rect><text fill="#80520a" font-size="14" text-anchor="middle" x="690" y="236">Call protected API</text>
+<path d="M690 195 V205" marker-end="url(#arr4)" stroke="#6d42bd" stroke-width="2"></path>
+</svg></div>
+<h3>OAuth terms</h3>
+<table><tr><th>Term</th><th>Meaning</th></tr><tr><td>Client</td><td>The application requesting access (for example, an n8n integration).</td></tr><tr><td>Resource owner</td><td>The user or entity that can grant access.</td></tr><tr><td>Authorization server</td><td>Issues tokens after the required authorization process.</td></tr><tr><td>Access token</td><td>Credential used to access protected resources.</td></tr><tr><td>Refresh token</td><td>Credential used to obtain a new access token when supported.</td></tr><tr><td>Scope</td><td>Defines the permissions being requested.</td></tr><tr><td>Redirect URI</td><td>Registered callback destination for the authorization response.</td></tr></table>
+<p>Many n8n integrations support OAuth credential setup. The exact fields and callback URL depend on the node, n8n deployment and provider. Register the callback URL shown by n8n in the provider's developer portal.</p>
+<div class="warning">Treat access and refresh tokens as secrets. Do not manually paste them into Code nodes or workflow data unless there is a carefully controlled, documented reason.</div></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">12.15</div><h2>Bearer tokens</h2></div>
+<div class="src"><p>A bearer token is a credential: whoever possesses it may be able to use the permissions associated with it. It is commonly sent in the HTTP <code>Authorization</code> header.</p>
+<pre>Authorization: Bearer ACCESS_TOKEN_VALUE</pre>
+<p>In n8n, use the appropriate credential or authentication option. If the API specifically requires a bearer token, configure it there rather than hardcoding it in an expression.</p>
+<h3>Security practices</h3>
+<ul><li>Keep tokens out of source code and shared workflow exports.</li><li>Use HTTPS only.</li><li>Grant minimum required scopes.</li><li>Rotate or revoke exposed tokens immediately.</li><li>Do not write full authorization headers to logs.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">12.16</div><h2>API keys</h2></div>
+<div class="src"><p>An API key is a value issued by a provider to identify or authenticate an application. Depending on the provider, it may be sent in a header or as a query parameter.</p>
+<h3>Header-based example</h3><pre>GET /v1/products
+X-API-Key: YOUR_API_KEY</pre>
+<h3>Query-string example</h3><pre>GET https://api.example.com/v1/products?api_key=YOUR_API_KEY</pre>
+<p>Header-based transmission is generally preferable when the provider supports it, because URLs are more likely to appear in logs, browser history and monitoring systems. Always follow the provider's documented method.</p>
+<table><tr><th>API key</th><th>OAuth 2.0</th></tr><tr><td>Often identifies an application or project.</td><td>Provides delegated or application authorization using tokens.</td></tr><tr><td>May be long-lived until rotated or revoked.</td><td>Access tokens are often short-lived; refresh may be supported.</td></tr><tr><td>Permission granularity depends on provider.</td><td>Scopes and consent commonly define access.</td></tr><tr><td>Simple for some service-to-service integrations.</td><td>Useful when access must be granted without sharing a user's password.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical labs</h2></div>
+<div class="src"><h3>Lab 1 – Call a public test API</h3>
+<p>Goal: understand a basic GET request and JSON output. Use a public test service such as JSONPlaceholder, and verify its current documentation and usage guidance before relying on it.</p>
+<ol><li>Create a new n8n workflow and add a Manual Trigger.</li><li>Add an HTTP Request node.</li><li>Set method to GET and use <code>https://jsonplaceholder.typicode.com/posts/1</code>.</li><li>Execute the node and inspect the returned JSON fields.</li><li>Add an Edit Fields node and retain only the fields <code>id</code>, <code>title</code> and <code>userId</code>.</li></ol>
+<h3>Lab 2 – Send a POST request</h3>
+<p>Goal: submit JSON to a test endpoint.</p>
+<ol><li>Use the same test service's posts endpoint: <code>https://jsonplaceholder.typicode.com/posts</code>.</li><li>Choose POST and configure a JSON body with a sample title, body and userId.</li><li>Execute and inspect the response, including the returned ID.</li><li>Remember that public test services may simulate writes rather than persist them.</li></ol>
+<h3>Lab 3 – Handle API errors</h3>
+<ol><li>Call a deliberately invalid test URL or resource.</li><li>Observe the status code and error output.</li><li>Configure the workflow's error handling approach for your n8n version.</li><li>Route failure details to a log or notification, without including credentials.</li></ol>
+<h3>Lab 4 – Design a paginated integration</h3>
+<ol><li>Choose an API with documented pagination.</li><li>Identify its page, offset or cursor mechanism.</li><li>Configure built-in pagination if supported, or construct a controlled loop.</li><li>Stop when the API provides no next page/cursor.</li><li>Test with a small page size and verify no records are skipped or duplicated.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">📐</div><h2>Production-ready API workflow pattern</h2></div>
+<div class="src"><div class="diagram"><svg aria-label="Production API integration workflow" role="img" viewbox="0 0 850 155">
+<defs><marker id="arr5" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<g font-size="13" text-anchor="middle"><rect fill="#eee8ff" height="62" rx="9" stroke="#8054c8" width="125" x="8" y="35"></rect><text fill="#32156d" x="70" y="70">Trigger</text>
+<rect fill="#e4f5fb" height="62" rx="9" stroke="#1595b4" width="125" x="150" y="35"></rect><text fill="#07566b" x="212" y="70">Validate input</text>
+<rect fill="#fff3df" height="62" rx="9" stroke="#d49b35" width="125" x="292" y="35"></rect><text fill="#80520a" x="354" y="70">HTTP Request</text>
+<rect fill="#eaf8f1" height="62" rx="9" stroke="#15966a" width="125" x="434" y="35"></rect><text fill="#07583f" x="496" y="70">Validate response</text>
+<rect fill="#eee8ff" height="62" rx="9" stroke="#8054c8" width="125" x="576" y="35"></rect><text fill="#32156d" x="638" y="70">Transform data</text>
+<rect fill="#e4f5fb" height="62" rx="9" stroke="#1595b4" width="125" x="718" y="35"></rect><text fill="#07566b" x="780" y="70">Load / notify</text></g>
+<g marker-end="url(#arr5)" stroke="#6d42bd" stroke-width="2"><path d="M133 66 H145"></path><path d="M275 66 H287"></path><path d="M417 66 H429"></path><path d="M559 66 H571"></path><path d="M701 66 H713"></path></g>
+<text fill="#586579" font-size="12" text-anchor="middle" x="425" y="132">Add bounded retries, rate-limit handling, observability and a safe error path around the request.</text></svg></div>
+<h3>Recommended operational controls</h3>
+<ul><li>Set sensible timeouts and bounded retry counts.</li><li>Respect rate limits and provider retry guidance.</li><li>Validate response shape before downstream processing.</li><li>Log request correlation IDs and non-sensitive error details.</li><li>Protect credentials and restrict who can edit or execute workflows.</li><li>Use idempotency or deduplication for operations that create or update records.</li><li>Monitor workflow failures, duration, record counts and API quota usage.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">🔧</div><h2>Troubleshooting guide</h2></div>
+<div class="src"><table><tr><th>Symptom</th><th>Likely cause</th><th>What to check</th></tr>
+<tr><td>401 Unauthorized</td><td>Missing, invalid or expired credential</td><td>Credential selection, token expiry, header format and environment.</td></tr>
+<tr><td>403 Forbidden</td><td>Insufficient permissions</td><td>Scopes, role assignments, tenant and resource permissions.</td></tr>
+<tr><td>404 Not Found</td><td>Wrong URL or resource ID</td><td>Base URL, API version, path, spelling and ID.</td></tr>
+<tr><td>400 Bad Request</td><td>Invalid parameters or body</td><td>Required fields, data types, JSON structure and encoding.</td></tr>
+<tr><td>415 Unsupported Media Type</td><td>Incorrect body content type</td><td>Content-Type and actual body format.</td></tr>
+<tr><td>429 Too Many Requests</td><td>Quota exceeded</td><td>Rate limit headers, Retry-After, concurrency and request volume.</td></tr>
+<tr><td>Request timeout</td><td>Slow API, network or large response</td><td>Timeout, response size, endpoint performance and pagination.</td></tr>
+<tr><td>Duplicate records</td><td>Retry or workflow replay repeated a write</td><td>Idempotency key, unique business key and deduplication logic.</td></tr>
+<tr><td>Missing records</td><td>Pagination or filtering issue</td><td>Next-page logic, cursor persistence, filters and page size.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Interview questions and answers</h2></div>
+<div class="src"><ol>
+<li><b>What is an API?</b><br/>An interface that allows software systems to exchange data or invoke operations through a defined contract.</li>
+<li><b>What is a REST API?</b><br/>An API designed around resource-oriented URLs and standard HTTP semantics, commonly returning JSON.</li>
+<li><b>What is the difference between GET and POST?</b><br/>GET retrieves data; POST submits data, often to create a resource or initiate an operation.</li>
+<li><b>PUT versus PATCH?</b><br/>PUT commonly replaces a resource representation; PATCH applies partial changes.</li>
+<li><b>What is an endpoint?</b><br/>A URL identifying an API resource or operation.</li>
+<li><b>What are HTTP headers?</b><br/>Metadata sent with a request or response, such as content type and authorization.</li>
+<li><b>What are query parameters?</b><br/>URL parameters commonly used for filtering, sorting and pagination.</li>
+<li><b>What is a request body?</b><br/>The payload sent to an API, often JSON for create or update operations.</li>
+<li><b>What does HTTP 201 mean?</b><br/>The request succeeded and a resource was created.</li>
+<li><b>What is the difference between 401 and 403?</b><br/>401 indicates missing or invalid authentication; 403 indicates the caller is not permitted to perform the operation.</li>
+<li><b>What does 429 mean?</b><br/>The client exceeded a rate limit or request quota.</li>
+<li><b>What is pagination?</b><br/>Retrieving a large result set in smaller pages or cursor-based segments.</li>
+<li><b>What is cursor pagination?</b><br/>The API returns a cursor that identifies where the next request should continue.</li>
+<li><b>What is rate limiting?</b><br/>A restriction on request volume during a defined time window.</li>
+<li><b>What is exponential backoff?</b><br/>A retry strategy that increases the delay between successive attempts.</li>
+<li><b>Why should POST retries be treated carefully?</b><br/>Repeated requests may create duplicate resources or repeat a business action.</li>
+<li><b>What is idempotency?</b><br/>A property where repeating the same operation has the same intended effect as performing it once.</li>
+<li><b>What is OAuth 2.0?</b><br/>An authorization framework for granting limited access using tokens rather than sharing a user's password with the client.</li>
+<li><b>What is a bearer token?</b><br/>A token whose possession grants the permissions associated with it.</li>
+<li><b>What is an API key?</b><br/>A provider-issued key used to identify or authenticate an application or project.</li>
+<li><b>Where should API secrets be stored in n8n?</b><br/>In n8n credentials or an approved secret-management mechanism, not hardcoded in workflow logic.</li>
+<li><b>What is the HTTP Request node used for?</b><br/>Making configurable HTTP calls to APIs and web services from a workflow.</li>
+<li><b>How do you handle an API returning 429?</b><br/>Respect the provider's retry guidance, wait as directed, reduce request volume and retry with bounded backoff.</li>
+<li><b>How would you design a reliable API integration?</b><br/>Use secure credentials, validation, pagination, rate-limit handling, bounded retries, idempotency, logging and monitoring.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Chapter completion checklist</h2></div>
+<div class="src"><ul class="check">
+<li>I can explain what an API and REST API are.</li><li>I understand GET, POST, PUT, PATCH and DELETE.</li><li>I can configure the HTTP Request node.</li><li>I can add headers, query parameters and JSON request bodies.</li><li>I can inspect and validate API responses.</li><li>I understand common HTTP status codes.</li><li>I can explain and configure pagination for a documented API.</li><li>I understand rate limits and HTTP 429 responses.</li><li>I can design bounded retries with backoff.</li><li>I can explain API keys, bearer tokens and OAuth 2.0.</li><li>I know how to protect credentials and avoid duplicate writes.</li><li>I have completed at least two practical labs.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official learning resources</h2></div>
+<div class="src"><ul>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/" rel="noopener" target="_blank">n8n – HTTP Request node documentation</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/credentials/" rel="noopener" target="_blank">n8n – Credentials documentation</a></li>
+<li><a href="https://docs.n8n.io/flow-logic/error-handling/" rel="noopener" target="_blank">n8n – Error handling</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods" rel="noopener" target="_blank">MDN – HTTP request methods</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status" rel="noopener" target="_blank">MDN – HTTP response status codes</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noopener" target="_blank">RFC 9110 – HTTP Semantics</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6749" rel="noopener" target="_blank">RFC 6749 – OAuth 2.0 Authorization Framework</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6750" rel="noopener" target="_blank">RFC 6750 – OAuth 2.0 Bearer Token Usage</a></li>
+</ul>
+<p class="small">Note: n8n's interface and node options can change between releases. Use the documentation for the version deployed in your environment. API endpoint examples in this manual are illustrative unless explicitly identified as public test endpoints.</p>
+<footer>n8n Complete Course · Chapter 12: API Integration</footer></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_11_JavaScript_Programming_in_n8n.html"><span class="mn-label">← Previous</span><span class="mn-title">JavaScript Programming in n8n</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_13_Webhooks.html"><span class="mn-label">Next →</span><span class="mn-title">Webhooks</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

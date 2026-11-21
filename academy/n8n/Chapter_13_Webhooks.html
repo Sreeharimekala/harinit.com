@@ -1,0 +1,771 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Build event-driven workflows that can receive information from websites, applications and external systems. Learn webhook URLs, test and production modes, payload handling, responses, authentication and security."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Webhooks — Chapter 13 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .diagram .diagram svg{width:100%;height:auto;display:block}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">Webhooks</div>
+<div class="brand-sub">Chapter 13 · 16 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning outcomes</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">13.1</span>What is a webhook?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">13.2</span>Webhook architecture</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">13.3</span>Webhook Trigger Node</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">13.4</span>Production vs test webhook URLs</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">13.5</span>GET and POST webhooks</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">13.6</span>Webhook authentication</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">13.7</span>Receiving JSON payloads</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">13.8</span>Sending webhook responses</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">13.9</span>Webhook integrations</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">13.10</span>Webhook security</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">🛠️</span>Practical labs</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">🔧</span>Troubleshooting guide</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">🎯</span>Interview questions and answers</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">✅</span>Chapter completion checklist</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">📚</span>Official learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 3 · Chapter 13</div><h1>Webhooks</h1><p class="page-subtitle">Build event-driven workflows that can receive information from websites, applications and external systems. Learn webhook URLs, test and production modes, payload handling, responses, authentication and security.</p><div class="meta-row"><span class="meta-pill">Phase <b>3</b></span><span class="meta-pill">Topics <b>10</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is a webhook?; Webhook architecture; Webhook Trigger Node; Production vs test webhook URLs; GET and POST webhooks; Webhook authentication; Receiving JSON payloads; Sending webhook responses; Webhook integrations; Webhook security. <br><strong>Before you start:</strong> complete Chapter 12 – API Integration. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning outcomes</h2></div>
+<div class="src"><p>By the end of this chapter, you should be able to create an n8n webhook endpoint, understand how an external system calls it, receive and inspect JSON payloads, return a response, connect applications and apply practical security controls.</p>
+<div class="grid">
+<div class="tile"><b>Understand</b><br/>Webhook concepts, architecture and event-driven integration.</div>
+<div class="tile"><b>Configure</b><br/>Webhook Trigger, HTTP methods and test/production URLs.</div>
+<div class="tile"><b>Process</b><br/>JSON payloads, request data and webhook responses.</div>
+<div class="tile"><b>Protect</b><br/>Authentication, HTTPS, validation and abuse prevention.</div>
+</div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">13.1</div><h2>What is a webhook?</h2></div>
+<div class="src"><p>A <b>webhook</b> is a mechanism through which one application sends an HTTP request to another application when a particular event occurs. Instead of repeatedly asking an application whether something has changed, the receiving system waits for an event notification.</p>
+<p>In n8n, a Webhook Trigger node creates an endpoint URL. An external application sends a request to that URL, and the request can start a workflow.</p>
+<h3>Example</h3>
+<p>When a customer submits a website contact form, the website sends the form data to an n8n webhook. n8n can validate the data, save the lead, notify a sales team and send a confirmation response.</p>
+<div class="diagram"><svg aria-label="Webhook event flow" role="img" viewbox="0 0 820 190">
+<defs><marker id="a" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="90" rx="12" stroke="#8054c8" width="190" x="20" y="45"></rect><text fill="#32156d" font-size="17" font-weight="bold" text-anchor="middle" x="115" y="80">Source app</text><text fill="#32156d" font-size="13" text-anchor="middle" x="115" y="106">Event occurs</text>
+<rect fill="#e4f5fb" height="90" rx="12" stroke="#1595b4" width="190" x="315" y="45"></rect><text fill="#07566b" font-size="17" font-weight="bold" text-anchor="middle" x="410" y="80">n8n webhook</text><text fill="#07566b" font-size="13" text-anchor="middle" x="410" y="106">Receives HTTP request</text>
+<rect fill="#eaf8f1" height="90" rx="12" stroke="#15966a" width="190" x="610" y="45"></rect><text fill="#07583f" font-size="17" font-weight="bold" text-anchor="middle" x="705" y="80">Workflow</text><text fill="#07583f" font-size="13" text-anchor="middle" x="705" y="106">Processes event</text>
+<path d="M210 90 H305 M505 90 H600" marker-end="url(#a)" stroke="#6d42bd" stroke-width="3"></path><text fill="#51328c" font-size="12" text-anchor="middle" x="257" y="75">HTTP request</text><text fill="#51328c" font-size="12" text-anchor="middle" x="552" y="75">Trigger</text>
+<path d="M410 135 V163 H115 V135" fill="none" marker-end="url(#a)" stroke="#15966a" stroke-width="2"></path><text fill="#087f5b" font-size="12" text-anchor="middle" x="260" y="181">Optional HTTP response to source app</text>
+</svg></div>
+<h3>Webhook vs polling</h3>
+<table><tr><th>Webhook</th><th>Polling</th></tr><tr><td>Source sends a request when an event occurs.</td><td>Client repeatedly asks the source whether data changed.</td></tr><tr><td>Often near real-time and avoids repeated checks.</td><td>May introduce delay and unnecessary API calls.</td></tr><tr><td>Requires a reachable and secured endpoint.</td><td>Requires scheduled requests and state tracking.</td></tr></table>
+<div class="note"><b>Remember:</b> A webhook is usually an event notification delivered over HTTP. It is not the same as a workflow polling an API on a schedule.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">13.2</div><h2>Webhook architecture</h2></div>
+<div class="src"><p>A typical webhook integration has a sender, an HTTP endpoint, a receiver and a response. The sender and receiver agree on the endpoint URL, HTTP method, payload format and any authentication or signature requirements.</p>
+<h3>Request lifecycle</h3>
+<ol><li>An event occurs in the source application.</li><li>The source sends an HTTP request to the webhook URL.</li><li>n8n receives the request and starts the workflow.</li><li>The workflow validates and processes the incoming data.</li><li>n8n returns an HTTP response according to the webhook response configuration.</li></ol>
+<div class="diagram"><svg aria-label="Webhook architecture request response" role="img" viewbox="0 0 850 245">
+<defs><marker id="b" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<rect fill="#eee8ff" height="62" rx="10" stroke="#8054c8" width="220" x="20" y="22"></rect><text fill="#32156d" font-size="16" text-anchor="middle" x="130" y="59">External application</text>
+<rect fill="#e4f5fb" height="62" rx="10" stroke="#1595b4" width="220" x="315" y="22"></rect><text fill="#07566b" font-size="16" text-anchor="middle" x="425" y="59">Webhook URL</text>
+<rect fill="#eaf8f1" height="62" rx="10" stroke="#15966a" width="220" x="610" y="22"></rect><text fill="#07583f" font-size="16" text-anchor="middle" x="720" y="59">n8n workflow</text>
+<path d="M240 53 H305 M535 53 H600" marker-end="url(#b)" stroke="#6d42bd" stroke-width="2.5"></path>
+<rect fill="#fff3df" height="62" rx="10" stroke="#d49b35" width="220" x="610" y="135"></rect><text fill="#80520a" font-size="15" text-anchor="middle" x="720" y="172">Validate / process</text>
+<path d="M720 84 V125" marker-end="url(#b)" stroke="#6d42bd" stroke-width="2.5"></path>
+<path d="M610 166 H425 V95" fill="none" marker-end="url(#b)" stroke="#15966a" stroke-dasharray="5 4" stroke-width="2"></path>
+<path d="M315 53 H130 V12" fill="none" stroke="#15966a" stroke-dasharray="5 4" stroke-width="2"></path>
+<text fill="#586579" font-size="13" text-anchor="middle" x="425" y="222">Request carries method, headers, query parameters and body; response carries status, headers and optional body.</text>
+</svg></div>
+<h3>Important architecture considerations</h3>
+<ul><li>The sender must be able to reach the webhook URL over the network.</li><li>For a cloud-hosted n8n instance, the URL is normally publicly reachable subject to network and security controls.</li><li>For self-hosted n8n behind a firewall or reverse proxy, external routing, TLS and webhook URL configuration must be correct.</li><li>Consider whether the sender expects an immediate acknowledgement or a response containing the result of processing.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">13.3</div><h2>Webhook Trigger Node</h2></div>
+<div class="src"><p>The <b>Webhook</b> node is a trigger node that starts a workflow when it receives an HTTP request at its configured endpoint.</p>
+<h3>Common configuration fields</h3>
+<table><tr><th>Setting</th><th>Purpose</th></tr><tr><td>HTTP Method</td><td>Defines which method the endpoint accepts, such as GET or POST.</td></tr><tr><td>Path</td><td>Defines the endpoint path portion of the webhook URL.</td></tr><tr><td>Authentication</td><td>Controls how the incoming caller is authenticated, when configured.</td></tr><tr><td>Respond</td><td>Controls when and how the HTTP response is returned.</td></tr><tr><td>Options</td><td>Additional behaviour such as response data or raw body handling, depending on node version.</td></tr></table>
+<h3>Build your first webhook</h3>
+<ol><li>Create a new workflow.</li><li>Add a Webhook node as the trigger.</li><li>Choose a method such as POST.</li><li>Set a meaningful path, for example <code>customer-lead</code>.</li><li>Choose the authentication mode appropriate to your use case.</li><li>Save the workflow and use the test URL while developing.</li><li>Send a test request and inspect the incoming item.</li></ol>
+<div class="success">A successful test should show the incoming request data in the Webhook node's output. The exact output structure depends on the request and node configuration.</div></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">13.4</div><h2>Production vs test webhook URLs</h2></div>
+<div class="src"><p>n8n provides separate webhook URLs for testing and production. They serve different lifecycle stages and should not be confused.</p>
+<table><tr><th>Test URL</th><th>Production URL</th></tr><tr><td>Used while building and testing a workflow.</td><td>Used by external applications for the active workflow.</td></tr><tr><td>Typically listens while the editor is waiting for a test event.</td><td>Available when the workflow is saved and active/published according to the n8n version and deployment.</td></tr><tr><td>Useful for development and debugging.</td><td>Used for real integrations and live events.</td></tr><tr><td>May stop listening when the test session ends.</td><td>Designed for ongoing incoming events.</td></tr></table>
+<div class="diagram"><svg aria-label="Test and production webhook URL paths" role="img" viewbox="0 0 820 190">
+<rect fill="#f1edff" height="135" rx="12" stroke="#8054c8" width="350" x="20" y="25"></rect><text fill="#32156d" font-size="17" font-weight="bold" text-anchor="middle" x="195" y="53">Development</text><text fill="#32156d" font-size="14" text-anchor="middle" x="195" y="86">Test webhook URL</text><text fill="#586579" font-size="12" text-anchor="middle" x="195" y="112">Editor listens for a test event</text>
+<rect fill="#eaf8f1" height="135" rx="12" stroke="#15966a" width="350" x="450" y="25"></rect><text fill="#07583f" font-size="17" font-weight="bold" text-anchor="middle" x="625" y="53">Live environment</text><text fill="#07583f" font-size="14" text-anchor="middle" x="625" y="86">Production webhook URL</text><text fill="#586579" font-size="12" text-anchor="middle" x="625" y="112">Active workflow receives events</text>
+<path d="M370 92 H440" stroke="#6d42bd" stroke-dasharray="5 4" stroke-width="2"></path><text fill="#51328c" font-size="11" text-anchor="middle" x="405" y="80">Deploy</text>
+</svg></div>
+<h3>Typical URL shape</h3>
+<pre>Test:       https://your-n8n-host/webhook-test/customer-lead
+Production: https://your-n8n-host/webhook/customer-lead</pre>
+<p>The exact base URL and path depend on your n8n deployment and configured webhook path. Use the URLs displayed by the Webhook node rather than constructing them manually.</p>
+<div class="warning"><b>Common mistake:</b> Configuring an external application with the test URL and then closing the test listener. For live integrations, configure the production URL and ensure the workflow is active/published as required by your n8n version.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">13.5</div><h2>GET and POST webhooks</h2></div>
+<div class="src"><p>The Webhook node can be configured to accept a specific HTTP method. Choose the method based on how the sender is designed to communicate.</p>
+<table><tr><th>GET webhook</th><th>POST webhook</th></tr><tr><td>Often used to retrieve information or receive simple URL parameters.</td><td>Commonly used to submit event data or a JSON payload.</td></tr><tr><td>Parameters are commonly in the URL query string.</td><td>Data is commonly in the request body.</td></tr><tr><td>Be careful not to put secrets or sensitive data in URLs.</td><td>Validate body size, content type and payload fields.</td></tr></table>
+<h3>Example GET request</h3><pre>GET https://your-n8n-host/webhook/customer-status?customerId=1001</pre>
+<p>The workflow can read the query parameter and use it to retrieve or return customer status.</p>
+<h3>Example POST request</h3><pre>POST https://your-n8n-host/webhook/customer-lead
+Content-Type: application/json
+
+{
+  "name": "Asha Rao",
+  "email": "asha@example.com",
+  "source": "website"
+}</pre>
+<p>POST is a common choice for event notifications because the sender can include a structured JSON payload in the request body.</p></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">13.6</div><h2>Webhook authentication</h2></div>
+<div class="src"><p>Authentication protects a webhook endpoint by requiring the caller to prove it is allowed to send requests. The Webhook node offers authentication choices that may include none, basic authentication, header authentication or JWT, depending on the n8n version.</p>
+<table><tr><th>Method</th><th>How it works</th><th>Use case</th></tr><tr><td>None</td><td>Endpoint accepts requests without a configured credential check.</td><td>Local experiments or intentionally public endpoints with other controls.</td></tr><tr><td>Basic Auth</td><td>Caller supplies a username and password in an Authorization header.</td><td>Simple integrations where the sender supports it.</td></tr><tr><td>Header Auth</td><td>Caller supplies a configured secret header and value.</td><td>System-to-system integrations with shared-secret support.</td></tr><tr><td>JWT Auth</td><td>Caller sends a signed JSON Web Token that n8n validates.</td><td>Integrations that can issue and sign JWTs.</td></tr></table>
+<h3>Header authentication example</h3><pre>POST /webhook/order-event
+X-Webhook-Secret: YOUR_SHARED_SECRET
+Content-Type: application/json</pre>
+<p>Configure the expected header name and secret in the n8n credential mechanism supported by the node. The sender must send the matching header. Do not place the secret in the URL.</p>
+<div class="note">Authentication proves something about the caller, but it does not prove that the payload is valid or that the caller is authorized to perform every requested business action. Validate the event and enforce business permissions too.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">13.7</div><h2>Receiving JSON payloads</h2></div>
+<div class="src"><p>A payload is the data sent by the source application. Many webhook integrations send JSON with an <code>application/json</code> content type.</p>
+<h3>Example payload</h3><pre>{
+  "event": "order.created",
+  "eventId": "evt_78421",
+  "occurredAt": "2026-11-21T08:30:00Z",
+  "data": {
+    "orderId": 5001,
+    "customerId": 1001,
+    "amount": 2499.50,
+    "currency": "INR"
+  }
+}</pre>
+<h3>Typical incoming data areas</h3>
+<ul><li><b>Body:</b> JSON or other submitted content.</li><li><b>Headers:</b> content type, authorization, event signatures and request metadata.</li><li><b>Query:</b> parameters included after the question mark in the URL.</li><li><b>Path parameters:</b> values represented in the endpoint path, if configured.</li></ul>
+<p>In the workflow, inspect the Webhook node output to identify the exact paths. For example, if the incoming body is exposed under <code>body</code>, the order ID may be referenced as <code>{{ $json.body.data.orderId }}</code>. The correct expression depends on the actual output structure; use the expression editor and execution data to confirm.</p>
+<h3>Payload validation</h3>
+<ul><li>Check required fields such as event type, event ID and record ID.</li><li>Check data types and acceptable values.</li><li>Reject or route malformed payloads safely.</li><li>Do not trust client-provided prices, roles or permissions without server-side validation.</li><li>Store an event ID or unique key to help prevent duplicate processing.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">13.8</div><h2>Sending webhook responses</h2></div>
+<div class="src"><p>After receiving a request, n8n can return an HTTP response to the caller. The response may acknowledge receipt, provide a result, or report a validation error.</p>
+<h3>Response behaviour</h3>
+<p>The Webhook node's response setting determines when the caller receives a response. Depending on the available node version/options, common approaches include responding immediately, responding when the last node finishes, or using a dedicated <b>Respond to Webhook</b> node.</p>
+<table><tr><th>Approach</th><th>When useful</th></tr><tr><td>Immediately</td><td>Return a quick acknowledgement while workflow processing continues, where supported.</td></tr><tr><td>When workflow finishes</td><td>Return the workflow result after processing completes.</td></tr><tr><td>Respond to Webhook node</td><td>Control the response at a specific point in the workflow, including response body, status and headers.</td></tr></table>
+<h3>Example success response</h3><pre>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "success": true,
+  "message": "Event received",
+  "eventId": "evt_78421"
+}</pre>
+<h3>Example validation error</h3><pre>HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{
+  "success": false,
+  "error": "orderId is required"
+}</pre>
+<div class="warning"><b>Response timing matters.</b> Some source systems require a response quickly and may retry if they time out. For long-running processing, acknowledge receipt promptly and process asynchronously when the integration design allows it. Do not claim processing is complete if you have only accepted the event.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">13.9</div><h2>Webhook integrations</h2></div>
+<div class="src"><p>Webhooks are widely used to connect applications that publish events. The source application usually provides a configuration page where you register the destination webhook URL and choose which events should be sent.</p>
+<h3>Common integration examples</h3>
+<div class="grid">
+<div class="tile"><b>Website forms</b><br/>Form submitted → n8n validates lead → CRM record created → sales notification.</div>
+<div class="tile"><b>Payment platform</b><br/>Payment event → verify signature → update order → send receipt workflow.</div>
+<div class="tile"><b>Git platform</b><br/>Push or pull-request event → run checks → notify engineering channel.</div>
+<div class="tile"><b>CRM</b><br/>Contact updated → synchronize downstream systems → log change.</div>
+<div class="tile"><b>Support platform</b><br/>Ticket created → enrich customer data → route to support queue.</div>
+<div class="tile"><b>Cloud / data platform</b><br/>Job completed event → trigger downstream workflow → publish status.</div>
+</div>
+<h3>Integration steps</h3>
+<ol><li>Create and test the webhook workflow in n8n.</li><li>Activate/publish the workflow and copy its production URL.</li><li>Open the source application's webhook or developer settings.</li><li>Register the production URL and select event types.</li><li>Configure the same authentication/signature method on both sides.</li><li>Send a test event from the source platform.</li><li>Review n8n executions and verify the expected business action.</li><li>Document ownership, retries, failure handling and support contacts.</li></ol>
+<h3>Example: order-created workflow</h3>
+<pre>Webhook Trigger
+    ↓
+Validate event type and required fields
+    ↓
+Check eventId for duplicate delivery
+    ↓
+Retrieve order details from source API
+    ↓
+Update SQL / warehouse staging table
+    ↓
+Send confirmation or operations alert</pre>
+<p>For data engineering, a webhook can act as an event trigger for an ingestion process. It can notify a pipeline that a file arrived or a source job completed. The downstream workflow should still validate the file, event and source state before loading data.</p></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">13.10</div><h2>Webhook security</h2></div>
+<div class="src"><p>A production webhook is an internet-facing or network-accessible entry point. Treat it as an API endpoint and apply layered security rather than relying on an unguessable URL alone.</p>
+<h3>Security checklist</h3>
+<ul>
+<li><b>Use HTTPS:</b> protect data and credentials in transit.</li>
+<li><b>Enable authentication:</b> use a supported credential or signed-request mechanism.</li>
+<li><b>Verify signatures:</b> where the provider supports HMAC or signed webhook events, validate the signature using the raw request body and the provider's documented algorithm.</li>
+<li><b>Validate payloads:</b> check schema, required fields, types, size and allowed event types.</li>
+<li><b>Prevent replay and duplicates:</b> use timestamps, event IDs, idempotency and deduplication as appropriate.</li>
+<li><b>Protect secrets:</b> store shared secrets in credentials or an approved secret store; rotate exposed values.</li>
+<li><b>Restrict access:</b> limit workflow editing, credential access and execution permissions.</li>
+<li><b>Apply network controls:</b> use IP allowlists or a gateway/WAF when appropriate and supported; do not rely on IP allowlisting alone if source IPs can change.</li>
+<li><b>Limit resource usage:</b> set request-size and execution controls, and guard against bursts or abusive traffic.</li>
+<li><b>Monitor:</b> log event IDs, outcomes and non-sensitive metadata; alert on unusual volume or repeated failures.</li>
+<li><b>Avoid sensitive response data:</b> return only the information the sender needs.</li>
+</ul>
+<h3>Signature verification concept</h3>
+<p>Some providers calculate a cryptographic signature using a shared secret and the exact raw request body. The sender includes the signature in a header. The receiver independently calculates the expected signature and compares it securely. The header name, encoding, timestamp rules and algorithm are provider-specific.</p>
+<div class="warning">Do not invent a signature algorithm or assume every provider uses the same header. Follow the source application's official webhook security documentation. If signature verification requires the raw body, configure n8n to preserve/receive the raw body as supported by your node version.</div>
+<h3>Safe processing pattern</h3>
+<div class="diagram"><svg aria-label="Secure webhook processing stages" role="img" viewbox="0 0 850 175">
+<defs><marker id="c" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0 0 L6 3 L0 6" fill="#6d42bd"></path></marker></defs>
+<g font-size="13" text-anchor="middle"><rect fill="#eee8ff" height="70" rx="9" stroke="#8054c8" width="125" x="5" y="35"></rect><text fill="#32156d" x="67" y="64">Receive</text><text fill="#32156d" x="67" y="84">HTTPS</text>
+<rect fill="#e4f5fb" height="70" rx="9" stroke="#1595b4" width="125" x="150" y="35"></rect><text fill="#07566b" x="212" y="64">Authenticate</text><text fill="#07566b" x="212" y="84">/ verify</text>
+<rect fill="#fff3df" height="70" rx="9" stroke="#d49b35" width="125" x="295" y="35"></rect><text fill="#80520a" x="357" y="64">Validate</text><text fill="#80520a" x="357" y="84">payload</text>
+<rect fill="#eaf8f1" height="70" rx="9" stroke="#15966a" width="125" x="440" y="35"></rect><text fill="#07583f" x="502" y="64">Deduplicate</text><text fill="#07583f" x="502" y="84">event</text>
+<rect fill="#eee8ff" height="70" rx="9" stroke="#8054c8" width="125" x="585" y="35"></rect><text fill="#32156d" x="647" y="64">Process</text><text fill="#32156d" x="647" y="84">business logic</text>
+<rect fill="#e4f5fb" height="70" rx="9" stroke="#1595b4" width="115" x="730" y="35"></rect><text fill="#07566b" x="787" y="64">Respond</text><text fill="#07566b" x="787" y="84">/ monitor</text></g>
+<g marker-end="url(#c)" stroke="#6d42bd" stroke-width="2"><path d="M130 70 H145"></path><path d="M275 70 H290"></path><path d="M420 70 H435"></path><path d="M565 70 H580"></path><path d="M710 70 H725"></path></g>
+<text fill="#586579" font-size="12" text-anchor="middle" x="425" y="145">Reject invalid requests early; keep an auditable, non-sensitive event trail.</text></svg></div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical labs</h2></div>
+<div class="src"><h3>Lab 1 – Create a basic POST webhook</h3>
+<ol><li>Create a workflow and add a Webhook node.</li><li>Set method to POST and path to <code>training-contact</code>.</li><li>Use the test URL and start listening for a test event.</li><li>Send a JSON request from an API client, such as Postman or curl.</li><li>Inspect the body, headers and query values in the execution data.</li></ol>
+<pre>curl -X POST "YOUR_TEST_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Asha","email":"asha@example.com"}'</pre>
+<h3>Lab 2 – Validate and transform the payload</h3>
+<ol><li>After the Webhook node, add an IF node.</li><li>Check whether the required email field exists and is not empty.</li><li>Route valid records to an Edit Fields node.</li><li>Normalize the email and map fields to a consistent lead structure.</li><li>Route invalid records to an error response or controlled logging path.</li></ol>
+<h3>Lab 3 – Return a custom response</h3>
+<ol><li>Configure the Webhook node to use the Respond to Webhook node, if available in your version.</li><li>Add the Respond to Webhook node after validation.</li><li>For valid input, return status 200 and a JSON acknowledgement.</li><li>For invalid input, return an appropriate 4xx status and a concise error body.</li><li>Test both branches and verify the sender receives the expected response.</li></ol>
+<h3>Lab 4 – Secure the endpoint</h3>
+<ol><li>Configure Header Auth or another supported authentication method.</li><li>Send a request without the credential and verify it is rejected.</li><li>Send a request with the configured credential and verify it is accepted.</li><li>Ensure the secret is not included in URLs, workflow output or logs.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">🔧</div><h2>Troubleshooting guide</h2></div>
+<div class="src"><table><tr><th>Problem</th><th>Possible cause</th><th>What to check</th></tr>
+<tr><td>Webhook does not trigger</td><td>Wrong URL, method or test listener not active</td><td>Copy URL from node, check method, start test listening or activate workflow.</td></tr>
+<tr><td>Test URL works but production does not</td><td>Workflow inactive or sender still uses test URL</td><td>Use production URL and confirm workflow active/published.</td></tr>
+<tr><td>404 response</td><td>Incorrect path or URL</td><td>Check exact URL displayed by the node and reverse-proxy routing.</td></tr>
+<tr><td>401 / 403 response</td><td>Authentication mismatch</td><td>Credential type, header name/value, token validity and permissions.</td></tr>
+<tr><td>Payload fields missing</td><td>Wrong content type or incorrect field path</td><td>Inspect raw request and actual Webhook node output structure.</td></tr>
+<tr><td>Sender times out</td><td>Workflow takes longer than sender's response timeout</td><td>Return a prompt acknowledgement and process asynchronously if appropriate.</td></tr>
+<tr><td>Duplicate workflow executions</td><td>Sender retries after timeout or event is delivered more than once</td><td>Use event IDs, idempotency and deduplication.</td></tr>
+<tr><td>Webhook unreachable externally</td><td>Network, DNS, TLS or proxy configuration issue</td><td>Public base URL, firewall, reverse proxy, certificates and webhook URL settings.</td></tr>
+<tr><td>Unexpected or malicious payloads</td><td>Endpoint is exposed without sufficient controls</td><td>Authentication, signature verification, schema validation, size limits and monitoring.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Interview questions and answers</h2></div>
+<div class="src"><ol>
+<li><b>What is a webhook?</b><br/>A way for one application to send an HTTP request to another when an event occurs.</li>
+<li><b>How is a webhook different from an API call?</b><br/>A webhook is typically an event-driven request initiated by the source; a conventional API call is often initiated by a client asking for data or an action. Webhooks themselves use HTTP APIs/protocols.</li>
+<li><b>What is the Webhook Trigger node in n8n?</b><br/>A trigger that exposes an endpoint and starts a workflow when it receives a configured HTTP request.</li>
+<li><b>What is the difference between test and production webhook URLs?</b><br/>The test URL is for editor-based testing; the production URL is for an active/published workflow's live integration.</li>
+<li><b>When would you use GET versus POST?</b><br/>GET commonly reads or passes simple URL parameters; POST commonly submits event data in a request body.</li>
+<li><b>What is a webhook payload?</b><br/>The data sent by the source application, commonly JSON.</li>
+<li><b>What information can n8n receive?</b><br/>Depending on the request, body data, headers, query parameters and path information.</li>
+<li><b>How do you authenticate a webhook?</b><br/>Use a supported method such as basic auth, header auth or JWT, or implement provider-specific signature verification.</li>
+<li><b>What is the Respond to Webhook node?</b><br/>A node that lets a workflow control the HTTP response returned to the caller.</li>
+<li><b>Why might a webhook sender retry an event?</b><br/>It may not receive a timely successful response, or it may retry after a network or server error.</li>
+<li><b>What is idempotency in webhook processing?</b><br/>Ensuring duplicate delivery of the same event does not repeat the business effect.</li>
+<li><b>Why should event IDs be stored?</b><br/>They help identify duplicate events and support traceability.</li>
+<li><b>What is webhook signature verification?</b><br/>Validating a cryptographic signature supplied by the provider to confirm the request's integrity and origin.</li>
+<li><b>Why is HTTPS important?</b><br/>It encrypts requests and credentials in transit and helps protect against interception or modification.</li>
+<li><b>What is replay protection?</b><br/>Controls such as timestamps and unique event IDs help prevent an attacker from resending a previously captured valid request.</li>
+<li><b>How do you handle long-running webhook workflows?</b><br/>Where the source supports it, acknowledge receipt quickly and perform the heavier processing asynchronously.</li>
+<li><b>Can webhooks trigger data engineering pipelines?</b><br/>Yes. They can signal events such as file arrival or upstream job completion, followed by validation and ingestion.</li>
+<li><b>What would you monitor?</b><br/>Execution success, failure rates, response times, event volume, duplicate events and authentication failures.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Chapter completion checklist</h2></div>
+<div class="src"><ul class="check">
+<li>I can explain what a webhook is and how it differs from polling.</li><li>I understand the sender, endpoint, receiver and response architecture.</li><li>I can configure the Webhook Trigger node.</li><li>I understand test and production webhook URLs.</li><li>I can receive GET and POST requests.</li><li>I can inspect JSON payloads, headers and query parameters.</li><li>I can validate required payload fields.</li><li>I can configure a webhook response.</li><li>I can connect an external application's event to n8n.</li><li>I understand authentication and signature verification concepts.</li><li>I can explain HTTPS, replay protection and duplicate-event handling.</li><li>I have completed the practical labs.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official learning resources</h2></div>
+<div class="src"><ul>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/" rel="noopener" target="_blank">n8n – Webhook node documentation</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/" rel="noopener" target="_blank">n8n – Respond to Webhook node</a></li>
+<li><a href="https://docs.n8n.io/hosting/configuration/configuration-examples/webhook-url/" rel="noopener" target="_blank">n8n – Configure webhook URLs</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP" rel="noopener" target="_blank">MDN – HTTP overview</a></li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9110" rel="noopener" target="_blank">RFC 9110 – HTTP Semantics</a></li>
+</ul>
+<p class="small">Note: n8n's interface, URL behaviour and node options can change between releases. Follow the documentation for the version deployed in your environment. Authentication and signature-verification requirements vary by webhook provider.</p>
+<footer>n8n Complete Course · Chapter 13: Webhooks</footer></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_12_API_Integration.html"><span class="mn-label">← Previous</span><span class="mn-title">API Integration</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_14_Database_Connectivity.html"><span class="mn-label">Next →</span><span class="mn-title">Database Connectivity</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>
