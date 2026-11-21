@@ -1,0 +1,36 @@
+window.HARINIT_N8N_COURSE = {
+  slug: 'n8n',
+  label: 'n8n',
+  storageKey: 'harinit_n8n_course_progress',
+  modules: [
+    { number: 1, title: 'Introduction to Workflow Automation', file: 'Chapter_01_Introduction_to_Workflow_Automation.html', count: 16, prefix: 'lesson-' },
+    { number: 2, title: 'n8n Architecture', file: 'Chapter_02_n8n_Architecture.html', count: 18, prefix: 'lesson-' },
+    { number: 3, title: 'Installation & Environment Setup', file: 'Chapter_03_Installation_and_Environment_Setup.html', count: 19, prefix: 'lesson-' },
+    { number: 4, title: 'Understanding the n8n Interface', file: 'Chapter_04_Understanding_the_n8n_Interface.html', count: 18, prefix: 'lesson-' },
+    { number: 5, title: 'Understanding Nodes', file: 'Chapter_05_Understanding_Nodes.html', count: 15, prefix: 'lesson-' },
+    { number: 6, title: 'Triggers', file: 'Chapter_06_Triggers.html', count: 17, prefix: 'lesson-' },
+    { number: 7, title: 'Data Handling in n8n', file: 'Chapter_07_Data_Handling_in_n8n.html', count: 15, prefix: 'lesson-' },
+    { number: 8, title: 'Core Nodes', file: 'Chapter_08_Core_Nodes.html', count: 21, prefix: 'lesson-' },
+    { number: 9, title: 'Workflow Logic & Control Flow', file: 'Chapter_09_Workflow_Logic_and_Control_Flow.html', count: 17, prefix: 'lesson-' },
+    { number: 10, title: 'Expressions & Data Transformation', file: 'Chapter_10_Expressions_and_Data_Transformation.html', count: 17, prefix: 'lesson-' },
+    { number: 11, title: 'JavaScript Programming in n8n', file: 'Chapter_11_JavaScript_Programming_in_n8n.html', count: 18, prefix: 'lesson-' },
+    { number: 12, title: 'API Integration', file: 'Chapter_12_API_Integration.html', count: 23, prefix: 'lesson-' },
+    { number: 13, title: 'Webhooks', file: 'Chapter_13_Webhooks.html', count: 16, prefix: 'lesson-' },
+    { number: 14, title: 'Database Connectivity', file: 'Chapter_14_Database_Connectivity.html', count: 18, prefix: 'lesson-' },
+    { number: 15, title: 'Cloud & Storage Integrations', file: 'Chapter_15_Cloud_and_Storage_Integrations.html', count: 18, prefix: 'lesson-' },
+    { number: 16, title: 'Business Application Integrations', file: 'Chapter_16_Business_Application_Integrations.html', count: 18, prefix: 'lesson-' },
+    { number: 17, title: 'Introduction to AI Automation', file: 'Chapter_17_Introduction_to_AI_Automation.html', count: 13, prefix: 'lesson-' },
+    { number: 18, title: 'LLM Integrations', file: 'Chapter_18_LLM_Integrations.html', count: 17, prefix: 'lesson-' },
+    { number: 19, title: 'AI Agents', file: 'Chapter_19_AI_Agents.html', count: 17, prefix: 'lesson-' },
+    { number: 20, title: 'LangChain & n8n', file: 'Chapter_20_LangChain_and_n8n.html', count: 15, prefix: 'lesson-' },
+    { number: 21, title: 'RAG & Vector Databases', file: 'Chapter_21_RAG_and_Vector_Databases.html', count: 18, prefix: 'lesson-' },
+    { number: 22, title: 'Error Handling & Debugging', file: 'Chapter_22_Error_Handling_and_Debugging.html', count: 17, prefix: 'lesson-' },
+    { number: 23, title: 'Advanced Workflow Design', file: 'Chapter_23_Advanced_Workflow_Design.html', count: 17, prefix: 'lesson-' },
+    { number: 24, title: 'Security & Access Management', file: 'Chapter_24_Security_and_Access_Management.html', count: 17, prefix: 'lesson-' },
+    { number: 25, title: 'Production Deployment', file: 'Chapter_25_Production_Deployment.html', count: 19, prefix: 'lesson-' },
+    { number: 26, title: 'Enterprise n8n', file: 'Chapter_26_Enterprise_n8n.html', count: 17, prefix: 'lesson-' },
+    { number: 27, title: 'Real-Time Projects & Capstone', file: 'Phase_7_8_Projects_and_Capstone.html', count: 21, prefix: 'lesson-' },
+    { number: 28, title: 'Glossary', file: 'Glossary.html', count: 7, prefix: 'lesson-' }
+  ]
+};
+window.HARINIT_COURSE = window.HARINIT_N8N_COURSE;

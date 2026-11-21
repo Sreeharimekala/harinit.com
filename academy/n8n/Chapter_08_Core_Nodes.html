@@ -1,0 +1,856 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Learn the built-in nodes that shape, transform, route, combine, summarize and control data in an n8n workflow. This chapter moves from individual node configuration to practical workflow design."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Core Nodes — Chapter 8 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .diagram .diagram svg{width:100%;height:auto;min-width:500px}
+.v2 .src .diagram .node{fill:#fff;stroke:#d84c78;stroke-width:2}
+.v2 .src .diagram .node2{fill:#f1edff;stroke:#7c3aed;stroke-width:2}
+.v2 .src .diagram .arrow{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#arr)}
+.v2 .src .diagram .label{font:14px system-ui;fill:#202b40}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">Core Nodes</div>
+<div class="brand-sub">Chapter 8 · 21 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">8.1</span>Core-node overview</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">8.2</span>Edit Fields (Set) node</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">8.3</span>Code node</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">8.4</span>IF node</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">8.5</span>Switch node</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">8.6</span>Merge node</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">8.7</span>Filter node</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">8.8</span>Sort node</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">8.9</span>Limit node</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">8.10</span>Aggregate node</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">8.11</span>Summarize node</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">8.12</span>Split Out node</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">8.13</span>Loop Over Items node</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">8.14</span>Wait node</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">8.15</span>No Operation, do nothing node</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">8.16</span>Quick comparison: which node should I choose?</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">8.17</span>Practical labs</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">8.18</span>Troubleshooting and design guidance</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">8.19</span>Interview questions and answers</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">8.20</span>Chapter completion checklist</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">📚</span>Official n8n documentation</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 2 · Chapter 8</div><h1>Core Nodes</h1><p class="page-subtitle">Learn the built-in nodes that shape, transform, route, combine, summarize and control data in an n8n workflow. This chapter moves from individual node configuration to practical workflow design.</p><div class="meta-row"><span class="meta-pill">Phase <b>2</b></span><span class="meta-pill">Topics <b>14</b></span><span class="meta-pill"> <b>14 core nodes</b></span><span class="meta-pill"> <b>Concepts + examples</b></span><span class="meta-pill"> <b>Hands-on labs</b></span><span class="meta-pill"> <b>Interview preparation</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Edit Fields (Set); Code Node; IF Node; Switch Node; Merge Node; Filter Node; Sort Node; Limit Node; Aggregate Node; Summarize Node; Split Out Node; Loop Over Items Node; Wait Node; No Operation Node. <br><strong>Before you start:</strong> complete Chapter 7 – Data Handling in n8n. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">8.1</div><h2>Core-node overview</h2></div>
+<div class="src"><p>Core nodes are the workflow-building blocks supplied by n8n. They are not all the same kind of tool: some modify data, some decide which path should run, some combine or reshape items, and others control execution timing.</p>
+<div class="grid">
+<div class="mini"><h3>Data transformation</h3><p>Edit Fields, Code, Aggregate, Summarize, Split Out, Sort, Limit and Filter.</p></div>
+<div class="mini"><h3>Workflow logic</h3><p>IF, Switch, Merge and Loop Over Items.</p></div>
+<div class="mini"><h3>Execution control</h3><p>Wait and No Operation.</p></div>
+<div class="mini"><h3>Typical pattern</h3><p>Receive → clean → validate → route → transform → combine → deliver.</p></div>
+</div>
+<div class="diagram"><svg aria-label="Typical n8n core node flow" role="img" viewbox="0 0 900 170"><defs><marker id="arr" markerheight="10" markerwidth="10" orient="auto" refx="8" refy="3"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path></marker></defs>
+<rect class="node" height="55" rx="10" width="125" x="15" y="55"></rect><text class="label" text-anchor="middle" x="77" y="88">Input items</text>
+<path class="arrow" d="M140 82 H175"></path><rect class="node" height="55" rx="10" width="135" x="180" y="55"></rect><text class="label" text-anchor="middle" x="247" y="88">Edit / Code</text>
+<path class="arrow" d="M315 82 H350"></path><rect class="node2" height="55" rx="10" width="130" x="355" y="55"></rect><text class="label" text-anchor="middle" x="420" y="88">IF / Switch</text>
+<path class="arrow" d="M485 82 H520"></path><rect class="node" height="55" rx="10" width="135" x="525" y="55"></rect><text class="label" text-anchor="middle" x="592" y="88">Transform</text>
+<path class="arrow" d="M660 82 H695"></path><rect class="node2" height="55" rx="10" width="180" x="700" y="55"></rect><text class="label" text-anchor="middle" x="790" y="88">Merge / Output</text>
+<text class="label" text-anchor="middle" x="450" y="145">A conceptual pattern — actual workflows can branch, loop, wait or rejoin.</text></svg><div class="caption">Illustrative diagram, not a screenshot of the n8n editor.</div></div>
+<div class="callout tip"><b>Important foundation:</b> n8n commonly passes data as an array of items. Each item normally contains a <code>json</code> object and may also contain <code>binary</code> data. A node can receive many items and return zero, one or many items depending on its purpose and configuration.</div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">8.2</div><h2>Edit Fields (Set) node</h2></div>
+<div class="src"><span class="tag">Data transformation</span>
+<p>The Edit Fields node (previously commonly called Set) lets you add, change, rename or remove fields without writing JavaScript. It is usually the first choice for straightforward data shaping.</p>
+<h3>What it is used for</h3><ul><li>Create new fields such as <code>fullName</code>, <code>processedAt</code> or <code>orderValue</code>.</li><li>Map incoming fields into a clean output schema.</li><li>Rename or remove fields that downstream systems do not need.</li><li>Use expressions to calculate values from incoming data.</li></ul>
+<h3>Example input</h3><pre><code>{
+  "first_name": "Anita",
+  "last_name": "Rao",
+  "quantity": 3,
+  "unit_price": 250,
+  "internal_note": "manual review"
+}</code></pre>
+<h3>Example target fields</h3><pre><code>fullName     = {{ $json.first_name + " " + $json.last_name }}
+quantity     = {{ $json.quantity }}
+totalAmount  = {{ $json.quantity * $json.unit_price }}
+sourceSystem = "ERP"</code></pre>
+<p>Configure the node to keep only the fields you need when building a deliberate output contract. If you want to retain all incoming fields, use the node's relevant include/keep options rather than assuming newly added fields replace the input.</p>
+<h3>Typical configuration steps</h3><ol><li>Add Edit Fields after a trigger or data-fetch node.</li><li>Choose manual field mapping or JSON output mode where available.</li><li>Add a field name and choose an appropriate value/type.</li><li>Use an expression for dynamic values.</li><li>Execute the node and inspect the output JSON.</li></ol>
+<div class="callout warn"><b>Common mistake:</b> accidentally dropping fields needed later. Check whether the node is configured to keep all input fields or only the fields you explicitly define.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">8.3</div><h2>Code node</h2></div>
+<div class="src"><span class="tag">Custom transformation</span>
+<p>The Code node runs JavaScript or Python (availability and supported features depend on the n8n deployment/version) when built-in nodes or expressions are not sufficient. It supports two main execution modes: run once for all items, or run once for each item.</p>
+<h3>When to use it</h3><ul><li>Complex calculations or multi-step transformations.</li><li>Custom validation and conditional field creation.</li><li>Reshaping nested arrays and objects.</li><li>Logic that would become difficult to maintain using many simple nodes.</li></ul>
+<h3>JavaScript — run once for all items</h3><pre><code>const items = $input.all();
+
+return items.map((item) =&gt; {
+  const quantity = Number(item.json.quantity ?? 0);
+  const price = Number(item.json.unit_price ?? 0);
+
+  return {
+    json: {
+      ...item.json,
+      total_amount: quantity * price,
+      is_high_value: quantity * price &gt;= 1000,
+    },
+  };
+});</code></pre>
+<h3>JavaScript — run once for each item</h3><pre><code>const quantity = Number($json.quantity ?? 0);
+const price = Number($json.unit_price ?? 0);
+
+return {
+  total_amount: quantity * price,
+  is_high_value: quantity * price &gt;= 1000,
+};</code></pre>
+<p>Use the output shape expected by the selected Code-node mode and language. In all-items mode, return an array of n8n items. In per-item mode, return the item data for the current item as supported by the node's editor/runtime.</p>
+<h3>Best practices</h3><ul><li>Prefer Edit Fields for simple field mapping.</li><li>Convert and validate types explicitly; API values may arrive as strings.</li><li>Handle missing/null values with safe defaults where appropriate.</li><li>Do not assume external npm packages are available; availability depends on hosting and task-runner configuration.</li><li>Preserve item relationships when transforming data so expressions referencing earlier nodes continue to work.</li><li>Keep code focused and add comments for non-obvious business rules.</li></ul>
+<div class="callout"><b>Rule of thumb:</b> use expressions for small calculations, Edit Fields for ordinary mapping, and Code for custom logic that is clearer in a programming language.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">8.4</div><h2>IF node</h2></div>
+<div class="src"><span class="tag">Two-way decision</span>
+<p>The IF node evaluates one or more conditions and sends items down one of two outputs: <b>true</b> or <b>false</b>. It is useful when a workflow needs a simple yes/no decision.</p>
+<h3>Example: order validation</h3><p>Route orders with <code>status = "approved"</code> to fulfilment; send all other orders to a review or exception path.</p>
+<pre><code>Condition:
+Value 1: {{ $json.status }}
+Operation: is equal to
+Value 2: approved</code></pre>
+<div class="diagram"><svg aria-label="IF node branching" role="img" viewbox="0 0 760 220"><defs><marker id="arr2" markerheight="10" markerwidth="10" orient="auto" refx="8" refy="3"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path></marker></defs>
+<rect class="node" height="55" rx="10" width="130" x="20" y="80"></rect><text class="label" text-anchor="middle" x="85" y="113">Order item</text><path d="M150 108 H220" fill="none" marker-end="url(#arr2)" stroke="#64748b" stroke-width="2"></path>
+<rect class="node2" height="55" rx="10" width="150" x="225" y="80"></rect><text class="label" text-anchor="middle" x="300" y="113">IF approved?</text>
+<path d="M375 95 C430 95 430 45 485 45 H535" fill="none" marker-end="url(#arr2)" stroke="#087f5b" stroke-width="2"></path><path d="M375 120 C430 120 430 175 485 175 H535" fill="none" marker-end="url(#arr2)" stroke="#d97706" stroke-width="2"></path>
+<rect fill="#eaf8f2" height="50" rx="10" stroke="#087f5b" stroke-width="2" width="190" x="540" y="20"></rect><text class="label" text-anchor="middle" x="635" y="50">True → Fulfil order</text>
+<rect fill="#fff7e6" height="50" rx="10" stroke="#d97706" stroke-width="2" width="190" x="540" y="150"></rect><text class="label" text-anchor="middle" x="635" y="180">False → Review</text>
+<text class="label" x="400" y="18">True</text><text class="label" x="400" y="207">False</text></svg><div class="caption">Illustrative branching diagram, not an editor screenshot.</div></div>
+<h3>Condition types</h3><ul><li>String comparisons: equals, contains, starts with, is empty.</li><li>Number comparisons: greater than, less than, equals.</li><li>Boolean checks: true/false.</li><li>Date/time comparisons and existence checks, depending on the condition type selected.</li></ul>
+<p>Use the correct data type. For example, compare numeric values as numbers rather than relying on text comparison.</p></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">8.5</div><h2>Switch node</h2></div>
+<div class="src"><span class="tag">Multi-way routing</span>
+<p>The Switch node routes incoming items to one of multiple outputs based on rules or an expression. Use it when a value can have several categories, instead of building a long chain of IF nodes.</p>
+<h3>Example: ticket priority</h3><table><tr><th>Rule</th><th>Output path</th><th>Example action</th></tr><tr><td><code>priority = "Critical"</code></td><td>Critical</td><td>Page on-call team</td></tr><tr><td><code>priority = "High"</code></td><td>High</td><td>Send urgent notification</td></tr><tr><td><code>priority = "Medium"</code></td><td>Medium</td><td>Create normal task</td></tr><tr><td>Fallback / no rule match</td><td>Other</td><td>Log or send to triage</td></tr></table>
+<h3>Configuration approach</h3><ol><li>Select the value to evaluate, for example <code>{{ $json.priority }}</code>.</li><li>Add a rule for each expected value or range.</li><li>Configure what happens when no rule matches.</li><li>Connect each output to its relevant action.</li><li>Test all expected values, including null and unexpected values.</li></ol>
+<div class="callout tip">Use IF for two outcomes. Use Switch when the workflow has three or more meaningful routes or when routing rules are easier to maintain in one place.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">8.6</div><h2>Merge node</h2></div>
+<div class="src"><span class="tag">Combine branches</span>
+<p>The Merge node combines data from two inputs. Its behaviour depends on the selected mode. It can append input items, combine matching items, combine by position, or wait for inputs to arrive before continuing. Available options can change across n8n versions.</p>
+<h3>Common use cases</h3><ul><li>Combine customer data from a CRM with account details from a database.</li><li>Join two branches that were processed independently.</li><li>Append records from two sources into one stream.</li><li>Synchronize branches before downstream processing.</li></ul>
+<table><tr><th>Mode / concept</th><th>What it does</th><th>Use when</th></tr><tr><td>Append</td><td>Places items from both inputs into one output sequence.</td><td>You want a combined list, not a field-level join.</td></tr><tr><td>Combine by matching fields</td><td>Matches records using selected key fields.</td><td>Both sources share a key such as <code>customer_id</code>.</td></tr><tr><td>Combine by position</td><td>Pairs items according to their positions.</td><td>Input item ordering and counts are intentionally aligned.</td></tr><tr><td>Choose Branch / pass-through options</td><td>Continues with a selected input, depending on configuration.</td><td>You need branch synchronization or a particular input's data.</td></tr></table>
+<h3>Example: combine source and target counts</h3><pre><code>Input 1: { "table": "CUSTOMERS", "source_count": 1200 }
+Input 2: { "table": "CUSTOMERS", "target_count": 1198 }
+
+Merge by matching field: table
+
+Possible combined result:
+{
+  "table": "CUSTOMERS",
+  "source_count": 1200,
+  "target_count": 1198
+}</code></pre>
+<div class="callout warn"><b>Watch out for:</b> duplicate field names, unmatched keys, item-order assumptions and unexpected many-to-many matches. Decide how unmatched items should be handled and test with duplicate keys.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">8.7</div><h2>Filter node</h2></div>
+<div class="src"><span class="tag">Keep matching items</span>
+<p>The Filter node keeps only the items that satisfy the configured conditions and removes items that do not match. Unlike IF, it does not create separate true and false branches for the two groups.</p>
+<h3>Example: keep active customers</h3><pre><code>Condition:
+{{ $json.customer_status }}
+is equal to
+Active</code></pre>
+<p>If 100 customer items arrive and 72 are Active, the Filter output contains the 72 matching items. The other 28 do not continue through this node's output.</p>
+<h3>Filter vs IF</h3><ul><li><b>Filter:</b> retain only matching items in one stream.</li><li><b>IF:</b> split items into true and false outputs so both groups can be processed differently.</li></ul>
+<p>Use Filter for simple selection before reporting, API calls or database writes. Use IF when rejected items also need a separate action.</p></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">8.8</div><h2>Sort node</h2></div>
+<div class="src"><span class="tag">Order items</span>
+<p>The Sort node orders incoming items by one or more fields. Sorting changes the sequence of items; it does not inherently remove or aggregate them.</p>
+<h3>Example</h3><p>Sort incident records by <code>created_at</code> descending to put the newest incident first, or by <code>severity_rank</code> ascending to put the highest-priority records first if lower numbers represent greater severity.</p>
+<table><tr><th>Field</th><th>Direction</th><th>Example</th></tr><tr><td><code>created_at</code></td><td>Descending</td><td>Newest to oldest</td></tr><tr><td><code>customer_name</code></td><td>Ascending</td><td>A to Z</td></tr><tr><td><code>amount</code></td><td>Descending</td><td>Highest amount first</td></tr></table>
+<div class="callout warn">Check data types before sorting. Text values such as <code>"100"</code> and <code>"20"</code> may not sort like numeric values. Normalize dates and numbers before sorting.</div></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">8.9</div><h2>Limit node</h2></div>
+<div class="src"><span class="tag">Restrict item count</span>
+<p>The Limit node restricts how many items continue downstream. It is useful for sampling, testing, limiting API operations or processing only a subset of a large result.</p>
+<h3>Example</h3><p>Input: 5,000 customer records. Limit: 100. Output: at most 100 records, depending on the configured selection options.</p>
+<ul><li>Use a small limit while testing a workflow against a real data source.</li><li>Use it to prevent an accidental large batch of downstream writes.</li><li>Do not confuse a workflow test limit with complete production processing.</li></ul>
+<div class="callout warn">Limit does not mean pagination. If you need every record from an API, configure the API's pagination mechanism rather than limiting the result and assuming the rest will be fetched automatically.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">8.10</div><h2>Aggregate node</h2></div>
+<div class="src"><span class="tag">Many items → grouped structure</span>
+<p>The Aggregate node collects values from multiple incoming items into an aggregated structure. It is useful when you need to package individual records into a list or combine selected fields for a later operation.</p>
+<h3>Example input items</h3><pre><code>{ "product": "Keyboard", "qty": 2 }
+{ "product": "Mouse", "qty": 4 }
+{ "product": "Monitor", "qty": 1 }</code></pre>
+<h3>Conceptual aggregate result</h3><pre><code>{
+  "products": [
+    { "product": "Keyboard", "qty": 2 },
+    { "product": "Mouse", "qty": 4 },
+    { "product": "Monitor", "qty": 1 }
+  ]
+}</code></pre>
+<p>Depending on the selected aggregation mode and fields, you can aggregate all item data or selected fields. Configure the output field name and decide whether the original fields should also be included.</p>
+<h3>When to use it</h3><ul><li>Build one API payload containing many detail records.</li><li>Collect values before sending a summary email.</li><li>Prepare a nested JSON structure for another system.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">8.11</div><h2>Summarize node</h2></div>
+<div class="src"><span class="tag">Statistical summary</span>
+<p>The Summarize node calculates summary values across incoming items, such as counts, sums, averages, minimums and maximums. It is intended for analytical summaries rather than simply placing records into an array.</p>
+<h3>Example: daily sales</h3><pre><code>Input amounts: 100, 250, 150, 500
+
+Count  = 4
+Sum    = 1000
+Average= 250
+Min    = 100
+Max    = 500</code></pre>
+<p>Where supported by the node configuration, group by a field such as <code>region</code> or <code>business_date</code> to calculate separate metrics for each group.</p>
+<table><tr><th>Metric</th><th>Meaning</th></tr><tr><td>Count</td><td>Number of values or records included in the calculation.</td></tr><tr><td>Sum</td><td>Total of numeric values.</td></tr><tr><td>Average</td><td>Arithmetic mean of numeric values.</td></tr><tr><td>Min / Max</td><td>Smallest and largest values.</td></tr></table>
+<div class="callout tip"><b>Aggregate vs Summarize:</b> Aggregate is for collecting values/records into a structured output. Summarize is for calculating metrics that describe a set of records.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">8.12</div><h2>Split Out node</h2></div>
+<div class="src"><span class="tag">Array → individual items</span>
+<p>The Split Out node takes an array field inside an item and turns each element of that array into a separate n8n item. It is useful when an API returns a parent record containing a list of child records.</p>
+<h3>Input</h3><pre><code>{
+  "order_id": 501,
+  "customer": "Anita",
+  "items": [
+    { "sku": "KB-01", "qty": 2 },
+    { "sku": "MS-02", "qty": 1 },
+    { "sku": "MN-03", "qty": 1 }
+  ]
+}</code></pre>
+<h3>After splitting the <code>items</code> field</h3><pre><code>{ "sku": "KB-01", "qty": 2 }
+{ "sku": "MS-02", "qty": 1 }
+{ "sku": "MN-03", "qty": 1 }</code></pre>
+<p>Configure the array field to split. If downstream steps still need parent-level values such as <code>order_id</code>, configure the node to include the other fields where that option is available.</p>
+<h3>Common pattern</h3><p>Fetch orders → Split Out order lines → calculate line totals → insert each line into a database.</p></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">8.13</div><h2>Loop Over Items node</h2></div>
+<div class="src"><span class="tag">Controlled iteration</span>
+<p>Loop Over Items (formerly known as Split in Batches) processes items in batches and routes each batch through a loop path. It is useful when a downstream operation should handle a controlled number of records at a time.</p>
+<h3>Example</h3><p>You have 1,000 records and configure a batch size of 100. The loop path processes a batch, returns to the loop node, and continues with the next batch until all items have been handled.</p>
+<div class="diagram"><svg aria-label="Loop over items batch process" role="img" viewbox="0 0 800 270"><defs><marker id="arr3" markerheight="10" markerwidth="10" orient="auto" refx="8" refy="3"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path></marker></defs>
+<rect class="node" height="58" rx="10" width="135" x="20" y="95"></rect><text class="label" text-anchor="middle" x="87" y="130">1,000 items</text>
+<path class="arrow" d="M155 124 H205" marker-end="url(#arr3)"></path><rect class="node2" height="58" rx="10" width="160" x="210" y="95"></rect><text class="label" text-anchor="middle" x="290" y="130">Batch size = 100</text>
+<path class="arrow" d="M370 110 H425" marker-end="url(#arr3)"></path><rect class="node" height="58" rx="10" width="160" x="430" y="80"></rect><text class="label" text-anchor="middle" x="510" y="115">Process batch</text>
+<path d="M510 138 V205 H290 V158" fill="none" marker-end="url(#arr3)" stroke="#7c3aed" stroke-width="2"></path><text class="label" text-anchor="middle" x="395" y="228">Continue loop until no items remain</text>
+<path class="arrow" d="M370 145 H640 V110 H675" marker-end="url(#arr3)"></path><rect fill="#eaf8f2" height="58" rx="10" stroke="#087f5b" stroke-width="2" width="105" x="680" y="80"></rect><text class="label" text-anchor="middle" x="732" y="115">Done</text>
+<text class="label" x="390" y="55">Loop output</text><text class="label" x="620" y="165">Done output</text></svg><div class="caption">Conceptual batch loop. Follow the node's Loop and Done outputs and connect the loop path back as shown in the current editor.</div></div>
+<h3>Batch processing pattern</h3><ol><li>Connect a source that returns many items.</li><li>Add Loop Over Items and set the batch size.</li><li>Connect the Loop output to the operation to repeat.</li><li>Connect the end of that processing path back to the loop node as required by the node's loop pattern.</li><li>Connect the Done output to the steps that should run after all batches complete.</li></ol>
+<div class="callout warn">A loop is not automatically required just because there are many items: many n8n nodes process all incoming items themselves. Use Loop Over Items when batching or controlled iteration is actually needed.</div></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">8.14</div><h2>Wait node</h2></div>
+<div class="src"><span class="tag">Pause and resume</span>
+<p>The Wait node pauses a workflow execution and resumes it later based on the configured condition. Depending on the chosen mode, it can wait for a duration, until a specified time, or for an external event such as a webhook call.</p>
+<h3>Common scenarios</h3><ul><li>Wait 30 minutes before sending a reminder.</li><li>Pause until a chosen date/time.</li><li>Wait for an external approval or callback through a resume URL.</li><li>Introduce a delay between steps when the target service requires it.</li></ul>
+<h3>Example: approval process</h3><ol><li>Create a purchase request.</li><li>Send an approval notification containing the resume link or use an appropriate approval integration.</li><li>Pause at the Wait node.</li><li>Resume when the configured event occurs.</li><li>Continue with approved/rejected handling.</li></ol>
+<div class="callout warn"><b>Important:</b> a Wait node does not itself implement a complete approval system. You must design how the approval signal is received, authenticated, correlated to the correct request and validated before the workflow resumes.</div></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">8.15</div><h2>No Operation, do nothing node</h2></div>
+<div class="src"><span class="tag">Workflow placeholder</span>
+<p>The No Operation node intentionally performs no data transformation or external action. It is useful as a placeholder, a clearly named endpoint for a branch, or a temporary connection point while developing a workflow.</p>
+<h3>Examples</h3><ul><li>Keep an unused branch visually explicit.</li><li>Provide a harmless destination for a route that intentionally requires no action.</li><li>Temporarily replace a planned action during development.</li><li>Make a branch easier to read by adding a named stopping point.</li></ul>
+<p>It does not mean “ignore errors” or “continue after a failure” by itself. Error handling must be configured using the appropriate workflow error-handling features.</p></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">8.16</div><h2>Quick comparison: which node should I choose?</h2></div>
+<div class="src"><table><tr><th>Requirement</th><th>Choose</th><th>Why</th></tr>
+<tr><td>Add, rename or remove fields</td><td>Edit Fields</td><td>Visual field mapping without custom code.</td></tr>
+<tr><td>Custom JavaScript/Python transformation</td><td>Code</td><td>Programmatic logic.</td></tr>
+<tr><td>Two possible paths</td><td>IF</td><td>True/false routing.</td></tr>
+<tr><td>Several possible paths</td><td>Switch</td><td>Rule-based multi-way routing.</td></tr>
+<tr><td>Bring two branches together</td><td>Merge</td><td>Combine or synchronize inputs.</td></tr>
+<tr><td>Keep only matching items</td><td>Filter</td><td>One filtered output.</td></tr>
+<tr><td>Order records</td><td>Sort</td><td>Sort by field values.</td></tr>
+<tr><td>Keep only a limited number</td><td>Limit</td><td>Restrict output count.</td></tr>
+<tr><td>Collect records or values into a structure</td><td>Aggregate</td><td>Build an aggregated data structure.</td></tr>
+<tr><td>Calculate counts, sums, averages</td><td>Summarize</td><td>Produce statistical metrics.</td></tr>
+<tr><td>Turn array elements into separate items</td><td>Split Out</td><td>One array element per item.</td></tr>
+<tr><td>Process batches repeatedly</td><td>Loop Over Items</td><td>Controlled iteration/batching.</td></tr>
+<tr><td>Pause and resume later</td><td>Wait</td><td>Time- or event-based pause.</td></tr>
+<tr><td>Do nothing intentionally</td><td>No Operation</td><td>Placeholder or explicit no-action branch.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">8.17</div><h2>Practical labs</h2></div>
+<div class="src"><h3>Lab 1 — Clean and enrich customer records</h3><p><b>Goal:</b> standardize incoming customer data using Edit Fields.</p><ol><li>Create a Manual Trigger and provide sample customer JSON using an appropriate data source node or pinned input.</li><li>Add Edit Fields.</li><li>Create <code>full_name</code>, <code>email_normalized</code> and <code>customer_type</code>.</li><li>Remove fields that should not be sent downstream.</li><li>Execute and inspect the resulting JSON.</li></ol><p><b>Expected outcome:</b> a consistent customer schema for downstream systems.</p>
+<h3>Lab 2 — Route incidents by severity</h3><p><b>Goal:</b> use Switch for multiple routes.</p><ol><li>Prepare incidents with Critical, High, Medium and Low priorities.</li><li>Add Switch and evaluate the priority field.</li><li>Create a route for each priority.</li><li>Connect each output to a different notification or logging action (mock actions are fine).</li><li>Test an unexpected priority and confirm the fallback behaviour.</li></ol>
+<h3>Lab 3 — Filter and sort orders</h3><p><b>Goal:</b> keep only approved orders and sort by amount descending.</p><ol><li>Prepare at least five sample order items.</li><li>Filter on <code>status = approved</code>.</li><li>Sort by numeric <code>amount</code>, descending.</li><li>Inspect the output order and confirm rejected records are excluded.</li></ol>
+<h3>Lab 4 — Merge source and target validation counts</h3><p><b>Goal:</b> combine two data branches.</p><ol><li>Create one branch with source table counts and another with target table counts.</li><li>Ensure both branches contain a shared key such as <code>table_name</code>.</li><li>Configure Merge to combine by that matching field.</li><li>Review matched and unmatched records.</li><li>Calculate a count difference in Edit Fields or Code.</li></ol>
+<h3>Lab 5 — Split and aggregate order lines</h3><p><b>Goal:</b> move between parent and child record structures.</p><ol><li>Create an order with an array of line items.</li><li>Use Split Out on the line-item array.</li><li>Calculate line amount for each item.</li><li>Use Aggregate to collect the transformed lines into one array.</li><li>Compare the original and reconstructed structures.</li></ol>
+<h3>Lab 6 — Batch processing with a Wait step</h3><p><b>Goal:</b> process records in batches and introduce a controlled pause.</p><ol><li>Prepare a list of test records.</li><li>Use Loop Over Items with a small batch size such as 2 or 3.</li><li>Connect a harmless processing step to the Loop output.</li><li>Optionally add a short Wait for demonstration, then return to the loop path.</li><li>Use the Done output for a final completion message.</li><li>Inspect the execution to understand the batch sequence.</li></ol>
+<div class="callout tip">Use mock data and harmless actions while learning. Before connecting production databases, email systems or APIs, verify credentials, filters, batch sizes and the number of records that will be changed.</div></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">8.18</div><h2>Troubleshooting and design guidance</h2></div>
+<div class="src"><table><tr><th>Symptom</th><th>Likely cause</th><th>What to check</th></tr>
+<tr><td>Expected fields are missing</td><td>Edit Fields is configured to keep only selected fields.</td><td>Review include/keep settings and downstream field names.</td></tr>
+<tr><td>Code node returns no data or errors</td><td>Incorrect return structure, mode mismatch or invalid JavaScript/Python.</td><td>Confirm execution mode, language, syntax and output shape.</td></tr>
+<tr><td>IF sends records to the wrong output</td><td>String/number mismatch, whitespace or incorrect condition.</td><td>Inspect actual input value and type; normalize before comparing.</td></tr>
+<tr><td>Switch has no matching route</td><td>Unexpected value or no fallback route.</td><td>Check spelling, case, nulls and fallback handling.</td></tr>
+<tr><td>Merge output has duplicates</td><td>Duplicate join keys or many-to-many matches.</td><td>Check key uniqueness and selected merge mode.</td></tr>
+<tr><td>Filter returns zero items</td><td>Condition does not match actual values.</td><td>Inspect input data, data type, casing and null values.</td></tr>
+<tr><td>Sort order looks incorrect</td><td>Numbers/dates are stored as strings or values are inconsistent.</td><td>Convert values to the intended data type first.</td></tr>
+<tr><td>Only some records are processed</td><td>Limit node or an upstream API pagination setting.</td><td>Review limits and pagination configuration.</td></tr>
+<tr><td>Array is not split</td><td>Wrong array field path or value is not actually an array.</td><td>Inspect the input JSON and select the correct field.</td></tr>
+<tr><td>Loop never completes</td><td>Loop-back connection is wrong or loop path does not reach the expected return point.</td><td>Review Loop and Done outputs and inspect execution progression.</td></tr>
+<tr><td>Wait workflow does not resume as expected</td><td>Resume mode or event configuration is incorrect.</td><td>Check wait condition, resume endpoint/event and execution status.</td></tr></table>
+<h3>Production design principles</h3><ul><li>Define the expected input and output schema for each major workflow section.</li><li>Validate required fields before making irreversible changes.</li><li>Use Filter when you only need matching items; use IF when both groups need handling.</li><li>Use Merge only after deciding the matching key and duplicate behaviour.</li><li>Use Limit during development, then remove or deliberately configure it for production.</li><li>Use batching to manage downstream load, but do not add loops unnecessarily.</li><li>Log rejected records and errors so they can be investigated or replayed.</li><li>Test empty arrays, nulls, duplicate keys, unexpected values and large inputs.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">8.19</div><h2>Interview questions and answers</h2></div>
+<div class="src"><ol>
+<li><b>What is the Edit Fields node?</b><br/>It adds, updates, renames or removes fields using visual mapping and expressions.</li>
+<li><b>When would you use Code instead of Edit Fields?</b><br/>When custom logic or complex transformations are clearer and more maintainable in code.</li>
+<li><b>What are the Code node execution modes?</b><br/>Run once for all items and run once for each item.</li>
+<li><b>What does the IF node do?</b><br/>Routes items to true or false outputs based on conditions.</li>
+<li><b>How is Switch different from IF?</b><br/>Switch supports multiple rule-based routes; IF is designed for a two-way decision.</li>
+<li><b>What is the purpose of Merge?</b><br/>To combine data from two inputs or branches using a selected merge strategy.</li>
+<li><b>What is the difference between Append and matching-field combination?</b><br/>Append places items into one stream; matching-field combination joins records using key values.</li>
+<li><b>How is Filter different from IF?</b><br/>Filter keeps matching items in one output; IF separates true and false items into two outputs.</li>
+<li><b>Does Sort change the data values?</b><br/>Normally it changes item order, not the field values themselves.</li>
+<li><b>What is the purpose of Limit?</b><br/>To restrict how many items continue downstream.</li>
+<li><b>Does Limit implement API pagination?</b><br/>No. Pagination must be configured for the API or data source.</li>
+<li><b>What does Aggregate do?</b><br/>Collects selected values or records into an aggregated data structure.</li>
+<li><b>What does Summarize do?</b><br/>Calculates metrics such as count, sum, average, minimum and maximum.</li>
+<li><b>Aggregate vs Summarize?</b><br/>Aggregate builds a collection/structure; Summarize calculates descriptive metrics.</li>
+<li><b>What does Split Out do?</b><br/>Converts elements of an array field into separate n8n items.</li>
+<li><b>Give a use case for Split Out.</b><br/>Turning an order's line-item array into individual rows for database insertion.</li>
+<li><b>What is Loop Over Items?</b><br/>A node for iterating over items in controlled batches.</li>
+<li><b>Should every multi-item workflow use Loop Over Items?</b><br/>No. Many nodes process all input items natively; use loops when controlled batching is required.</li>
+<li><b>What is the Loop output?</b><br/>The output used for the current batch's processing path.</li>
+<li><b>What is the Done output?</b><br/>The output used after all batches have been processed.</li>
+<li><b>What is the Wait node used for?</b><br/>Pausing a workflow until a time-based or event-based resume condition is met.</li>
+<li><b>Does Wait itself implement approval logic?</b><br/>No. The workflow must receive and validate the approval event or signal.</li>
+<li><b>What does No Operation do?</b><br/>It intentionally performs no action and can serve as a placeholder or explicit no-action branch.</li>
+<li><b>How would you design a safe data-load workflow?</b><br/>Validate inputs, filter eligible records, transform fields, batch writes if required, log outcomes and route errors for review.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">8.20</div><h2>Chapter completion checklist</h2></div>
+<div class="src"><ul>
+<li>☐ I can add, rename, update and remove fields with Edit Fields.</li>
+<li>☐ I understand Code node modes and its expected output structure.</li>
+<li>☐ I can build two-way decisions with IF.</li>
+<li>☐ I can route several categories with Switch.</li>
+<li>☐ I can choose a suitable Merge mode and matching key.</li>
+<li>☐ I know when to use Filter instead of IF.</li>
+<li>☐ I can sort and limit records safely.</li>
+<li>☐ I understand the difference between Aggregate and Summarize.</li>
+<li>☐ I can split an array into individual items.</li>
+<li>☐ I can build a controlled batch loop with Loop Over Items.</li>
+<li>☐ I can pause and resume a workflow with Wait.</li>
+<li>☐ I understand the role of No Operation.</li>
+<li>☐ I completed at least three practical labs and inspected node input/output data.</li>
+</ul>
+<div class="callout tip"><b>Recommended next step:</b> build one end-to-end workflow using sample orders: normalize fields → validate with IF → route by priority with Switch → split line items → calculate totals → summarize → merge the results → send a final report.</div></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official n8n documentation</h2></div>
+<div class="src"><p>Node behaviour and available parameters can change between n8n releases. Use the current documentation and the node's own parameter descriptions as the final reference.</p>
+<ul>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/" rel="noopener" target="_blank">Edit Fields (Set)</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/" rel="noopener" target="_blank">Code node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/" rel="noopener" target="_blank">If node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch/" rel="noopener" target="_blank">Switch node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/" rel="noopener" target="_blank">Merge node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/" rel="noopener" target="_blank">Filter node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.sort/" rel="noopener" target="_blank">Sort node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.limit/" rel="noopener" target="_blank">Limit node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.aggregate/" rel="noopener" target="_blank">Aggregate node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.summarize/" rel="noopener" target="_blank">Summarize node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout/" rel="noopener" target="_blank">Split Out node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/" rel="noopener" target="_blank">Loop Over Items (Split in Batches)</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/" rel="noopener" target="_blank">Wait node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.noop/" rel="noopener" target="_blank">No Operation node</a></li>
+<li><a href="https://docs.n8n.io/data/data-structure/" rel="noopener" target="_blank">How n8n structures data</a></li>
+<li><a href="https://docs.n8n.io/data/data-mapping/" rel="noopener" target="_blank">Data mapping</a></li>
+<li><a href="https://docs.n8n.io/data/expressions/" rel="noopener" target="_blank">Expressions</a></li>
+<li><a href="https://docs.n8n.io/data/data-mapping/data-item-linking/" rel="noopener" target="_blank">Item linking</a></li>
+</ul>
+<p class="small">The diagrams in this learning manual are original illustrative SVGs embedded in this HTML file. They are explanatory visuals, not captured screenshots of the live n8n interface. Exact node labels, modes and options may vary by n8n version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_07_Data_Handling_in_n8n.html"><span class="mn-label">← Previous</span><span class="mn-title">Data Handling in n8n</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_09_Workflow_Logic_and_Control_Flow.html"><span class="mn-label">Next →</span><span class="mn-title">Workflow Logic &amp; Control Flow</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

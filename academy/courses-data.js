@@ -57,6 +57,21 @@ window.HARINIT_COURSES = [
     ],
     button: { label: 'Explore Databricks', href: 'databricks/' },
     accent: { accent: '#ff6b4a', accent2: '#ffb347' }
+  },
+  {
+    id: 'n8n',
+    badge: 'n8n',
+    title: 'n8n',
+    subtitle: 'Workflow Automation & AI Agents',
+    description: 'Learn n8n from first workflows to production: nodes, triggers, expressions, JavaScript, APIs, webhooks, databases, LLMs, AI agents, RAG, security, deployment, and 12 real-time projects with a capstone.',
+    stats: [
+      { label: '26 Chapters', sub: 'A clear learning path' },
+      { label: '470+ Lessons', sub: 'Focused practical learning' },
+      { label: '12 Projects', sub: 'Build as you learn' },
+      { label: 'Capstone Project', sub: 'Apply your knowledge' }
+    ],
+    button: { label: 'Explore n8n', href: 'n8n/' },
+    accent: { accent: '#ea4b71', accent2: '#ff9b6a' }
   }
 
   // -------------------------------------------------------------------

@@ -1,0 +1,860 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Learn how to create dynamic values, access data from the current and previous nodes, and transform dates, strings, numbers, arrays and objects using n8n expressions. This chapter builds the skills needed to map clean data between APIs, databases and business workflows."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Expressions &amp; Data Transformation — Chapter 10 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .diagram .diagram svg{width:100%;height:auto;min-width:520px}
+.v2 .src .diagram .node{fill:#fff;stroke:#d84c78;stroke-width:2}
+.v2 .src .diagram .node2{fill:#f1edff;stroke:#7c3aed;stroke-width:2}
+.v2 .src .diagram .node3{fill:#eaf8f2;stroke:#087f5b;stroke-width:2}
+.v2 .src .diagram .arrow{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#arr)}
+.v2 .src .diagram .label{font:14px system-ui;fill:#202b40}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">Expressions &amp; Data Transformation</div>
+<div class="brand-sub">Chapter 10 · 17 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">10.1</span>Expression foundations</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">10.2</span>Expression editor</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">10.3</span>Expression syntax</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">10.4</span>Dynamic values</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">10.5</span>Date and time transformations</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">10.6</span>String manipulation</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">10.7</span>Number conversions</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">10.8</span>Array manipulation</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">10.9</span>Object manipulation</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">10.10</span>Conditional expressions</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">10.11</span>Referencing workflow variables</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">10.12</span>Practical transformation patterns</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">10.13</span>Hands-on practical labs</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">10.14</span>Troubleshooting and best practices</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">10.15</span>Interview questions and answers</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">10.16</span>Chapter completion checklist</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">📚</span>Official n8n documentation</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 3 · Chapter 10</div><h1>Expressions and Data Transformation</h1><p class="page-subtitle">Learn how to create dynamic values, access data from the current and previous nodes, and transform dates, strings, numbers, arrays and objects using n8n expressions. This chapter builds the skills needed to map clean data between APIs, databases and business workflows.</p><div class="meta-row"><span class="meta-pill">Phase <b>3</b></span><span class="meta-pill">Topics <b>10</b></span><span class="meta-pill"> <b>10 topics</b></span><span class="meta-pill"> <b>Expression examples</b></span><span class="meta-pill"> <b>Embedded diagrams</b></span><span class="meta-pill"> <b>Hands-on labs</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Expression editor; Expression syntax; Dynamic values; Date and time transformations; String manipulation; Number conversions; Array manipulation; Object manipulation; Conditional expressions; Referencing workflow variables. <br><strong>Before you start:</strong> complete Chapter 9 – Workflow Logic and Control Flow. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">10.1</div><h2>Expression foundations</h2></div>
+<div class="src"><p>An n8n expression is a JavaScript-based expression evaluated at runtime using data available to the current workflow execution. Expressions let you insert values that change for each item or execution instead of typing fixed values into node fields.</p>
+<div class="grid">
+<div class="mini"><h3>Read data</h3><p>Access current input with <code>$json</code> or reference data from another node.</p></div>
+<div class="mini"><h3>Build values</h3><p>Combine text, calculate numbers and construct dynamic URLs or messages.</p></div>
+<div class="mini"><h3>Transform data</h3><p>Format dates, normalize strings and reshape arrays or objects.</p></div>
+<div class="mini"><h3>Apply logic</h3><p>Use conditions to choose values based on the incoming data.</p></div>
+</div>
+<div class="diagram"><svg aria-label="Expression data flow" role="img" viewbox="0 0 850 180"><defs><marker id="arr" markerheight="10" markerwidth="10" orient="auto" refx="8" refy="3"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path></marker></defs>
+<rect class="node" height="58" rx="10" width="145" x="15" y="55"></rect><text class="label" text-anchor="middle" x="87" y="89">Input JSON</text>
+<path class="arrow" d="M160 84 H205"></path><rect class="node2" height="58" rx="10" width="180" x="210" y="55"></rect><text class="label" text-anchor="middle" x="300" y="89">Expression</text>
+<path class="arrow" d="M390 84 H435"></path><rect class="node" height="58" rx="10" width="165" x="440" y="55"></rect><text class="label" text-anchor="middle" x="522" y="89">Evaluate at runtime</text>
+<path class="arrow" d="M605 84 H650"></path><rect class="node3" height="58" rx="10" width="180" x="655" y="55"></rect><text class="label" text-anchor="middle" x="745" y="89">Dynamic output</text>
+<text class="label" text-anchor="middle" x="425" y="150">Same expression · different input item · different evaluated value</text></svg><div class="caption">Conceptual diagram. Expressions are evaluated using the current execution context; this is not a screenshot of the n8n editor.</div></div>
+<div class="callout tip"><b>Important distinction:</b> expressions are used in fields that support expression mode. They are not the same as writing code in the Code node. Use expressions for field-level dynamic values and the Code node for larger custom transformations.</div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">10.2</div><h2>Expression editor</h2></div>
+<div class="src"><span class="tag">Where expressions are created</span>
+<p>The expression editor is the interface for entering and previewing dynamic values in supported node fields. In the editor, you can switch a field from fixed-value mode to expression mode, type an expression or use the input data panel to insert references.</p>
+<h3>Typical steps</h3><ol><li>Open a node that has a field supporting expressions, such as an HTTP Request URL or an Edit Fields value.</li><li>Switch the field to <b>Expression</b> mode (the control's appearance can vary by n8n version).</li><li>Enter an expression or drag/select data from the input panel.</li><li>Review the preview/result where available.</li><li>Execute the node with representative input data to confirm the runtime value.</li></ol>
+<h3>Fixed value vs expression</h3><table><tr><th>Mode</th><th>Example</th><th>Result</th></tr><tr><td>Fixed value</td><td><code>orders@example.com</code></td><td>Same recipient every time.</td></tr><tr><td>Expression</td><td><code>{{ $json.email }}</code></td><td>Recipient comes from each current item.</td></tr></table>
+<div class="callout warn">The expression preview depends on available input data. If the node has not received representative input, the preview may be empty or may not reflect the actual production execution.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">10.3</div><h2>Expression syntax</h2></div>
+<div class="src"><span class="tag">JavaScript inside {{ }}</span>
+<p>In n8n's expression fields, dynamic expressions are generally wrapped in double curly braces: <code>{{ ... }}</code>. Inside the braces you can use JavaScript expressions and n8n-provided variables and helpers.</p>
+<h3>Core syntax examples</h3><pre><code>// Current input item's JSON
+{{ $json.customer_name }}
+
+// Nested field
+{{ $json.customer.address.city }}
+
+// Combine strings
+{{ $json.first_name + " " + $json.last_name }}
+
+// Numeric calculation
+{{ Number($json.quantity) * Number($json.unit_price) }}
+
+// Use a fallback when value is nullish
+{{ $json.email ?? "unknown@example.com" }}</code></pre>
+<h3>Common reference helpers</h3><table><tr><th>Expression</th><th>Meaning</th></tr><tr><td><code>$json</code></td><td>JSON data for the current input item.</td></tr><tr><td><code>$binary</code></td><td>Binary data for the current item, when present.</td></tr><tr><td><code>$input.first()</code></td><td>First item from the current node's input.</td></tr><tr><td><code>$input.all()</code></td><td>All items from the current node's input.</td></tr><tr><td><code>$('Node Name').first().json</code></td><td>JSON data from the first output item of a named node.</td></tr><tr><td><code>$('Node Name').all()</code></td><td>All output items from a named node.</td></tr><tr><td><code>$now</code> / <code>$today</code></td><td>Current date-time / start of today as n8n DateTime values.</td></tr><tr><td><code>$vars</code></td><td>Workflow variables available to the workflow.</td></tr><tr><td><code>$workflow</code></td><td>Information about the current workflow.</td></tr></table>
+<h3>Accessing another node</h3><pre><code>// Linked item from a named node
+{{ $('Get Customer').item.json.customer_id }}
+
+// First output item from a named node
+{{ $('Get Customer').first().json.customer_id }}
+
+// All output items from a named node
+{{ $('Get Customer').all() }}</code></pre>
+<div class="callout tip"><b>Item linking matters:</b> use <code>.item</code> when you need the item linked to the current item. Use <code>.first()</code> only when the first output item is deliberately the one you want. If a workflow aggregates or reshapes items, verify that the reference returns the intended record.</div>
+<h3>Expression vs Code node</h3><ul><li>Expression: a value or calculation for one supported field, evaluated in the current item context.</li><li>Code node: a script for custom transformations across one or many items.</li><li>Do not assume every n8n expression-only helper is available inside the Code node; check the reference for the specific method.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">10.4</div><h2>Dynamic values</h2></div>
+<div class="src"><span class="tag">Values change with data</span>
+<p>Dynamic values are calculated when the workflow runs. They can come from the current item, previous nodes, workflow metadata, variables or date/time helpers.</p>
+<h3>Example: dynamic email</h3><pre><code>To:
+{{ $json.email }}
+
+Subject:
+Order {{ $json.order_id }} has been received
+
+Message:
+Hello {{ $json.customer_name }},
+Your order total is {{ $json.currency }} {{ $json.total }}.</code></pre>
+<h3>Example: dynamic API URL</h3><pre><code>https://api.example.com/customers/{{ $json.customer_id }}/orders</code></pre>
+<h3>Example: dynamic filename</h3><pre><code>customer_{{ $json.customer_id }}_{{ $now.toFormat('yyyyLLdd_HHmmss') }}.csv</code></pre>
+<h3>Where dynamic values are useful</h3><ul><li>HTTP Request URLs, query parameters and request bodies.</li><li>Email recipients, subject lines and message bodies.</li><li>Database values and record keys.</li><li>File names and folder paths.</li><li>Conditional messages, labels and status fields.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">10.5</div><h2>Date and time transformations</h2></div>
+<div class="src"><span class="tag">Luxon DateTime</span>
+<p>n8n recommends using Luxon-based DateTime helpers in expressions for date and time operations. The workflow time zone is important: <code>$now</code> uses the workflow's configured time zone, and date strings from other nodes should be parsed before date arithmetic.</p>
+<h3>Useful date expressions</h3><pre><code>// Current date and time
+{{ $now }}
+
+// Current date at the start of today
+{{ $today }}
+
+// Current timestamp as ISO string
+{{ $now.toISO() }}
+
+// Seven days ago
+{{ $today.minus({ days: 7 }).toISODate() }}
+
+// Add 2 hours
+{{ $now.plus({ hours: 2 }).toISO() }}
+
+// Format date as dd/MM/yyyy
+{{ $now.toFormat('dd/LL/yyyy') }}
+
+// Convert to a named time zone
+{{ $now.setZone('Asia/Kolkata').toISO() }}</code></pre>
+<h3>Parse incoming dates</h3><pre><code>// Input is ISO 8601
+{{ DateTime.fromISO($json.created_at).toFormat('dd LLL yyyy') }}
+
+// Input format is 21-11-2026
+{{ DateTime.fromFormat($json.business_date, 'dd-MM-yyyy').toISODate() }}</code></pre>
+<h3>Common format tokens</h3><table><tr><th>Token</th><th>Meaning</th><th>Example</th></tr><tr><td><code>yyyy</code></td><td>Four-digit year</td><td>2026</td></tr><tr><td><code>LL</code></td><td>Two-digit month</td><td>11</td></tr><tr><td><code>dd</code></td><td>Day of month</td><td>21</td></tr><tr><td><code>HH</code></td><td>24-hour clock hour</td><td>14</td></tr><tr><td><code>mm</code></td><td>Minute</td><td>05</td></tr><tr><td><code>ss</code></td><td>Second</td><td>09</td></tr></table>
+<div class="callout warn"><b>Timezone warning:</b> do not assume that a timestamp without a timezone is UTC. Confirm the source system's timezone, the workflow timezone and whether conversion should preserve the same instant or the same wall-clock time.</div>
+<h3>Date helpers in expressions vs Code node</h3><p>Some methods documented for n8n's expression editor are n8n-specific extensions and may not exist in the Code node. For example, expression formatting examples may use <code>.format()</code>, while native Luxon formatting in Code uses <code>.toFormat()</code>. Check the method documentation before copying an expression into Code.</p></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">10.6</div><h2>String manipulation</h2></div>
+<div class="src"><span class="tag">Text cleanup and formatting</span>
+<p>JavaScript string methods can normalize, search, extract and combine text. They are useful for cleaning data received from forms, spreadsheets, databases and APIs.</p>
+<h3>Common operations</h3><pre><code>// Remove leading/trailing spaces
+{{ $json.customer_name.trim() }}
+
+// Convert to uppercase
+{{ $json.country.toUpperCase() }}
+
+// Convert to lowercase
+{{ $json.email.toLowerCase() }}
+
+// Replace text
+{{ $json.phone.replaceAll('-', '') }}
+
+// Get first 5 characters
+{{ $json.reference.substring(0, 5) }}
+
+// Combine text
+{{ $json.first_name + ' ' + $json.last_name }}
+
+// Check if a value contains text
+{{ $json.email.includes('@') }}</code></pre>
+<h3>Safer handling of missing values</h3><pre><code>// Convert missing name to an empty string, then trim
+{{ String($json.customer_name ?? '').trim() }}
+
+// Normalize email safely
+{{ String($json.email ?? '').trim().toLowerCase() }}</code></pre>
+<div class="callout tip">Normalize text before comparing it. For example, <code>"Active"</code>, <code>" active "</code> and <code>"ACTIVE"</code> are different strings unless you standardize case and whitespace.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">10.7</div><h2>Number conversions</h2></div>
+<div class="src"><span class="tag">Numeric calculations</span>
+<p>Values from APIs, CSV files and databases may arrive as strings. Convert them to numbers before doing arithmetic or numeric comparisons.</p>
+<h3>Common conversions</h3><pre><code>// Convert a numeric string
+{{ Number($json.amount) }}
+
+// Integer conversion
+{{ parseInt($json.quantity, 10) }}
+
+// Floating-point conversion
+{{ parseFloat($json.unit_price) }}
+
+// Default nullish value to zero
+{{ Number($json.discount ?? 0) }}
+
+// Calculate line total
+{{ Number($json.quantity) * Number($json.unit_price) }}
+
+// Round to 2 decimal places
+{{ Number((Number($json.amount)).toFixed(2)) }}</code></pre>
+<h3>Validate before calculating</h3><pre><code>// Check whether a value can be converted to a finite number
+{{ Number.isFinite(Number($json.amount)) }}</code></pre>
+<table><tr><th>Input</th><th>Conversion</th><th>Result</th></tr><tr><td><code>"125"</code></td><td><code>Number("125")</code></td><td>125</td></tr><tr><td><code>"12.75"</code></td><td><code>parseFloat("12.75")</code></td><td>12.75</td></tr><tr><td><code>"abc"</code></td><td><code>Number("abc")</code></td><td>NaN</td></tr><tr><td><code>null</code></td><td><code>Number(null)</code></td><td>0</td></tr></table>
+<div class="callout warn">Be careful with empty strings, nulls, currency symbols and comma-formatted numbers. For example, <code>Number("")</code> returns 0, while <code>Number("1,250")</code> returns NaN. Clean and validate values before calculations.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">10.8</div><h2>Array manipulation</h2></div>
+<div class="src"><span class="tag">Working with lists</span>
+<p>An array is an ordered list of values. In n8n, remember the difference between multiple n8n items and an array stored inside one item's JSON. Array methods operate on the array value itself.</p>
+<h3>Example input</h3><pre><code>{
+  "products": [
+    { "name": "Keyboard", "price": 1200 },
+    { "name": "Mouse", "price": 500 },
+    { "name": "Monitor", "price": 8500 }
+  ]
+}</code></pre>
+<h3>Common array expressions</h3><pre><code>// Number of products
+{{ $json.products.length }}
+
+// First product name
+{{ $json.products[0].name }}
+
+// Get product names
+{{ $json.products.map(p =&gt; p.name) }}
+
+// Filter products costing over 1000
+{{ $json.products.filter(p =&gt; p.price &gt; 1000) }}
+
+// Sum all product prices
+{{ $json.products.reduce((total, p) =&gt; total + p.price, 0) }}
+
+// Join product names into a string
+{{ $json.products.map(p =&gt; p.name).join(', ') }}</code></pre>
+<h3>Array method guide</h3><table><tr><th>Method</th><th>Purpose</th><th>Example</th></tr><tr><td><code>map()</code></td><td>Transform every element into a new value.</td><td><code>items.map(x =&gt; x.id)</code></td></tr><tr><td><code>filter()</code></td><td>Keep elements that satisfy a condition.</td><td><code>items.filter(x =&gt; x.active)</code></td></tr><tr><td><code>find()</code></td><td>Return the first matching element.</td><td><code>items.find(x =&gt; x.id === 5)</code></td></tr><tr><td><code>some()</code></td><td>Check whether at least one element matches.</td><td><code>items.some(x =&gt; x.active)</code></td></tr><tr><td><code>every()</code></td><td>Check whether all elements match.</td><td><code>items.every(x =&gt; x.valid)</code></td></tr><tr><td><code>reduce()</code></td><td>Accumulate elements into one result.</td><td><code>items.reduce((s,x) =&gt; s+x.amount,0)</code></td></tr><tr><td><code>join()</code></td><td>Join array elements into a string.</td><td><code>names.join(', ')</code></td></tr></table>
+<div class="callout tip">If each nested array element must become its own n8n item for downstream processing, use the Split Out node. If you only need a calculated value or transformed array inside a field, an expression may be enough.</div></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">10.9</div><h2>Object manipulation</h2></div>
+<div class="src"><span class="tag">Working with JSON objects</span>
+<p>An object stores related data as key-value pairs. Expressions can read nested properties, create new objects, copy existing objects and select fields for an API payload.</p>
+<h3>Read nested properties</h3><pre><code>{{ $json.customer.address.city }}</code></pre>
+<h3>Create a new object</h3><pre><code>{{ {
+  customerId: $json.customer_id,
+  name: $json.customer_name,
+  contact: {
+    email: $json.email,
+    phone: $json.phone
+  }
+} }}</code></pre>
+<h3>Copy an object and add a field</h3><pre><code>{{ {
+  ...$json,
+  processed: true,
+  processedAt: $now.toISO()
+} }}</code></pre>
+<h3>Select only required fields</h3><pre><code>{{ {
+  order_id: $json.order_id,
+  order_status: $json.status,
+  total_amount: Number($json.total_amount)
+} }}</code></pre>
+<h3>Useful object operations</h3><ul><li><code>Object.keys(obj)</code> returns the object's property names.</li><li><code>Object.values(obj)</code> returns the object's values.</li><li><code>Object.entries(obj)</code> returns key/value pairs.</li><li><code>{ ...obj, newField: value }</code> creates a shallow copy with an added or overridden property.</li></ul>
+<div class="callout warn">Object spread is a shallow copy. Nested objects are not deeply cloned. Also, avoid referencing a nested property without checking that its parent object exists; otherwise the expression can fail.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">10.10</div><h2>Conditional expressions</h2></div>
+<div class="src"><span class="tag">Inline business rules</span>
+<p>Conditional expressions return different values depending on whether a condition is true or false. They are useful when a field value must be calculated dynamically, without routing the workflow into separate branches.</p>
+<h3>Ternary operator</h3><pre><code>// Simple condition
+{{ $json.total &gt;= 1000 ? 'High Value' : 'Standard' }}
+
+// Payment status
+{{ $json.paid ? 'Paid' : 'Pending' }}
+
+// Multiple outcomes
+{{ $json.score &gt;= 80 ? 'A' : $json.score &gt;= 60 ? 'B' : 'C' }}</code></pre>
+<h3>Nullish coalescing and logical OR</h3><pre><code>// Use fallback only for null or undefined
+{{ $json.region ?? 'Unknown' }}
+
+// Use fallback for any falsy value (including empty string, 0, false)
+{{ $json.region || 'Unknown' }}</code></pre>
+<h3>Conditional field value</h3><pre><code>{{ $json.is_active ? 'Enabled' : 'Disabled' }}</code></pre>
+<h3>When to use a conditional expression vs IF node</h3><table><tr><th>Need</th><th>Recommended</th></tr><tr><td>Choose one value for a field.</td><td>Ternary expression.</td></tr><tr><td>Send records down different workflow paths.</td><td>IF node.</td></tr><tr><td>Route records to several categories.</td><td>Switch node.</td></tr><tr><td>Keep only records matching a condition.</td><td>Filter node.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">10.11</div><h2>Referencing workflow variables</h2></div>
+<div class="src"><span class="tag">Workflow context</span>
+<p>Expressions can access more than item data. n8n exposes context variables for workflow metadata, workflow variables, execution information and current time. The exact availability of a variable can depend on the execution context and n8n configuration.</p>
+<h3>Common context variables</h3><table><tr><th>Variable</th><th>Purpose</th><th>Example</th></tr><tr><td><code>$vars</code></td><td>Access workflow variables configured for the workflow.</td><td><code>{{ $vars.environment }}</code></td></tr><tr><td><code>$workflow</code></td><td>Access current workflow metadata.</td><td><code>{{ $workflow.name }}</code></td></tr><tr><td><code>$execution</code></td><td>Access current execution metadata.</td><td><code>{{ $execution.id }}</code></td></tr><tr><td><code>$now</code></td><td>Current date-time in workflow timezone.</td><td><code>{{ $now.toISO() }}</code></td></tr><tr><td><code>$today</code></td><td>Start of the current day.</td><td><code>{{ $today.toISODate() }}</code></td></tr><tr><td><code>$runIndex</code></td><td>Index of the current node run.</td><td><code>{{ $runIndex }}</code></td></tr></table>
+<h3>Example: environment-specific API base URL</h3><pre><code>// Example workflow variable: api_base_url
+{{ $vars.api_base_url + '/customers/' + $json.customer_id }}</code></pre>
+<h3>Example: execution audit field</h3><pre><code>{{ {
+  workflow_name: $workflow.name,
+  execution_id: $execution.id,
+  processed_at: $now.toISO()
+} }}</code></pre>
+<div class="callout warn"><b>Variables are not secrets:</b> do not store passwords, API keys or other credentials in ordinary workflow variables. Use n8n credentials or an appropriate secrets-management integration for sensitive values. Variable availability and permissions can depend on your n8n plan and deployment.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">10.12</div><h2>Practical transformation patterns</h2></div>
+<div class="src"><h3>Pattern A — Normalize customer information</h3><pre><code>{{ {
+  customer_id: String($json.customer_id ?? '').trim(),
+  full_name: String($json.full_name ?? '').trim(),
+  email: String($json.email ?? '').trim().toLowerCase(),
+  country: String($json.country ?? '').trim().toUpperCase()
+} }}</code></pre>
+<h3>Pattern B — Calculate invoice amount</h3><pre><code>{{ {
+  subtotal: Number($json.quantity) * Number($json.unit_price),
+  tax: Number($json.tax_amount ?? 0),
+  discount: Number($json.discount ?? 0),
+  total: Number($json.quantity) * Number($json.unit_price)
+          + Number($json.tax_amount ?? 0)
+          - Number($json.discount ?? 0)
+} }}</code></pre>
+<h3>Pattern C — Prepare a date range for an API</h3><pre><code>{{ {
+  from_date: $today.minus({ days: 7 }).toISODate(),
+  to_date: $today.toISODate()
+} }}</code></pre>
+<h3>Pattern D — Build a compact notification</h3><pre><code>{{ `Order ${$json.order_id} for ${$json.customer_name} is ${$json.status}. Total: ${$json.currency} ${$json.total}.` }}</code></pre>
+<h3>Pattern E — Extract a set of IDs from a nested list</h3><pre><code>{{ $json.orders.map(order =&gt; order.order_id) }}</code></pre>
+<div class="callout tip">When the same complex transformation is needed in several places, consider preparing it once in Edit Fields or a reusable sub-workflow. Keep field-level expressions understandable and avoid duplicating long business rules.</div></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">10.13</div><h2>Hands-on practical labs</h2></div>
+<div class="src"><h3>Lab 1 — Build dynamic customer email content</h3><b>Goal:</b> use current item values in a message.<ol><li>Prepare sample JSON with customer name, email, order ID and total.</li><li>In an email node, set the recipient using <code>{{ $json.email }}</code>.</li><li>Create a dynamic subject using the order ID.</li><li>Build a message body with the customer's name and total.</li><li>Execute with multiple customer items and inspect each rendered value.</li></ol>
+<h3>Lab 2 — Date transformations</h3><b>Goal:</b> produce reporting dates.<ol><li>Create a sample workflow with a Manual Trigger.</li><li>Use Edit Fields to add today's date and the date seven days ago.</li><li>Format one field as <code>dd/LL/yyyy</code>.</li><li>Convert the result to ISO date format for an API parameter.</li><li>Check the workflow timezone and test the result.</li></ol>
+<h3>Lab 3 — Clean and calculate sales data</h3><b>Goal:</b> normalize strings and numeric values.<ol><li>Prepare records with extra spaces, mixed-case emails and numeric strings.</li><li>Use expressions to trim and lowercase text.</li><li>Convert quantity and price to numbers.</li><li>Calculate line totals and round to two decimal places.</li><li>Test missing and invalid values.</li></ol>
+<h3>Lab 4 — Transform an array</h3><b>Goal:</b> use map, filter and reduce.<ol><li>Prepare one item containing a <code>products</code> array.</li><li>Use <code>map()</code> to extract product names.</li><li>Use <code>filter()</code> to keep products above a price threshold.</li><li>Use <code>reduce()</code> to calculate the total price.</li><li>Inspect the resulting fields.</li></ol>
+<h3>Lab 5 — Construct an API payload</h3><b>Goal:</b> build a clean nested JSON object.<ol><li>Prepare customer and address fields.</li><li>Use an expression in Edit Fields to create a nested <code>customer</code> object.</li><li>Use object spread to retain selected existing fields.</li><li>Remove internal-only fields from the outbound payload.</li><li>Validate the payload structure before sending it to a test endpoint.</li></ol>
+<h3>Lab 6 — Use workflow variables and context</h3><b>Goal:</b> create environment-aware output.<ol><li>Configure a non-sensitive workflow variable such as <code>environment</code> or <code>api_base_url</code>, where supported.</li><li>Reference it using <code>$vars</code>.</li><li>Add workflow name and execution ID to an audit object.</li><li>Execute the workflow and inspect the values.</li><li>Confirm that credentials are stored separately from ordinary variables.</li></ol>
+<div class="callout tip">Use the expression preview and actual node execution together. A syntactically valid expression can still produce an unexpected result when the input data type, timezone or item-linking context differs from your assumption.</div></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">10.14</div><h2>Troubleshooting and best practices</h2></div>
+<div class="src"><table><tr><th>Problem</th><th>Likely reason</th><th>How to fix</th></tr>
+<tr><td>Expression is displayed as plain text</td><td>Field is in fixed-value mode or expression delimiters are missing.</td><td>Switch to Expression mode and check the expression syntax.</td></tr>
+<tr><td>Expression returns undefined</td><td>Field path is incorrect or property is absent.</td><td>Inspect input JSON and verify each nested property.</td></tr>
+<tr><td>Cannot read property of undefined</td><td>A parent object is missing.</td><td>Use optional chaining or nullish defaults, for example <code>$json.customer?.address?.city</code>.</td></tr>
+<tr><td>Number calculation returns NaN</td><td>Input contains non-numeric text, separators or symbols.</td><td>Clean and validate values before converting.</td></tr>
+<tr><td>Date output is shifted</td><td>Timezone or source timestamp interpretation is incorrect.</td><td>Confirm source timezone, workflow timezone and conversion behaviour.</td></tr>
+<tr><td>Date method is not a function</td><td>Method is not supported in that expression/runtime context.</td><td>Check the n8n expression reference; use native Luxon methods in Code where appropriate.</td></tr>
+<tr><td>Wrong record is referenced from another node</td><td>First-item reference used where linked-item reference was needed, or item linking changed.</td><td>Choose .item, .first() or .all() intentionally and test with multiple items.</td></tr>
+<tr><td>Array result is empty</td><td>Wrong field path, value is not an array, or filter condition excludes all elements.</td><td>Inspect the array and test the condition separately.</td></tr>
+<tr><td>Workflow variable is unavailable</td><td>Variable is not configured, not in scope or unsupported by the environment.</td><td>Check workflow variables, permissions and deployment/plan availability.</td></tr>
+</table>
+<h3>Expression best practices</h3><ul><li>Use descriptive field names and keep expressions readable.</li><li>Use <code>??</code> when only null/undefined should trigger a fallback; use <code>||</code> only when all falsy values should trigger it.</li><li>Convert types before comparing or calculating.</li><li>Use Luxon for date arithmetic and be explicit about timezones.</li><li>Use named-node references when you need data from a particular upstream node; understand item linking.</li><li>Do not put secrets in expressions or ordinary workflow variables.</li><li>Use Edit Fields for reusable or multi-field data shaping; use Code for complex custom transformations.</li><li>Test nulls, empty strings, unexpected formats and multiple items.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">10.15</div><h2>Interview questions and answers</h2></div>
+<div class="src"><ol>
+<li><b>What is an n8n expression?</b><br/>A JavaScript-based expression evaluated at runtime using the current workflow execution context.</li>
+<li><b>What syntax wraps an expression?</b><br/>Usually double curly braces: <code>{{ ... }}</code>.</li>
+<li><b>What is the Expression editor?</b><br/>The UI for entering, selecting and previewing dynamic expressions in supported node fields.</li>
+<li><b>What does <code>$json</code> represent?</b><br/>The JSON data for the current input item.</li>
+<li><b>How do you reference a previous node?</b><br/>For example, <code>$('Node Name').item.json.field</code>, with first/all variants when appropriate.</li>
+<li><b>What is the difference between .item and .first()?</b><br/><code>.item</code> follows linked-item context; <code>.first()</code> explicitly selects the first output item.</li>
+<li><b>How do you create a dynamic value?</b><br/>Reference current or upstream data inside an expression in a supported field.</li>
+<li><b>Which date library is recommended in n8n expressions?</b><br/>Luxon DateTime helpers.</li>
+<li><b>What are $now and $today?</b><br/>They represent the current date-time and the start of the current day in the workflow's configured timezone.</li>
+<li><b>How do you add seven days to the current date?</b><br/>Use <code>$today.plus({ days: 7 })</code>.</li>
+<li><b>How do you format a date in an expression?</b><br/>For example, <code>$now.toFormat('dd/LL/yyyy')</code>.</li>
+<li><b>Why are timezones important?</b><br/>The same instant can display as different local times; source and workflow timezone assumptions must be clear.</li>
+<li><b>How do you normalize an email?</b><br/>Use <code>String($json.email ?? '').trim().toLowerCase()</code>.</li>
+<li><b>How do you convert a string to a number?</b><br/>Use <code>Number()</code>, <code>parseInt()</code> or <code>parseFloat()</code> as appropriate.</li>
+<li><b>What is NaN?</b><br/>A JavaScript value meaning “Not-a-Number”, often produced by invalid numeric conversion.</li>
+<li><b>What does map() do?</b><br/>Transforms each element of an array and returns a new array.</li>
+<li><b>What does filter() do?</b><br/>Returns a new array containing elements that satisfy a condition.</li>
+<li><b>What does reduce() do?</b><br/>Accumulates array elements into one result, such as a sum.</li>
+<li><b>How do you access a nested object property safely?</b><br/>Use optional chaining, for example <code>$json.customer?.address?.city</code>.</li>
+<li><b>How do you create a new object from existing data?</b><br/>Use an object literal and, where appropriate, the spread operator.</li>
+<li><b>What is a ternary expression?</b><br/>A compact conditional expression: <code>condition ? valueIfTrue : valueIfFalse</code>.</li>
+<li><b>What is the difference between ?? and ||?</b><br/><code>??</code> falls back only for null/undefined; <code>||</code> falls back for any falsy value.</li>
+<li><b>How do you access workflow variables?</b><br/>Use <code>$vars.variableName</code> when the variable is configured and available.</li>
+<li><b>Should API keys be stored in workflow variables?</b><br/>No. Use n8n credentials or a suitable secrets manager.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">10.16</div><h2>Chapter completion checklist</h2></div>
+<div class="src"><ul><li>☐ I can switch supported fields into Expression mode.</li><li>☐ I understand <code>{{ }}</code> syntax and JavaScript expressions.</li><li>☐ I can access current item data with <code>$json</code>.</li><li>☐ I can reference named nodes and understand item linking.</li><li>☐ I can build dynamic URLs, filenames and messages.</li><li>☐ I can parse, format and calculate dates with Luxon.</li><li>☐ I can normalize strings and safely handle missing values.</li><li>☐ I can convert and validate numeric values.</li><li>☐ I can use map, filter, find and reduce on arrays.</li><li>☐ I can construct and reshape JSON objects.</li><li>☐ I can write conditional expressions using ternary, ?? and ||.</li><li>☐ I can reference workflow variables and metadata safely.</li><li>☐ I completed at least three practical labs and tested edge cases.</li></ul>
+<div class="callout tip"><b>Recommended capstone:</b> build a data-cleaning workflow that reads customer orders, normalizes text, converts numeric fields, calculates totals, formats reporting dates, constructs a clean nested API payload and adds workflow execution metadata for audit tracking.</div></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official n8n documentation</h2></div>
+<div class="src"><p>Expression helpers and node interfaces evolve. Use the current official documentation for the exact methods and context variables available in your n8n version.</p>
+<ul>
+<li><a href="https://docs.n8n.io/data/expressions/" rel="noopener" target="_blank">Expressions overview</a></li>
+<li><a href="https://docs.n8n.io/data/expression-reference/" rel="noopener" target="_blank">Expression reference</a></li>
+<li><a href="https://docs.n8n.io/data/data-mapping/" rel="noopener" target="_blank">Data mapping</a></li>
+<li><a href="https://docs.n8n.io/data/data-mapping/data-item-linking/" rel="noopener" target="_blank">Data item linking</a></li>
+<li><a href="https://docs.n8n.io/data/transforming-data/" rel="noopener" target="_blank">Transforming data</a></li>
+<li><a href="https://docs.n8n.io/data/workflows/variables/" rel="noopener" target="_blank">Workflow variables</a></li>
+<li><a href="https://docs.n8n.io/data/date-time/" rel="noopener" target="_blank">Date and time</a></li>
+<li><a href="https://moment.github.io/luxon/#/" rel="noopener" target="_blank">Luxon documentation</a></li>
+</ul>
+<p class="small">The diagrams in this learning manual are original illustrative SVGs embedded directly in this HTML file. They are explanatory visuals, not screenshots captured from the live n8n interface. Some examples use current n8n expression helpers; confirm availability and syntax in your installed version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_09_Workflow_Logic_and_Control_Flow.html"><span class="mn-label">← Previous</span><span class="mn-title">Workflow Logic &amp; Control Flow</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_11_JavaScript_Programming_in_n8n.html"><span class="mn-label">Next →</span><span class="mn-title">JavaScript Programming in n8n</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

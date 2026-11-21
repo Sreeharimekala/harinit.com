@@ -1,0 +1,725 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="A complete learning guide to how n8n workflows start: manual execution, schedules, webhooks, forms, email events, database polling, application events, cron expressions, trigger conditions and multiple trigger paths."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Triggers — Chapter 6 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">Triggers</div>
+<div class="brand-sub">Chapter 6 · 17 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">📘</span>What is a trigger?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">6.1</span>Manual Trigger</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">6.2</span>Schedule Trigger</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">6.3</span>Webhook Trigger</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">6.4</span>Form Trigger</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">6.5</span>Email Trigger</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">6.6</span>Database Triggers and Polling Patterns</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">6.7</span>Application Event Triggers</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">6.8</span>Cron Scheduling Concepts</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">6.9</span>Trigger Conditions</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">6.10</span>Multiple Trigger Workflows</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">🛠️</span>Practical Labs</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">🔧</span>Trigger Troubleshooting Guide</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">🎯</span>Chapter 6 Interview Questions</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">✅</span>Completion Checklist</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">📚</span>Official n8n Resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 2 · Chapter 6</div><h1>Triggers</h1><p class="page-subtitle">A complete learning guide to how n8n workflows start: manual execution, schedules, webhooks, forms, email events, database polling, application events, cron expressions, trigger conditions and multiple trigger paths.</p><div class="meta-row"><span class="meta-pill">Phase <b>2</b></span><span class="meta-pill">Topics <b>10</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Manual Trigger; Schedule Trigger; Webhook Trigger; Form Trigger; Email Trigger; Database triggers and polling patterns; Application event triggers; Cron scheduling concepts; Trigger conditions; Multiple trigger workflows. <br><strong>Before you start:</strong> complete Chapter 5 – Understanding Nodes. Use <em>Mark Lesson Complete</em> at the end of each section to track your progress.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag">Chapter overview</span><p class="lead">A trigger is the entry point that starts a workflow execution. Choosing the right trigger determines when automation runs, how input data arrives and what operational controls are needed.</p>
+<div class="grid"><div class="tile"><strong>Understand</strong>Recognize event-driven, scheduled, polling and manual starts.</div><div class="tile"><strong>Configure</strong>Set schedules, webhook endpoints, form fields and event filters.</div><div class="tile"><strong>Control</strong>Handle timezones, duplicate events, polling windows and conditions.</div><div class="tile"><strong>Design</strong>Build workflows with multiple independent entry triggers.</div></div>
+<div class="callout warn"><strong>Version and service note:</strong> Trigger node availability and configuration differ by n8n release, hosting plan, application API and credentials. The diagrams in this guide are original explanatory illustrations, not screenshots of a live n8n instance. Confirm exact fields and behaviour in your installed version's node documentation.</div></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">📘</div><h2>What is a trigger?</h2></div>
+<div class="src"><span class="tag">Trigger fundamentals</span>
+<p>A trigger node starts a new workflow execution when a configured event happens or a configured schedule fires. A Manual Trigger is started by a person during development or testing.</p>
+<figure><img alt="Diagram showing manual, schedule, webhook and app or email triggers starting workflow logic and actions" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjUxMCIgdmlld0JveD0iMCAwIDExMDAgNTEwIj4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNTEwIiByeD0iMTgiIGZpbGw9IiNmNWY3ZmEiLz4KPGcgZm9udC1mYW1pbHk9IkFyaWFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KPHJlY3QgeD0iMzUiIHk9IjU1IiB3aWR0aD0iMjM1IiBoZWlnaHQ9IjcyIiByeD0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RmNTI2ZCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMTUyIiB5PSI4NSIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNjM0NDkiPk1hbnVhbCBUcmlnZ2VyPC90ZXh0Pjx0ZXh0IHg9IjE1MiIgeT0iMTA5IiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY3NThhIj5Vc2VyIHN0YXJ0cyBhIHRlc3Q8L3RleHQ+CjxyZWN0IHg9IjM1IiB5PSIxNTgiIHdpZHRoPSIyMzUiIGhlaWdodD0iNzIiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZGY1MjZkIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSIxNTIiIHk9IjE4OCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNjM0NDkiPlNjaGVkdWxlIFRyaWdnZXI8L3RleHQ+PHRleHQgeD0iMTUyIiB5PSIyMTIiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2Njc1OGEiPlRpbWUgLyBpbnRlcnZhbDwvdGV4dD4KPHJlY3QgeD0iMzUiIHk9IjI2MSIgd2lkdGg9IjIzNSIgaGVpZ2h0PSI3MiIgcng9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNkZjUyNmQiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjE1MiIgeT0iMjkxIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+V2ViaG9vayBUcmlnZ2VyPC90ZXh0Pjx0ZXh0IHg9IjE1MiIgeT0iMzE1IiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY3NThhIj5JbmNvbWluZyBIVFRQIHJlcXVlc3Q8L3RleHQ+CjxyZWN0IHg9IjM1IiB5PSIzNjQiIHdpZHRoPSIyMzUiIGhlaWdodD0iNzIiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZGY1MjZkIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSIxNTIiIHk9IjM5NCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNjM0NDkiPkFwcCAvIEVtYWlsIFRyaWdnZXI8L3RleHQ+PHRleHQgeD0iMTUyIiB5PSI0MTgiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2Njc1OGEiPkV4dGVybmFsIGV2ZW50IC8gcG9sbGluZzwvdGV4dD4KPHBhdGggZD0iTTI3MCA5MSBIMzkwIFYyNDUgSDQ3MCBNMjcwIDE5NCBIMzkwIFYyNDUgTTI3MCAyOTcgSDM5MCBWMjQ1IE0yNzAgNDAwIEgzOTAgVjI0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzE4MDk2IiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTQ1NSAyMzUgTDQ3MCAyNDUgTDQ1NSAyNTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzcxODA5NiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxyZWN0IHg9IjQ3MCIgeT0iMjAyIiB3aWR0aD0iMjQ1IiBoZWlnaHQ9Ijg2IiByeD0iMTQiIGZpbGw9IiNlYWY1ZmYiIHN0cm9rZT0iIzM5NzZhYSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iNTkyIiB5PSIyMzgiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5Xb3JrZmxvdyBsb2dpYzwvdGV4dD48dGV4dCB4PSI1OTIiIHk9IjI2NSIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzY2NzU4YSI+VHJhbnNmb3JtIMK3IFZhbGlkYXRlIMK3IFJvdXRlPC90ZXh0Pgo8cGF0aCBkPSJNNzE1IDI0NSBIODA1IiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik03OTAgMjM1IEw4MDUgMjQ1IEw3OTAgMjU1IiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iMyIvPgo8cmVjdCB4PSI4MDUiIHk9IjIwMiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4NiIgcng9IjE0IiBmaWxsPSIjZWRmOWYzIiBzdHJva2U9IiMxNjg0NWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjkzMCIgeT0iMjM4IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+QWN0aW9uczwvdGV4dD48dGV4dCB4PSI5MzAiIHk9IjI2NSIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzY2NzU4YSI+RGF0YWJhc2UgwrcgRW1haWwgwrcgQVBJPC90ZXh0Pgo8dGV4dCB4PSI1NTAiIHk9IjQ4MCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzY2NzU4YSI+RWFjaCB0cmlnZ2VyIGNhbiBzdGFydCBhbiBleGVjdXRpb24gdGhyb3VnaCBpdHMgb3duIGVudHJ5IHBhdGguPC90ZXh0Pgo8L2c+PC9zdmc+"/><figcaption>Figure 6.1 — Common trigger entry patterns. Each trigger can start an execution through its own entry path.</figcaption></figure>
+<h3>Common trigger models</h3><table><tr><th>Model</th><th>How it works</th><th>Typical use</th></tr><tr><td>Manual</td><td>A user explicitly starts a test.</td><td>Development and troubleshooting.</td></tr><tr><td>Scheduled</td><td>A time-based rule starts an execution.</td><td>Daily reporting, periodic checks.</td></tr><tr><td>Webhook / push event</td><td>An external system sends a request or event.</td><td>Order created, payment event.</td></tr><tr><td>Polling</td><td>n8n periodically checks a source for new or changed data.</td><td>Mailbox or database checks.</td></tr><tr><td>Application event</td><td>An integration listens for or checks a supported app event.</td><td>New issue, new row, new message.</td></tr></table>
+<div class="callout tip"><strong>Selection rule:</strong> Prefer push/webhook events when the source supports reliable event delivery. Use polling when push events are unavailable or unsuitable. Use Schedule Trigger for time-driven work, not as a substitute for a true event when immediacy is required.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">6.1</div><h2>Manual Trigger</h2></div>
+<div class="src"><span class="tag">1 · Manual Trigger</span>
+<p>The Manual Trigger starts a workflow when a user manually executes it from the editor. It is primarily used for building, testing and debugging workflows.</p>
+<h3>How it works</h3><div class="diagram">User clicks test / execute
+          ↓
+     Manual Trigger
+          ↓
+  Connected workflow nodes</div>
+<h3>Typical use cases</h3><ul><li>Test a SQL query or API request.</li><li>Validate expressions and data transformations.</li><li>Run a one-off data cleanup after review.</li><li>Develop a workflow before adding a production trigger.</li></ul>
+<h3>How to configure</h3><ol><li>Create a new workflow.</li><li>Add the Manual Trigger node.</li><li>Connect it to the next node, such as Edit Fields or HTTP Request.</li><li>Configure the downstream node.</li><li>Click the test or execute control.</li><li>Inspect the execution and node outputs.</li></ol>
+<h3>Important points</h3><ul><li>Manual Trigger does not itself listen for external events or run on a schedule.</li><li>It is useful for controlled tests with known inputs.</li><li>For repeatable tests, provide representative test data using suitable nodes or pinned data where supported.</li></ul>
+<div class="callout tip"><strong>Exercise:</strong> Add Manual Trigger → Edit Fields. Create <code>employee_id</code>, <code>employee_name</code> and <code>department</code>. Run it and inspect the output.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">6.2</div><h2>Schedule Trigger</h2></div>
+<div class="src"><span class="tag">2 · Schedule Trigger</span>
+<p>The Schedule Trigger starts a workflow at configured times or intervals. It is commonly used for recurring operational tasks.</p>
+<h3>Common scheduling patterns</h3><table><tr><th>Requirement</th><th>Example</th></tr><tr><td>Every few minutes</td><td>Check for pending records every 10 minutes.</td></tr><tr><td>Hourly</td><td>Collect operational metrics every hour.</td></tr><tr><td>Daily</td><td>Generate a report every day at 8:00 AM.</td></tr><tr><td>Weekly</td><td>Send a weekly summary every Monday.</td></tr><tr><td>Monthly</td><td>Run a month-end validation.</td></tr><tr><td>Custom cron</td><td>Run on a specified minute, hour, day or month pattern.</td></tr></table>
+<figure><img alt="Schedule Trigger diagram showing daily 8 AM Asia Kolkata execution and cron example" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjQzMCIgdmlld0JveD0iMCAwIDExMDAgNDMwIj4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNDMwIiByeD0iMTgiIGZpbGw9IiNmNWY3ZmEiLz48ZyBmb250LWZhbWlseT0iQXJpYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgo8cmVjdCB4PSI0MCIgeT0iNjAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTMwIiByeD0iMTQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RmNTI2ZCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMTkwIiB5PSIxMDMiIGZvbnQtc2l6ZT0iMjMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5TY2hlZHVsZSBUcmlnZ2VyPC90ZXh0Pjx0ZXh0IHg9IjE5MCIgeT0iMTM5IiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5FdmVyeSBkYXkgYXQgMDg6MDA8L3RleHQ+PHRleHQgeD0iMTkwIiB5PSIxNjUiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM2Njc1OGEiPlRpbWV6b25lOiBBc2lhL0tvbGthdGE8L3RleHQ+CjxwYXRoIGQ9Ik0zNDAgMTI1IEg0NjAiIHN0cm9rZT0iIzcxODA5NiIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTQ0NCAxMTMgTDQ2MCAxMjUgTDQ0NCAxMzciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzcxODA5NiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxyZWN0IHg9IjQ2MCIgeT0iNjAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTMwIiByeD0iMTQiIGZpbGw9IiNlYWY1ZmYiIHN0cm9rZT0iIzM5NzZhYSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iNTg1IiB5PSIxMDMiIGZvbnQtc2l6ZT0iMjMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5TY2hlZHVsZWQgcnVuPC90ZXh0Pjx0ZXh0IHg9IjU4NSIgeT0iMTM5IiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5UcmlnZ2VyIGZpcmVzPC90ZXh0Pjx0ZXh0IHg9IjU4NSIgeT0iMTY1IiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5TdGFydHMgZXhlY3V0aW9uPC90ZXh0Pgo8cGF0aCBkPSJNNzEwIDEyNSBIODMwIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik04MTQgMTEzIEw4MzAgMTI1IEw4MTQgMTM3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPgo8cmVjdCB4PSI4MzAiIHk9IjYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjEzMCIgcng9IjE0IiBmaWxsPSIjZWRmOWYzIiBzdHJva2U9IiMxNjg0NWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9Ijk0NSIgeT0iMTAzIiBmb250LXNpemU9IjIzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+V29ya2Zsb3c8L3RleHQ+PHRleHQgeD0iOTQ1IiB5PSIxMzkiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM2Njc1OGEiPlF1ZXJ5IC8gUmVwb3J0PC90ZXh0Pjx0ZXh0IHg9Ijk0NSIgeT0iMTY1IiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5Ob3RpZnkgdGVhbTwvdGV4dD4KPHJlY3QgeD0iODAiIHk9IjI0NSIgd2lkdGg9Ijk0MCIgaGVpZ2h0PSIxMjUiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZDhlMGU5Ii8+PHRleHQgeD0iNTUwIiB5PSIyODMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5Dcm9uIGV4cHJlc3Npb24gZXhhbXBsZTwvdGV4dD48dGV4dCB4PSI1NTAiIHk9IjMyNCIgZm9udC1zaXplPSIyNiIgZm9udC1mYW1pbHk9IkNvbnNvbGFzLG1vbm9zcGFjZSIgZmlsbD0iI2RmNTI2ZCI+MCA4ICogKiAqPC90ZXh0Pjx0ZXh0IHg9IjU1MCIgeT0iMzUxIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5NaW51dGUgMCDCtyBIb3VyIDggwrcgRXZlcnkgZGF5IMK3IEV2ZXJ5IG1vbnRoIMK3IEV2ZXJ5IHdlZWtkYXk8L3RleHQ+CjwvZz48L3N2Zz4="/><figcaption>Figure 6.2 — Scheduled workflow example. The timezone must match the business requirement.</figcaption></figure>
+<h3>Configuration example</h3><p>Requirement: run a daily operational summary at 8:00 AM India Standard Time.</p><ul><li>Node: Schedule Trigger</li><li>Frequency: daily</li><li>Time: 08:00</li><li>Timezone: <code>Asia/Kolkata</code> (verify workflow or instance timezone configuration)</li></ul>
+<h3>Important considerations</h3><ul><li>The workflow generally needs to be saved and published/activated for automatic scheduled execution, depending on the current n8n release lifecycle.</li><li>Verify the workflow or instance timezone. A correct cron expression with the wrong timezone runs at the wrong local time.</li><li>Consider daylight-saving time for regions that observe it.</li><li>Consider what happens if a previous run is still in progress when the next schedule fires.</li><li>Make scheduled jobs safe against duplicate processing and partial failures.</li></ul>
+<div class="callout warn"><strong>Do not confuse:</strong> Schedule Trigger defines when a workflow starts. The Wait node pauses an execution already in progress; it is not a replacement for a recurring schedule.</div></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">6.3</div><h2>Webhook Trigger</h2></div>
+<div class="src"><span class="tag">3 · Webhook Trigger</span>
+<p>A Webhook Trigger provides an HTTP endpoint that an external application can call to start a workflow. The incoming request can contain data in its URL, query parameters, headers or request body.</p>
+<figure><img alt="External system sends HTTP request to Webhook Trigger which starts an n8n workflow" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjQyMCIgdmlld0JveD0iMCAwIDExMDAgNDIwIj4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNDIwIiByeD0iMTgiIGZpbGw9IiNmNWY3ZmEiLz48ZyBmb250LWZhbWlseT0iQXJpYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgo8cmVjdCB4PSI0MCIgeT0iMTQwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzOTc2YWEiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjE2NSIgeT0iMTgwIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+RXh0ZXJuYWwgc3lzdGVtPC90ZXh0Pjx0ZXh0IHg9IjE2NSIgeT0iMjEyIiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5BcHAgLyBTZXJ2aWNlIC8gQ2xpZW50PC90ZXh0Pgo8cGF0aCBkPSJNMjkwIDE5NSBINDE1IiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik0zOTkgMTgzIEw0MTUgMTk1IEwzOTkgMjA3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPgo8cmVjdCB4PSI0MTUiIHk9IjExMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxNzAiIHJ4PSIxNCIgZmlsbD0iI2ZmZjFmNCIgc3Ryb2tlPSIjZGY1MjZkIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSI1NjUiIHk9IjE1MSIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNjM0NDkiPldlYmhvb2sgVHJpZ2dlcjwvdGV4dD48dGV4dCB4PSI1NjUiIHk9IjE4NSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzY2NzU4YSI+SFRUUCBtZXRob2QgKyBwYXRoPC90ZXh0Pjx0ZXh0IHg9IjU2NSIgeT0iMjE0IiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5BdXRoICsgcmVzcG9uc2Ugc2V0dGluZ3M8L3RleHQ+PHRleHQgeD0iNTY1IiB5PSIyNDUiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2Njc1OGEiPlJlY2VpdmVzIHJlcXVlc3QgcGF5bG9hZDwvdGV4dD4KPHBhdGggZD0iTTcxNSAxOTUgSDg0MCIgc3Ryb2tlPSIjNzE4MDk2IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNODI0IDE4MyBMODQwIDE5NSBMODI0IDIwNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzE4MDk2IiBzdHJva2Utd2lkdGg9IjQiLz4KPHJlY3QgeD0iODQwIiB5PSIxNDAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiNlZGY5ZjMiIHN0cm9rZT0iIzE2ODQ1YiIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iOTUwIiB5PSIxODAiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5Xb3JrZmxvdzwvdGV4dD48dGV4dCB4PSI5NTAiIHk9IjIxMiIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzY2NzU4YSI+UHJvY2VzcyBldmVudDwvdGV4dD4KPHRleHQgeD0iNTUwIiB5PSIzNDAiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM2Njc1OGEiPlJlcXVlc3Qg4oaSIHRyaWdnZXIgZW5kcG9pbnQg4oaSIHdvcmtmbG93IGV4ZWN1dGlvbiDihpIgb3B0aW9uYWwgcmVzcG9uc2U8L3RleHQ+Cjx0ZXh0IHg9IjU1MCIgeT0iMzcwIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYTk2NTBhIj5UZXN0IGFuZCBwcm9kdWN0aW9uIHdlYmhvb2sgVVJMcyBhcmUgZGlzdGluY3QgaW4gdGhlIG5vZGUuPC90ZXh0Pgo8L2c+PC9zdmc+"/><figcaption>Figure 6.3 — Webhook event flow from an external system into n8n.</figcaption></figure>
+<h3>Common use cases</h3><ul><li>Receive an order-created event from an e-commerce platform.</li><li>Receive a payment status notification.</li><li>Start a workflow when an external application sends a callback.</li><li>Expose an internal automation endpoint to an approved application.</li></ul>
+<h3>Typical configuration elements</h3><table><tr><th>Setting</th><th>Purpose</th></tr><tr><td>HTTP method</td><td>Defines accepted request method, such as GET or POST.</td></tr><tr><td>Path</td><td>Defines the endpoint path.</td></tr><tr><td>Authentication</td><td>Controls who can call the endpoint, where configured.</td></tr><tr><td>Response mode</td><td>Controls when and how the HTTP caller receives a response.</td></tr><tr><td>Response data</td><td>Defines the response content when configured in the node or with Respond to Webhook.</td></tr></table>
+<h3>Test URL versus production URL</h3><p>n8n provides a test webhook URL for development and a production webhook URL for active workflow use. The test URL is used while listening for a test event in the editor. The production URL is used when the workflow is active/published according to the release lifecycle. Configure the external system with the correct URL.</p>
+<h3>Example request payload</h3><pre>{
+  "event": "order.created",
+  "order_id": 98765,
+  "customer": {
+    "name": "Alex Morgan",
+    "email": "alex@example.com"
+  },
+  "amount": 2499
+}</pre>
+<h3>Security and reliability</h3><ul><li>Use authentication or signature verification where supported and appropriate.</li><li>Use HTTPS for public endpoints.</li><li>Validate the request body and required fields.</li><li>Do not trust a caller-provided event name or amount without validation.</li><li>Protect against replay and duplicate delivery with an idempotency key or event ID.</li><li>Return an appropriate response and avoid exposing internal error details.</li><li>For public deployments, configure the correct webhook base URL and reverse proxy settings.</li></ul>
+<div class="callout tip"><strong>Exercise:</strong> Create a Webhook Trigger with POST method. Send a test JSON payload using an API client and inspect the received body in the execution data.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">6.4</div><h2>Form Trigger</h2></div>
+<div class="src"><span class="tag">4 · Form Trigger</span>
+<p>The n8n Form Trigger starts a workflow when a user submits a form. It is useful when an automation needs a simple user-facing input page without building a separate front end.</p>
+<h3>Typical use cases</h3><ul><li>IT service request intake.</li><li>Access request submission.</li><li>Employee onboarding information.</li><li>Data correction requests.</li><li>Approval or feedback collection.</li></ul>
+<h3>Form workflow pattern</h3><div class="diagram">User opens form
+      ↓
+Enters fields and submits
+      ↓
+Form Trigger receives submission
+      ↓
+Validate → Store → Notify / route</div>
+<h3>Common form design elements</h3><table><tr><th>Element</th><th>Example</th></tr><tr><td>Text field</td><td>Requester name or ticket title.</td></tr><tr><td>Email field</td><td>Requester email address.</td></tr><tr><td>Dropdown</td><td>Request category or priority.</td></tr><tr><td>Textarea</td><td>Issue description.</td></tr><tr><td>Required validation</td><td>Ensure mandatory fields are supplied.</td></tr><tr><td>Submit / response page</td><td>Show a confirmation after submission.</td></tr></table>
+<h3>Example: support request form</h3><pre>{
+  "requester": "Alex Morgan",
+  "email": "alex@example.com",
+  "category": "Access",
+  "priority": "High",
+  "description": "Unable to access reporting workspace"
+}</pre>
+<h3>Best practices</h3><ul><li>Collect only the information required for the process.</li><li>Mark mandatory fields and validate email formats.</li><li>Do not collect passwords or secrets in a general-purpose form.</li><li>Restrict access or add authentication where the form contains sensitive information.</li><li>Validate submitted values again inside the workflow.</li><li>Provide a clear success or failure response.</li></ul>
+<div class="callout info"><strong>Terminology:</strong> n8n's built-in Form Trigger is different from a third-party form integration trigger such as Typeform or Jotform. Each has its own authentication, event and field configuration.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">6.5</div><h2>Email Trigger</h2></div>
+<div class="src"><span class="tag">5 · Email Trigger</span>
+<p>An email trigger starts a workflow when a matching email is received or detected. In n8n, the built-in Email Trigger (IMAP) can monitor an email account using IMAP. Other email integrations may offer their own trigger nodes and event mechanisms.</p>
+<h3>Typical use cases</h3><ul><li>Process incoming support requests.</li><li>Extract invoice details from email attachments.</li><li>Classify messages and route them to teams.</li><li>Monitor alerts arriving in a dedicated mailbox.</li></ul>
+<h3>Email automation pattern</h3><div class="diagram">New email detected
+       ↓
+Email Trigger (IMAP / app trigger)
+       ↓
+Read sender, subject, body, attachments
+       ↓
+Filter / classify / extract
+       ↓
+Create ticket or notify team</div>
+<h3>What to configure or verify</h3><table><tr><th>Area</th><th>What to check</th></tr><tr><td>Connection</td><td>IMAP host, port, encryption and account authentication.</td></tr><tr><td>Mailbox</td><td>Correct folder or mailbox to monitor.</td></tr><tr><td>Search criteria</td><td>Unread status or supported filters, if available.</td></tr><tr><td>Attachments</td><td>Whether attachment data is downloaded and how binary data is represented.</td></tr><tr><td>Polling behaviour</td><td>How frequently messages are checked and how processed messages are handled.</td></tr></table>
+<h3>Important email considerations</h3><ul><li>Use a dedicated mailbox where possible.</li><li>Protect OAuth tokens or mailbox credentials.</li><li>Prevent reprocessing using message IDs or a processed-state mechanism.</li><li>Validate attachment type and size before processing.</li><li>Be careful with untrusted email content and links.</li><li>Plan for mail server throttling and temporary connection failures.</li></ul>
+<div class="callout warn"><strong>Note:</strong> Email Trigger (IMAP) is not the same as an email action node such as Send Email. One detects incoming messages; the other sends messages. App-specific triggers may use a different provider API and polling model.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">6.6</div><h2>Database Triggers and Polling Patterns</h2></div>
+<div class="src"><span class="tag">6 · Database triggers and polling patterns</span>
+<p>Many databases do not provide a universal event trigger that n8n can subscribe to in the same way as a webhook. A common design is scheduled polling: n8n periodically queries for new or changed rows and starts processing them.</p>
+<h3>6.1 Database trigger versus polling</h3><table><tr><th>Pattern</th><th>How it works</th><th>Considerations</th></tr><tr><td>Native database event / notification</td><td>Database emits or exposes an event mechanism that a compatible integration can listen to.</td><td>Requires database-specific support, setup and permissions.</td></tr><tr><td>Polling query</td><td>n8n runs a query on an interval to find new or changed rows.</td><td>Simple and broadly applicable, but not instantaneous.</td></tr><tr><td>Change tracking / CDC feed</td><td>A database or data platform exposes change records for consumers.</td><td>More scalable for some cases, but requires infrastructure and careful checkpointing.</td></tr><tr><td>Outbox pattern</td><td>Application writes business data and an event record in the same transaction; automation consumes the outbox.</td><td>Improves reliable event handoff when designed correctly.</td></tr></table>
+<figure><img alt="Polling pattern showing timer, query source, detection of new rows and checkpointing" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjQ2MCIgdmlld0JveD0iMCAwIDExMDAgNDYwIj4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNDYwIiByeD0iMTgiIGZpbGw9IiNmNWY3ZmEiLz48ZyBmb250LWZhbWlseT0iQXJpYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgo8cmVjdCB4PSI0MCIgeT0iNzAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzM5NzZhYSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMTY1IiB5PSIxMTAiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5UaW1lciAvIFBvbGxlcjwvdGV4dD48dGV4dCB4PSIxNjUiIHk9IjE0MSIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzY2NzU4YSI+RXZlcnkgNSBtaW51dGVzPC90ZXh0Pgo8cGF0aCBkPSJNMjkwIDEyMCBINDEwIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik0zOTQgMTA4IEw0MTAgMTIwIEwzOTQgMTMyIiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPgo8cmVjdCB4PSI0MTAiIHk9IjcwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjZmZmMWY0IiBzdHJva2U9IiNkZjUyNmQiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjU0NSIgeT0iMTEwIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+UXVlcnkgc291cmNlPC90ZXh0Pjx0ZXh0IHg9IjU0NSIgeT0iMTQxIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5SZWFkIGxhdGVzdCByZWNvcmRzPC90ZXh0Pgo8cGF0aCBkPSJNNjgwIDEyMCBIODAwIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik03ODQgMTA4IEw4MDAgMTIwIEw3ODQgMTMyIiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPgo8cmVjdCB4PSI4MDAiIHk9IjcwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjZWRmOWYzIiBzdHJva2U9IiMxNjg0NWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjkyNSIgeT0iMTEwIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+RGV0ZWN0IG5ldyByb3dzPC90ZXh0Pjx0ZXh0IHg9IjkyNSIgeT0iMTQxIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5DaGVja3BvaW50IC8gd2F0ZXJtYXJrPC90ZXh0Pgo8cGF0aCBkPSJNOTI1IDE3MCBWMjQ1IEg1NDUgVjE3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzE4MDk2IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNyIvPjx0ZXh0IHg9IjczNSIgeT0iMjM1IiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5SZXBlYXQgYXQgbmV4dCBpbnRlcnZhbDwvdGV4dD4KPHJlY3QgeD0iMTkwIiB5PSIzMDAiIHdpZHRoPSI3MjAiIGhlaWdodD0iMTA1IiByeD0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2Q4ZTBlOSIvPjx0ZXh0IHg9IjU1MCIgeT0iMzQwIiBmb250LXNpemU9IjE5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+SW1wb3J0YW50IHBvbGxpbmcgY29udHJvbHM8L3RleHQ+PHRleHQgeD0iNTUwIiB5PSIzNzMiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM2Njc1OGEiPlN0YWJsZSBrZXkgwrcgbGFzdC1zZWVuIHRpbWVzdGFtcCDCtyBvdmVybGFwIHdpbmRvdyDCtyBkZWR1cGxpY2F0aW9uPC90ZXh0Pgo8L2c+PC9zdmc+"/><figcaption>Figure 6.4 — Scheduled database polling pattern with a checkpoint or watermark.</figcaption></figure>
+<h3>6.2 Example: poll for new orders</h3><p>Suppose a SQL table contains orders with <code>order_id</code>, <code>created_at</code> and <code>status</code>. A scheduled workflow can query rows created since the last successful checkpoint.</p><pre>SELECT
+    order_id,
+    created_at,
+    status
+FROM dbo.Orders
+WHERE created_at &gt; @LastSuccessfulTimestamp
+ORDER BY created_at, order_id;</pre>
+<p>This is a conceptual SQL example. The parameter and checkpoint storage must be implemented for your database and workflow design; do not paste the placeholder parameter into a node without defining it.</p>
+<h3>6.3 Watermark and checkpoint design</h3><ul><li>Use a stable unique key, such as <code>order_id</code>.</li><li>Store the last successfully processed timestamp or sequence value.</li><li>Use a deterministic ordering, such as timestamp plus primary key.</li><li>Consider an overlap window to catch late-arriving or same-timestamp records.</li><li>Deduplicate records using a unique event or business key.</li><li>Advance the checkpoint only after successful processing, or use a durable work queue/outbox pattern.</li><li>Handle updates as well as inserts if the requirement includes changed records.</li></ul>
+<h3>6.4 Example: overlapping polling window</h3><p>Instead of querying strictly after the last timestamp, a design may look back several minutes and deduplicate by primary key. This helps handle delayed commits or timestamp precision issues, but it means duplicate handling is mandatory.</p>
+<h3>6.5 Database-specific triggers</h3><p>Some n8n integrations expose database trigger nodes or notification-based mechanisms for specific platforms and configurations. For example, the Postgres Trigger node is database-specific; do not assume the same capability exists for every SQL database. Always inspect the supported node documentation and required database permissions.</p>
+<div class="callout warn"><strong>Production guidance:</strong> Avoid an uncontrolled full-table scan every minute. Use indexed columns, incremental predicates, reasonable polling intervals, pagination or batching, and monitor database load.</div></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">6.7</div><h2>Application Event Triggers</h2></div>
+<div class="src"><span class="tag">7 · Application event triggers</span>
+<p>Application event triggers start workflows when an event occurs in a connected service. Examples include a new CRM contact, a new issue, a new file, a new form response or a new message.</p>
+<h3>Examples by application</h3><table><tr><th>Application</th><th>Possible event</th><th>Automation idea</th></tr><tr><td>Gmail / Outlook</td><td>New email or message detected</td><td>Classify and route support requests.</td></tr><tr><td>GitHub / GitLab</td><td>New issue, pull request or repository event (node-dependent)</td><td>Notify engineering or create a work item.</td></tr><tr><td>Google Sheets</td><td>New or updated row, where supported</td><td>Validate and load submitted data.</td></tr><tr><td>Salesforce / HubSpot</td><td>New or updated CRM record, where supported</td><td>Sync customer information.</td></tr><tr><td>Slack / Teams</td><td>Message or supported event</td><td>Start an approval or incident workflow.</td></tr><tr><td>Cloud storage</td><td>New file or object event</td><td>Validate and process uploaded files.</td></tr></table>
+<h3>7.1 Push versus polling application triggers</h3><table><tr><th>Push / webhook style</th><th>Polling style</th></tr><tr><td>Provider sends an event to a registered endpoint.</td><td>n8n checks the provider periodically.</td></tr><tr><td>Usually lower event latency.</td><td>Latency depends on polling interval.</td></tr><tr><td>Requires endpoint registration and provider support.</td><td>Requires API access and polling limits to be respected.</td></tr></table>
+<h3>7.2 Things to check for each app trigger</h3><ul><li>Which event types are supported by the node.</li><li>Whether it uses webhooks, polling or another mechanism.</li><li>Required OAuth scopes, API keys or permissions.</li><li>Polling interval and provider API rate limits.</li><li>How the integration identifies already-seen events.</li><li>Whether the provider retries webhook delivery.</li></ul>
+<div class="callout tip"><strong>Rule:</strong> Do not assume every application trigger is real-time. Read the node documentation to identify whether it uses a webhook subscription or periodic polling.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">6.8</div><h2>Cron Scheduling Concepts</h2></div>
+<div class="src"><span class="tag">8 · Cron scheduling concepts</span>
+<p>Cron is a compact expression format for describing recurring time schedules. n8n's Schedule Trigger supports interval-based and cron-style scheduling options; confirm the expression format and supported fields in your version.</p>
+<h3>8.1 Five-field cron structure</h3><pre>┌──────── minute        (0 - 59)
+│ ┌────── hour          (0 - 23)
+│ │ ┌──── day of month  (1 - 31)
+│ │ │ ┌── month         (1 - 12)
+│ │ │ │ ┌ day of week   (0 - 7, convention-dependent)
+│ │ │ │ │
+* * * * *</pre>
+<h3>8.2 Examples</h3><table><tr><th>Cron expression</th><th>Meaning</th></tr><tr><td><code>0 8 * * *</code></td><td>Every day at 08:00.</td></tr><tr><td><code>*/15 * * * *</code></td><td>Every 15 minutes.</td></tr><tr><td><code>0 9 * * 1-5</code></td><td>At 09:00 Monday to Friday, subject to day-of-week convention.</td></tr><tr><td><code>30 18 * * 5</code></td><td>At 18:30 on Friday, subject to day-of-week convention.</td></tr><tr><td><code>0 0 1 * *</code></td><td>At midnight on the first day of each month.</td></tr></table>
+<figure><img alt="Schedule Trigger and cron expression illustration" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjQzMCIgdmlld0JveD0iMCAwIDExMDAgNDMwIj4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNDMwIiByeD0iMTgiIGZpbGw9IiNmNWY3ZmEiLz48ZyBmb250LWZhbWlseT0iQXJpYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgo8cmVjdCB4PSI0MCIgeT0iNjAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTMwIiByeD0iMTQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RmNTI2ZCIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMTkwIiB5PSIxMDMiIGZvbnQtc2l6ZT0iMjMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5TY2hlZHVsZSBUcmlnZ2VyPC90ZXh0Pjx0ZXh0IHg9IjE5MCIgeT0iMTM5IiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5FdmVyeSBkYXkgYXQgMDg6MDA8L3RleHQ+PHRleHQgeD0iMTkwIiB5PSIxNjUiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM2Njc1OGEiPlRpbWV6b25lOiBBc2lhL0tvbGthdGE8L3RleHQ+CjxwYXRoIGQ9Ik0zNDAgMTI1IEg0NjAiIHN0cm9rZT0iIzcxODA5NiIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTQ0NCAxMTMgTDQ2MCAxMjUgTDQ0NCAxMzciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzcxODA5NiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxyZWN0IHg9IjQ2MCIgeT0iNjAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTMwIiByeD0iMTQiIGZpbGw9IiNlYWY1ZmYiIHN0cm9rZT0iIzM5NzZhYSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iNTg1IiB5PSIxMDMiIGZvbnQtc2l6ZT0iMjMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5TY2hlZHVsZWQgcnVuPC90ZXh0Pjx0ZXh0IHg9IjU4NSIgeT0iMTM5IiBmb250LXNpemU9IjE2IiBmaWxsPSIjNjY3NThhIj5UcmlnZ2VyIGZpcmVzPC90ZXh0Pjx0ZXh0IHg9IjU4NSIgeT0iMTY1IiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5TdGFydHMgZXhlY3V0aW9uPC90ZXh0Pgo8cGF0aCBkPSJNNzEwIDEyNSBIODMwIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPjxwYXRoIGQ9Ik04MTQgMTEzIEw4MzAgMTI1IEw4MTQgMTM3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3MTgwOTYiIHN0cm9rZS13aWR0aD0iNCIvPgo8cmVjdCB4PSI4MzAiIHk9IjYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjEzMCIgcng9IjE0IiBmaWxsPSIjZWRmOWYzIiBzdHJva2U9IiMxNjg0NWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9Ijk0NSIgeT0iMTAzIiBmb250LXNpemU9IjIzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI2MzQ0OSI+V29ya2Zsb3c8L3RleHQ+PHRleHQgeD0iOTQ1IiB5PSIxMzkiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM2Njc1OGEiPlF1ZXJ5IC8gUmVwb3J0PC90ZXh0Pjx0ZXh0IHg9Ijk0NSIgeT0iMTY1IiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5Ob3RpZnkgdGVhbTwvdGV4dD4KPHJlY3QgeD0iODAiIHk9IjI0NSIgd2lkdGg9Ijk0MCIgaGVpZ2h0PSIxMjUiIHJ4PSIxMiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZDhlMGU5Ii8+PHRleHQgeD0iNTUwIiB5PSIyODMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjYzNDQ5Ij5Dcm9uIGV4cHJlc3Npb24gZXhhbXBsZTwvdGV4dD48dGV4dCB4PSI1NTAiIHk9IjMyNCIgZm9udC1zaXplPSIyNiIgZm9udC1mYW1pbHk9IkNvbnNvbGFzLG1vbm9zcGFjZSIgZmlsbD0iI2RmNTI2ZCI+MCA4ICogKiAqPC90ZXh0Pjx0ZXh0IHg9IjU1MCIgeT0iMzUxIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNjY3NThhIj5NaW51dGUgMCDCtyBIb3VyIDggwrcgRXZlcnkgZGF5IMK3IEV2ZXJ5IG1vbnRoIMK3IEV2ZXJ5IHdlZWtkYXk8L3RleHQ+CjwvZz48L3N2Zz4="/><figcaption>Figure 6.5 — Cron expression example and schedule configuration.</figcaption></figure>
+<h3>8.3 Special characters</h3><table><tr><th>Symbol</th><th>Common meaning</th><th>Example</th></tr><tr><td><code>*</code></td><td>Every allowed value</td><td><code>* * * * *</code></td></tr><tr><td><code>,</code></td><td>List of values</td><td><code>0 8,17 * * *</code></td></tr><tr><td><code>-</code></td><td>Range</td><td><code>0 9 * * 1-5</code></td></tr><tr><td><code>/</code></td><td>Step interval</td><td><code>*/10 * * * *</code></td></tr></table>
+<h3>8.4 Timezone and daylight saving</h3><ul><li>Confirm the workflow timezone or instance timezone used by the Schedule Trigger.</li><li>Use an IANA timezone such as <code>Asia/Kolkata</code> when that is the intended local timezone.</li><li>For daylight-saving regions, consider skipped or repeated local times during clock changes.</li><li>Test the next expected run time before activating a critical schedule.</li></ul>
+<div class="callout warn"><strong>Cron caution:</strong> Cron implementations can differ in field count and day-of-week semantics. Validate the expression in the n8n node UI or documentation rather than assuming every external cron calculator uses the same convention.</div></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">6.9</div><h2>Trigger Conditions</h2></div>
+<div class="src"><span class="tag">9 · Trigger conditions</span>
+<p>Trigger conditions determine which events should start useful downstream processing. Depending on the trigger, filtering can be configured in the trigger node, at the source application, in a query, or immediately after the trigger with a Filter or IF node.</p>
+<h3>9.1 Common condition examples</h3><table><tr><th>Trigger source</th><th>Condition</th><th>Purpose</th></tr><tr><td>Email</td><td>Sender is a support mailbox or subject contains “Incident”</td><td>Process only relevant emails.</td></tr><tr><td>Webhook</td><td><code>event == "order.created"</code></td><td>Handle only order-created events.</td></tr><tr><td>Database polling</td><td><code>status = 'NEW'</code></td><td>Retrieve unprocessed rows.</td></tr><tr><td>Application event</td><td>Record type equals “Case”</td><td>Ignore unrelated event types.</td></tr><tr><td>Schedule</td><td>Run only on business days</td><td>Avoid unnecessary weekend runs.</td></tr></table>
+<h3>9.2 Filter after trigger</h3><div class="diagram">Trigger → Validate event payload → IF / Filter
+                                ↙       ↘
+                             Match    No match
+                               ↓         ↓
+                         Process event  Stop / ignore</div>
+<h3>9.3 Trigger filter versus workflow filter</h3><table><tr><th>Filter at source / trigger</th><th>Filter after trigger</th></tr><tr><td>Reduces irrelevant events or records before downstream processing, if supported.</td><td>Receives the event, then decides whether to continue.</td></tr><tr><td>Can reduce API calls and execution volume.</td><td>Provides flexible logic and easier inspection of received payload.</td></tr></table>
+<h3>9.4 Validation checklist</h3><ul><li>Check required fields exist.</li><li>Validate event type and source identity.</li><li>Validate timestamp, IDs and data types.</li><li>Reject or quarantine malformed payloads.</li><li>Deduplicate repeated events.</li><li>Log why an event was ignored where auditability matters.</li></ul>
+<div class="callout tip"><strong>Design principle:</strong> Treat external trigger payloads as untrusted input. Validate them before performing write operations or invoking downstream systems.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">6.10</div><h2>Multiple Trigger Workflows</h2></div>
+<div class="src"><span class="tag">10 · Multiple trigger workflows</span>
+<p>A workflow can contain more than one trigger node. Each trigger provides a separate entry point into the workflow. When one trigger fires, it starts an execution through the path connected to that trigger.</p>
+<h3>10.1 Example: two ways to start a report</h3><div class="diagram">Manual Trigger ───────┐
+                      ├→ Shared report logic → Generate → Notify
+Schedule Trigger ─────┘</div>
+<p>This design can allow a developer to test the same downstream logic manually while the scheduled trigger runs it automatically. Keep in mind that trigger-specific input data may differ, so normalize the payload before shared processing.</p>
+<h3>10.2 Example: webhook and schedule</h3><div class="diagram">Webhook Trigger → Normalize event ─┐
+                                   ├→ Shared validation → Process
+Schedule Trigger → Fetch pending ───┘</div>
+<p>This can be useful when the system supports immediate event processing but also needs a periodic reconciliation run. The two entry paths should be designed so they do not process the same business record twice.</p>
+<h3>10.3 Design considerations</h3><ul><li>Use clear node names to identify each trigger source.</li><li>Normalize different payload structures before shared downstream nodes.</li><li>Consider whether one trigger can start while another execution is still processing.</li><li>Use idempotency keys or deduplication to prevent duplicate business actions.</li><li>Keep security and authentication appropriate for each entry path.</li><li>Test each trigger independently and then test shared logic.</li><li>Do not assume all triggers fire together; each trigger is an independent start mechanism.</li></ul>
+<h3>10.4 When to use separate workflows instead</h3><p>Use separate workflows when trigger security, ownership, deployment lifecycle, error handling or business logic differs substantially. Shared logic can be moved into a reusable sub-workflow when that improves maintainability.</p>
+<div class="callout warn"><strong>Important:</strong> Multiple trigger nodes do not mean a single execution starts from every trigger at once. Each event or manual start creates its own workflow execution.</div></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Labs</h2></div>
+<div class="src"><span class="tag">Hands-on practice</span>
+<h3>Lab 1 — Manual Trigger</h3><ol><li>Create <code>WF_Trigger_Manual_Practice</code>.</li><li>Add Manual Trigger and Edit Fields.</li><li>Enter a sample request ID and request type.</li><li>Execute and inspect the output.</li></ol>
+<h3>Lab 2 — Schedule Trigger</h3><ol><li>Create <code>WF_Trigger_Schedule_Practice</code>.</li><li>Add Schedule Trigger and configure a short test interval in a safe development environment.</li><li>Connect it to a node that records or displays the run time.</li><li>Activate/publish as required and observe executions.</li><li>Deactivate after the test to avoid unnecessary recurring runs.</li></ol>
+<h3>Lab 3 — Webhook Trigger</h3><ol><li>Create <code>WF_Trigger_Webhook_Practice</code>.</li><li>Add Webhook Trigger with POST method and a unique path.</li><li>Listen for a test event using the editor's test control.</li><li>Send a JSON payload from an API client.</li><li>Inspect the body, headers and query data received.</li><li>Configure production endpoint and authentication only after testing.</li></ol>
+<h3>Lab 4 — Form Trigger</h3><ol><li>Create a simple IT request form with requester, category and description fields.</li><li>Submit a sample request.</li><li>Inspect the received form data.</li><li>Add validation and a confirmation step.</li></ol>
+<h3>Lab 5 — Poll a database safely</h3><ol><li>Use a development database table with a stable primary key and created timestamp.</li><li>Create a scheduled workflow that queries a small batch of new rows.</li><li>Store a checkpoint or watermark.</li><li>Add deduplication by primary key.</li><li>Test late-arriving and repeated rows.</li><li>Measure query duration and database impact.</li></ol>
+<h3>Lab 6 — Multiple triggers</h3><ol><li>Add Manual Trigger and Schedule Trigger to one workflow.</li><li>Connect both to a normalization step.</li><li>Normalize fields so downstream logic receives a consistent structure.</li><li>Test the manual path.</li><li>Test the scheduled path in a safe environment.</li><li>Confirm each trigger starts its own execution.</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">🔧</div><h2>Trigger Troubleshooting Guide</h2></div>
+<div class="src"><span class="tag">Operational support</span>
+<table><tr><th>Problem</th><th>Possible reason</th><th>What to check</th></tr>
+<tr><td>Schedule did not run</td><td>Workflow not active/published, timezone mismatch, invalid schedule.</td><td>Workflow lifecycle state, timezone, schedule fields and execution history.</td></tr>
+<tr><td>Webhook returns error</td><td>Wrong URL, method, path, authentication or workflow state.</td><td>Test vs production URL, HTTP method, credentials and reverse proxy URL.</td></tr>
+<tr><td>Webhook receives no event</td><td>Provider not configured or cannot reach endpoint.</td><td>Provider webhook subscription, delivery logs, DNS, firewall and HTTPS.</td></tr>
+<tr><td>Form submission fails</td><td>Invalid field configuration or endpoint access issue.</td><td>Required fields, form URL and execution details.</td></tr>
+<tr><td>Email not detected</td><td>IMAP settings, mailbox folder, credentials or polling issue.</td><td>Server, port, TLS, auth, folder and provider restrictions.</td></tr>
+<tr><td>Duplicate database rows</td><td>Checkpoint not advanced, overlapping poll window or no deduplication.</td><td>Stable key, watermark, transaction boundary and idempotency logic.</td></tr>
+<tr><td>Application trigger delayed</td><td>Polling interval or provider delivery delay.</td><td>Trigger mechanism, provider API limits and node polling settings.</td></tr>
+<tr><td>Multiple triggers cause duplicate action</td><td>Same business event arrives through two paths.</td><td>Idempotency key, shared deduplication store and execution overlap.</td></tr></table></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 6 Interview Questions</h2></div>
+<div class="src"><span class="tag">Knowledge check</span><ol>
+<li>What is a trigger node in n8n?</li><li>What is the purpose of the Manual Trigger?</li><li>Does Manual Trigger run a workflow automatically on a schedule?</li><li>What is the difference between Schedule Trigger and Webhook Trigger?</li><li>What is the difference between a webhook test URL and production URL?</li><li>What HTTP methods can a webhook accept, depending on its configuration?</li><li>How do you secure a webhook endpoint?</li><li>What is the purpose of n8n Form Trigger?</li><li>How is Form Trigger different from a third-party form app trigger?</li><li>What is Email Trigger (IMAP)?</li><li>What is the difference between an email trigger and Send Email action?</li><li>What is polling in workflow automation?</li><li>What is a watermark or checkpoint?</li><li>How can you prevent duplicate processing in a polling workflow?</li><li>What is the difference between push events and polling?</li><li>What is a cron expression?</li><li>Explain <code>0 8 * * *</code>.</li><li>Why is timezone configuration important for Schedule Trigger?</li><li>How can you filter events after a trigger?</li><li>Can one n8n workflow contain multiple trigger nodes?</li><li>Do multiple triggers start one combined execution or independent executions?</li><li>When would you split multiple triggers into separate workflows?</li><li>How would you troubleshoot a webhook that is not receiving events?</li><li>How would you design a reliable database polling workflow?</li></ol></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Completion Checklist</h2></div>
+<div class="src"><span class="tag">Chapter completion</span><ul>
+<li>☐ I understand the role of a trigger.</li><li>☐ I can use Manual Trigger for testing.</li><li>☐ I can configure a Schedule Trigger and timezone.</li><li>☐ I understand webhook methods, paths and test/production URLs.</li><li>☐ I can build a simple form-triggered workflow.</li><li>☐ I understand Email Trigger (IMAP) and app email triggers.</li><li>☐ I understand database polling, watermarks and deduplication.</li><li>☐ I can distinguish push events from polling.</li><li>☐ I can read and validate basic cron expressions.</li><li>☐ I can apply event validation and filtering.</li><li>☐ I understand multiple trigger entry paths.</li><li>☐ I completed the practical labs.</li></ul>
+<div class="callout tip"><strong>Ready for Chapter 7:</strong> You should be able to choose a suitable trigger for a business requirement and explain its latency, security, reliability and operational trade-offs.</div></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official n8n Resources</h2></div>
+<div class="src"><span class="tag">Official documentation</span><ul>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualtrigger/">Manual Trigger</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/">Schedule Trigger</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/">Webhook node</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/">n8n Form Trigger</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.emailimap/">Email Trigger (IMAP)</a></li>
+<li><a href="https://docs.n8n.io/integrations/builtin/trigger-nodes/">Built-in trigger nodes</a></li>
+<li><a href="https://docs.n8n.io/hosting/configuration/environment-variables/timezone-localization/">Timezone configuration</a></li>
+<li><a href="https://docs.n8n.io/hosting/configuration/configuration-examples/webhook-url/">Webhook URL configuration</a></li>
+<li><a href="https://docs.n8n.io/workflows/executions/">Workflow executions</a></li>
+</ul><p class="small">The illustrations are embedded directly in this HTML file as SVG images. They are explanatory diagrams rather than screenshots from a live n8n installation. Official documentation should be used to confirm the exact UI, supported integrations and configuration for your n8n version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_05_Understanding_Nodes.html"><span class="mn-label">← Previous</span><span class="mn-title">Understanding Nodes</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_07_Data_Handling_in_n8n.html"><span class="mn-label">Next →</span><span class="mn-title">Data Handling in n8n</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>

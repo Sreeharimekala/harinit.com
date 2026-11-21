@@ -1,0 +1,918 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="How n8n works internally, how workflows are executed, how data moves between nodes, how credentials are managed, and how n8n is deployed in an enterprise environment."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>n8n Architecture — Chapter 2 | n8n | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../n8n-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #ff6d5a;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(255,109,90,0.12);
+    border: 1px solid rgba(255,109,90,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#ffb3a8; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(255,109,90,0.08); border: 1px solid rgba(255,109,90,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(255,109,90,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(255,109,90,0.08); color: #ffd9d3; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src svg{max-width:100%;height:auto}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">n8n — HarinIT Academy</div>
+<div class="brand-title">n8n Architecture</div>
+<div class="brand-sub">Chapter 2 · 18 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">2.1</span>Understanding n8n Architecture</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">2.2</span>How n8n Works Internally</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">2.3</span>Workflow Execution Lifecycle</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">2.4</span>Nodes and Connections</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">2.5</span>Triggers and Actions</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">2.6</span>Workflow Execution Engine</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">2.7</span>Data Flow Architecture</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">2.8</span>Credentials Management</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">2.9</span>Execution History</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">2.10</span>n8n Deployment Architecture</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">2.11</span>Real-World Example: ADF Monitoring Architecture</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">🛠️</span>Practical Exercises – Chapter 2</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">🎯</span>Important Interview Questions</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">📚</span>Official Learning Resources</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">✅</span>Chapter 2 – Completion Checklist</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">🗺️</span>Conceptual architecture</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">🛠️</span>Hands-on practical exercise</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">🎯</span>Interview questions and answers</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 1 · Chapter 2</div><h1>n8n Architecture</h1><p class="page-subtitle">How n8n works internally, how workflows are executed, how data moves between nodes, how credentials are managed, and how n8n is deployed in an enterprise environment.</p><div class="meta-row"><span class="meta-pill">Duration <b>4–5 days</b></span><span class="meta-pill">Difficulty <b>Beginner to Intermediate</b></span><span class="meta-pill">Prerequisites <b>Chapter 1</b></span><span class="meta-pill">Method <b>Theory + architecture diagrams + examples</b></span></div></div>
+<div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>Objective:</strong> Understand n8n not just as a workflow development tool, but as an automation platform from an architectural perspective. <strong>Practical focus:</strong> build and understand workflow execution.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">2.1</div><h2>Understanding n8n Architecture</h2></div>
+<p class="lesson-desc">n8n architecture describes how different components of n8n work together to create, execute, manage and monitor automated workflows.</p>
+<h3>1.1 What is n8n Architecture?</h3>
+<p>When you create a workflow in n8n, several components work behind the scenes:</p>
+<ol><li>User interface.</li><li>Workflow management.</li><li>Workflow execution engine.</li><li>Nodes.</li><li>Trigger mechanisms.</li><li>Database.</li><li>Credential management.</li><li>External applications and APIs.</li></ol>
+<h3>1.2 High-Level n8n Architecture</h3>
+<p>Understand this architecture first.</p>
+<pre class="dg">                    USER
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │    n8n Interface    │
+          │   Workflow Editor   │
+          └──────────┬──────────┘
+                     ▼
+          ┌─────────────────────┐
+          │  Workflow Manager   │
+          └──────────┬──────────┘
+                     ▼
+          ┌─────────────────────┐
+          │  Execution Engine   │
+          └──────────┬──────────┘
+                     ▼
+          ┌─────────────────────┐
+          │     Node Engine     │
+          └──────────┬──────────┘
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+         API       SQL DB     Email
+        System    Database   Service
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Execution Results  │
+          └──────────┬──────────┘
+                     ▼
+          ┌─────────────────────┐
+          │    n8n Database     │
+          └─────────────────────┘</pre>
+<h3>1.3 Explanation of Components</h3>
+<div class="table-wrap"><table><tr><th>Component</th><th>Responsibility</th></tr><tr><td>n8n Interface</td><td>Create and manage workflows</td></tr><tr><td>Workflow Manager</td><td>Stores and manages workflow definitions</td></tr><tr><td>Execution Engine</td><td>Controls workflow execution</td></tr><tr><td>Node Engine</td><td>Executes individual nodes</td></tr><tr><td>Trigger Mechanism</td><td>Starts workflow execution</td></tr><tr><td>External Integrations</td><td>Connects APIs, databases and applications</td></tr><tr><td>Database</td><td>Stores workflows, credentials and execution metadata</td></tr><tr><td>Execution Results</td><td>Maintains execution information</td></tr></table></div>
+<h3>1.4 Example</h3>
+<p>Suppose you create this workflow:</p>
+<div class="flow"><div class="node trigger">Schedule Trigger</div><span class="arrow">→</span><div class="node ">HTTP Request</div><span class="arrow">→</span><div class="node ">Edit Fields</div><span class="arrow">→</span><div class="node out">Send Email</div></div>
+<p>What happens internally?</p>
+<ol><li>The schedule trigger starts the workflow.</li><li>The execution engine initializes execution.</li><li>The HTTP Request node calls an external API.</li><li>The API returns JSON data.</li><li>The Edit Fields node processes the JSON.</li><li>The Email node sends the result.</li><li>Execution information is recorded.</li></ol>
+<blockquote><strong>Key takeaway: n8n architecture consists of multiple components working together to execute workflows and integrate external systems.</strong></blockquote>
+
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">2.2</div><h2>How n8n Works Internally</h2></div>
+<p class="lesson-desc">Let's understand what happens internally when you execute a workflow.</p>
+<h3>2.1 Workflow Definition</h3>
+<p>When you create a workflow, n8n maintains information about:</p>
+<ul><li>Workflow ID</li><li>Workflow name</li><li>Nodes</li><li>Node configurations</li><li>Connections</li><li>Credentials references</li><li>Workflow settings</li></ul>
+<p>A simplified workflow definition looks like this:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Employee Notification&quot;,
+  &quot;nodes&quot;: [
+    { &quot;name&quot;: &quot;Schedule Trigger&quot;, &quot;type&quot;: &quot;scheduleTrigger&quot; },
+    { &quot;name&quot;: &quot;Send Email&quot;, &quot;type&quot;: &quot;emailSend&quot; }
+  ],
+  &quot;connections&quot;: {
+    &quot;Schedule Trigger&quot;: {
+      &quot;main&quot;: [
+        [ { &quot;node&quot;: &quot;Send Email&quot; } ]
+      ]
+    }
+  }
+}</code></pre>
+<div class="callout-tip">This is an illustrative representation, not a complete exportable n8n workflow. The workflow definition tells n8n what operations to perform and how the nodes are connected.</div>
+<h3>2.2 Internal Execution Process</h3>
+<p>Consider this workflow:</p>
+<div class="flow"><div class="node trigger">Manual Trigger</div><span class="arrow">→</span><div class="node ">HTTP Request</div><span class="arrow">→</span><div class="node ">Code Node</div><span class="arrow">→</span><div class="node out">Database Insert</div></div>
+<div class="arch-layers"><div class="arch-layer"><div class="arch-layer-num">1</div><div><div class="arch-layer-name">Workflow initialization</div><div class="arch-layer-desc">n8n identifies the workflow that needs to execute.</div></div></div><div class="arch-layer"><div class="arch-layer-num">2</div><div><div class="arch-layer-name">Trigger evaluation</div><div class="arch-layer-desc">The configured trigger determines when execution should begin.</div></div></div><div class="arch-layer"><div class="arch-layer-num">3</div><div><div class="arch-layer-name">Execution context creation</div><div class="arch-layer-desc">n8n creates an execution context to manage the current workflow run.</div></div></div><div class="arch-layer"><div class="arch-layer-num">4</div><div><div class="arch-layer-name">Node execution</div><div class="arch-layer-desc">The execution engine executes nodes according to workflow connections and execution rules.</div></div></div><div class="arch-layer"><div class="arch-layer-num">5</div><div><div class="arch-layer-name">Data processing</div><div class="arch-layer-desc">Each node receives input data, performs an operation and produces output data.</div></div></div><div class="arch-layer"><div class="arch-layer-num">6</div><div><div class="arch-layer-name">Execution completion</div><div class="arch-layer-desc">The workflow finishes successfully or encounters an error.</div></div></div><div class="arch-layer"><div class="arch-layer-num">7</div><div><div class="arch-layer-name">Execution recording</div><div class="arch-layer-desc">Depending on execution settings, execution information is saved for monitoring and troubleshooting.</div></div></div></div>
+<h3>2.3 Important Internal Concepts</h3>
+<div class="table-wrap"><table><tr><th>Concept</th><th>Meaning</th></tr><tr><td>Workflow</td><td>Collection of connected nodes</td></tr><tr><td>Execution</td><td>One complete workflow run</td></tr><tr><td>Node</td><td>Individual processing component</td></tr><tr><td>Input data</td><td>Data received by a node</td></tr><tr><td>Output data</td><td>Data generated by a node</td></tr><tr><td>Execution context</td><td>Information associated with a workflow run</td></tr><tr><td>Workflow state</td><td>Information about the workflow configuration and status</td></tr></table></div>
+<blockquote><strong>Remember: a workflow is the definition of what should happen. An execution is one actual run of that workflow. One workflow can have thousands of executions.</strong></blockquote>
+
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">2.3</div><h2>Workflow Execution Lifecycle</h2></div>
+<p class="lesson-desc">This is one of the most important topics in n8n architecture. The workflow execution lifecycle describes the different stages a workflow goes through, from initiation to completion.</p>
+<h3>3.2 Execution Lifecycle Diagram</h3>
+<pre class="dg">          Workflow Created
+                 │
+          Workflow Saved
+                 │
+        Workflow Activated / Published
+                 │
+           Trigger Event
+                 │
+         Execution Started
+                 │
+          Node Processing
+                 │
+          Data Processing
+                 │
+        Next Node Execution
+                 │
+         Workflow Finished
+                 │
+          ┌──────┴──────┐
+          ▼             ▼
+       Success       Failure
+          │             │
+      Completed    Error Handling
+          │             │
+      Execution    Error Recorded
+       Recorded</pre>
+<h3>3.3 Different Execution Stages</h3>
+<div class="table-wrap"><table><tr><th>Stage</th><th>Description</th></tr><tr><td>Created</td><td>Workflow is created</td></tr><tr><td>Saved</td><td>Workflow definition is stored</td></tr><tr><td>Activated</td><td>Workflow is enabled for automatic triggers (called <strong>Published</strong> in n8n 2.0+)</td></tr><tr><td>Triggered</td><td>Trigger event occurs</td></tr><tr><td>Started</td><td>Execution begins</td></tr><tr><td>Running</td><td>Nodes are processing</td></tr><tr><td>Succeeded</td><td>Workflow completes successfully</td></tr><tr><td>Failed</td><td>Workflow encounters an error</td></tr><tr><td>Cancelled</td><td>Execution is stopped</td></tr><tr><td>Recorded</td><td>Execution information is stored according to settings</td></tr></table></div>
+<h3>3.4 Example: Daily Report Generation</h3>
+<p><strong>Business requirement:</strong> Generate a daily report at 8 AM.</p>
+<div class="flow"><div class="node trigger">8 AM Schedule Trigger</div><span class="arrow">→</span><div class="node ">Execution Starts</div><span class="arrow">→</span><div class="node ">Connect to SQL</div><span class="arrow">→</span><div class="node ">Execute Query</div><span class="arrow">→</span><div class="node ">Generate Report</div><span class="arrow">→</span><div class="node ">Send Email</div><span class="arrow">→</span><div class="node out">Execution Success</div></div>
+<p>Suppose the SQL connection fails. The execution could look like:</p>
+<div class="flow"><div class="node trigger">Schedule Trigger</div><span class="arrow">→</span><div class="node ">Execution Started</div><span class="arrow">→</span><div class="node ">SQL Connection</div><span class="arrow">→</span><div class="node ">Connection Failed</div><span class="arrow">→</span><div class="node ">Execution Failed</div><span class="arrow">→</span><div class="node out">Error Information Saved</div></div>
+<p>You can investigate the failed execution through the n8n execution interface.</p>
+<h3>3.5 Manual vs Automatic Execution</h3>
+<div class="compare"><div class="compare-col bad"><h4>🖱️ Manual execution</h4><ul><li>You execute the workflow manually from the editor</li><li>Development</li><li>Testing</li><li>Debugging</li><li>Validating node configurations</li></ul>
+</div><div class="compare-col good"><h4>⚡ Automatic execution</h4><ul><li>The workflow executes based on configured triggers</li><li>Production automation</li><li>Scheduled reporting</li><li>Event-driven processing</li><li>Real-time notifications</li></ul>
+</div></div>
+<div class="callout-interview">The execution lifecycle runs from creating and saving a workflow, through activating (publishing) it, a trigger event, execution start, node-by-node processing, to a finish that is either success or failure, after which execution data is recorded according to settings. Manual executions are for development and debugging; automatic executions run from triggers in production.</div>
+
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">2.4</div><h2>Nodes and Connections</h2></div>
+<p class="lesson-desc">A node is an individual component that performs a specific operation within an n8n workflow. Think of nodes as individual functions in a programming application.</p>
+<h3>4.1 What is a Node?</h3>
+<p>Examples: Schedule Trigger, HTTP Request, IF, Code, MySQL, Microsoft Outlook, Gmail.</p>
+<h3>4.2 Types of Nodes</h3>
+<div class="table-wrap"><table><tr><th>Category</th><th>Purpose</th><th>Examples</th></tr><tr><td>1. Trigger nodes</td><td>Start workflow execution</td><td>Schedule Trigger, Webhook, Email Trigger, Manual Trigger</td></tr><tr><td>2. Action nodes</td><td>Perform specific operations</td><td>Send Email, Insert Database Record, Create File, Send Teams Message</td></tr><tr><td>3. Logic nodes</td><td>Control workflow execution</td><td>IF, Switch, Merge, Loop Over Items</td></tr><tr><td>4. Data transformation nodes</td><td>Modify incoming information</td><td>Edit Fields, Code, Aggregate, Sort</td></tr><tr><td>5. AI nodes</td><td>Perform AI-related operations</td><td>AI Agent, OpenAI Chat Model, Embeddings, Vector Store integrations</td></tr></table></div>
+<h3>4.3 What are Connections?</h3>
+<p>Connections define the execution path between nodes.</p>
+<pre class="dg">          Trigger
+             │
+        HTTP Request
+             │
+          IF Node
+          ┌──┴──┐
+        True   False
+          │      │
+          ▼      ▼
+        Email  Database</pre>
+<p>Here, the IF node has two possible output paths. If the condition is true, the workflow follows the True output. Otherwise, it follows the False output.</p>
+<h3>4.4 How Connections Work</h3>
+<p>A connection defines:</p>
+<ol><li>Source node.</li><li>Destination node.</li><li>Output type.</li><li>Input type.</li></ol>
+<p>In n8n, connections can represent different output channels, such as normal <em>main</em> outputs or AI-specific connections (for example, a chat model or memory plugged into an AI Agent).</p>
+<div class="callout-tip"><strong>Important:</strong> A connection does not necessarily mean that data is immediately transferred. It defines how execution proceeds and how node output is made available to the next node.</div>
+
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">2.5</div><h2>Triggers and Actions</h2></div>
+<p class="lesson-desc">A trigger is a component that starts workflow execution when a particular event occurs — the starting point of an automated process. An action is an operation performed after the workflow starts.</p>
+<h3>5.1 Types of Triggers</h3>
+<div class="table-wrap"><table><tr><th>Trigger</th><th>Description</th><th>Example</th></tr><tr><td>Manual Trigger</td><td>Starts manually</td><td>Testing a workflow</td></tr><tr><td>Schedule Trigger</td><td>Starts at scheduled time</td><td>Daily report</td></tr><tr><td>Webhook</td><td>Starts when an HTTP request arrives</td><td>Application event</td></tr><tr><td>Email Trigger</td><td>Starts when an email arrives</td><td>Customer complaint</td></tr><tr><td>Application Trigger</td><td>Starts based on application events</td><td>New CRM record</td></tr></table></div>
+<h3>5.2 What is an Action?</h3>
+<ul><li>Send an email.</li><li>Insert database records.</li><li>Update a SharePoint document.</li><li>Create a ticket.</li><li>Call an API.</li><li>Generate a report.</li></ul>
+<h3>5.3 Trigger vs Action</h3>
+<div class="table-wrap"><table><tr><th>Feature</th><th>Trigger</th><th>Action</th></tr><tr><td>Purpose</td><td>Starts execution</td><td>Performs an operation</td></tr><tr><td>Position</td><td>Usually starts workflow</td><td>Usually follows trigger</td></tr><tr><td>Responsibility</td><td>Detects an event</td><td>Processes or changes information</td></tr><tr><td>Example</td><td>New email received</td><td>Send notification</td></tr><tr><td>Execution</td><td>Initiates workflow</td><td>Executes within workflow</td></tr></table></div>
+<h3>5.4 Practical Example</h3>
+<p><strong>Requirement:</strong> Whenever a new customer registers, automatically send a welcome email.</p>
+<div class="flow"><div class="node trigger">Webhook Trigger</div><span class="arrow">→</span><div class="node ">Receive Customer Details</div><span class="arrow">→</span><div class="node ">Validate Information</div><span class="arrow">→</span><div class="node ">Save Customer Record</div><span class="arrow">→</span><div class="node out">Send Welcome Email</div></div>
+<ul><li><strong>Webhook</strong> is the trigger.</li><li><strong>Validation and database insertion</strong> are processing actions.</li><li><strong>Email sending</strong> is another action.</li></ul>
+
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">2.6</div><h2>Workflow Execution Engine</h2></div>
+<p class="lesson-desc">The execution engine is the core component responsible for running workflows. It coordinates the execution of nodes, manages workflow progression and handles execution results.</p>
+<h3>6.1 What is the Execution Engine?</h3>
+<blockquote><strong>Think of it as the engine of a car: the nodes represent the individual operations, while the execution engine coordinates when and how they run.</strong></blockquote>
+<h3>6.2 Responsibilities</h3>
+<ol><li>Initializing workflow execution.</li><li>Managing execution context.</li><li>Determining which node should execute.</li><li>Passing data between nodes.</li><li>Handling node execution results.</li><li>Managing errors.</li><li>Completing workflow execution.</li><li>Recording execution information.</li></ol>
+<h3>6.3 Execution Architecture</h3>
+<div class="flow"><div class="node trigger">Trigger</div><span class="arrow">→</span><div class="node ">Execution Engine</div><span class="arrow">→</span><div class="node ">Node Selection</div><span class="arrow">→</span><div class="node ">Execute Node 1</div><span class="arrow">→</span><div class="node ">Receive Output</div><span class="arrow">→</span><div class="node ">Execute Node 2</div><span class="arrow">→</span><div class="node ">Receive Output</div><span class="arrow">→</span><div class="node ">Execute Node 3</div><span class="arrow">→</span><div class="node out">Final Execution</div></div>
+<h3>6.4 What Happens When a Node Fails?</h3>
+<p>Suppose your workflow contains:</p>
+<div class="flow"><div class="node trigger">Trigger</div><span class="arrow">→</span><div class="node ">HTTP Request ✖</div><span class="arrow">→</span><div class="node ">SQL Insert</div><span class="arrow">→</span><div class="node out">Send Email</div></div>
+<p>The HTTP Request node returns an error. Depending on the node and workflow error configuration:</p>
+<ul><li>The execution may stop.</li><li>The error can be routed or handled using configured error-handling mechanisms.</li><li>A separate error workflow may be invoked if configured.</li><li>Execution details can be inspected for troubleshooting.</li></ul>
+<h3>6.5 Main Execution Modes</h3>
+<div class="compare"><div class="compare-col bad"><h4>Regular execution</h4><ul><li>A workflow runs within the normal n8n execution process</li><li>Simple to run</li><li>Good for most small and medium setups</li></ul>
+</div><div class="compare-col good"><h4>Queue mode</h4><ul><li>Execution work is distributed through a queue to worker processes</li><li>Scales horizontally</li><li>Important for scalable production deployments</li></ul>
+</div></div>
+<div class="callout-tip">We will explore queue mode in detail in the deployment section (Lesson 2.10 and Chapter 25).</div>
+<div class="callout-interview">The execution engine is the core that runs workflows: it initializes an execution and its context, decides which node runs next based on connections, passes data between nodes, handles results and errors, and records execution information. It runs either in regular mode inside the main process, or in queue mode where executions are distributed to worker processes.</div>
+
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">2.7</div><h2>Data Flow Architecture</h2></div>
+<p class="lesson-desc">Data flow describes how information moves from one node to another during workflow execution. This is particularly important for developers and data engineers. n8n primarily uses JSON-based data structures to pass information between nodes.</p>
+<h3>7.2 Understanding JSON Data</h3>
+<p>Suppose an API returns the following response:</p>
+<pre><code class="language-json">{
+  &quot;employee_id&quot;: 101,
+  &quot;employee_name&quot;: &quot;Sreehari&quot;,
+  &quot;department&quot;: &quot;Data Engineering&quot;,
+  &quot;salary&quot;: 50000
+}</code></pre>
+<p>The HTTP Request node receives this response, and the next node can access the returned information.</p>
+<h3>7.3 How Data Moves Between Nodes</h3>
+<div class="flow"><div class="node trigger">HTTP Request</div><span class="arrow">→</span><div class="node ">JSON Response</div><span class="arrow">→</span><div class="node ">Edit Fields</div><span class="arrow">→</span><div class="node ">IF Condition</div><span class="arrow">→</span><div class="node out">Database Insert</div></div>
+<p>Each node receives input and produces output.</p>
+<h3>7.4 Understanding Items</h3>
+<p>An important n8n concept is the <strong>item</strong>: a unit of data processed by nodes.</p>
+<pre><code class="language-json">[
+  { &quot;employee_id&quot;: 101, &quot;employee_name&quot;: &quot;Sreehari&quot; },
+  { &quot;employee_id&quot;: 102, &quot;employee_name&quot;: &quot;Ramesh&quot; },
+  { &quot;employee_id&quot;: 103, &quot;employee_name&quot;: &quot;Kiran&quot; }
+]</code></pre>
+<p>This represents three records/items. The next node can process these items.</p>
+<h3>7.5 Understanding Data Transformation</h3>
+<p>Suppose the source provides:</p>
+<pre><code class="language-json">{ &quot;first_name&quot;: &quot;Sreehari&quot;, &quot;last_name&quot;: &quot;Mekala&quot; }</code></pre>
+<p>You want the following output:</p>
+<pre><code class="language-json">{ &quot;full_name&quot;: &quot;Sreehari Mekala&quot; }</code></pre>
+<p>You can achieve this using the Edit Fields node or a Code node. Example JavaScript:</p>
+<pre><code class="language-javascript">return $input.all().map(item =&gt; {
+  return {
+    json: {
+      full_name:
+        item.json.first_name + &quot; &quot; +
+        item.json.last_name
+    }
+  };
+});</code></pre>
+<h3>7.6 Important Data Flow Concepts</h3>
+<div class="table-wrap"><table><tr><th>Concept</th><th>Explanation</th></tr><tr><td>JSON</td><td>Data interchange format</td></tr><tr><td>Item</td><td>Individual unit of data</td></tr><tr><td>Input</td><td>Information received by a node</td></tr><tr><td>Output</td><td>Information generated by a node</td></tr><tr><td>Transformation</td><td>Modifying input data</td></tr><tr><td>Expression</td><td>Dynamic access to workflow data</td></tr><tr><td>Merge</td><td>Combining data from multiple inputs</td></tr><tr><td>Branching</td><td>Sending data through different paths</td></tr></table></div>
+<div class="callout-tip"><strong>Important:</strong> n8n's item linking and data references allow you to access information from previous nodes. Learn these carefully in the practical chapters.</div>
+<div class="callout-interview">Data in n8n flows between nodes as JSON items: each node receives a list of items, processes them — usually once per item — and outputs a new list. Nodes can transform data with Edit Fields or Code, branch it along different paths, merge inputs, and reference earlier nodes through expressions and item linking.</div>
+
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">2.8</div><h2>Credentials Management</h2></div>
+<p class="lesson-desc">Credentials are authentication details required to connect n8n with external applications and services such as Microsoft Outlook, SQL Server, Gmail, OpenAI and Azure services. n8n provides a credential management mechanism to store and reuse them.</p>
+<h3>8.2 Types of Authentication</h3>
+<div class="table-wrap"><table><tr><th>Authentication</th><th>Description</th><th>Example</th></tr><tr><td>API Key</td><td>Secret key used to authenticate requests</td><td>OpenAI API</td></tr><tr><td>Basic Authentication</td><td>Username and password</td><td>Some REST APIs</td></tr><tr><td>OAuth 2.0</td><td>Token-based authorization</td><td>Microsoft 365</td></tr><tr><td>Bearer Token</td><td>Token included in HTTP headers</td><td>REST APIs</td></tr><tr><td>Database Credentials</td><td>Database username and password</td><td>SQL Server</td></tr></table></div>
+<h3>8.3 How Credential Management Works</h3>
+<div class="flow"><div class="node trigger">n8n Workflow</div><span class="arrow">→</span><div class="node ">HTTP Request Node</div><span class="arrow">→</span><div class="node ">Select Credentials</div><span class="arrow">→</span><div class="node ">Authentication</div><span class="arrow">→</span><div class="node out">External API</div></div>
+<p>When the node executes, n8n uses the configured credentials to authenticate with the external service.</p>
+<h3>8.4 Where are Credentials Stored?</h3>
+<ul><li>Credential information is stored in the configured database.</li><li>Sensitive credential data is encrypted.</li><li>The encryption key is essential for decrypting credentials.</li><li>Self-hosted installations must protect the encryption key.</li></ul>
+<p>For self-hosted environments, the <code>N8N_ENCRYPTION_KEY</code> environment variable can be used to configure the encryption key.</p>
+<h3>Important Security Practices</h3>
+<ul class="checklist"><li>Never hardcode passwords in Code nodes</li><li>Never expose API keys in workflow outputs</li><li>Use dedicated service accounts</li><li>Restrict access to credentials</li><li>Protect environment variables</li><li>Secure database connections</li><li>Back up encryption keys securely</li><li>Rotate credentials periodically</li></ul>
+<div class="callout-warn">If the encryption key is lost or changed, saved credentials can no longer be decrypted. Store it securely and back it up.</div>
+
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">2.9</div><h2>Execution History</h2></div>
+<p class="lesson-desc">Execution history provides information about previously executed workflows: which workflows executed, when, whether they succeeded or failed, which nodes ran, what errors occurred and how long execution took.</p>
+<h3>9.2 Example</h3>
+<p>Suppose a workflow runs every hour.</p>
+<div class="table-wrap"><table><tr><th>Execution ID</th><th>Time</th><th>Workflow</th><th>Status</th></tr><tr><td>1001</td><td>08:00</td><td>Customer Load</td><td>✅ Success</td></tr><tr><td>1002</td><td>09:00</td><td>Customer Load</td><td>✅ Success</td></tr><tr><td>1003</td><td>10:00</td><td>Customer Load</td><td>❌ Failed</td></tr><tr><td>1004</td><td>11:00</td><td>Customer Load</td><td>✅ Success</td></tr></table></div>
+<p>You can investigate execution 1003 to identify the failed node and the error details.</p>
+<h3>9.3 Execution Lifecycle Statuses</h3>
+<p>Common execution statuses include <strong>Running</strong>, <strong>Success</strong>, <strong>Error</strong>, <strong>Waiting</strong> and <strong>Canceled</strong>. The exact status and display can depend on the execution stage and n8n version.</p>
+<h3>9.4 What Information is Available?</h3>
+<div class="table-wrap"><table><tr><th>Information</th><th>Purpose</th></tr><tr><td>Execution ID</td><td>Identify a particular execution</td></tr><tr><td>Workflow ID</td><td>Identify the workflow</td></tr><tr><td>Start time</td><td>Execution start</td></tr><tr><td>Stop time</td><td>Execution completion</td></tr><tr><td>Status</td><td>Success or failure</td></tr><tr><td>Node details</td><td>Node execution information</td></tr><tr><td>Error message</td><td>Troubleshooting</td></tr><tr><td>Execution data</td><td>Input and output information, depending on settings</td></tr></table></div>
+<h3>9.5 Execution Data Retention</h3>
+<p>n8n supports execution data retention and pruning. You can configure execution saving and cleanup according to your operational requirements, for example:</p>
+<ul><li>Save successful executions only when needed.</li><li>Save failed executions for troubleshooting.</li><li>Configure automatic pruning.</li><li>Avoid retaining unnecessary sensitive data.</li></ul>
+<div class="callout-tip"><strong>Enterprise recommendation:</strong> Define an execution retention policy before moving n8n into production.</div>
+
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">2.10</div><h2>n8n Deployment Architecture</h2></div>
+<p class="lesson-desc">This is the most important architectural topic for production implementation. Deployment means installing and running n8n in an environment where users or applications can access it.</p>
+<h3>10.2 Deployment Models</h3>
+<div class="table-wrap"><table><tr><th>Deployment</th><th>Description</th></tr><tr><td>n8n Cloud</td><td>Managed by n8n</td></tr><tr><td>Local installation</td><td>Installed on a developer machine</td></tr><tr><td>Docker</td><td>Runs as a container</td></tr><tr><td>Self-hosted VM</td><td>Installed on a virtual machine</td></tr><tr><td>Kubernetes</td><td>Runs in container orchestration infrastructure</td></tr></table></div>
+<h3>10.3 Architecture 1: Local Deployment</h3>
+<p>This is suitable for beginners. You install n8n on your laptop and access the interface through your browser.</p>
+<div class="flow"><div class="node trigger">Developer</div><span class="arrow">→</span><div class="node ">Web Browser</div><span class="arrow">→</span><div class="node ">Local n8n</div><span class="arrow">→</span><div class="node out">SQLite DB</div></div>
+<div class="compare"><div class="compare-col bad"><h4>Limitations</h4><ul><li>Depends on your local machine</li><li>Not ideal for production</li><li>Limited scalability</li></ul>
+</div><div class="compare-col good"><h4>Advantages</h4><ul><li>Easy to learn</li><li>Minimal infrastructure</li><li>Suitable for testing</li></ul>
+</div></div>
+<h3>10.4 Architecture 2: Docker Deployment</h3>
+<p>Docker allows you to run n8n inside a container. It simplifies installation and environment management.</p>
+<div class="flow"><div class="node trigger">Developer</div><span class="arrow">→</span><div class="node ">Web Browser</div><span class="arrow">→</span><div class="node ">Docker Container</div><span class="arrow">→</span><div class="node ">n8n</div><span class="arrow">→</span><div class="node out">PostgreSQL</div></div>
+<ul class="checklist"><li>Portable</li><li>Easy to configure</li><li>Consistent environments</li><li>Easier upgrades and deployment</li></ul>
+<h3>10.5 Architecture 3: Production Deployment</h3>
+<p>For production environments, n8n can run with PostgreSQL, which is commonly used as the persistent database for production deployments.</p>
+<div class="flow"><div class="node trigger">Users</div><span class="arrow">→</span><div class="node ">Load Balancer</div><span class="arrow">→</span><div class="node ">n8n Application</div><span class="arrow">→</span><div class="node out">PostgreSQL</div></div>
+<p>This is a simplified production architecture.</p>
+<h3>10.6 Architecture 4: Queue Mode Deployment</h3>
+<p>Queue mode is important when you need to scale workflow execution. In queue mode, n8n uses <strong>Redis</strong> to manage queued execution work, and separate <strong>worker</strong> processes execute workflows.</p>
+<pre class="dg">                       USERS
+                         │
+                   Load Balancer
+                         │
+                  n8n Main Process
+                  ┌──────┴──────┐
+                  ▼             ▼
+              PostgreSQL      Redis
+                  │             │
+                  │      Execution Queue
+                  │      ┌──────┼──────┐
+                  │      ▼      ▼      ▼
+                  │   Worker  Worker  Worker
+                  │     1       2       3
+                  │      │      │      │
+                  └──────┴──────┴──────┘
+                         │
+                 External Applications</pre>
+<h3>10.7 Components of Queue Mode</h3>
+<div class="table-wrap"><table><tr><th>Component</th><th>Responsibility</th></tr><tr><td>Main process</td><td>Manages workflows and triggers</td></tr><tr><td>PostgreSQL</td><td>Stores persistent application data</td></tr><tr><td>Redis</td><td>Manages execution queues</td></tr><tr><td>Workers</td><td>Execute workflow jobs</td></tr><tr><td>Load balancer</td><td>Distributes incoming application requests</td></tr><tr><td>External services</td><td>APIs, databases and applications</td></tr></table></div>
+<h3>10.8 Why Do We Need Queue Mode?</h3>
+<p>Consider an organization running 10,000 workflow executions every day. If everything runs in a single process, the system may experience resource limitations. Queue mode allows you to distribute execution workloads across multiple workers.</p>
+<ul class="checklist"><li>Better workload distribution</li><li>Horizontal scaling</li><li>Independent worker processes</li><li>Improved execution capacity</li><li>Better resource management</li></ul>
+<div class="callout-warn">Queue mode does not automatically guarantee high availability. You must also design database availability, Redis availability, backups, networking and monitoring.</div>
+<div class="callout-interview">n8n can run on n8n Cloud, locally, in Docker, on a VM or on Kubernetes. Local installs with SQLite suit learning; production typically uses PostgreSQL for persistence behind a load balancer. For scale, queue mode splits roles: the main process handles workflows and triggers, Redis holds the execution queue, and multiple workers execute jobs, all sharing PostgreSQL. High availability still requires redundant databases, Redis, backups and monitoring.</div>
+
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">2.11</div><h2>Real-World Example: ADF Monitoring Architecture</h2></div>
+<p class="lesson-desc">Let's combine all the concepts: an automated Azure Data Factory monitoring system using n8n.</p>
+<h3>Business Requirement</h3>
+<p>Whenever an ADF pipeline fails:</p>
+<ol><li>Capture the failure event.</li><li>Extract pipeline details.</li><li>Analyze the error.</li><li>Store the details in SQL Server.</li><li>Notify the support team.</li><li>Maintain execution history.</li></ol>
+<h3>Proposed Architecture</h3>
+<pre class="dg">           AZURE DATA FACTORY
+                   │
+            Pipeline Failure
+                   │
+                WEBHOOK
+                   │
+              n8n Trigger
+                   │
+            Execution Engine
+                   │
+           Extract JSON Data
+                   │
+         Analyze Error Message
+                   │
+              IF CONDITION
+            ┌──────┴──────┐
+            ▼             ▼
+        Critical        Normal
+            │             │
+       SQL Server     SQL Server
+            │             │
+       Teams Alert    Email Alert
+            └──────┬──────┘
+                   │
+           Execution History</pre>
+<h3>Technologies Involved</h3>
+<div class="table-wrap"><table><tr><th>Technology</th><th>Purpose</th></tr><tr><td>Azure Data Factory</td><td>Pipeline execution</td></tr><tr><td>n8n</td><td>Workflow orchestration</td></tr><tr><td>Webhook</td><td>Receive failure notifications</td></tr><tr><td>JavaScript</td><td>Process JSON</td></tr><tr><td>SQL Server</td><td>Store monitoring information</td></tr><tr><td>Microsoft Teams</td><td>Send alerts</td></tr><tr><td>PostgreSQL</td><td>Store n8n application data</td></tr><tr><td>Redis</td><td>Queue management in queue mode</td></tr></table></div>
+<blockquote><strong>This is an example of how n8n can complement an existing data engineering architecture.</strong></blockquote>
+
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Exercises – Chapter 2</h2></div>
+<p class="lesson-desc">After completing the theoretical topics, perform these exercises.</p>
+<h3>Exercise 1: Understand n8n Architecture</h3>
+<p>Draw the high-level architecture of n8n. Include:</p>
+<ul><li>User interface</li><li>Workflow manager</li><li>Execution engine</li><li>Nodes</li><li>Database</li><li>External APIs</li></ul>
+<h3>Exercise 2: Understand Workflow Lifecycle</h3>
+<p>Create a simple workflow and execute it manually:</p>
+<div class="flow"><div class="node trigger">Manual Trigger</div><span class="arrow">→</span><div class="node ">Edit Fields</div><span class="arrow">→</span><div class="node ">Code Node</div><span class="arrow">→</span><div class="node ">IF Condition</div><span class="arrow">→</span><div class="node out">Final Output</div></div>
+<p>Observe: execution start, node execution, input data, output data and execution status.</p>
+<h3>Exercise 3: Understand Data Flow</h3>
+<p>Create this sample data:</p>
+<pre><code class="language-json">[
+  { &quot;employee_id&quot;: 101, &quot;employee_name&quot;: &quot;Sreehari&quot;, &quot;salary&quot;: 50000 },
+  { &quot;employee_id&quot;: 102, &quot;employee_name&quot;: &quot;Ramesh&quot;, &quot;salary&quot;: 60000 }
+]</code></pre>
+<ol><li>Pass employee data to the workflow.</li><li>Extract employee names.</li><li>Calculate annual salaries.</li><li>Filter employees earning more than ₹55,000 monthly.</li><li>Display the final output.</li></ol>
+<h3>Exercise 4: Understand Execution History</h3>
+<p>Execute the same workflow three times and observe how errors are recorded:</p>
+<ol><li>Successful execution.</li><li>Execution with invalid input.</li><li>Execution with a deliberately invalid node configuration.</li></ol>
+<h3>Exercise 5: Understand Deployment</h3>
+<p>Learn the difference between:</p>
+<ol><li>Local installation.</li><li>Docker installation.</li><li>VM deployment.</li><li>PostgreSQL-based deployment.</li><li>Queue mode deployment.</li></ol>
+<div class="callout-warn">Do not attempt production deployment yet.</div>
+
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Important Interview Questions</h2></div>
+<p class="lesson-desc">Prepare these questions after completing the chapter.</p>
+<div class="table-wrap"><table><tr><th>No.</th><th>Interview question</th></tr><tr><td>1</td><td>Explain n8n architecture.</td></tr><tr><td>2</td><td>How does n8n work internally?</td></tr><tr><td>3</td><td>What is a workflow execution?</td></tr><tr><td>4</td><td>What is the difference between a workflow and an execution?</td></tr><tr><td>5</td><td>What are nodes and connections?</td></tr><tr><td>6</td><td>What is the difference between triggers and actions?</td></tr><tr><td>7</td><td>What is the responsibility of the execution engine?</td></tr><tr><td>8</td><td>How does data flow between nodes?</td></tr><tr><td>9</td><td>What is an item in n8n?</td></tr><tr><td>10</td><td>How does n8n manage credentials?</td></tr><tr><td>11</td><td>Where does n8n store execution information?</td></tr><tr><td>12</td><td>What is execution pruning?</td></tr><tr><td>13</td><td>What is queue mode?</td></tr><tr><td>14</td><td>Why does n8n use Redis in queue mode?</td></tr><tr><td>15</td><td>What is the purpose of PostgreSQL?</td></tr><tr><td>16</td><td>What is the difference between main and worker processes?</td></tr><tr><td>17</td><td>How can n8n scale horizontally?</td></tr><tr><td>18</td><td>What happens when a workflow node fails?</td></tr><tr><td>19</td><td>How do you secure a self-hosted n8n installation?</td></tr><tr><td>20</td><td>Explain a production-ready n8n deployment architecture.</td></tr></table></div>
+
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Learning Resources</h2></div>
+<p class="lesson-desc">Use the following documentation to understand the actual architecture and configuration.</p>
+<div class="table-wrap"><table><tr><th>Topic</th><th>Official documentation</th></tr><tr><td>n8n architecture and hosting</td><td><a href="https://docs.n8n.io/hosting/" target="_blank" rel="noopener">Hosting n8n</a></td></tr><tr><td>Workflow executions</td><td><a href="https://docs.n8n.io/workflows/executions/" target="_blank" rel="noopener">Executions</a></td></tr><tr><td>Nodes</td><td><a href="https://docs.n8n.io/integrations/builtin/" target="_blank" rel="noopener">Nodes</a></td></tr><tr><td>Data structure</td><td><a href="https://docs.n8n.io/data/data-structure/" target="_blank" rel="noopener">Data structure</a></td></tr><tr><td>Credentials</td><td><a href="https://docs.n8n.io/credentials/" target="_blank" rel="noopener">Credentials</a></td></tr><tr><td>Queue mode</td><td><a href="https://docs.n8n.io/hosting/scaling/queue-mode/" target="_blank" rel="noopener">Queue mode</a></td></tr><tr><td>Environment variables</td><td><a href="https://docs.n8n.io/hosting/configuration/environment-variables/" target="_blank" rel="noopener">Environment variables</a></td></tr></table></div>
+
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Chapter 2 – Completion Checklist</h2></div>
+<p class="lesson-desc">By the end of this chapter, you should be able to explain:</p>
+<ul class="checklist"><li>What n8n architecture looks like</li><li>How n8n works internally</li><li>What happens during workflow execution</li><li>How nodes communicate with each other</li><li>The difference between triggers and actions</li><li>How the execution engine works</li><li>How JSON data flows between nodes</li><li>How credentials are managed</li><li>How execution history is maintained</li><li>How n8n can be deployed</li><li>Why Redis is required in queue mode</li><li>Why PostgreSQL is used in production</li><li>How workers execute workflows</li></ul>
+<h3>Recommendation</h3>
+<p>Pay particular attention to these four topics — they form the foundation for advanced n8n development:</p>
+<div class="workload-grid"><div class="wcard"><div class="wcard-icon">⚙️</div><div class="wcard-name">Execution Engine</div><div class="wcard-desc">Understand how workflows are executed internally.</div></div><div class="wcard"><div class="wcard-icon">🔀</div><div class="wcard-name">Data Flow</div><div class="wcard-desc">Understand JSON, items, expressions and data transformation.</div></div><div class="wcard"><div class="wcard-icon">📬</div><div class="wcard-name">Queue Mode</div><div class="wcard-desc">Understand Main, Redis, Workers and PostgreSQL.</div></div><div class="wcard"><div class="wcard-icon">🏗️</div><div class="wcard-name">Deployment Architecture</div><div class="wcard-desc">Understand how n8n can be implemented in an enterprise environment.</div></div></div>
+<div class="callout-tip"><strong>Next chapter: Chapter 3 – Installation and Environment Setup.</strong> You will install n8n, configure it locally using Docker, connect PostgreSQL, explore the n8n interface and execute your first workflow.</div>
+
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Conceptual architecture</h2></div>
+<div class="src"><div class="diagram"><svg aria-label="n8n architecture diagram" role="img" viewbox="0 0 920 280"><rect fill="#dbeafe" height="55" rx="12" stroke="#2563eb" width="260" x="330" y="10"></rect><text fill="#172554" font-size="16" text-anchor="middle" x="460" y="43">Editor / Workflow design</text><path d="M460 65 V95" stroke="#64748b" stroke-width="2"></path><rect fill="#dcfce7" height="60" rx="12" stroke="#16a34a" width="260" x="330" y="95"></rect><text fill="#14532d" font-size="16" text-anchor="middle" x="460" y="130">Execution engine</text><path d="M330 125 H170 V185 M590 125 H750 V185" fill="none" stroke="#64748b" stroke-width="2"></path><rect fill="#fef3c7" height="65" rx="12" stroke="#d97706" width="230" x="55" y="185"></rect><text fill="#78350f" font-size="15" text-anchor="middle" x="170" y="212">Nodes + integrations</text><text fill="#78350f" font-size="12" text-anchor="middle" x="170" y="232">APIs · SQL · email</text><rect fill="#ede9fe" height="65" rx="12" stroke="#7c3aed" width="230" x="635" y="185"></rect><text fill="#4c1d95" font-size="15" text-anchor="middle" x="750" y="212">Persistence</text><text fill="#4c1d95" font-size="12" text-anchor="middle" x="750" y="232">Workflows · credentials · runs</text><text fill="#475569" font-size="12" text-anchor="middle" x="460" y="205">↔</text><text fill="#475569" font-size="12" text-anchor="middle" x="460" y="270">Queue mode: main process + Redis + worker processes</text></svg></div><p class="muted">Conceptual learning diagram. The exact UI, node names, and deployment details may differ by n8n version and edition.</p></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Hands-on practical exercise</h2></div>
+<div class="src"><p>Build a small workflow with Manual Trigger → Edit Fields → IF → two branches (success/review) → No Operation or notification. Supply three test items with different statuses. Inspect the input and output item JSON at each node, note how branching changes the path, and open the execution record to review node timing and data. Draw the workflow's execution lifecycle from trigger to completion.</p><h3>Evidence to capture</h3><ul><li>Workflow screenshot or diagram (without credentials or secrets).</li><li>Sample input and output data.</li><li>One successful run and one intentionally tested failure case.</li><li>Short notes explaining the design and what you learned.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Interview questions and answers</h2></div>
+<div class="src"><details><summary>What is the difference between a trigger and an action?</summary><p>A trigger starts a workflow; an action performs an operation after the workflow has started.</p></details><details><summary>What is an n8n item?</summary><p>A unit of workflow data, commonly containing a JSON object and optionally binary data.</p></details><details><summary>Why should credentials not be hard-coded?</summary><p>Hard-coded secrets can leak through workflow exports, logs, source control, or shared access.</p></details><details><summary>Cloud or self-hosted: which should a beginner choose?</summary><p>Cloud is usually fastest to start; self-hosting is useful when you need deployment control and can manage operations.</p></details></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_01_Introduction_to_Workflow_Automation.html"><span class="mn-label">← Previous</span><span class="mn-title">Introduction to Workflow Automation</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_03_Installation_and_Environment_Setup.html"><span class="mn-label">Next →</span><span class="mn-title">Installation &amp; Environment Setup</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script></body></html>
