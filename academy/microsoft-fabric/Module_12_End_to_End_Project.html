@@ -523,11 +523,11 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <h3>Architecture</h3>
   <div class="arch-layers">
     <div class="arch-layer"><div class="arch-layer-num">🔌</div><div><div class="arch-layer-name">Sources</div><div class="arch-layer-desc">SQL Server <code>RetailOps</code> (on-prem, via gateway) · Azure Blob <code>store-uploads</code> (daily CSVs) · REST API <code>fx-rates</code> (JSON)</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🥉</div><div><div class="arch-layer-name">Bronze — lh_bronze</div><div class="arch-layer-desc">Raw copies in Files/ and append-only tables, plus load metadata (batch ID, source, load time)</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🥈</div><div><div class="arch-layer-name">Silver — lh_silver</div><div class="arch-layer-desc">Cleaned, typed, de-duplicated, conformed tables, merged incrementally</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🥇</div><div><div class="arch-layer-name">Gold — lh_gold</div><div class="arch-layer-desc">Star schema: FactSales, DimCustomer (SCD2), DimProduct (SCD1), DimStore, DimDate, DimCurrencyRate</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">📊</div><div><div class="arch-layer-name">Serve</div><div class="arch-layer-desc">Direct Lake semantic model <code>Retail Sales</code> with RLS → Power BI report and app</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🛠️</div><div><div class="arch-layer-name">Operate</div><div class="arch-layer-desc">pl_master (metadata-driven), ops tables (config, watermark, run log), variable library, Git, deployment pipeline</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🥉</div><div><div class="arch-layer-name">Bronze — lh_sales_bronze</div><div class="arch-layer-desc">Raw copies in Files/ and append-only tables, plus load metadata (batch ID, source, load time)</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🥈</div><div><div class="arch-layer-name">Silver — lh_sales_silver</div><div class="arch-layer-desc">Cleaned, typed, de-duplicated, conformed tables, merged incrementally</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🥇</div><div><div class="arch-layer-name">Gold — lh_sales_gold</div><div class="arch-layer-desc">Star schema: FactSales, DimCustomer (SCD2), DimProduct (SCD1), DimStore, DimDate, DimCurrencyRate</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">📊</div><div><div class="arch-layer-name">Serve</div><div class="arch-layer-desc">Direct Lake semantic model <code>sm_sales_performance</code> with RLS → Power BI report and app</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🛠️</div><div><div class="arch-layer-name">Operate</div><div class="arch-layer-desc">pl_sales_master_daily (metadata-driven), ops tables (config, watermark, run log), variable library, Git, deployment pipeline</div></div></div>
   </div>
   <div class="callout-tip">Why Gold in a Lakehouse rather than a Warehouse here? The team is Spark-first and Direct Lake reads Lakehouse Delta tables directly. If your team prefers T-SQL, build Gold in a Warehouse using Module 6 instead — the rest of the project is unchanged.</div>
 
@@ -535,23 +535,28 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <div class="table-wrap">
     <table>
       <tr><th>Thing</th><th>Convention</th><th>Examples</th></tr>
-      <tr><td>Workspaces</td><td><code>Retail-&lt;ENV&gt;</code></td><td>Retail-DEV, Retail-TEST, Retail-PROD</td></tr>
-      <tr><td>Lakehouses</td><td><code>lh_&lt;layer&gt;</code></td><td>lh_bronze, lh_silver, lh_gold</td></tr>
-      <tr><td>Notebooks</td><td><code>nb_&lt;layer&gt;_&lt;purpose&gt;</code></td><td>nb_bronze_fx_api, nb_silver_orders, nb_gold_dim_customer</td></tr>
-      <tr><td>Pipelines</td><td><code>pl_&lt;purpose&gt;</code></td><td>pl_master, pl_ingest_table, pl_ingest_files</td></tr>
+      <tr><td>Workspaces</td><td><code>&lt;Project&gt; – &lt;Area&gt; [&lt;ENV&gt;]</code></td><td>Retail Sales – Data Engineering [DEV], Retail Sales – Analytics [DEV]; [TEST] and [PROD] copies</td></tr>
+      <tr><td>Lakehouses</td><td><code>lh_&lt;project&gt;_&lt;layer&gt;</code></td><td>lh_sales_bronze, lh_sales_silver, lh_sales_gold</td></tr>
+      <tr><td>Notebooks</td><td><code>nb_&lt;project&gt;_&lt;layer&gt;_&lt;action&gt;_&lt;entity&gt;</code></td><td>nb_sales_bronze_ingest_fx_api, nb_sales_silver_transform_orders, nb_sales_gold_build_dim_customer</td></tr>
+      <tr><td>Pipelines</td><td><code>pl_&lt;project&gt;_&lt;action&gt;_&lt;source&gt;</code></td><td>pl_sales_master_daily, pl_sales_ingest_table, pl_sales_ingest_files</td></tr>
       <tr><td>Tables</td><td>Bronze/Silver snake_case; Gold PascalCase with Dim/Fact prefixes</td><td>silver.orders · gold.FactSales</td></tr>
-      <tr><td>Variable library</td><td><code>vl_&lt;project&gt;</code></td><td>vl_retail</td></tr>
+      <tr><td>Warehouse</td><td><code>wh_&lt;project&gt;_&lt;purpose&gt;</code></td><td>wh_sales_reporting</td></tr>
+      <tr><td>Semantic model</td><td><code>sm_&lt;project&gt;_&lt;subject&gt;</code></td><td>sm_sales_performance</td></tr>
+      <tr><td>Reports</td><td>Business-friendly title</td><td>Sales Performance Dashboard</td></tr>
+      <tr><td>Deployment pipeline</td><td><code>dp_&lt;project&gt;_&lt;area&gt;</code></td><td>dp_sales_engineering</td></tr>
+      <tr><td>Variable library</td><td><code>vl_&lt;project&gt;</code></td><td>vl_sales</td></tr>
     </table>
   </div>
+  <p>To keep the project small, the semantic model and report sit in <code>Retail Sales – Data Engineering [DEV]</code> beside the lakehouses. In a larger team, move them to <code>Retail Sales – Analytics [DEV]</code> with its own deployment pipeline <code>dp_sales_analytics</code>.</p>
 
   <h3>Build Plan</h3>
   <ol class="steps">
-    <li>Create Retail-DEV and connect it to Git (12.7) — from day one, so every step is versioned.</li>
-    <li>Create the three lakehouses, the <code>ops</code> tables and <code>vl_retail</code>.</li>
+    <li>Create Retail Sales – Data Engineering [DEV] and connect it to Git (12.7) — from day one, so every step is versioned.</li>
+    <li>Create the three lakehouses, the <code>ops</code> tables and <code>vl_sales</code>.</li>
     <li>Ingest each source to Bronze (12.2–12.3).</li>
     <li>Silver with incremental merges (12.4).</li>
     <li>Gold dimensions and fact (12.5).</li>
-    <li>Wrap in pl_master with logging and alerts (12.6).</li>
+    <li>Wrap in pl_sales_master_daily with logging and alerts (12.6).</li>
     <li>Semantic model, RLS and report (12.8).</li>
     <li>Deploy to TEST and PROD; test; document (12.7, 12.9).</li>
   </ol>
@@ -649,7 +654,7 @@ Authorization: Bearer &lt;token&gt;
     Now build. You'll set up the control tables, then land each source in Bronze: SQL tables through the metadata-driven pipeline from Module 7, store files through a notebook with a processed-files log, and FX rates through a notebook that calls the API with retries and pagination.
   </div>
 
-  <h3>Step 1 — Control Tables (lh_bronze, schema ops)</h3>
+  <h3>Step 1 — Control Tables (lh_sales_bronze, schema ops)</h3>
 <pre><code>CREATE TABLE IF NOT EXISTS ops.pipeline_config (
     source_table STRING, target_table STRING, load_type STRING,
     watermark_column STRING, key_columns STRING, load_order INT, is_active BOOLEAN);
@@ -667,14 +672,14 @@ INSERT INTO ops.pipeline_config VALUES
  ('Sales.Orders',        'bronze_orders',      'INCREMENTAL','ModifiedDate','OrderID',           2, true),
  ('Sales.OrderLines',    'bronze_order_lines', 'INCREMENTAL','ModifiedDate','OrderID,LineNumber',2, true);</code></pre>
 
-  <h3>Step 2 — SQL Server Tables: <code>pl_ingest_table</code></h3>
+  <h3>Step 2 — SQL Server Tables: <code>pl_sales_ingest_table</code></h3>
   <p>Reuse the child pipeline from Module 7.9: Lookup watermark → Copy with a dynamic source query → append to the Bronze table with <code>_batch_id</code> and <code>_loaded_at</code> columns (added via Copy's additional columns) → update watermark from the loaded data → log. The master pipeline runs it in two ForEach groups: <code>load_order = 1</code> (dimensions) then <code>load_order = 2</code> (facts).</p>
 <pre><code>Source query (dynamic content):
 SELECT * FROM @{pipeline().parameters.SourceTable}
 WHERE @{pipeline().parameters.WatermarkColumn} &gt; '@{activity('Lookup watermark').output.firstRow.watermark_value}'</code></pre>
 
-  <h3>Step 3 — Store Files: <code>nb_bronze_inventory</code></h3>
-  <p>A shortcut <code>Files/store_uploads</code> in lh_bronze points at the Blob container. The notebook processes only files not yet logged:</p>
+  <h3>Step 3 — Store Files: <code>nb_sales_bronze_ingest_inventory</code></h3>
+  <p>A shortcut <code>Files/store_uploads</code> in lh_sales_bronze points at the Blob container. The notebook processes only files not yet logged:</p>
 <pre><code><span class="k">from</span> pyspark.sql <span class="k">import</span> functions <span class="k">as</span> F
 <span class="k">from</span> datetime <span class="k">import</span> datetime, timezone
 
@@ -714,7 +719,7 @@ print(<span class="s">f"{len(new_files)} new files"</span>)
          .write.mode(<span class="s">"append"</span>).saveAsTable(<span class="s">"ops.processed_files"</span>)</code></pre>
   <div class="callout-tip">Files with zero rows are logged with <code>row_count = 0</code> — a quick query on <code>ops.processed_files</code> then shows which stores sent empty files or no file at all (compare with DimStore).</div>
 
-  <h3>Step 4 — FX Rates API: <code>nb_bronze_fx_api</code></h3>
+  <h3>Step 4 — FX Rates API: <code>nb_sales_bronze_ingest_fx_api</code></h3>
 <pre><code><span class="k">import</span> json, time, requests
 <span class="k">from</span> pyspark.sql <span class="k">import</span> functions <span class="k">as</span> F
 <span class="k">from</span> datetime <span class="k">import</span> date, timedelta
@@ -722,7 +727,7 @@ print(<span class="s">f"{len(new_files)} new files"</span>)
 <span class="c"># Parameters cell</span>
 run_date = <span class="s">""</span>                               <span class="c"># blank = yesterday</span>
 
-vl       = notebookutils.variableLibrary.getLibrary(<span class="s">"vl_retail"</span>)
+vl       = notebookutils.variableLibrary.getLibrary(<span class="s">"vl_sales"</span>)
 base_url = vl.fx_api_url                          <span class="c"># e.g. https://api.example-fx.com/v1/rates</span>
 token    = notebookutils.credentials.getSecret(vl.key_vault_url, <span class="s">"fx-api-token"</span>)
 req_date = run_date <span class="k">or</span> (date.today() - timedelta(days=<span class="n">1</span>)).isoformat()
@@ -790,7 +795,7 @@ notebookutils.notebook.exit(json.dumps({<span class="s">"rows"</span>: len(rows)
   </div>
 
   <h3>Step 1 — Table-Specific Cleaning</h3>
-<pre><code><span class="c"># nb_silver_lib — cleaning rules per table (Module 5.2)</span>
+<pre><code><span class="c"># nb_sales_util_silver_rules — cleaning rules per table (Module 5.2)</span>
 <span class="k">from</span> pyspark.sql <span class="k">import</span> functions <span class="k">as</span> F
 
 <span class="k">def</span> clean_customers(df):
@@ -823,12 +828,12 @@ CLEANERS = {<span class="s">"customers"</span>: clean_customers, <span class="s"
 
 <span class="k">def</span> merge_to_silver(name, keys, batch_id, order_col=<span class="s">"modified_at"</span>):
     <span class="s">"""Clean this batch's Bronze rows, keep the latest per key, upsert into Silver."""</span>
-    src = CLEANERS[name](spark.table(<span class="s">f"lh_bronze.bronze_{name}"</span>)
+    src = CLEANERS[name](spark.table(<span class="s">f"lh_sales_bronze.bronze_{name}"</span>)
                                .filter(F.col(<span class="s">"_batch_id"</span>) == batch_id))
     w = Window.partitionBy(*keys).orderBy(F.col(order_col).desc())
     src = src.withColumn(<span class="s">"_rn"</span>, F.row_number().over(w)).filter(<span class="s">"_rn = 1"</span>).drop(<span class="s">"_rn"</span>)
 
-    target = <span class="s">f"lh_silver.{name}"</span>
+    target = <span class="s">f"lh_sales_silver.{name}"</span>
     <span class="k">if not</span> spark.catalog.tableExists(target):
         src.write.saveAsTable(target)
         <span class="k">return</span> src.count()
@@ -841,7 +846,7 @@ CLEANERS = {<span class="s">"customers"</span>: clean_customers, <span class="s"
         .execute())
     <span class="k">return</span> src.count()
 
-<span class="c"># nb_silver_sql — called by pl_master with batch_id = @pipeline().RunId</span>
+<span class="c"># nb_sales_silver_transform_sql — called by pl_sales_master_daily with batch_id = @pipeline().RunId</span>
 rows = {
     <span class="s">"customers"</span>:   merge_to_silver(<span class="s">"customers"</span>,   [<span class="s">"customer_id"</span>], batch_id),
     <span class="s">"orders"</span>:      merge_to_silver(<span class="s">"orders"</span>,      [<span class="s">"order_id"</span>], batch_id),
@@ -851,7 +856,7 @@ rows = {
 
   <h3>Step 3 — Inventory and FX</h3>
 <pre><code><span class="c"># Inventory: one count per store, product and day; latest upload wins</span>
-inv = (spark.table(<span class="s">"lh_bronze.bronze_inventory"</span>).filter(F.col(<span class="s">"_batch_id"</span>) == batch_id)
+inv = (spark.table(<span class="s">"lh_sales_bronze.bronze_inventory"</span>).filter(F.col(<span class="s">"_batch_id"</span>) == batch_id)
          .select(F.col(<span class="s">"store_id"</span>).cast(<span class="s">"int"</span>), F.trim(<span class="s">"product_code"</span>).alias(<span class="s">"product_code"</span>),
                  F.col(<span class="s">"on_hand_qty"</span>).cast(<span class="s">"int"</span>),
                  F.to_date(<span class="s">"counted_at"</span>).alias(<span class="s">"count_date"</span>), <span class="s">"_loaded_at"</span>)
@@ -861,20 +866,20 @@ inv = inv.withColumn(<span class="s">"_rn"</span>, F.row_number().over(w)).filte
 <span class="c"># … MERGE on (store_id, product_code, count_date) as above</span>
 
 <span class="c"># FX: one rate per calendar day; weekends/holidays carry the last business day forward</span>
-fx = (spark.table(<span class="s">"lh_bronze.bronze_fx_rates"</span>)
+fx = (spark.table(<span class="s">"lh_sales_bronze.bronze_fx_rates"</span>)
         .select(F.to_date(<span class="s">"requested_date"</span>).alias(<span class="s">"rate_date"</span>), <span class="s">"currency"</span>, <span class="s">"rate"</span>, <span class="s">"_loaded_at"</span>))
 w = Window.partitionBy(<span class="s">"rate_date"</span>, <span class="s">"currency"</span>).orderBy(F.desc(<span class="s">"_loaded_at"</span>))
 fx = fx.withColumn(<span class="s">"_rn"</span>, F.row_number().over(w)).filter(<span class="s">"_rn = 1"</span>).drop(<span class="s">"_rn"</span>, <span class="s">"_loaded_at"</span>)
-fx.write.mode(<span class="s">"overwrite"</span>).saveAsTable(<span class="s">"lh_silver.fx_rates"</span>)        <span class="c"># small table: rebuild</span></code></pre>
+fx.write.mode(<span class="s">"overwrite"</span>).saveAsTable(<span class="s">"lh_sales_silver.fx_rates"</span>)        <span class="c"># small table: rebuild</span></code></pre>
   <p>Keying FX on the <em>requested</em> date means every calendar day has a rate (the API already returns the last business day's rate on holidays), so sales on a Sunday still convert.</p>
 
   <h3>Step 4 — Deleted Rows</h3>
   <p>Watermarks never see rows that were physically deleted in the source. Once a week, copy just the <em>keys</em> of the source table and compare:</p>
-<pre><code>src_keys = spark.table(<span class="s">"lh_bronze.keys_customers"</span>)          <span class="c"># weekly Copy: SELECT CustomerID FROM Sales.Customers</span>
-deleted  = (spark.table(<span class="s">"lh_silver.customers"</span>).select(<span class="s">"customer_id"</span>)
+<pre><code>src_keys = spark.table(<span class="s">"lh_sales_bronze.keys_customers"</span>)          <span class="c"># weekly Copy: SELECT CustomerID FROM Sales.Customers</span>
+deleted  = (spark.table(<span class="s">"lh_sales_silver.customers"</span>).select(<span class="s">"customer_id"</span>)
               .join(src_keys.select(F.col(<span class="s">"CustomerID"</span>).alias(<span class="s">"customer_id"</span>)), <span class="s">"customer_id"</span>, <span class="s">"left_anti"</span>))
 
-(DeltaTable.forName(spark, <span class="s">"lh_silver.customers"</span>).alias(<span class="s">"t"</span>)
+(DeltaTable.forName(spark, <span class="s">"lh_sales_silver.customers"</span>).alias(<span class="s">"t"</span>)
     .merge(deleted.alias(<span class="s">"d"</span>), <span class="s">"t.customer_id = d.customer_id"</span>)
     .whenMatchedUpdate(set={<span class="s">"is_deleted"</span>: <span class="s">"true"</span>})            <span class="c"># soft delete — history stays intact</span>
     .execute())</code></pre>
@@ -882,12 +887,12 @@ deleted  = (spark.table(<span class="s">"lh_silver.customers"</span>).select(<sp
 
   <h3>Check Your Silver Layer</h3>
 <pre><code><span class="c">-- One row per key</span>
-SELECT customer_id, COUNT(*) FROM lh_silver.customers GROUP BY customer_id HAVING COUNT(*) &gt; 1;
+SELECT customer_id, COUNT(*) FROM lh_sales_silver.customers GROUP BY customer_id HAVING COUNT(*) &gt; 1;
 <span class="c">-- Re-running the same batch changes nothing</span>
-DESCRIBE HISTORY lh_silver.customers;     <span class="c">-- numTargetRowsUpdated should be 0 or unchanged values</span>
+DESCRIBE HISTORY lh_sales_silver.customers;     <span class="c">-- numTargetRowsUpdated should be 0 or unchanged values</span>
 <span class="c">-- Every calendar day has a USD rate</span>
-SELECT d.Date FROM lh_gold.DimDate d
-LEFT JOIN lh_silver.fx_rates f ON f.rate_date = d.Date AND f.currency = 'USD'
+SELECT d.Date FROM lh_sales_gold.DimDate d
+LEFT JOIN lh_sales_silver.fx_rates f ON f.rate_date = d.Date AND f.currency = 'USD'
 WHERE d.Date BETWEEN '2026-01-01' AND current_date() - 1 AND f.rate IS NULL;</code></pre>
 
   <div class="callout-interview">Incremental loading in the project works end to end: source rows newer than a watermark are appended to Bronze with the run's batch ID, and Silver processes only that batch. A generic merge function applies table-specific cleaning, keeps the latest row per key with a window function, and MERGEs into Silver only when the incoming version is at least as new, making re-runs safe. Inventory files are de-duplicated per store, product and day keeping the latest upload; FX rates are keyed on the requested date so every calendar day has a rate. Hard deletes are detected weekly by an anti-join against the source's current keys and recorded as soft deletes. Checks confirm one row per key, idempotent re-runs and complete FX coverage.</div>
@@ -923,18 +928,18 @@ WHERE d.Date BETWEEN '2026-01-01' AND current_date() - 1 AND f.rate IS NULL;</co
         F.dayofweek(<span class="s">"Date"</span>).alias(<span class="s">"DayOfWeek"</span>), F.date_format(<span class="s">"Date"</span>, <span class="s">"EEE"</span>).alias(<span class="s">"DayName"</span>),
         F.when(F.month(<span class="s">"Date"</span>) &gt;= <span class="n">4</span>, F.year(<span class="s">"Date"</span>)).otherwise(F.year(<span class="s">"Date"</span>) - <span class="n">1</span>).alias(<span class="s">"FiscalYear"</span>),  <span class="c"># Apr–Mar</span>
         F.dayofweek(<span class="s">"Date"</span>).isin(<span class="n">1</span>, <span class="n">7</span>).alias(<span class="s">"IsWeekend"</span>)))
-dim_date.write.mode(<span class="s">"overwrite"</span>).saveAsTable(<span class="s">"lh_gold.DimDate"</span>)</code></pre>
+dim_date.write.mode(<span class="s">"overwrite"</span>).saveAsTable(<span class="s">"lh_sales_gold.DimDate"</span>)</code></pre>
 
   <h3>DimProduct — SCD Type 1</h3>
-<pre><code>src = (spark.table(<span class="s">"lh_silver.products"</span>)
+<pre><code>src = (spark.table(<span class="s">"lh_sales_silver.products"</span>)
          .select(F.col(<span class="s">"product_id"</span>).alias(<span class="s">"ProductID"</span>), F.col(<span class="s">"product_code"</span>).alias(<span class="s">"ProductCode"</span>),
                  F.col(<span class="s">"product_name"</span>).alias(<span class="s">"ProductName"</span>), F.col(<span class="s">"category"</span>).alias(<span class="s">"Category"</span>),
                  F.col(<span class="s">"subcategory"</span>).alias(<span class="s">"Subcategory"</span>), F.col(<span class="s">"brand"</span>).alias(<span class="s">"Brand"</span>)))
 
-max_key = spark.table(<span class="s">"lh_gold.DimProduct"</span>).agg(F.max(<span class="s">"ProductKey"</span>)).first()[<span class="n">0</span>] <span class="k">or</span> <span class="n">0</span>
+max_key = spark.table(<span class="s">"lh_sales_gold.DimProduct"</span>).agg(F.max(<span class="s">"ProductKey"</span>)).first()[<span class="n">0</span>] <span class="k">or</span> <span class="n">0</span>
 src = src.withColumn(<span class="s">"ProductKey"</span>, F.lit(max_key) + F.row_number().over(Window.orderBy(<span class="s">"ProductID"</span>)))
 
-(DeltaTable.forName(spark, <span class="s">"lh_gold.DimProduct"</span>).alias(<span class="s">"t"</span>)
+(DeltaTable.forName(spark, <span class="s">"lh_sales_gold.DimProduct"</span>).alias(<span class="s">"t"</span>)
     .merge(src.alias(<span class="s">"s"</span>), <span class="s">"t.ProductID = s.ProductID"</span>)
     .whenMatchedUpdate(set={c: <span class="s">f"s.{c}"</span> <span class="k">for</span> c <span class="k">in</span>
                             [<span class="s">"ProductCode"</span>, <span class="s">"ProductName"</span>, <span class="s">"Category"</span>, <span class="s">"Subcategory"</span>, <span class="s">"Brand"</span>]})  <span class="c"># keep the existing key</span>
@@ -942,16 +947,16 @@ src = src.withColumn(<span class="s">"ProductKey"</span>, F.lit(max_key) + F.row
     .execute())</code></pre>
 
   <h3>DimCustomer — SCD Type 2</h3>
-  <p>Use the complete, tested implementation from <strong>Module 5.6</strong> (hash of tracked columns → changed rows → staged union with a NULL merge key → one MERGE that closes old versions and inserts new ones). For the project, package it as a function in <code>nb_lib_scd</code> and call it:</p>
-<pre><code>%run nb_lib_scd
+  <p>Use the complete, tested implementation from <strong>Module 5.6</strong> (hash of tracked columns → changed rows → staged union with a NULL merge key → one MERGE that closes old versions and inserts new ones). For the project, package it as a function in <code>nb_sales_util_scd</code> and call it:</p>
+<pre><code>%run nb_sales_util_scd
 
 scd2_merge(
-    source_df      = spark.table(<span class="s">"lh_silver.customers"</span>).filter(<span class="s">"NOT is_deleted"</span>)
+    source_df      = spark.table(<span class="s">"lh_sales_silver.customers"</span>).filter(<span class="s">"NOT is_deleted"</span>)
                          .select(F.col(<span class="s">"customer_id"</span>).alias(<span class="s">"CustomerID"</span>),
                                  F.col(<span class="s">"customer_name"</span>).alias(<span class="s">"CustomerName"</span>),
                                  F.col(<span class="s">"city"</span>).alias(<span class="s">"City"</span>), F.col(<span class="s">"region"</span>).alias(<span class="s">"Region"</span>),
                                  F.col(<span class="s">"segment"</span>).alias(<span class="s">"Segment"</span>)),
-    target_table   = <span class="s">"lh_gold.DimCustomer"</span>,
+    target_table   = <span class="s">"lh_sales_gold.DimCustomer"</span>,
     business_key   = <span class="s">"CustomerID"</span>,
     surrogate_key  = <span class="s">"CustomerKey"</span>,
     tracked_cols   = [<span class="s">"Segment"</span>, <span class="s">"Region"</span>, <span class="s">"City"</span>],     <span class="c"># a change here creates a new version</span>
@@ -967,14 +972,14 @@ scd2_merge(
   <p>CustomerName isn't tracked, so a name correction alone doesn't create a new version; if the business wants corrected names on <em>all</em> historical versions too, follow the MERGE with a small Type 1 update on CustomerName by CustomerID. Run the three SCD2 checks from Module 5.6 (one current row per customer, unique keys, valid date ranges) after every load — and fail the notebook if any fails.</p>
 
   <h3>FactSales</h3>
-<pre><code>lines  = spark.table(<span class="s">"lh_silver.order_lines"</span>).filter(F.col(<span class="s">"modified_at"</span>) &gt; F.lit(last_fact_watermark))
-orders = spark.table(<span class="s">"lh_silver.orders"</span>).select(<span class="s">"order_id"</span>, <span class="s">"order_date"</span>, <span class="s">"customer_id"</span>, <span class="s">"store_id"</span>)
+<pre><code>lines  = spark.table(<span class="s">"lh_sales_silver.order_lines"</span>).filter(F.col(<span class="s">"modified_at"</span>) &gt; F.lit(last_fact_watermark))
+orders = spark.table(<span class="s">"lh_sales_silver.orders"</span>).select(<span class="s">"order_id"</span>, <span class="s">"order_date"</span>, <span class="s">"customer_id"</span>, <span class="s">"store_id"</span>)
 src    = lines.join(orders, <span class="s">"order_id"</span>, <span class="s">"left"</span>)
 
-cust = spark.table(<span class="s">"lh_gold.DimCustomer"</span>).select(<span class="s">"CustomerKey"</span>, <span class="s">"CustomerID"</span>, <span class="s">"StartDate"</span>, <span class="s">"EndDate"</span>)
-prod = spark.table(<span class="s">"lh_gold.DimProduct"</span>).select(<span class="s">"ProductKey"</span>, <span class="s">"ProductID"</span>)
-store = spark.table(<span class="s">"lh_gold.DimStore"</span>).select(<span class="s">"StoreKey"</span>, <span class="s">"StoreID"</span>)
-usd  = (spark.table(<span class="s">"lh_silver.fx_rates"</span>).filter(<span class="s">"currency = 'USD'"</span>)
+cust = spark.table(<span class="s">"lh_sales_gold.DimCustomer"</span>).select(<span class="s">"CustomerKey"</span>, <span class="s">"CustomerID"</span>, <span class="s">"StartDate"</span>, <span class="s">"EndDate"</span>)
+prod = spark.table(<span class="s">"lh_sales_gold.DimProduct"</span>).select(<span class="s">"ProductKey"</span>, <span class="s">"ProductID"</span>)
+store = spark.table(<span class="s">"lh_sales_gold.DimStore"</span>).select(<span class="s">"StoreKey"</span>, <span class="s">"StoreID"</span>)
+usd  = (spark.table(<span class="s">"lh_sales_silver.fx_rates"</span>).filter(<span class="s">"currency = 'USD'"</span>)
           .select(F.col(<span class="s">"rate_date"</span>), F.col(<span class="s">"rate"</span>).alias(<span class="s">"usd_rate"</span>)))
 
 fact = (src
@@ -999,7 +1004,7 @@ fact = (src
 
 <span class="c"># Upsert with date pruning (Module 10.7)</span>
 lo, hi = fact.agg(F.min(<span class="s">"OrderDate"</span>), F.max(<span class="s">"OrderDate"</span>)).first()
-(DeltaTable.forName(spark, <span class="s">"lh_gold.FactSales"</span>).alias(<span class="s">"t"</span>)
+(DeltaTable.forName(spark, <span class="s">"lh_sales_gold.FactSales"</span>).alias(<span class="s">"t"</span>)
     .merge(fact.alias(<span class="s">"s"</span>),
            <span class="s">f"t.OrderID = s.OrderID AND t.LineNumber = s.LineNumber AND t.OrderDate BETWEEN '{lo}' AND '{hi}'"</span>)
     .whenMatchedUpdateAll().whenNotMatchedInsertAll().execute())</code></pre>
@@ -1032,19 +1037,19 @@ assert missing_fx == <span class="n">0</span>, <span class="s">f"{missing_fx} ro
     IT operations want to know by 07:00 whether the load succeeded — without opening Fabric. This lesson wires the notebooks into one master pipeline that logs every step, fails loudly with a useful message, alerts the right people, and feeds a small monitoring report.
   </div>
 
-  <h3>pl_master</h3>
+  <h3>pl_sales_master_daily</h3>
   <div class="canvas">
     <div class="canvas-row">
       <div class="act act-ctl">Set BatchID<small>@pipeline().RunId</small></div><div class="flow-arrow">→</div>
-      <div class="act act-pl">Invoke pl_ingest_sql<small>dims, then facts</small></div><div class="flow-arrow">→</div>
-      <div class="act act-nb">nb_bronze_inventory</div><div class="flow-arrow">→</div>
-      <div class="act act-nb">nb_bronze_fx_api</div>
+      <div class="act act-pl">Invoke pl_sales_ingest_sql<small>dims, then facts</small></div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_bronze_ingest_inventory</div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_bronze_ingest_fx_api</div>
     </div>
     <div class="canvas-row" style="margin-top:10px">
       <div class="flow-arrow">→</div>
-      <div class="act act-nb">nb_silver_sql · inventory · fx</div><div class="flow-arrow">→</div>
-      <div class="act act-nb">nb_gold_dims</div><div class="flow-arrow">→</div>
-      <div class="act act-nb">nb_gold_facts</div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_silver_transform_sql · inventory · fx</div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_gold_build_dimensions</div><div class="flow-arrow">→</div>
+      <div class="act act-nb">nb_sales_gold_build_facts</div><div class="flow-arrow">→</div>
       <div class="act act-sp">Semantic model refresh</div><div class="flow-arrow">→</div>
       <div class="act act-ok">Teams ✅ summary</div>
     </div>
@@ -1062,7 +1067,7 @@ assert missing_fx == <span class="n">0</span>, <span class="s">f"{missing_fx} ro
   </ul>
 
   <h3>One Logging Helper for Every Notebook</h3>
-<pre><code><span class="c"># nb_lib_log — %run it at the top of each notebook</span>
+<pre><code><span class="c"># nb_sales_util_logging — %run it at the top of each notebook</span>
 <span class="k">import</span> time, json
 <span class="k">from</span> datetime <span class="k">import</span> datetime, timezone
 
@@ -1077,7 +1082,7 @@ assert missing_fx == <span class="n">0</span>, <span class="s">f"{missing_fx} ro
               self.start, datetime.now(timezone.utc), message[:<span class="n">4000</span>])],
             <span class="s">"run_id string, pipeline string, step string, status string, rows_in long, "</span>
             <span class="s">"rows_out long, started_at timestamp, ended_at timestamp, message string"</span>
-        ).write.mode(<span class="s">"append"</span>).saveAsTable(<span class="s">"lh_bronze.ops.run_log"</span>)
+        ).write.mode(<span class="s">"append"</span>).saveAsTable(<span class="s">"lh_sales_bronze.ops.run_log"</span>)
 
     <span class="k">def</span> success(self, rows_in=<span class="k">None</span>, rows_out=<span class="k">None</span>, message=<span class="s">""</span>):
         self._write(<span class="s">"SUCCESS"</span>, rows_in, rows_out, message)
@@ -1088,7 +1093,7 @@ assert missing_fx == <span class="n">0</span>, <span class="s">f"{missing_fx} ro
         <span class="k">raise</span> err
 
 <span class="c"># In each notebook:</span>
-log = StepLog(batch_id, <span class="s">"pl_master"</span>, <span class="s">"nb_gold_facts"</span>)
+log = StepLog(batch_id, <span class="s">"pl_sales_master_daily"</span>, <span class="s">"nb_sales_gold_build_facts"</span>)
 <span class="k">try</span>:
     <span class="c"># … the work …</span>
     summary = log.success(rows_in=src.count(), rows_out=fact.count())
@@ -1102,13 +1107,13 @@ notebookutils.notebook.exit(summary)        <span class="c"># last line, outside
   <div class="table-wrap">
     <table>
       <tr><th>Check</th><th>Where</th><th>On failure</th></tr>
-      <tr><td>Row counts Bronze batch vs Silver merged</td><td>nb_silver_*</td><td>Fail</td></tr>
-      <tr><td>No duplicate keys in Silver</td><td>nb_silver_*</td><td>Fail</td></tr>
-      <tr><td>SCD2: one current row per customer</td><td>nb_gold_dims</td><td>Fail</td></tr>
-      <tr><td>Fact rows = source rows; all rows have USD</td><td>nb_gold_facts</td><td>Fail</td></tr>
-      <tr><td>Unknown-member rows &gt; 0.5% of the batch</td><td>nb_gold_facts</td><td>Warn (in Teams summary)</td></tr>
-      <tr><td>Fewer than 380 of ~400 store files received</td><td>nb_bronze_inventory</td><td>Warn</td></tr>
-      <tr><td>Daily sales differ from 28-day average by &gt; 50%</td><td>nb_gold_facts</td><td>Warn</td></tr>
+      <tr><td>Row counts Bronze batch vs Silver merged</td><td>nb_sales_silver_transform_*</td><td>Fail</td></tr>
+      <tr><td>No duplicate keys in Silver</td><td>nb_sales_silver_transform_*</td><td>Fail</td></tr>
+      <tr><td>SCD2: one current row per customer</td><td>nb_sales_gold_build_dimensions</td><td>Fail</td></tr>
+      <tr><td>Fact rows = source rows; all rows have USD</td><td>nb_sales_gold_build_facts</td><td>Fail</td></tr>
+      <tr><td>Unknown-member rows &gt; 0.5% of the batch</td><td>nb_sales_gold_build_facts</td><td>Warn (in Teams summary)</td></tr>
+      <tr><td>Fewer than 380 of ~400 store files received</td><td>nb_sales_bronze_ingest_inventory</td><td>Warn</td></tr>
+      <tr><td>Daily sales differ from 28-day average by &gt; 50%</td><td>nb_sales_gold_build_facts</td><td>Warn</td></tr>
     </table>
   </div>
 
@@ -1117,13 +1122,13 @@ notebookutils.notebook.exit(summary)        <span class="c"># last line, outside
     <li><strong>Monitoring report</strong>: a small Power BI page on <code>ops.run_log</code> and <code>ops.processed_files</code> — last run status, duration trend per step, rows per day, missing stores</li>
     <li><strong>Monitoring hub</strong> for drill-down into a failed run; Spark UI for slow steps (Module 10.6)</li>
     <li><strong>Capacity Metrics app</strong> weekly: is the nightly load's CU share growing?</li>
-    <li><strong>Activator</strong> (optional): alert when no successful pl_master run is logged by 06:30 (Module 8.8)</li>
+    <li><strong>Activator</strong> (optional): alert when no successful pl_sales_master_daily run is logged by 06:30 (Module 8.8)</li>
   </ul>
 <pre><code><span class="c">-- Morning check: what happened last night?</span>
 SELECT step, status, rows_in, rows_out,
        unix_timestamp(ended_at) - unix_timestamp(started_at) AS seconds, message
-FROM lh_bronze.ops.run_log
-WHERE run_id = (SELECT run_id FROM lh_bronze.ops.run_log ORDER BY started_at DESC LIMIT 1)
+FROM lh_sales_bronze.ops.run_log
+WHERE run_id = (SELECT run_id FROM lh_sales_bronze.ops.run_log ORDER BY started_at DESC LIMIT 1)
 ORDER BY started_at;</code></pre>
 
   <div class="callout-interview">Operations are handled by one master pipeline that passes a batch ID and load date to every notebook, ingests SQL, file and API sources, builds Silver and Gold, refreshes the semantic model and posts a Teams summary. Any failure is logged, alerted and then failed explicitly so the run shows red. Retries apply only to network-bound steps, sessions are shared, and the schedule uses local time with concurrency 1. A shared logging helper writes start, end, row counts and errors per step to a run-log table. Data-quality gates fail or warn on counts, duplicates, SCD integrity, FX coverage, unknown members, missing files and unusual totals, and a monitoring report, the Monitoring hub, Capacity Metrics and Activator complete the picture.</div>
@@ -1143,23 +1148,23 @@ ORDER BY started_at;</code></pre>
 
   <h3>Repository Layout</h3>
 <pre><code>fabric-retail/                         (GitHub or Azure DevOps)
-├── retail/                            ← Git folder connected to Retail-DEV
-│   ├── lh_bronze.Lakehouse/
-│   ├── lh_silver.Lakehouse/
-│   ├── lh_gold.Lakehouse/
-│   ├── vl_retail.VariableLibrary/
+├── retail/                            ← Git folder connected to Retail Sales – Data Engineering [DEV]
+│   ├── lh_sales_bronze.Lakehouse/
+│   ├── lh_sales_silver.Lakehouse/
+│   ├── lh_sales_gold.Lakehouse/
+│   ├── vl_sales.VariableLibrary/
 │   ├── env_retail.Environment/        ← runtime, native engine, libraries
-│   ├── nb_lib_log.Notebook/   nb_lib_scd.Notebook/   nb_silver_lib.Notebook/
-│   ├── nb_bronze_inventory.Notebook/  nb_bronze_fx_api.Notebook/
-│   ├── nb_silver_sql.Notebook/  nb_gold_dims.Notebook/  nb_gold_facts.Notebook/
-│   ├── nb_migrations.Notebook/  nb_smoke_tests.Notebook/
-│   ├── pl_master.DataPipeline/  pl_ingest_sql.DataPipeline/  pl_ingest_table.DataPipeline/
-│   ├── Retail Sales.SemanticModel/
-│   └── Retail Sales.Report/
+│   ├── nb_sales_util_logging.Notebook/   nb_sales_util_scd.Notebook/   nb_sales_util_silver_rules.Notebook/
+│   ├── nb_sales_bronze_ingest_inventory.Notebook/  nb_sales_bronze_ingest_fx_api.Notebook/
+│   ├── nb_sales_silver_transform_sql.Notebook/  nb_sales_gold_build_dimensions.Notebook/  nb_sales_gold_build_facts.Notebook/
+│   ├── nb_sales_util_migrations.Notebook/  nb_sales_util_smoke_tests.Notebook/
+│   ├── pl_sales_master_daily.DataPipeline/  pl_sales_ingest_sql.DataPipeline/  pl_sales_ingest_table.DataPipeline/
+│   ├── sm_sales_performance.SemanticModel/
+│   └── Sales Performance Dashboard.Report/
 ├── docs/   architecture.md · runbook.md · data-dictionary.md
 └── README.md</code></pre>
 
-  <h3>vl_retail — Everything That Differs</h3>
+  <h3>vl_sales — Everything That Differs</h3>
   <div class="table-wrap">
     <table class="sample-table">
       <tr><th>Variable</th><th>DEV (default)</th><th>TEST</th><th>PROD</th></tr>
@@ -1170,34 +1175,34 @@ ORDER BY started_at;</code></pre>
       <tr><td>history_start</td><td>2026-01-01</td><td>2025-01-01</td><td>2018-01-01</td></tr>
     </table>
   </div>
-  <p>Pipelines read <code>@pipeline().libraryVariables.alert_email</code>; notebooks read <code>notebookutils.variableLibrary.getLibrary("vl_retail")</code>. Notebook default lakehouses are set with deployment rules (or attached by name in the same workspace).</p>
+  <p>Pipelines read <code>@pipeline().libraryVariables.alert_email</code>; notebooks read <code>notebookutils.variableLibrary.getLibrary("vl_sales")</code>. Notebook default lakehouses are set with deployment rules (or attached by name in the same workspace).</p>
 
   <h3>Development Workflow</h3>
   <ol class="steps">
-    <li>Branch out from Retail-DEV to <code>feature/&lt;ticket&gt;</code> — your own workspace.</li>
+    <li>Branch out from Retail Sales – Data Engineering [DEV] to <code>feature/&lt;ticket&gt;</code> — your own workspace.</li>
     <li>Build and run against DEV data; commit small, clear changes.</li>
     <li>Pull request → review (CODEOWNERS) → merge to <code>main</code>.</li>
-    <li>Retail-DEV: <strong>Update all</strong> from Git; run pl_master end to end.</li>
+    <li>Retail Sales – Data Engineering [DEV]: <strong>Update all</strong> from Git; run pl_sales_master_daily end to end.</li>
   </ol>
 
   <h3>Deployment Pipeline: Retail release</h3>
   <div class="canvas">
     <div class="canvas-row">
-      <div class="act act-ctl">Development<small>Retail-DEV · Git-connected</small></div><div class="flow-arrow">→ deploy →</div>
-      <div class="act act-ctl">Test<small>Retail-TEST</small></div><div class="flow-arrow">→ UAT sign-off → deploy →</div>
-      <div class="act act-ok">Production<small>Retail-PROD · app published</small></div>
+      <div class="act act-ctl">Development<small>Retail Sales – Data Engineering [DEV] · Git-connected</small></div><div class="flow-arrow">→ deploy →</div>
+      <div class="act act-ctl">Test<small>Retail Sales – Data Engineering [TEST]</small></div><div class="flow-arrow">→ UAT sign-off → deploy →</div>
+      <div class="act act-ok">Production<small>Retail Sales – Data Engineering [PROD] · app published</small></div>
     </div>
   </div>
   <ul class="checklist">
-    <li><strong>One-time per stage</strong>: create connections, set vl_retail's active value set, add notebook default-lakehouse rules, set the pl_master schedule, assign workspace roles (Module 9)</li>
-    <li><strong>Every release</strong>: deploy → run <code>nb_migrations</code> → run pl_master → run <code>nb_smoke_tests</code> → check the report</li>
+    <li><strong>One-time per stage</strong>: create connections, set vl_sales's active value set, add notebook default-lakehouse rules, set the pl_sales_master_daily schedule, assign workspace roles (Module 9)</li>
+    <li><strong>Every release</strong>: deploy → run <code>nb_sales_util_migrations</code> → run pl_sales_master_daily → run <code>nb_sales_util_smoke_tests</code> → check the report</li>
     <li>Deployment note = PR numbers included in the release</li>
-    <li>Only release managers (or a service principal) hold Contributor on Retail-PROD</li>
+    <li>Only release managers (or a service principal) hold Contributor on Retail Sales – Data Engineering [PROD]</li>
   </ul>
   <div class="callout-tip">Want full automation instead? Keep everything above, and replace the manual deploy step with the fabric-cicd GitHub Actions or Azure DevOps workflow from Module 11.6 — including the approval gate on the production environment.</div>
 
   <h3>Automating with the Fabric REST API</h3>
-  <p>A few REST calls are handy around a release — for example, starting pl_master in TEST from a script after deployment:</p>
+  <p>A few REST calls are handy around a release — for example, starting pl_sales_master_daily in TEST from a script after deployment:</p>
 <pre><code><span class="k">import</span> requests
 <span class="k">from</span> azure.identity <span class="k">import</span> ClientSecretCredential
 
@@ -1227,7 +1232,7 @@ print(<span class="s">"Job status URL:"</span>, r.headers[<span class="s">"Locat
 
   <h3>Step 1 — Semantic Model</h3>
   <ol class="steps">
-    <li>In lh_gold: <strong>New semantic model</strong> → select FactSales, DimCustomer, DimProduct, DimStore, DimDate, plus a small <code>sec_UserRegion</code> table. Name it <code>Retail Sales</code>.</li>
+    <li>In lh_sales_gold: <strong>New semantic model</strong> → select FactSales, DimCustomer, DimProduct, DimStore, DimDate, plus a small <code>sec_UserRegion</code> table. Name it <code>sm_sales_performance</code>.</li>
     <li>Relationships (many-to-one, single direction): FactSales[DateKey] → DimDate[DateKey]; [CustomerKey] → DimCustomer; [ProductKey] → DimProduct; [StoreKey] → DimStore.</li>
     <li>Mark DimDate as the date table. Hide all key columns and the HashValue/IsCurrent technical columns.</li>
     <li>Sort MonthName by Month; set data categories (City, Region) and formats (₹, $, %).</li>
@@ -1263,7 +1268,7 @@ RETURN
     "*" IN Allowed || DimStore[Region] IN Allowed</code></pre>
   <ul class="checklist">
     <li>Filtering on DimStore (where the sale happened) flows to FactSales; managers see sales <em>in</em> their region</li>
-    <li>Assign sg-retail-managers and sg-retail-directors (with a <code>*</code> row) to the role in the service</li>
+    <li>Assign sg-fabric-retail-managers and sg-fabric-retail-directors (with a <code>*</code> row) to the role in the service</li>
     <li>Test with <em>View as</em> for two managers and the director (Module 9.4)</li>
     <li>Managers get access through the workspace <strong>app</strong> or as Viewers — never as Contributors, which would bypass RLS</li>
   </ul>
@@ -1282,11 +1287,11 @@ RETURN
     <li>Show "Data as of" (latest OrderDate) on every page</li>
     <li>Consistent colours: one colour for current year, grey for last year</li>
     <li>Run Performance Analyzer; every visual under ~2 s</li>
-    <li>Publish via a workspace <strong>app</strong> in Retail-PROD with audiences for directors and managers</li>
+    <li>Publish via a workspace <strong>app</strong> in Retail Sales – Data Engineering [PROD] with audiences for directors and managers</li>
   </ul>
 
   <h3>Step 5 — Refresh</h3>
-  <p>Direct Lake picks up new Delta data by <strong>reframing</strong>. pl_master ends with a <em>Semantic model refresh</em> activity so the report reflects the load as soon as it finishes (and before VACUUM removes old files). Check the model stays in Direct Lake mode — FactSales must stay within your capacity's guardrails (Module 10.5).</p>
+  <p>Direct Lake picks up new Delta data by <strong>reframing</strong>. pl_sales_master_daily ends with a <em>Semantic model refresh</em> activity so the report reflects the load as soon as it finishes (and before VACUUM removes old files). Check the model stays in Direct Lake mode — FactSales must stay within your capacity's guardrails (Module 10.5).</p>
 
   <div class="callout-interview">The reporting layer is a Direct Lake semantic model on the Gold Lakehouse with single-direction many-to-one relationships from the fact to date, customer, product and store dimensions, hidden keys and technical columns, and a marked date table. DAX measures cover sales, cost, margin, orders, average order value, prior-year comparisons, fiscal year-to-date and distinct customers by business key rather than SCD2 surrogate key. Dynamic row-level security filters DimStore by a user-to-region mapping using USERPRINCIPALNAME, tested with View as and delivered to viewers through an app. The report has overview, product and store, customer-segment and data-health pages, and the master pipeline refreshes the model after each load to reframe it.</div>
 </section>
@@ -1312,7 +1317,7 @@ RETURN
       <tr><td>USD conversion</td><td>Pick 5 orders; recompute with the API's rate</td><td>Matches; weekend orders use Friday's rate</td></tr>
       <tr><td>Segment at time of purchase</td><td>Change a test customer's segment; place an order; reload</td><td>Old orders keep the old segment, new orders the new</td></tr>
       <tr><td>Managers see only their region</td><td>Sign in as two test managers</td><td>Each sees only their region; director sees all</td></tr>
-      <tr><td>Re-run safety</td><td>Run pl_master twice for the same date</td><td>No duplicate rows; totals unchanged</td></tr>
+      <tr><td>Re-run safety</td><td>Run pl_sales_master_daily twice for the same date</td><td>No duplicate rows; totals unchanged</td></tr>
       <tr><td>Failure alerting</td><td>Break the API URL in TEST</td><td>Run fails red; alert received with a clear message</td></tr>
       <tr><td>Late store files</td><td>Upload a file for 2 days ago</td><td>Loaded on the next run; counted once</td></tr>
       <tr><td>Traceable changes</td><td>Pick a PROD item; find its last change</td><td>PR, reviewer and release note found</td></tr>
@@ -1369,7 +1374,7 @@ RETURN
     <div class="rev-card"><div class="rev-card-title">Module 3 · Ingestion</div><ul><li>Gateway + Copy from SQL Server</li><li>Files from Blob</li><li>REST API with pagination</li><li>Watermarks</li></ul></div>
     <div class="rev-card"><div class="rev-card-title">Modules 4–5 · Spark</div><ul><li>Cleaning functions</li><li>Generic incremental MERGE</li><li>SCD1 products, SCD2 customers</li><li>Fact with point-in-time lookup</li></ul></div>
     <div class="rev-card"><div class="rev-card-title">Module 6 · Warehouse</div><ul><li>Star schema design</li><li>Unknown members, surrogate keys</li><li>(Optional) Gold in T-SQL</li><li>SQL endpoint queries</li></ul></div>
-    <div class="rev-card"><div class="rev-card-title">Module 7 · Pipelines</div><ul><li>Metadata-driven pl_master</li><li>Parameters to notebooks</li><li>Log → alert → Fail</li><li>Schedule, concurrency</li></ul></div>
+    <div class="rev-card"><div class="rev-card-title">Module 7 · Pipelines</div><ul><li>Metadata-driven pl_sales_master_daily</li><li>Parameters to notebooks</li><li>Log → alert → Fail</li><li>Schedule, concurrency</li></ul></div>
     <div class="rev-card"><div class="rev-card-title">Module 8 · Real-time</div><ul><li>(Extension) POS stream</li><li>Eventhouse + KQL</li><li>Live dashboard</li><li>Activator alert on no-run</li></ul></div>
     <div class="rev-card"><div class="rev-card-title">Module 9 · Security</div><ul><li>Groups and roles per workspace</li><li>Dynamic RLS</li><li>PII kept out of Gold</li><li>Labels, certification</li></ul></div>
     <div class="rev-card"><div class="rev-card-title">Module 10 · Performance</div><ul><li>Incremental everything</li><li>V-Order + clustering on Gold</li><li>Broadcast dims</li><li>Within Direct Lake guardrails</li></ul></div>
@@ -1386,7 +1391,7 @@ RETURN
     <div class="flow-box fb-green">Power BI app</div>
   </div>
   <div class="flow">
-    <div class="flow-box fb-purple">pl_master · logging · alerts</div>
+    <div class="flow-box fb-purple">pl_sales_master_daily · logging · alerts</div>
     <div class="flow-box fb-blue">Git · variable library · DEV → TEST → PROD</div>
   </div>
 

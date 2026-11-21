@@ -602,7 +602,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <div class="canvas">
     <div class="canvas-row">
       <div class="act act-copy">Source<small>Azure IoT Hub</small></div><div class="flow-arrow">→</div>
-      <div class="act act-ctl">factory-es<small>default stream</small></div><div class="flow-arrow">→</div>
+      <div class="act act-ctl">es_iot_machine_telemetry<small>default stream</small></div><div class="flow-arrow">→</div>
       <div class="act act-df">Filter<small>temperature not null</small></div><div class="flow-arrow">→</div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <div class="canvas-row"><div class="act act-df">Manage fields</div><span class="flow-arrow">→</span><div class="act act-nb">Eventhouse<small>SensorReadings</small></div></div>
@@ -685,10 +685,10 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Create an Eventstream <code>factory-es</code>. Add the <strong>Sample data</strong> source (e.g. Bicycles) and look at the live data preview.</li>
+    <li>Create an Eventstream <code>es_iot_machine_telemetry</code>. Add the <strong>Sample data</strong> source (e.g. Bicycles) and look at the live data preview.</li>
     <li>Add a Filter and a Manage fields operator; preview the output after each.</li>
-    <li>Add a Group by with a 1-minute tumbling window; route it to a Lakehouse table.</li>
-    <li>Publish, wait two minutes, and query the Lakehouse table.</li>
+    <li>Add a Group by with a 1-minute tumbling window; route it to a table in <code>lh_iot_bronze</code>.</li>
+    <li>Publish, wait two minutes, and query that table in <code>lh_iot_bronze</code>.</li>
   </ol>
 
   <div class="callout-interview">An Eventstream captures events from sources such as Event Hubs, IoT Hub, Kafka, database CDC, Fabric and Azure events, a custom endpoint or sample data; optionally transforms them in flight with Filter, Manage fields, Aggregate, Group by, Union, Expand, Join or SQL; and routes them to destinations such as Eventhouse, Lakehouse, Activator, derived streams or custom endpoints. Stream aggregations use time windows — tumbling, hopping, sliding, session or snapshot. One stream can feed several destinations, typically raw data to an Eventhouse, aggregates to a Lakehouse and critical events to Activator. Eventstreams run continuously with seconds of latency, unlike scheduled pipelines and dataflows.</div>
@@ -774,7 +774,7 @@ producer = EventHubProducerClient.from_connection_string(CONN, eventhub_name=HUB
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Add a custom endpoint source to <code>factory-es</code>; publish and copy the connection details.</li>
+    <li>Add a custom endpoint source to <code>es_iot_machine_telemetry</code>; publish and copy the connection details.</li>
     <li>Run the simulator for a few minutes; watch the data preview in the Eventstream.</li>
     <li>Change the simulator so M107 sends nothing for 2 minutes (a "silent" machine) — you'll detect it in Lesson 8.6.</li>
   </ol>
@@ -796,7 +796,7 @@ producer = EventHubProducerClient.from_connection_string(CONN, eventhub_name=HUB
 
   <h3>Eventhouse vs KQL Database</h3>
   <div class="arch-layers">
-    <div class="arch-layer"><div class="arch-layer-num">🏠</div><div><div class="arch-layer-name">Eventhouse — FactoryEH</div><div class="arch-layer-desc">The container and compute. Shares capacity across its databases; monitors ingestion and queries. Creating one also creates a default KQL database with the same name.</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🏠</div><div><div class="arch-layer-name">Eventhouse — eh_iot_telemetry</div><div class="arch-layer-desc">The container and compute. Shares capacity across its databases; monitors ingestion and queries. Creating one also creates a default KQL database with the same name.</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">🗄️</div><div><div class="arch-layer-name">KQL database — FactoryDB</div><div class="arch-layer-desc">Holds tables, functions, materialized views, policies. Has its own permissions.</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">📋</div><div><div class="arch-layer-name">Tables — RawEvents, SensorReadings</div><div class="arch-layer-desc">Columnar, compressed, automatically indexed on every column. Append-optimised.</div></div></div>
   </div>
@@ -876,10 +876,10 @@ producer = EventHubProducerClient.from_connection_string(CONN, eventhub_name=HUB
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Create an Eventhouse <code>FactoryEH</code>; open its KQL database.</li>
-    <li>In <code>factory-es</code>, add an Eventhouse destination (direct ingestion) into a new table <code>RawEvents</code>. Run the simulator.</li>
+    <li>Create an Eventhouse <code>eh_iot_telemetry</code>; open its KQL database and rename it <code>kqldb_iot_telemetry</code>.</li>
+    <li>In <code>es_iot_machine_telemetry</code>, add an Eventhouse destination (direct ingestion) into a new table <code>RawEvents</code>. Run the simulator.</li>
     <li>Create <code>SensorReadings</code> with <code>.create table</code>; set retention 90 days and caching 14 days.</li>
-    <li>Turn on OneLake availability, create a Lakehouse shortcut to the table, and query it from the SQL analytics endpoint.</li>
+    <li>Turn on OneLake availability, create a shortcut to the table in <code>lh_iot_bronze</code>, and query it from the SQL analytics endpoint.</li>
   </ol>
 
   <div class="callout-interview">An Eventhouse is the Real-Time Intelligence store: a container providing compute for one or more KQL databases, which hold columnar, compressed, automatically indexed tables optimised for time-stamped data such as telemetry and logs. Data arrives mainly through Eventstream, and also through Get data, pipelines, ingest commands and OneLake shortcuts. Retention policies control how long data exists, caching policies how much is kept hot on SSD, update policies transform data on arrival, and materialized views keep aggregations current. With OneLake availability, KQL tables are also written as Delta in OneLake so Spark, Warehouse and Power BI can use the same data.</div>
@@ -984,7 +984,7 @@ HotMachines(90.0, 15m)</code></pre>
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>In a KQL Queryset, count readings per machine in the last 10 minutes.</li>
+    <li>Create a KQL Queryset <code>kqs_iot_machine_analysis</code> on <code>kqldb_iot_telemetry</code>. Count readings per machine in the last 10 minutes.</li>
     <li>Show average and max temperature per machine per minute for the last hour, as a timechart. Which machine is drifting?</li>
     <li>Add a computed column <code>Level = case(...)</code> with OK/Warning/Critical, and count readings by level.</li>
     <li>Write one query in SQL, put <code>explain</code> in front, and study the KQL produced.</li>
@@ -1312,7 +1312,7 @@ Open dashboard: Factory Overview → Machine detail</code></pre>
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>In <code>factory-es</code>, add an <strong>Activator</strong> destination. Choose MachineId as the object key.</li>
+    <li>In <code>es_iot_machine_telemetry</code>, add an <strong>Activator</strong> destination named <code>act_iot_machine_alerts</code>. Choose MachineId as the object key.</li>
     <li>Create a rule: Temperature <em>becomes</em> greater than 90 and stays for 3 minutes, filtered to Status = RUNNING. Action: email yourself.</li>
     <li>Create a second rule: no new events for 2 minutes → Teams message "Machine offline".</li>
     <li>Run the simulator; within minutes M105 should trigger rule 1. Stop sending for one machine to trigger rule 2.</li>
@@ -1336,18 +1336,18 @@ Open dashboard: Factory Overview → Machine detail</code></pre>
 
   <h3>Architecture</h3>
   <div class="arch-layers">
-    <div class="arch-layer"><div class="arch-layer-num">📡</div><div><div class="arch-layer-name">Ingest</div><div class="arch-layer-desc">simulate_factory.py → Custom endpoint → Eventstream <code>factory-es</code></div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">📡</div><div><div class="arch-layer-name">Ingest</div><div class="arch-layer-desc">simulate_factory.py → Custom endpoint → Eventstream <code>es_iot_machine_telemetry</code></div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">🔀</div><div><div class="arch-layer-name">Route</div><div class="arch-layer-desc">Raw → Eventhouse <code>RawEvents</code> · 1-min Group by → Lakehouse <code>MachineMinute_LH</code> · Temperature &gt; 95 → Activator</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">🗄️</div><div><div class="arch-layer-name">Store &amp; refine</div><div class="arch-layer-desc">Update policy → <code>SensorReadings</code> · materialized views <code>MachineLatest</code>, <code>MachineMinute</code> · retention 7d raw / 90d clean</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">📺</div><div><div class="arch-layer-name">Monitor</div><div class="arch-layer-desc">Real-Time Dashboard <code>Factory Overview</code> (30 s refresh, Machine parameter)</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🚨</div><div><div class="arch-layer-name">Act</div><div class="arch-layer-desc">Activator: overheating (becomes &gt; 90 for 3 min), offline (no events 2 min) → Teams; critical → run pipeline <code>pl_maintenance_ticket</code></div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🚨</div><div><div class="arch-layer-name">Act</div><div class="arch-layer-desc">Activator: overheating (becomes &gt; 90 for 3 min), offline (no events 2 min) → Teams; critical → run pipeline <code>pl_iot_maintenance_ticket</code></div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">📊</div><div><div class="arch-layer-name">Analyse</div><div class="arch-layer-desc">OneLake availability → Lakehouse shortcut → join with <code>DimMachine</code> → Power BI "Downtime by line" (Direct Lake)</div></div></div>
   </div>
 
   <h3>Build Order</h3>
   <ol class="steps">
-    <li><strong>Eventhouse</strong> <code>FactoryEH</code>; tables <code>RawEvents</code> (Payload: dynamic) and <code>SensorReadings</code>; retention and caching policies (8.4).</li>
-    <li><strong>Eventstream</strong> <code>factory-es</code> with a custom endpoint; route raw to <code>RawEvents</code>; publish (8.2, 8.3).</li>
+    <li><strong>Eventhouse</strong> <code>eh_iot_telemetry</code>; tables <code>RawEvents</code> (Payload: dynamic) and <code>SensorReadings</code>; retention and caching policies (8.4).</li>
+    <li><strong>Eventstream</strong> <code>es_iot_machine_telemetry</code> with a custom endpoint; route raw to <code>RawEvents</code>; publish (8.2, 8.3).</li>
     <li><strong>Simulator</strong> running; confirm rows in <code>RawEvents</code> within seconds.</li>
     <li><strong>Update policy</strong> + <code>ParseRawEvents()</code>; <strong>materialized views</strong> (8.6).</li>
     <li><strong>Second route</strong>: Group by 1-minute tumbling window → Lakehouse.</li>

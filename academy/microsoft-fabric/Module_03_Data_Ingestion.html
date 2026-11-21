@@ -561,7 +561,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <h3>Pipelines and Activities</h3>
   <p>A <strong>Pipeline</strong> is a collection of <strong>Activities</strong> that together perform a data workflow. Each activity is a single operation — copy data, run a notebook, run a stored procedure, wait, loop.</p>
   <div class="canvas">
-    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">PIPELINE: PL_RETAIL_DAILY_LOAD</div>
+    <div style="font-size:0.72rem;letter-spacing:2px;color:#aaa;text-align:center;margin-bottom:12px">PIPELINE: pl_sales_ingest_daily</div>
     <div class="canvas-row">
       <div class="act act-copy">Copy Customers<small>Copy Activity</small></div><div class="flow-arrow">→</div>
       <div class="act act-copy">Copy Orders<small>Copy Activity</small></div><div class="flow-arrow">→</div>
@@ -664,7 +664,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Monitoring</h3>
   <p>After a run, the monitoring view answers: did it run? did it succeed? how long did it take? which activity failed and why? A typical Copy Activity result:</p>
-<pre><code>Pipeline:      PL_SQLServer_To_Lakehouse
+<pre><code>Pipeline:      pl_sales_ingest_sqlserver
 Status:        Succeeded
 Rows read:     150,000
 Rows written:  150,000
@@ -673,12 +673,13 @@ Throughput:    1.1 MB/s</code></pre>
   <div class="callout-tip">Rows read should equal rows written. If they don't, something was dropped — investigate before the data reaches a report.</div>
 
   <h3>Naming Conventions</h3>
-  <p>Give every item a prefix that says what it is. It makes a workspace with 200 items readable:</p>
-<pre class="tree"><code><span class="f">PL_</span>SQL_TO_BRONZE          <span class="d">← Pipeline</span>
-<span class="f">PL_</span>BRONZE_TO_SILVER
-<span class="f">NB_</span>CLEAN_CUSTOMERS        <span class="d">← Notebook</span>
-<span class="f">DFG_</span>CUSTOMER_CLEANING    <span class="d">← Dataflow Gen2</span>
-<span class="f">LH_</span>SALES                 <span class="d">← Lakehouse</span></code></pre>
+  <p>Give every item a type prefix, the project code and what it does — <code>&lt;type&gt;_&lt;project&gt;_&lt;layer/purpose&gt;</code>, lowercase with underscores. It makes a workspace with 200 items readable, and names stay the same in DEV, TEST and PROD:</p>
+<pre class="tree"><code><span class="f">pl_</span>sales_ingest_sqlserver      <span class="d">← Pipeline</span>
+<span class="f">pl_</span>sales_master_daily
+<span class="f">nb_</span>sales_silver_transform_customers   <span class="d">← Notebook</span>
+<span class="f">df_</span>sales_clean_customers      <span class="d">← Dataflow Gen2</span>
+<span class="f">lh_</span>sales_bronze  ·  lh_sales_silver  ·  lh_sales_gold   <span class="d">← Lakehouses</span>
+<span class="f">wh_</span>sales_reporting           <span class="d">← Warehouse</span></code></pre>
 
   <h3>Best Practices</h3>
   <ul class="checklist">
@@ -1530,8 +1531,8 @@ WHEN NOT MATCHED THEN
 
   <div class="flow">
     <div class="flow-box fb-blue">SQL Server<small>RetailDB.dbo.Customers</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-green">PL_SQLServer_To_Lakehouse<small>Copy Activity</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-gold">SalesLakehouse<small>Customers Delta table</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-green">pl_sales_ingest_sqlserver<small>Copy Activity</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-gold">lh_sales_bronze<small>Customers Delta table</small></div><div class="flow-arrow">→</div>
     <div class="flow-box fb-yellow">Power BI</div>
   </div>
 
@@ -1560,16 +1561,16 @@ CREATE TABLE dbo.Customers
     <li>A SQL Server (or Azure SQL Database) you can read from, with the table above</li>
     <li>If it is on-premises: an on-premises data gateway installed and registered</li>
     <li>A Fabric workspace where you are Member or Admin</li>
-    <li><code>SalesLakehouse</code> created (Module 2, Lesson 2.8)</li>
+    <li><code>lh_sales_bronze</code> created (Module 2, Lesson 2.8)</li>
   </ul>
 
   <h3>Part A — Build the Pipeline (Full Load)</h3>
   <ol class="steps">
-    <li>In your workspace click <strong>+ New item → Data pipeline</strong>. Name it <code>PL_SQLServer_To_Lakehouse</code>.</li>
+    <li>In your workspace click <strong>+ New item → Data pipeline</strong>. Name it <code>pl_sales_ingest_sqlserver</code>.</li>
     <li>On the canvas select <strong>Copy data → Add to canvas</strong>. A Copy Activity appears.</li>
     <li><strong>Source tab:</strong> choose <strong>SQL Server</strong> (or Azure SQL Database). Create a new connection: server <code>SQLSERVER01</code>, database <code>RetailDB</code>, authentication as appropriate. If on-premises, select your gateway.</li>
     <li>Pick table <code>dbo.Customers</code> — or switch to <strong>Query</strong> and paste the SELECT below so you control the columns.</li>
-    <li><strong>Destination tab:</strong> choose <strong>Lakehouse → SalesLakehouse</strong>, root folder <strong>Tables</strong>, table name <code>Customers</code>, action <strong>Overwrite</strong>.</li>
+    <li><strong>Destination tab:</strong> choose <strong>Lakehouse → lh_sales_bronze</strong>, root folder <strong>Tables</strong>, table name <code>Customers</code>, action <strong>Overwrite</strong>.</li>
     <li><strong>Mapping tab:</strong> click <strong>Import schemas</strong>. Check each column maps to the right name and type (especially <code>ModifiedDate</code> → timestamp).</li>
     <li>Click <strong>Validate</strong>, then <strong>Run</strong>.</li>
   </ol>
@@ -1586,7 +1587,7 @@ FROM dbo.Customers;</code></pre>
 
   <h3>Part B — Monitor and Verify</h3>
   <p>Open the <strong>Output</strong> pane (or Monitoring hub). You should see something like:</p>
-<pre><code>Pipeline:      PL_SQLServer_To_Lakehouse
+<pre><code>Pipeline:      pl_sales_ingest_sqlserver
 Status:        Succeeded
 Rows read:     100,000
 Rows written:  100,000
@@ -1688,8 +1689,8 @@ WHEN NOT MATCHED THEN
 
   <div class="flow">
     <div class="flow-box fb-blue">Azure Blob / ADLS<small>sales/sales_2026_08_22.csv</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-green">PL_Blob_To_Lakehouse<small>Copy Activity</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-gold">SalesLakehouse<small>Sales Delta table</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-green">pl_sales_ingest_blob<small>Copy Activity</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-gold">lh_sales_bronze<small>Sales Delta table</small></div><div class="flow-arrow">→</div>
     <div class="flow-box fb-yellow">Power BI</div>
   </div>
 
@@ -1710,17 +1711,17 @@ WHEN NOT MATCHED THEN
   <ul class="checklist">
     <li>A storage account and container with the files above (Blob or ADLS Gen2)</li>
     <li>Credentials: account key, SAS token, or (preferred) your Entra ID with <em>Storage Blob Data Reader</em></li>
-    <li><code>SalesLakehouse</code> in your Fabric workspace</li>
+    <li><code>lh_sales_bronze</code> in your Fabric workspace</li>
   </ul>
 
   <h3>Part A — Load One CSV File</h3>
   <ol class="steps">
-    <li><strong>+ New item → Data pipeline</strong>, name it <code>PL_Blob_To_Lakehouse</code>.</li>
+    <li><strong>+ New item → Data pipeline</strong>, name it <code>pl_sales_ingest_blob</code>.</li>
     <li>Add a <strong>Copy data</strong> activity.</li>
     <li><strong>Source:</strong> connector <strong>Azure Blob Storage</strong> (or <strong>Azure Data Lake Storage Gen2</strong>). New connection → account <code>retailstorage</code>, choose the authentication method.</li>
     <li>File path: container <code>sales</code>, file <code>sales_2026_08_22.csv</code>.</li>
     <li><strong>File format:</strong> DelimitedText · delimiter <code>,</code> · <strong>First row as header: on</strong> · encoding UTF-8. Click <strong>Preview data</strong> to confirm the columns parse correctly.</li>
-    <li><strong>Destination:</strong> Lakehouse → <code>SalesLakehouse</code> → <strong>Tables</strong> → table <code>Sales</code> → action <strong>Overwrite</strong> (for this first run).</li>
+    <li><strong>Destination:</strong> Lakehouse → <code>lh_sales_bronze</code> → <strong>Tables</strong> → table <code>Sales</code> → action <strong>Overwrite</strong> (for this first run).</li>
     <li><strong>Mapping:</strong> import schemas. CSV has no types, so set them here: <code>SaleID</code> → int, <code>Amount</code> → decimal.</li>
     <li><strong>Validate → Run</strong>, then check the output: Files read 1, rows read = rows written.</li>
   </ol>
@@ -1818,8 +1819,8 @@ File path:   <span class="t">sales_*.csv</span>        <span class="d">← wildc
 
   <div class="flow">
     <div class="flow-box fb-blue">REST API<small>GET /orders → JSON</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-green">PL_RESTAPI_To_Lakehouse<small>Copy Activity + pagination</small></div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-gold">SalesLakehouse<small>Orders Delta table</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-green">pl_sales_ingest_restapi<small>Copy Activity + pagination</small></div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-gold">lh_sales_bronze<small>Orders Delta table</small></div><div class="flow-arrow">→</div>
     <div class="flow-box fb-yellow">Power BI</div>
   </div>
 
@@ -1838,18 +1839,18 @@ File path:   <span class="t">sales_*.csv</span>        <span class="d">← wildc
   <ul class="checklist">
     <li>The API's documentation: base URL, endpoint, auth method, pagination style, rate limit</li>
     <li>An API key or OAuth client credentials</li>
-    <li><code>SalesLakehouse</code> in your workspace</li>
+    <li><code>lh_sales_bronze</code> in your workspace</li>
   </ul>
 
   <h3>Part A — Build the Pipeline</h3>
   <ol class="steps">
-    <li><strong>+ New item → Data pipeline</strong>, name it <code>PL_RESTAPI_To_Lakehouse</code>. Add a <strong>Copy data</strong> activity.</li>
+    <li><strong>+ New item → Data pipeline</strong>, name it <code>pl_sales_ingest_restapi</code>. Add a <strong>Copy data</strong> activity.</li>
     <li><strong>Source:</strong> connector <strong>REST</strong>. New connection: base URL <code>https://api.example.com</code>.</li>
     <li><strong>Authentication:</strong> choose the type the API requires — Anonymous, Basic, API key (header <code>x-api-key</code>), or OAuth 2.0 client credentials. Enter the secret <em>in the connection</em>, not in the pipeline.</li>
     <li><strong>Relative URL:</strong> <code>orders</code>. <strong>Request method:</strong> GET. Add any query parameters (e.g. <code>country=India</code>).</li>
     <li><strong>Pagination rules:</strong> because the response has a <code>next</code> field, set <em>AbsoluteUrl</em> = <code>$.next</code>. (For page-number APIs use <em>QueryParameters.page</em> = Range 1..N; for offset APIs use <em>QueryParameters.offset</em> with a step.)</li>
     <li>Click <strong>Preview data</strong> — you should see the rows from the <code>data</code> array. If you see one row containing the whole JSON, set the <strong>collection reference</strong> to <code>$.data</code> in the mapping.</li>
-    <li><strong>Destination:</strong> Lakehouse → <code>SalesLakehouse</code> → Tables → <code>Orders</code> → Overwrite (first run).</li>
+    <li><strong>Destination:</strong> Lakehouse → <code>lh_sales_bronze</code> → Tables → <code>Orders</code> → Overwrite (first run).</li>
     <li><strong>Mapping:</strong> map the JSON fields to columns and set types.</li>
     <li><strong>Validate → Run</strong>.</li>
   </ol>

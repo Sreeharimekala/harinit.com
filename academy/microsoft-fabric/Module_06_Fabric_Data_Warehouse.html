@@ -557,7 +557,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   </div>
 
   <h3>Inside a Warehouse</h3>
-<pre class="tree"><code><span class="f">WH_Sales</span>
+<pre class="tree"><code><span class="f">wh_sales_reporting</span>
 ├── <span class="f">Schemas</span>
 │   ├── <span class="f">stg</span>      <span class="d">← staging: data as loaded</span>
 │   ├── <span class="f">dw</span>       <span class="d">← star schema: DimCustomer, DimProduct, DimDate, FactSales</span>
@@ -587,7 +587,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <h3>Create the Warehouse</h3>
   <ol class="steps">
     <li>In your workspace, select <strong>+ New item → Warehouse</strong>.</li>
-    <li>Name it <code>WH_Sales</code> and create it. It opens in the SQL query editor.</li>
+    <li>Name it <code>wh_sales_reporting</code> and create it. It opens in the SQL query editor.</li>
     <li>Create your schemas:</li>
   </ol>
 <pre><code>CREATE SCHEMA stg;
@@ -690,7 +690,7 @@ OPTION (FOR TIMESTAMP AS OF '2026-08-21T06:00:00');</code></pre>
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Create <code>WH_Sales</code> with schemas <code>stg</code>, <code>dw</code>, <code>rpt</code>, <code>ops</code>.</li>
+    <li>Create <code>wh_sales_reporting</code> with schemas <code>stg</code>, <code>dw</code>, <code>rpt</code>, <code>ops</code>.</li>
     <li>Try <code>CREATE TABLE t (d datetime)</code> — read the error. Recreate with <code>datetime2(6)</code>.</li>
     <li>Create <code>dw.DimProduct</code> with a <code>bigint IDENTITY</code> key. Insert three rows without the key column and look at the generated values.</li>
     <li>Add a NOT ENFORCED primary key. Insert a duplicate ProductID — it succeeds. Write the query that finds it.</li>
@@ -919,8 +919,8 @@ FROM OPENROWSET(BULK 'https://retailstorage.blob.core.windows.net/sales/2026/08/
   <p>Every Lakehouse (through its SQL analytics endpoint) and every Warehouse in the workspace can be referenced with a <strong>three-part name</strong>: <code>database.schema.table</code>. No pipeline, no copy tool:</p>
 <pre><code>INSERT INTO stg.Customers (CustomerID, CustomerName, City, Country, Segment, LoadTimestamp)
 SELECT CustomerID, CustomerName, City, Country, Segment, CAST(SYSUTCDATETIME() AS datetime2(6))
-FROM LH_Silver.dbo.Silver_Customers;</code></pre>
-  <p>This is the bridge in the Lakehouse-for-Silver, Warehouse-for-Gold architecture from Lesson 6.1. You can also join directly across databases in a query: <code>FROM dw.FactSales f JOIN LH_Silver.dbo.Silver_Stores s ON …</code>.</p>
+FROM lh_sales_silver.dbo.Silver_Customers;</code></pre>
+  <p>This is the bridge in the Lakehouse-for-Silver, Warehouse-for-Gold architecture from Lesson 6.1. You can also join directly across databases in a query: <code>FROM dw.FactSales f JOIN lh_sales_silver.dbo.Silver_Stores s ON …</code>.</p>
 
   <h3>The Standard Pattern: Stage → Validate → MERGE</h3>
   <p>Never load straight into the final table. Land data in a staging table first, check it, then apply it:</p>
@@ -982,7 +982,7 @@ WHEN NOT MATCHED BY TARGET THEN
 
 INSERT INTO stg.Sales (…)
 SELECT …
-FROM LH_Silver.dbo.Silver_Sales
+FROM lh_sales_silver.dbo.Silver_Sales
 WHERE UpdatedAt &gt; @last;
 
 -- … validate, MERGE …
@@ -1073,7 +1073,7 @@ GROUP BY d.[Year], d.[Month], c.Country;
 -- A view over Lakehouse data (cross-database)
 CREATE OR ALTER VIEW rpt.vw_StoreFootfall AS
 SELECT StoreID, VisitDate, Visitors
-FROM LH_Silver.dbo.Silver_Footfall;</code></pre>
+FROM lh_sales_silver.dbo.Silver_Footfall;</code></pre>
 
   <h3>View Rules and Limits</h3>
   <ul class="checklist">
@@ -1304,7 +1304,7 @@ END;</code></pre>
     <li>Create <code>ops.RunLog</code> and <code>dw.usp_Load_DimProduct</code>.</li>
     <li>Run it with valid staging data. Check the log.</li>
     <li>Add a duplicate ProductID to staging and run again. Confirm: the procedure fails, DimProduct is unchanged, the log shows FAILED with the message.</li>
-    <li>Create <code>dw.usp_Load_All</code> and call it from a Data pipeline with a Stored procedure activity and a failure branch.</li>
+    <li>Create <code>dw.usp_Load_All</code> and call it from a Data pipeline <code>pl_sales_load_warehouse</code> with a Stored procedure activity and a failure branch.</li>
   </ol>
 
   <div class="callout-interview">A stored procedure is a named, parameterised block of T-SQL. In a Fabric Warehouse, procedures implement load jobs: validate staging data and THROW on problems, apply changes inside BEGIN TRANSACTION with MERGE, log success with row counts, and in CATCH roll back, log the failure after the rollback and re-THROW so the calling pipeline fails visibly. A master procedure calls dimension loads before fact loads. Pipelines run procedures with a Stored procedure or Script activity, passing parameters such as the run date. Procedures should be idempotent, set-based and kept in source control.</div>
@@ -1703,7 +1703,7 @@ AS SELECT * FROM dw.FactSales;</code></pre>
 
   <h3>7. Result-Set Caching</h3>
   <p>When the same query runs repeatedly against unchanged data — a dashboard opened by fifty people — the Warehouse can return a stored result instead of re-running it:</p>
-<pre><code>ALTER DATABASE WH_Sales SET RESULT_SET_CACHING ON;</code></pre>
+<pre><code>ALTER DATABASE wh_sales_reporting SET RESULT_SET_CACHING ON;</code></pre>
   <p>The cache is invalidated automatically when the underlying tables change, so results stay correct.</p>
 
   <h3>8. Finding Slow Queries — Query Insights</h3>
@@ -1788,30 +1788,30 @@ SELECT TOP (20) * FROM queryinsights.long_running_queries;</code></pre>
   <h3>Layer 4 — SQL Permissions</h3>
   <p>For users with Read (or Viewer), grant exactly what they need. Grant to <strong>Entra security groups</strong>, not individuals, and grant at the <strong>schema</strong> level so new objects are covered automatically:</p>
 <pre><code>-- Business analysts: the reporting views only
-GRANT SELECT ON SCHEMA::rpt TO [sg-sales-analysts@contoso.com];
+GRANT SELECT ON SCHEMA::rpt TO [sg-fabric-sales-analysts@contoso.com];
 
 -- Finance analysts: reporting views + the star schema
-GRANT SELECT ON SCHEMA::rpt TO [sg-finance-analysts@contoso.com];
-GRANT SELECT ON SCHEMA::dw  TO [sg-finance-analysts@contoso.com];
+GRANT SELECT ON SCHEMA::rpt TO [sg-fabric-finance-analysts@contoso.com];
+GRANT SELECT ON SCHEMA::dw  TO [sg-fabric-finance-analysts@contoso.com];
 
 -- The pipeline's identity: run load procedures, nothing else
 GRANT EXECUTE ON SCHEMA::dw TO [sp-sales-pipeline];
 
 -- Explicitly block one sensitive table even though the schema is granted
-DENY SELECT ON dw.DimEmployee TO [sg-finance-analysts@contoso.com];
+DENY SELECT ON dw.DimEmployee TO [sg-fabric-finance-analysts@contoso.com];
 
 -- Remove a grant or deny
-REVOKE SELECT ON SCHEMA::dw FROM [sg-finance-analysts@contoso.com];</code></pre>
+REVOKE SELECT ON SCHEMA::dw FROM [sg-fabric-finance-analysts@contoso.com];</code></pre>
   <p><code>DENY</code> always beats <code>GRANT</code>. Custom database roles group permissions for reuse:</p>
 <pre><code>CREATE ROLE role_reporting;
 GRANT SELECT ON SCHEMA::rpt TO role_reporting;
-ALTER ROLE role_reporting ADD MEMBER [sg-sales-analysts@contoso.com];</code></pre>
+ALTER ROLE role_reporting ADD MEMBER [sg-fabric-sales-analysts@contoso.com];</code></pre>
   <p>Combined with Lesson 6.5, the cleanest design is: users get <code>rpt</code> views only; views expose only permitted columns; base tables in <code>dw</code> and <code>stg</code> are off-limits.</p>
 
   <h3>Layer 5a — Column-Level Security (CLS)</h3>
   <p>Grant SELECT on specific columns. Anything not listed is unavailable — <code>SELECT *</code> fails for that user:</p>
 <pre><code>GRANT SELECT ON dw.DimCustomer (CustomerKey, CustomerName, City, Country, Segment)
-      TO [sg-sales-analysts@contoso.com];        -- Email, Phone, DateOfBirth not granted</code></pre>
+      TO [sg-fabric-sales-analysts@contoso.com];        -- Email, Phone, DateOfBirth not granted</code></pre>
 
   <h3>Layer 5b — Row-Level Security (RLS)</h3>
   <p>Different users see different rows of the same table — each regional manager sees only their region's sales. Two parts: a <strong>predicate function</strong> that decides whether a row is visible, and a <strong>security policy</strong> that applies it to a table.</p>
@@ -1846,7 +1846,7 @@ CREATE SECURITY POLICY sec.SalesRegionPolicy
 ALTER TABLE dw.DimCustomer ALTER COLUMN Phone ADD MASKED WITH (FUNCTION = 'partial(0, "XXXXXX", 4)');
 ALTER TABLE dw.DimCustomer ALTER COLUMN CreditLimit ADD MASKED WITH (FUNCTION = 'default()');
 
-GRANT UNMASK TO [sg-customer-service@contoso.com];    -- these users see real values</code></pre>
+GRANT UNMASK TO [sg-fabric-customer-service@contoso.com];    -- these users see real values</code></pre>
   <div class="table-wrap">
     <table class="sample-table">
       <tr><th>Column</th><th>Real value</th><th>Masked user sees</th></tr>
@@ -1882,7 +1882,7 @@ GRANT UNMASK TO [sg-customer-service@contoso.com];    -- these users see real va
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Share WH_Sales with a test user with <strong>Read</strong> only. Confirm they can connect but can't query <code>dw.FactSales</code>.</li>
+    <li>Share wh_sales_reporting with a test user with <strong>Read</strong> only. Confirm they can connect but can't query <code>dw.FactSales</code>.</li>
     <li>Grant SELECT on schema <code>rpt</code>. Confirm the views work and base tables don't.</li>
     <li>Add Region to DimStore, create <code>sec.UserRegion</code>, the predicate function and the policy. Query FactSales as the test user — only their region appears.</li>
     <li>Mask Email and Phone. Query as the test user, then GRANT UNMASK and query again.</li>

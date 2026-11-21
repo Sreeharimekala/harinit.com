@@ -617,8 +617,8 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
   <div class="table-wrap">
     <table>
       <tr><th>Pattern</th><th>Example</th><th>Why</th></tr>
-      <tr><td>By environment</td><td>Sales-DEV · Sales-TEST · Sales-PROD</td><td>Developers edit DEV; only the deployment process changes PROD (Module 11)</td></tr>
-      <tr><td>By layer</td><td>Sales-Engineering (Bronze/Silver) · Sales-Gold · Sales-Reports</td><td>Analysts never get a role where raw PII lives</td></tr>
+      <tr><td>By environment</td><td>Retail Sales – Data Engineering [DEV] · [TEST] · [PROD]</td><td>Developers edit DEV; only the deployment process changes PROD (Module 11)</td></tr>
+      <tr><td>By layer</td><td>Retail Sales – Data Engineering [DEV] (Bronze/Silver/Gold) · Retail Sales – Analytics [DEV] (Warehouse, model, reports)</td><td>Analysts never get a role where raw PII lives</td></tr>
       <tr><td>By domain</td><td>Finance · HR · Sales</td><td>Each domain owns its data and access (Lesson 9.7)</td></tr>
     </table>
   </div>
@@ -629,9 +629,9 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>Create Entra groups (or use test accounts): <code>sg-sales-engineers</code>, <code>sg-sales-analysts</code>.</li>
-    <li>Give engineers Contributor on the engineering workspace. Give analysts nothing there.</li>
-    <li>Share the Gold Warehouse with analysts with <strong>Read</strong> only; confirm they can connect but not query tables. Then add <strong>ReadData</strong>.</li>
+    <li>Create Entra groups (or use test accounts): <code>sg-fabric-sales-engineers</code>, <code>sg-fabric-sales-analysts</code>.</li>
+    <li>Give engineers Contributor on <code>Retail Sales – Data Engineering [DEV]</code>. Give analysts nothing there.</li>
+    <li>Share <code>wh_sales_reporting</code> with analysts with <strong>Read</strong> only; confirm they can connect but not query tables. Then add <strong>ReadData</strong>.</li>
     <li>Open <strong>Manage access</strong> and review: is anyone an Admin who shouldn't be?</li>
   </ol>
 
@@ -668,7 +668,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
       <tr><th>Component</th><th>Meaning</th><th>Example</th></tr>
       <tr><td><strong>Data</strong></td><td>Tables or folders the role can access</td><td><code>Tables/dbo/FactSales</code>, <code>Tables/dbo/DimCustomer</code></td></tr>
       <tr><td><strong>Permission</strong></td><td>What the role allows</td><td>Read</td></tr>
-      <tr><td><strong>Members</strong></td><td>Who gets it — Entra users/groups, or "everyone with Read on the item"</td><td><code>sg-sales-south</code></td></tr>
+      <tr><td><strong>Members</strong></td><td>Who gets it — Entra users/groups, or "everyone with Read on the item"</td><td><code>sg-fabric-sales-south</code></td></tr>
       <tr><td><strong>Constraints</strong></td><td>Row filters and column restrictions inside those tables</td><td>Rows: <code>Region = 'South'</code> · Columns: hide <code>Email</code>, <code>Phone</code></td></tr>
     </table>
   </div>
@@ -706,7 +706,7 @@ tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rul
 
   <h3>Hands-On Lab</h3>
   <ol class="steps">
-    <li>In the Gold Lakehouse, open <strong>Manage OneLake security</strong>; review DefaultReader.</li>
+    <li>In <code>lh_sales_gold</code>, open <strong>Manage OneLake security</strong>; review DefaultReader.</li>
     <li>Create role <code>SouthAnalysts</code>: tables FactSales + DimCustomer, row filter on Region, hide Email; add a test user with Viewer access.</li>
     <li>As that user, query from a notebook <em>and</em> the SQL endpoint — confirm both return South rows and no Email.</li>
     <li>Create a shortcut to FactSales in another Lakehouse and confirm the same filtering.</li>
@@ -862,7 +862,7 @@ RETURN
   <h3>CLS in the Warehouse (Recap from 6.9)</h3>
 <pre><code><span class="c">-- Analysts can read every column except salary and national ID</span>
 GRANT SELECT ON dbo.DimEmployee
-    (EmployeeKey, EmployeeName, Department, HireDate) TO [sg-hr-analysts];
+    (EmployeeKey, EmployeeName, Department, HireDate) TO [sg-fabric-hr-analysts];
 
 <span class="c">-- SELECT * now fails for them; they must list allowed columns</span></code></pre>
 
@@ -872,7 +872,7 @@ GRANT SELECT ON dbo.DimEmployee
 ALTER TABLE dbo.DimCustomer ALTER COLUMN Phone
     ADD MASKED WITH (FUNCTION = 'partial(0,"XXX-XXX-",4)');
 
-GRANT UNMASK TO [sg-customer-service];</code></pre>
+GRANT UNMASK TO [sg-fabric-customer-service];</code></pre>
   <div class="callout-warn">Masking is a <strong>convenience</strong>, not a strong control: someone who can query the column can sometimes infer values (<code>WHERE Email LIKE 'a%'</code>). For truly sensitive data, use CLS/OLS so the column can't be queried at all.</div>
 
   <h3>Choosing</h3>
@@ -969,7 +969,7 @@ GRANT UNMASK TO [sg-customer-service];</code></pre>
   <h3>Hands-On Lab</h3>
   <ol class="steps">
     <li>Ask your admin to confirm the tenant setting allowing users to apply sensitivity labels, and which labels are published to you.</li>
-    <li>Label the Gold Lakehouse <em>Confidential</em>; create a semantic model and report from it and check the inherited labels.</li>
+    <li>Label <code>lh_sales_gold</code> <em>Confidential</em>; create a semantic model and report from it and check the inherited labels.</li>
     <li>Export a report visual to Excel and check the file's label.</li>
     <li>(With a Purview admin) review whether a DLP policy covers your workspace, and what tips appear.</li>
   </ol>
@@ -1017,11 +1017,11 @@ GRANT UNMASK TO [sg-customer-service];</code></pre>
   <h4>Lineage and impact analysis</h4>
   <div class="flow">
     <div class="flow-box fb-grey">SQL Server</div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-teal">pl_ingest</div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-bronze">Bronze LH</div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-amber">nb_silver</div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-gold">Gold WH</div><div class="flow-arrow">→</div>
-    <div class="flow-box fb-purple">Sales model</div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-teal">pl_sales_ingest_sql</div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-bronze">lh_sales_bronze</div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-amber">nb_sales_silver_transform_orders</div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-gold">wh_sales_reporting</div><div class="flow-arrow">→</div>
+    <div class="flow-box fb-purple">sm_sales_performance</div><div class="flow-arrow">→</div>
     <div class="flow-box fb-yellow">12 reports</div>
   </div>
   <p>Workspace → <strong>Lineage view</strong> shows how items connect. On any item, <strong>Impact analysis</strong> lists everything downstream — including in other workspaces — and how many people viewed it recently, and can notify their owners before you change something. Run it before renaming a column or dropping a table.</p>
@@ -1060,8 +1060,8 @@ GRANT UNMASK TO [sg-customer-service];</code></pre>
   <h3>Hands-On Lab</h3>
   <ol class="steps">
     <li>Open the OneLake catalog; filter to your workspace and review owners and labels.</li>
-    <li>Promote the Gold Warehouse; write a description for it.</li>
-    <li>Open Lineage view, then run Impact analysis on the Gold Warehouse.</li>
+    <li>Promote <code>wh_sales_reporting</code>; write a description for it.</li>
+    <li>Open Lineage view, then run Impact analysis on <code>wh_sales_reporting</code>.</li>
     <li>(If Purview is available) find your Fabric items in the Purview Unified Catalog and check classifications.</li>
   </ol>
 
@@ -1096,18 +1096,18 @@ GRANT UNMASK TO [sg-customer-service];</code></pre>
   <div class="table-wrap">
     <table class="sample-table">
       <tr><th>Entra group</th><th>Members</th></tr>
-      <tr><td>sg-sales-engineers</td><td>Data engineering team</td></tr>
-      <tr><td>sg-sales-managers</td><td>All regional managers</td></tr>
-      <tr><td>sg-finance-analysts</td><td>Finance</td></tr>
-      <tr><td>sg-data-science</td><td>Data scientists</td></tr>
-      <tr><td>sg-sales-executives</td><td>Leadership</td></tr>
+      <tr><td>sg-fabric-sales-engineers</td><td>Data engineering team</td></tr>
+      <tr><td>sg-fabric-sales-managers</td><td>All regional managers</td></tr>
+      <tr><td>sg-fabric-finance-analysts</td><td>Finance</td></tr>
+      <tr><td>sg-fabric-data-science</td><td>Data scientists</td></tr>
+      <tr><td>sg-fabric-sales-executives</td><td>Leadership</td></tr>
     </table>
   </div>
 
   <h3>Step 2 — Workspaces and Roles</h3>
   <div class="arch-layers">
-    <div class="arch-layer"><div class="arch-layer-num">🔧</div><div><div class="arch-layer-name">Sales-Engineering — Bronze LH, Silver LH, pipelines, notebooks</div><div class="arch-layer-desc">sg-sales-engineers: Contributor · platform lead: Admin · nobody else has a role</div></div></div>
-    <div class="arch-layer"><div class="arch-layer-num">🏆</div><div><div class="arch-layer-name">Sales-Gold — Gold Warehouse, Sales semantic model</div><div class="arch-layer-desc">sg-sales-engineers: Contributor · others get <em>item</em> access only (Step 3)</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🔧</div><div><div class="arch-layer-name">Retail Sales – Data Engineering [DEV] — Bronze LH, Silver LH, pipelines, notebooks</div><div class="arch-layer-desc">sg-fabric-sales-engineers: Contributor · platform lead: Admin · nobody else has a role</div></div></div>
+    <div class="arch-layer"><div class="arch-layer-num">🏆</div><div><div class="arch-layer-name">Sales-Gold — Gold Warehouse, Sales semantic model</div><div class="arch-layer-desc">sg-fabric-sales-engineers: Contributor · others get <em>item</em> access only (Step 3)</div></div></div>
     <div class="arch-layer"><div class="arch-layer-num">📊</div><div><div class="arch-layer-name">Sales-Reports — reports, published as a workspace app</div><div class="arch-layer-desc">Report developers: Contributor · managers &amp; executives: app audience (or Viewer)</div></div></div>
   </div>
 
@@ -1115,15 +1115,15 @@ GRANT UNMASK TO [sg-customer-service];</code></pre>
   <div class="table-wrap">
     <table>
       <tr><th>Item</th><th>Group</th><th>Permissions</th></tr>
-      <tr><td>Gold Warehouse</td><td>sg-finance-analysts</td><td>Read + ReadData (no ReadAll)</td></tr>
-      <tr><td>Sales semantic model</td><td>sg-sales-managers, sg-sales-executives</td><td>Read (Build for report developers only)</td></tr>
-      <tr><td>Silver Lakehouse</td><td>sg-data-science</td><td>Read — data governed by OneLake security (Step 5)</td></tr>
+      <tr><td>Gold Warehouse</td><td>sg-fabric-finance-analysts</td><td>Read + ReadData (no ReadAll)</td></tr>
+      <tr><td>Sales semantic model</td><td>sg-fabric-sales-managers, sg-fabric-sales-executives</td><td>Read (Build for report developers only)</td></tr>
+      <tr><td>Silver Lakehouse</td><td>sg-fabric-data-science</td><td>Read — data governed by OneLake security (Step 5)</td></tr>
     </table>
   </div>
 
   <h3>Step 4 — Warehouse Column Security for Finance</h3>
 <pre><code>CREATE ROLE FinanceReaders;
-ALTER ROLE FinanceReaders ADD MEMBER [sg-finance-analysts];
+ALTER ROLE FinanceReaders ADD MEMBER [sg-fabric-finance-analysts];
 
 GRANT SELECT ON SCHEMA::rpt TO FinanceReaders;                 <span class="c">-- reporting views</span>
 GRANT SELECT ON dbo.FactSales TO FinanceReaders;
@@ -1132,15 +1132,15 @@ GRANT SELECT ON dbo.DimCustomer
 
   <h3>Step 5 — OneLake Security for Data Science</h3>
   <ol class="steps">
-    <li>Silver Lakehouse → <strong>Manage OneLake security</strong>. Remove or narrow <strong>DefaultReader</strong>.</li>
-    <li>New role <code>DS_South_Pilot</code>: tables <code>sales_orders</code>, <code>customers</code>; row filter <code>region = 'South'</code>; hide <code>email</code>, <code>phone</code>; members <code>sg-data-science</code>.</li>
+    <li><code>lh_sales_silver</code> → <strong>Manage OneLake security</strong>. Remove or narrow <strong>DefaultReader</strong>.</li>
+    <li>New role <code>DS_South_Pilot</code>: tables <code>sales_orders</code>, <code>customers</code>; row filter <code>region = 'South'</code>; hide <code>email</code>, <code>phone</code>; members <code>sg-fabric-data-science</code>.</li>
     <li>Data scientists attach the Lakehouse in a notebook — in their <em>own</em> workspace — and read South rows without PII.</li>
   </ol>
 
   <h3>Step 6 — Semantic Model RLS and OLS</h3>
   <ul class="checklist">
-    <li>Role <code>Regional</code>: dynamic DAX filter from <code>UserRegion</code> (Lesson 9.4) → sg-sales-managers</li>
-    <li>Role <code>AllRegions</code>: no row filter → sg-sales-executives</li>
+    <li>Role <code>Regional</code>: dynamic DAX filter from <code>UserRegion</code> (Lesson 9.4) → sg-fabric-sales-managers</li>
+    <li>Role <code>AllRegions</code>: no row filter → sg-fabric-sales-executives</li>
     <li>OLS in both roles: <code>DimCustomer[Email]</code>, <code>DimCustomer[Phone]</code> → None</li>
     <li>Keep the model in Direct Lake — RLS defined in the model doesn't force fallback</li>
   </ul>
@@ -1149,7 +1149,7 @@ GRANT SELECT ON dbo.DimCustomer
   <ul class="checklist">
     <li>Bronze &amp; Silver Lakehouses: <em>Highly Confidential</em> (raw PII)</li>
     <li>Gold Warehouse, semantic model, reports: <em>Confidential</em> — check downstream inheritance</li>
-    <li>Gold Warehouse and Sales model: <em>Certified</em>, with owner and description</li>
+    <li>wh_sales_reporting and sm_sales_performance: <em>Certified</em>, with owner and description</li>
   </ul>
 
   <h3>Step 8 — Test Matrix</h3>
@@ -1157,7 +1157,7 @@ GRANT SELECT ON dbo.DimCustomer
   <div class="table-wrap">
     <table>
       <tr><th>Test</th><th>Manager (South)</th><th>Finance</th><th>Data science</th><th>Executive</th></tr>
-      <tr><td>See Sales-Engineering workspace</td><td>✘</td><td>✘</td><td>✘</td><td>✘</td></tr>
+      <tr><td>See Retail Sales – Data Engineering [DEV] workspace</td><td>✘</td><td>✘</td><td>✘</td><td>✘</td></tr>
       <tr><td>Report shows regions</td><td>South</td><td>—</td><td>—</td><td>All</td></tr>
       <tr><td>Customer Email visible in report</td><td>✘</td><td>—</td><td>—</td><td>✘</td></tr>
       <tr><td><code>SELECT Email FROM dbo.DimCustomer</code></td><td>✘</td><td>✘ (denied)</td><td>—</td><td>—</td></tr>
