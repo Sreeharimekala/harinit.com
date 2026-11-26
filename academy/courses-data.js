@@ -72,6 +72,21 @@ window.HARINIT_COURSES = [
     ],
     button: { label: 'Explore n8n', href: 'n8n/' },
     accent: { accent: '#ea4b71', accent2: '#ff9b6a' }
+  },
+  {
+    id: 'git',
+    badge: 'Git & GitHub',
+    title: 'Git & GitHub',
+    subtitle: 'Version Control, DevOps & Data Engineering',
+    description: 'A complete beginner-to-enterprise Git course in 37 chapters: version control, Git internals, branching and merging, GitHub collaboration, stash, rebase, reset/revert/restore, cherry-pick, tags, security, VS Code and GUIs, GitHub Actions, Azure DevOps, and Git for SQL, Python, Azure Data Factory, Databricks and Microsoft Fabric — plus 12 real-time projects, a continuous data-platform project and interview preparation.',
+    stats: [
+      { label: '37 Chapters', sub: 'Beginner → Enterprise' },
+      { label: '1,400+ Lessons', sub: 'Concepts, commands, labs and quizzes' },
+      { label: '12 Projects', sub: 'Plus a continuous DE project' },
+      { label: 'Interview Prep', sub: 'Scenario questions with commands' }
+    ],
+    button: { label: 'Explore Git & GitHub', href: 'git/' }
+    // No accent override -> default Academy palette (same as Microsoft Fabric)
   }
 
   // -------------------------------------------------------------------

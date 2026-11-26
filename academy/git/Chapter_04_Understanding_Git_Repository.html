@@ -1,0 +1,1517 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Create a repository with git init and explain every top-level item in .git."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Understanding Git Repository — Chapter 4 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Understanding Git Repository</div>
+<div class="brand-sub">Chapter 4 · 34 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">4.1</span>What is a Git repository?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">4.2</span>What is a working directory?</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">4.3</span>What is a staging area?</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">4.4</span>What is a local repository?</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">4.5</span>What is a remote repository?</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">4.6</span>Understanding the .git directory</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">4.7</span>Initializing a repository</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">4.8</span>Creating your first Git repository</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">4.9</span>Understanding repository structure</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">4.10</span>Tracking files in Git</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">4.11</span>End-to-end Git workflow: how the components work together</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">4.12</span>What is a Git Repository?</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">4.13</span>What is a Working Directory?</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">4.14</span>What is a Staging Area?</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">4.15</span>What is a Local Repository?</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">4.16</span>What is a Remote Repository?</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">4.17</span>Understanding .git Directory</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">4.18</span>Initializing a Repository</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">4.19</span>Creating Your First Git Repository</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">4.20</span>Understanding Repository Structure</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">4.21</span>Tracking Files in Git</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 1: Repository creation</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🎯</span>Chapter 4 Interview Questions</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 2 · Chapter 4</div><h1>Understanding Git Repository</h1><p class="page-subtitle">Create a repository with <code>git init</code> and explain every top-level item in <code>.git</code>.</p><div class="meta-row"><span class="meta-pill">Phase <b>2</b></span><span class="meta-pill">Lessons <b>34</b></span><span class="meta-pill">Sources <b>S05, S38, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is a Git repository?; What is a working directory?; What is a staging area?; What is a local repository?; What is a remote repository?; Understanding the .git directory; Initializing a repository; Creating your first Git repository; Understanding repository structure; Tracking files in Git. <br><strong>Before you start:</strong> complete Chapter 3 – Git Installation and Configuration. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> A Git repository is a project folder plus the hidden <code>.git</code> directory that stores the object database, references, the index and configuration.</p>
+<p><strong>Why it matters.</strong> Knowing what lives in the working tree, the index and <code>.git</code> explains every status message you will see and makes recovery possible.</p>
+<p><strong>Where it is used.</strong> Every project you create with <code>git init</code> or obtain with <code>git clone</code>; bare repositories (<code>git init --bare</code>) are used on servers.</p>
+<p><strong>In this course's project.</strong> Stage 1 is completed here: Priya creates <code>enterprise-retail-data-platform</code> with the agreed folder layout and the first commit.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter explains what a Git repository is and the four places your changes live — working directory, staging area, local repository and remote repository — and walks you through creating the course project repository.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to explain each area of a Git repository, describe the contents of the <code>.git</code> directory, initialise a repository, and track files.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S05 · Chapter manual · objectives</span><span class="pill">Beginner → Practical</span>
+
+<p class="lead">By the end of this chapter, you should be able to explain where Git stores files and history, create a repository, stage changes, commit them, and understand how local work relates to a remote repository.</p>
+<ul>
+<li>Distinguish the working directory, staging area, local repository, and remote repository.</li>
+<li>Recognize the purpose of the hidden <code>.git</code> directory.</li>
+<li>Create a repository using <code>git init</code> and inspect it.</li>
+<li>Track new and modified files with Git.</li>
+<li>Use <code>git status</code>, <code>git add</code>, and <code>git commit</code> confidently.</li>
+</ul></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Create a repository with <code>git init</code> and explain every top-level item in <code>.git</code>.</li>
+<li>Distinguish working tree, staging area (index), local repository and remote repository.</li>
+<li>Classify files as untracked, tracked-unmodified, modified and staged using <code>git status</code>.</li>
+<li>Explain bare vs non-bare repositories.</li>
+<li>Lay out a data-platform repository with clear top-level folders.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">4.1</div><h2>What is a Git repository?</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 1. What is a Git repository?</span><p>A <strong>Git repository</strong> (often called a repo) is a project directory that Git manages. It contains the project files and Git's metadata, including the history of commits, branches, tags, and configuration.</p>
+<p>Git can record how tracked files change over time. You can inspect earlier versions, compare changes, create branches, and collaborate with others.</p>
+<div class="callout"><strong>Important distinction:</strong> A normal folder becomes a Git repository after you initialize it with <code>git init</code> or obtain an existing repository by cloning it with <code>git clone</code>.</div>
+<h4>Example project</h4>
+<pre><code>sales-data-pipeline/
+├── sql/
+│   └── load_customers.sql
+├── python/
+│   └── validate_data.py
+├── README.md
+└── requirements.txt</code></pre>
+<p>After Git initialization, Git creates a hidden <code>.git</code> directory inside the project. The visible project files remain your working files; Git metadata is stored separately.</p></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">4.2</div><h2>What is a working directory?</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 2. What is a working directory?</span><p>The <strong>working directory</strong> (also called working tree) is the checked-out project content that you see and edit using an editor, IDE, or file explorer.</p>
+<ul>
+<li>Create, edit, rename, and delete files here.</li>
+<li>Changes made here are not automatically committed.</li>
+<li>Git compares tracked working files with the index and the latest commit to identify changes.</li>
+</ul>
+<h4>Example</h4>
+<p>Suppose you open <code>sql/load_customers.sql</code> and add a filter to exclude inactive customers. That edit first exists in your working directory. Git can detect it, but it is not yet staged or committed.</p>
+<div class="callout warn"><strong>Remember:</strong> Saving a file in VS Code or another editor does not save it to Git history. You must stage and commit it.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">4.3</div><h2>What is a staging area?</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 3. What is a staging area?</span><p>The <strong>staging area</strong>, technically called the <strong>index</strong>, is where you prepare the exact set of changes for your next commit. Use <code>git add</code> to place changes into this area.</p>
+<p>Staging lets you choose which changes belong together in a commit. You do not have to commit every modification in your working directory at once.</p>
+<pre><code># Stage one file
+git add sql/load_customers.sql
+
+# Stage several named files
+git add README.md requirements.txt
+
+# Stage all changes under the current directory
+git add .
+
+# Review what is staged and unstaged
+git status</code></pre>
+<h4>Why is staging useful?</h4>
+<ul>
+<li>Group related changes into a meaningful commit.</li>
+<li>Keep incomplete or unrelated work out of a commit.</li>
+<li>Review the exact content that will be committed using <code>git diff --staged</code>.</li>
+</ul>
+<div class="callout success"><strong>Good practice:</strong> Review staged changes before committing: <code>git diff --staged</code>.</div></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">4.4</div><h2>What is a local repository?</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 4. What is a local repository?</span><p>The <strong>local repository</strong> is the Git database on your computer. It stores committed project snapshots and related history. The data is maintained under the repository's <code>.git</code> directory.</p>
+<p>When you run <code>git commit</code>, Git records the staged snapshot as a new commit in your local repository. A commit normally includes a unique object ID, author and committer information, timestamp, message, and a reference to its parent commit or commits.</p>
+<pre><code>git add sql/load_customers.sql
+git commit -m "Add active customer filter"</code></pre>
+<p>You can create commits while offline. A commit is local until you share it with a remote repository, for example by running <code>git push</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">4.5</div><h2>What is a remote repository?</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 5. What is a remote repository?</span><p>A <strong>remote repository</strong> is another copy of a Git repository hosted elsewhere, commonly on a service such as GitHub, GitLab, Bitbucket, or Azure Repos. It may also be hosted on an organization's own server.</p>
+<p>Remote repositories help teams share commits, review code, back up work, and coordinate development.</p>
+<table>
+<tr><th>Command</th><th>Purpose</th></tr>
+<tr><td><code>git remote -v</code></td><td>List configured remote names and URLs.</td></tr>
+<tr><td><code>git remote add origin &lt;url&gt;</code></td><td>Add a remote named <code>origin</code>.</td></tr>
+<tr><td><code>git fetch origin</code></td><td>Download remote objects and update remote-tracking references without integrating them into the current branch.</td></tr>
+<tr><td><code>git pull</code></td><td>Fetch and then integrate changes into the current branch (usually by merge or rebase, depending on configuration/options).</td></tr>
+<tr><td><code>git push</code></td><td>Send local commits to a remote branch, subject to permissions and server rules.</td></tr>
+</table>
+<div class="callout"><strong>Key point:</strong> Git itself is distributed. Your local repository has its own history; it is not merely a live window into GitHub or Azure Repos.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">4.6</div><h2>Understanding the .git directory</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 6. Understanding the .git directory</span><p>When you initialize a normal repository, Git creates a hidden directory named <code>.git</code>. This directory contains the repository's internal database and configuration. Do not manually edit or delete its contents unless you understand the consequences.</p>
+<h4>Common items inside .git</h4>
+<table>
+<tr><th>Item</th><th>Purpose</th></tr>
+<tr><td><code>HEAD</code></td><td>Identifies the current checkout, commonly by referring to the current branch.</td></tr>
+<tr><td><code>config</code></td><td>Repository-specific configuration, including remote definitions.</td></tr>
+<tr><td><code>objects/</code></td><td>Stores Git objects such as blobs, trees, commits, and annotated tags.</td></tr>
+<tr><td><code>refs/</code></td><td>Stores references such as local branches and tags (some references may be packed).</td></tr>
+<tr><td><code>index</code></td><td>Stores the staging area's index data.</td></tr>
+<tr><td><code>logs/</code></td><td>Stores reference logs (reflogs), which record local reference movements when enabled.</td></tr>
+<tr><td><code>hooks/</code></td><td>Contains sample or configured hook scripts that can run at specific Git events.</td></tr>
+<tr><td><code>info/</code></td><td>Contains additional repository information, such as the local exclude file.</td></tr>
+</table>
+<p>Exact contents can vary by Git version, repository format, configuration, and whether the repository is bare or uses a worktree.</p>
+<h4>Inspect the repository metadata</h4>
+<pre><code># Show hidden files (PowerShell)
+Get-ChildItem -Force
+
+# Show hidden files (Git Bash / Linux / macOS)
+ls -la
+
+# Ask Git for the repository's Git directory
+git rev-parse --git-dir
+
+# Show the repository's top-level working directory
+git rev-parse --show-toplevel</code></pre>
+<div class="callout warn"><strong>Do not remove <code>.git</code>:</strong> deleting it from a normal project folder removes that folder's Git metadata and local history. The visible files may remain, but the folder is no longer a normal Git working repository.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">4.7</div><h2>Initializing a repository</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 7. Initializing a repository</span><p><code>git init</code> creates the Git metadata required to start tracking a project in the current directory. It does not automatically add files or create a commit.</p>
+<h4>Initialize in the current folder</h4>
+<pre><code>cd C:\Projects\sales-data-pipeline
+git init</code></pre>
+<h4>Create and initialize a new folder</h4>
+<pre><code>mkdir sales-data-pipeline
+cd sales-data-pipeline
+git init</code></pre>
+<p>Git typically names the initial branch <code>master</code> or <code>main</code>, depending on your Git configuration and version. You can set the default for future repositories:</p>
+<pre><code>git config --global init.defaultBranch main</code></pre>
+<p>To rename the current branch after initialization:</p>
+<pre><code>git branch -M main</code></pre>
+<h4>Verify initialization</h4>
+<pre><code>git status
+git rev-parse --show-toplevel
+git rev-parse --git-dir</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">4.8</div><h2>Creating your first Git repository</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 8. Creating your first Git repository</span><p>Let's create a small Data Engineering project and make its first commit.</p>
+<h4>Step 1 — Create the project folder</h4>
+<pre><code>mkdir CustomerETL
+cd CustomerETL</code></pre>
+<h4>Step 2 — Initialize Git</h4>
+<pre><code>git init
+git branch -M main</code></pre>
+<h4>Step 3 — Create project files</h4>
+<p>Create the following files using VS Code, Notepad, or PowerShell:</p>
+<pre><code>README.md
+sql/load_customers.sql
+python/validate_customers.py</code></pre>
+<p>PowerShell example:</p>
+<pre><code>New-Item -ItemType Directory -Force sql, python
+Set-Content README.md "# Customer ETL Project"
+Set-Content sql/load_customers.sql "SELECT * FROM dbo.Customers;"
+Set-Content python/validate_customers.py "print('Validate customer data')"</code></pre>
+<h4>Step 4 — Check Git status</h4>
+<pre><code>git status</code></pre>
+<p>The new files should appear under <em>Untracked files</em>. Git sees them in the working directory but is not tracking them yet.</p>
+<h4>Step 5 — Stage the files</h4>
+<pre><code>git add README.md sql/load_customers.sql python/validate_customers.py
+git status</code></pre>
+<p>The files should now appear under <em>Changes to be committed</em>.</p>
+<h4>Step 6 — Review the staged changes</h4>
+<pre><code>git diff --staged</code></pre>
+<h4>Step 7 — Create the first commit</h4>
+<pre><code>git commit -m "Initial commit: create customer ETL project"</code></pre>
+<h4>Step 8 — Verify the commit</h4>
+<pre><code>git log --oneline
+git status</code></pre>
+<div class="callout success"><strong>Expected result:</strong> You have a local Git repository with one commit. Your working tree should report that it is clean, provided no additional changes were made.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">4.9</div><h2>Understanding repository structure</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 9. Understanding repository structure</span><p>A typical non-bare Git repository has a working tree alongside the hidden <code>.git</code> directory.</p>
+<div class="diagram">
+<div class="flow">
+<div class="box">CustomerETL/<br/><span class="small">Project root</span></div>
+<div class="arrow">→</div>
+<div class="box">Working files<br/><span class="small">README, SQL, Python</span></div>
+<div class="arrow">+</div>
+<div class="box">.git/<br/><span class="small">Git metadata &amp; history</span></div>
+</div>
+<p class="small">Conceptual view of a normal repository; the .git directory is hidden by many file explorers.</p>
+</div>
+<h4>Example folder layout</h4>
+<pre><code>CustomerETL/
+│
+├── .git/                       # Git metadata and object database
+│   ├── HEAD
+│   ├── config
+│   ├── objects/
+│   ├── refs/
+│   ├── index
+│   └── logs/
+│
+├── README.md                   # Project documentation
+├── sql/
+│   └── load_customers.sql      # SQL transformation
+└── python/
+    └── validate_customers.py   # Data validation script</code></pre>
+<p>Only <code>.git</code> is Git's internal metadata directory. The names and arrangement of your project folders—such as <code>sql</code>, <code>python</code>, <code>notebooks</code>, or <code>pipelines</code>—are chosen by your team.</p>
+<h4>Normal repository vs bare repository</h4>
+<table>
+<tr><th>Normal repository</th><th>Bare repository</th></tr>
+<tr><td>Has a working tree and a <code>.git</code> directory (or Git directory reference).</td><td>Stores Git data without a checked-out working tree.</td></tr>
+<tr><td>Used for day-to-day editing, staging, and committing.</td><td>Often used as a shared server-side repository.</td></tr>
+<tr><td>Created commonly with <code>git init</code>.</td><td>Created with <code>git init --bare</code>.</td></tr>
+</table></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">4.10</div><h2>Tracking files in Git</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · 10. Tracking files in Git</span><p>Git does not automatically track every file in a folder. You explicitly add files to the index using <code>git add</code>. After a file has been included in a commit, Git can detect and report later modifications to it.</p>
+<h4>File states you should know</h4>
+<table>
+<tr><th>State</th><th>Meaning</th><th>Typical next action</th></tr>
+<tr><td>Untracked</td><td>File exists in the working directory but is not yet tracked by Git.</td><td><code>git add filename</code></td></tr>
+<tr><td>Unmodified</td><td>Tracked file matches the version in the current commit.</td><td>Edit it when needed.</td></tr>
+<tr><td>Modified</td><td>Tracked file has working-directory changes not yet staged.</td><td><code>git add filename</code></td></tr>
+<tr><td>Staged</td><td>Changes are recorded in the index and are ready for the next commit.</td><td><code>git commit</code></td></tr>
+</table>
+<h4>Track a new file</h4>
+<pre><code>git status
+git add README.md
+git status
+git commit -m "Add project README"</code></pre>
+<h4>Track all suitable changes</h4>
+<pre><code># Stage changes under the current directory
+git add .
+
+# Stage tracked modifications and deletions
+git add -u
+
+# Stage all changes (including untracked files)
+git add -A</code></pre>
+<p>Be aware of your current directory when using <code>git add .</code>. From the repository root, it stages changes throughout the project. Review <code>git status</code> before committing.</p>
+<h4>Stop tracking a file but keep it on disk</h4>
+<pre><code>git rm --cached filename</code></pre>
+<p>This stages removal of the file from Git's tracked snapshot while leaving your local copy in place. Commit the change to record it in history.</p>
+<h4>Ignore files using .gitignore</h4>
+<p>A <code>.gitignore</code> file tells Git which untracked files or paths to ignore. It is commonly used for temporary files, build outputs, local configuration, and secrets.</p>
+<pre><code># Example .gitignore
+*.log
+__pycache__/
+.venv/
+.env
+.vscode/</code></pre>
+<div class="callout warn"><strong>Security:</strong> Adding a file to <code>.gitignore</code> does not remove it from Git if it is already tracked. Never commit passwords, access tokens, connection strings, or private keys. If a secret was committed, removing it in a later commit does not erase it from earlier history; rotate the secret and follow your organization's history-cleanup process.</div>
+<h4>Useful commands for tracking and inspection</h4>
+<table>
+<tr><th>Command</th><th>What it tells you</th></tr>
+<tr><td><code>git status</code></td><td>Current branch and staged, unstaged, and untracked changes.</td></tr>
+<tr><td><code>git diff</code></td><td>Differences in the working tree that are not staged.</td></tr>
+<tr><td><code>git diff --staged</code></td><td>Differences staged for the next commit.</td></tr>
+<tr><td><code>git ls-files</code></td><td>Files currently in Git's index (tracked paths).</td></tr>
+<tr><td><code>git check-ignore -v path</code></td><td>Shows which ignore rule matches a path, if any.</td></tr>
+<tr><td><code>git log --oneline</code></td><td>Compact commit history.</td></tr>
+</table></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">4.11</div><h2>End-to-end Git workflow: how the components work together</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · End-to-end Git workflow: how the components work together</span><div class="diagram">
+<div class="flow">
+<div class="box">Working directory<br/><span class="small">Edit files</span></div><div class="arrow">→ git add</div>
+<div class="box">Staging area<br/><span class="small">Select changes</span></div><div class="arrow">→ git commit</div>
+<div class="box">Local repository<br/><span class="small">Save commit history</span></div><div class="arrow">→ git push</div>
+<div class="box">Remote repository<br/><span class="small">Share commits</span></div>
+</div>
+</div>
+<p>Typical daily sequence:</p>
+<pre><code># 1. Inspect current state
+git status
+
+# 2. Edit files in your working directory
+
+# 3. Review unstaged changes
+git diff
+
+# 4. Stage selected files
+git add sql/load_customers.sql
+
+# 5. Review staged changes
+git diff --staged
+
+# 6. Commit to local history
+git commit -m "Improve customer load query"
+
+# 7. Share commits (after configuring a remote and branch)
+git push</code></pre>
+<p class="small">The final push step requires a configured remote and suitable permissions. For a newly created remote repository, follow the hosting service's instructions for connecting it to your local repository.</p>
+<h4>How this applies to Data Engineering</h4>
+<ul>
+<li><strong>SQL:</strong> Stage and commit stored procedures, views, table scripts, and data-quality queries.</li>
+<li><strong>Python/PySpark:</strong> Track ETL scripts, validation logic, reusable libraries, and tests.</li>
+<li><strong>ADF:</strong> Track exported pipeline and linked-service definitions where your team's deployment approach supports source control. Protect environment-specific settings and secrets.</li>
+<li><strong>Databricks/Fabric:</strong> Track notebooks, SQL scripts, configuration templates, and deployment assets using the supported source-control workflow for the workspace.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">4.12</div><h2>
+What is a Git Repository?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is a Git Repository?</span><h4>1.1 Definition</h4>
+<p>A <strong>Git repository</strong> is a storage location that contains your project files <strong>plus the complete history of every change</strong> made to them. It consists of:</p>
+<ol>
+<li>The <strong>project files</strong> (your working directory), and</li>
+<li>A hidden <strong><code>.git</code> directory</strong> that stores all commits, branches, tags and configuration.</li>
+</ol>
+<h4>1.2 Types of repositories</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local repository</td>
+<td>On your computer</td>
+<td><code>C:\Projects\retail-data-platform</code></td>
+</tr>
+<tr>
+<td>Remote repository</td>
+<td>Hosted on a server</td>
+<td><code>https://github.com/ravi/retail-data-platform</code></td>
+</tr>
+<tr>
+<td>Bare repository</td>
+<td>Only history, no working files (used on servers)</td>
+<td><code>git init --bare project.git</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4>1.3 Two ways to get a repository</h4>
+<pre><code class="language-bash">git init                 # turn an existing folder into a new repository
+git clone &lt;url&gt;          # copy an existing repository from a remote
+</code></pre>
+<div class="callout "><p><strong>Key point</strong> If you delete the <code>.git</code> folder, the project files remain but all history, branches and configuration are lost — it becomes a normal folder again.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">4.13</div><h2>
+What is a Working Directory?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. What is a Working Directory?</span><h4>2.1 Definition</h4>
+<p>The <strong>working directory</strong> (also called the <strong>working tree</strong>) is the set of project files you see in your file explorer and edit in your IDE. It reflects one checked-out version of the project (usually the latest commit of the current branch) plus any edits you've made.</p>
+<h4>2.2 Characteristics</h4>
+<ul>
+<li>Files here can be <strong>untracked</strong>, <strong>unmodified</strong>, or <strong>modified</strong>.</li>
+<li>Changes in the working directory are <strong>not saved in Git</strong> until you stage and commit them.</li>
+<li>Switching branches updates the working directory to match the other branch.</li>
+</ul>
+<h4>2.3 Example</h4>
+<pre><code class="language-bash">echo &quot;SELECT * FROM customers;&quot; &gt; sql/views/vw_customers.sql
+git status
+</code></pre>
+<pre><code class="language-text">Untracked files:
+  sql/views/vw_customers.sql
+</code></pre>
+<p>The file exists in the working directory but Git is not tracking it yet.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">4.14</div><h2>
+What is a Staging Area?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. What is a Staging Area?</span><h4>3.1 Definition</h4>
+<p>The <strong>staging area</strong> (also called the <strong>index</strong> or <strong>cache</strong>) is an intermediate area where you <strong>prepare the exact set of changes that will go into the next commit</strong>. It is stored in the file <code>.git/index</code>.</p>
+<h4>3.2 Why a staging area exists</h4>
+<p>You may have changed five files, but only three belong to one logical change. The staging area lets you commit those three now and the other two separately, producing clean, reviewable history.</p>
+<h4>3.3 Example</h4>
+<pre><code class="language-bash"># You changed a SQL procedure and a Python script for two different tickets
+git add sql/procedures/usp_load_customers.sql
+git commit -m &quot;fix(sql): exclude test customers&quot;     # only the SQL change
+
+git add python/etl/transform.py
+git commit -m &quot;feat(etl): add currency conversion&quot;   # Python change separately
+</code></pre>
+<p>You can even stage part of a file:</p>
+<pre><code class="language-bash">git add -p python/etl/transform.py
+</code></pre>
+<h4>3.4 Commands related to staging</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git add &lt;file&gt;</code></td>
+<td>Add changes to the staging area</td>
+</tr>
+<tr>
+<td><code>git restore --staged &lt;file&gt;</code></td>
+<td>Remove from staging (keep edits)</td>
+</tr>
+<tr>
+<td><code>git diff --staged</code></td>
+<td>Show what is staged</td>
+</tr>
+<tr>
+<td><code>git status</code></td>
+<td>Show staged ("Changes to be committed") vs unstaged</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">4.15</div><h2>
+What is a Local Repository?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. What is a Local Repository?</span><h4>4.1 Definition</h4>
+<p>The <strong>local repository</strong> is the <code>.git</code> directory on your machine that permanently stores <strong>committed snapshots</strong> and the project history. When you run <code>git commit</code>, the staged content is saved here.</p>
+<h4>4.2 Characteristics</h4>
+<ul>
+<li>Contains every commit, branch and tag you have locally.</li>
+<li>Fully functional offline — you can commit, branch, merge and view history without a network.</li>
+<li>Private to you until you push.</li>
+</ul>
+<h4>4.3 Example</h4>
+<pre><code class="language-bash">git commit -m &quot;Add customer view&quot;
+git log --oneline
+# 3f2a7d1 Add customer view
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">4.16</div><h2>
+What is a Remote Repository?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. What is a Remote Repository?</span><h4>5.1 Definition</h4>
+<p>A <strong>remote repository</strong> is a version of the repository hosted on a server (GitHub, GitLab, Bitbucket, Azure Repos or a company server) that the team uses to <strong>share</strong> work.</p>
+<h4>5.2 Characteristics</h4>
+<ul>
+<li>Usually a <strong>bare</strong> repository (no working files).</li>
+<li>Named in your local repo, typically <code>origin</code>.</li>
+<li>You <strong>push</strong> commits to it and <strong>fetch/pull</strong> commits from it.</li>
+<li>Access-controlled (permissions, branch protection).</li>
+</ul>
+<h4>5.3 Summary of all four areas</h4>
+<pre><code class="language-text">Working Directory ──add──► Staging Area ──commit──► Local Repository ──push──► Remote Repository
+        ▲                                                  ▲                          │
+        └───────── restore/switch ─────────────────────────┘◄──────── fetch/pull ─────┘
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Stored where</th>
+<th>Saved by</th>
+<th>Shared?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Working directory</td>
+<td>Project folder</td>
+<td>Editor (Save)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Staging area</td>
+<td><code>.git/index</code></td>
+<td><code>git add</code></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Local repository</td>
+<td><code>.git/objects</code>, <code>.git/refs</code></td>
+<td><code>git commit</code></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Remote repository</td>
+<td>Server</td>
+<td><code>git push</code></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">4.17</div><h2>
+Understanding .git Directory
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Understanding .git Directory</span><h4>6.1 Structure</h4>
+<pre><code class="language-text">.git/
+├── HEAD             # points to the current branch, e.g. &quot;ref: refs/heads/main&quot;
+├── config           # repository-level (local) configuration
+├── description      # used only by GitWeb
+├── index            # the staging area (binary file)
+├── hooks/           # sample scripts run on events (pre-commit, commit-msg, pre-push...)
+├── info/
+│   └── exclude      # local-only ignore patterns (not shared)
+├── objects/         # all content: blobs, trees, commits, tags
+│   ├── 3f/2a7d1...  # loose objects (first 2 chars = folder)
+│   ├── info/
+│   └── pack/        # packfiles (compressed objects)
+├── refs/
+│   ├── heads/       # local branches (one file per branch)
+│   ├── remotes/     # remote-tracking branches (origin/main)
+│   └── tags/        # tags
+├── logs/            # reflog: history of where HEAD and branches pointed
+├── ORIG_HEAD        # previous HEAD before reset/merge/rebase (when present)
+├── FETCH_HEAD       # what was last fetched (when present)
+└── packed-refs      # many refs packed into one file (when present)
+</code></pre>
+<h4>6.2 Explore it</h4>
+<pre><code class="language-bash">ls -la .git
+cat .git/HEAD
+cat .git/config
+ls .git/refs/heads
+</code></pre>
+<div class="callout c-warn"><p><strong>Warning</strong> Do not edit files inside <code>.git</code> manually, and never store a repository inside OneDrive/Dropbox sync folders — sync tools can corrupt <code>.git</code>.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">4.18</div><h2>
+Initializing a Repository
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Initializing a Repository</span><h4>7.1 <code>git init</code></h4>
+<pre><code class="language-bash">git init                    # in the current folder
+git init my-project         # creates a new folder and initialises it
+git init -b main            # specify initial branch name
+git init --bare repo.git    # bare repository for server use
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Initialized empty Git repository in C:/Projects/retail-data-platform/.git/
+</code></pre>
+<h4>7.2 What <code>git init</code> does</h4>
+<ul>
+<li>Creates the <code>.git</code> directory and its sub-folders.</li>
+<li>Sets <code>HEAD</code> to point to the default branch (<code>main</code>).</li>
+<li>Does <strong>not</strong> track any files yet; no commits exist.</li>
+</ul>
+<div class="callout "><p><strong>Note</strong> Never run <code>git init</code> inside a folder that is already part of a repository (nested repositories cause confusion). Check with <code>git status</code> first.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">4.19</div><h2>
+Creating Your First Git Repository
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Creating Your First Git Repository</span><p>Create the course project:</p>
+<pre><code class="language-bash">mkdir retail-data-platform
+cd retail-data-platform
+git init -b main
+
+mkdir -p sql/tables sql/procedures sql/views python/etl python/tests
+echo &quot;# Retail Data Platform&quot; &gt; README.md
+echo &quot;Data Engineering project used throughout the Git course.&quot; &gt;&gt; README.md
+
+cat &gt; sql/tables/dim_customer.sql &lt;&lt;'EOF'
+CREATE TABLE dbo.dim_customer (
+    customer_id   INT           NOT NULL PRIMARY KEY,
+    customer_name VARCHAR(100)  NOT NULL,
+    email         VARCHAR(200)  NULL,
+    status        VARCHAR(20)   NOT NULL
+);
+EOF
+
+git status
+git add .
+git commit -m &quot;Initial project structure with dim_customer table&quot;
+git log --oneline
+</code></pre>
+<div class="callout "><p><strong>Note</strong> Git tracks files, not folders. Empty folders (like <code>python/tests</code>) are not committed. Add a placeholder file such as <code>.gitkeep</code> to keep them: <code>touch python/tests/.gitkeep</code>.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">4.20</div><h2>
+Understanding Repository Structure
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Understanding Repository Structure</span><h4>9.1 Recommended structure for a Data Engineering repository</h4>
+<pre><code class="language-text">retail-data-platform/
+├── README.md                 # what the project is, how to run it
+├── .gitignore                # files Git must ignore
+├── .gitattributes            # line endings, binary files
+├── docs/                     # architecture, runbooks
+├── sql/
+│   ├── tables/
+│   ├── views/
+│   ├── procedures/
+│   └── functions/
+├── python/
+│   ├── etl/
+│   ├── tests/
+│   └── requirements.txt
+├── databricks/               # notebooks, bundle config
+├── adf/                      # Azure Data Factory JSON
+├── fabric/                   # Microsoft Fabric items
+├── infra/                    # Bicep / Terraform
+└── .github/workflows/        # CI/CD
+</code></pre>
+<h4>9.2 Principles</h4>
+<ul>
+<li>One clear top-level folder per technology or layer.</li>
+<li>One database object per SQL file.</li>
+<li>Code and tests together.</li>
+<li>Never commit secrets, data files, virtual environments, build outputs or logs.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">4.21</div><h2>
+Tracking Files in Git
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Tracking Files in Git</span><h4>10.1 Tracked vs untracked</h4>
+<ul>
+<li><strong>Tracked</strong> files are files Git knows about (they were in the last commit or are staged).</li>
+<li><strong>Untracked</strong> files are new files Git has not been told to track.</li>
+<li><strong>Ignored</strong> files match <code>.gitignore</code> and are never shown as untracked.</li>
+</ul>
+<h4>10.2 Commands</h4>
+<pre><code class="language-bash">git status                     # see untracked / modified / staged
+git add sql/views/vw_customers.sql   # start tracking
+git ls-files                   # list all tracked files
+git ls-files --others --exclude-standard   # list untracked (not ignored)
+git rm --cached secret.env     # stop tracking but keep file
+git check-ignore -v app.log    # see why a file is ignored
+</code></pre>
+<h4>10.3 Lifecycle example</h4>
+<pre><code class="language-bash">touch sql/views/vw_sales.sql
+git status -s        # ?? sql/views/vw_sales.sql   (untracked)
+git add sql/views/vw_sales.sql
+git status -s        # A  sql/views/vw_sales.sql   (added/staged)
+git commit -m &quot;Add vw_sales&quot;
+echo &quot;SELECT 1;&quot; &gt; sql/views/vw_sales.sql
+git status -s        #  M sql/views/vw_sales.sql   (modified, unstaged)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-add"><span class="ct">Index and bare repository questions (S41, S38)</span><p>S41 asks "what is the index?" and "what is a bare repository?"; S38 §2.6 describes the <code>.git</code> folder. Both are answered above. Note: the index is purely local — it describes the next commit and has no connection to any remote.</p></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 104" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="82.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Untracked</text><line x1="148.0" y1="52.0" x2="176.0" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="179.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="241.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git add → Staged</text><text x="241.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(new file)</text><line x1="307.0" y1="52.0" x2="335.0" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="338.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="400.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git commit →</text><text x="400.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Tracked,</text><text x="400.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">unmodified</text><line x1="466.0" y1="52.0" x2="494.0" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="559.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">edit → Modified</text><line x1="625.0" y1="52.0" x2="653.0" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="656.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="718.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git add → Staged</text><line x1="784.0" y1="52.0" x2="812.0" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="815.0" y="15.0" width="125.0" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="877.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git commit →</text><text x="877.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Unmodified</text></svg></div><figcaption>File lifecycle reported by git status</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">HEAD</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Which branch is checked out (ref: refs/heads/main)</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">config</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Repository-level (local) settings and remotes</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">index</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Binary staging area — the next commit&#x27;s file list and blob IDs</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">objects/</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Content-addressed database of blobs, trees, commits and tags (loose and packed)</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="271.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">refs/heads, refs/tags,</text><text x="150.0" y="288.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">refs/remotes</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Branch, tag and remote-tracking pointers</text><rect x="20" y="310" width="920" height="50" rx="9" fill="#fff" stroke="#0f7c8c" stroke-width="1.8"/><rect x="20" y="310" width="260" height="50" rx="9" fill="#0f7c8c"/><text x="150.0" y="339.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">hooks/</text><text x="300.0" y="339.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Sample client-side hook scripts (*.sample)</text><rect x="20" y="370" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="370" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="399.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">logs/</text><text x="300.0" y="399.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Reflogs — history of where HEAD and branches pointed</text></svg></div><figcaption>What is inside .git</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">source/ (RetailSource DDL), warehouse/ (stg, dim, fact procedures), tests/</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">python/</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">ingestion/ (retail_ingest package), dq/ (data-quality rules)</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">adf/</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">pipeline/, dataset/, linkedService/, trigger/, factory/ — managed by ADF Git integration</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">databricks/</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">databricks.yml bundle + src/notebooks/bronze|silver|gold + resources/</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">fabric/</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Lakehouse, notebooks, semantic model and report item folders</text><rect x="20" y="310" width="920" height="50" rx="9" fill="#fff" stroke="#0f7c8c" stroke-width="1.8"/><rect x="20" y="310" width="260" height="50" rx="9" fill="#0f7c8c"/><text x="150.0" y="339.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">.github/ and pipelines/</text><text x="300.0" y="339.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">GitHub Actions workflows, Azure Pipelines YAML, CODEOWNERS, templates</text><rect x="20" y="370" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="370" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="399.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">docs/ and infra/</text><text x="300.0" y="399.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Architecture, runbooks, dev setup; Bicep templates</text></svg></div><figcaption>Enterprise Retail Data Platform — top-level repository layout</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-init"><header>git init</header><dl><dt>Syntax</dt><dd><pre><code>git init [&lt;directory&gt;] [-b &lt;branch&gt;] [--bare]</code></pre></dd><dt>Purpose</dt><dd>Create a new, empty repository (creates <code>.git</code>).</dd><dt>Key parameters</dt><dd><ul><li><code>-b main</code> / <code>--initial-branch=main</code> — name of the first branch</li><li><code>--bare</code> — repository without working tree (server/shared use)</li><li><code>&lt;directory&gt;</code> — create the folder if it does not exist</li></ul></dd><dt>Expected output</dt><dd><pre><code>Initialized empty Git repository in /home/priya/work/enterprise-retail-data-platform/.git/</code></pre></dd><dt>Example</dt><dd><pre><code>git init -b main enterprise-retail-data-platform
+cd enterprise-retail-data-platform</code></pre></dd><dt>Common mistakes</dt><dd>Running <code>git init</code> in your home directory or in a parent folder — every file below becomes part of one huge repository.</dd><dt>Troubleshooting</dt><dd>Find the repository root with <code>git rev-parse --show-toplevel</code>; remove an accidental <code>.git</code> folder only after checking it is not a real repository.</dd></dl></div><div class="cmd" id="cmd-git-status"><header>git status</header><dl><dt>Syntax</dt><dd><pre><code>git status [-s | --short] [-b] [--ignored]</code></pre></dd><dt>Purpose</dt><dd>Show the branch, staged changes, unstaged changes and untracked files.</dd><dt>Expected output</dt><dd><pre><code>On branch main
+No commits yet
+Untracked files:
+  (use &quot;git add &lt;file&gt;...&quot; to include in what will be committed)
+        README.md
+        sql/
+nothing added to commit but untracked files present (use &quot;git add&quot; to track)</code></pre></dd><dt>Example</dt><dd><pre><code>git status
+git status -sb      # short form:  ?? untracked,  A added,  M modified,  first column = staged, second = unstaged</code></pre></dd><dt>Common mistakes</dt><dd>Assuming an empty folder will be committed — Git tracks files, not directories. Add a <code>.gitkeep</code> or README to keep a folder.</dd></dl></div><div class="cmd" id="cmd-git-init-bare"><header>git init --bare</header><dl><dt>Syntax</dt><dd><pre><code>git init --bare &lt;name&gt;.git</code></pre></dd><dt>Purpose</dt><dd>Create a server-style repository used only as a push/fetch target.</dd><dt>Behaviour</dt><dd>No working tree; the repository files are at the top level of the folder. Hosting services keep bare repositories internally.</dd><dt>Example</dt><dd><pre><code>git init --bare /srv/git/retail-platform.git
+git remote add origin /srv/git/retail-platform.git</code></pre></dd><dt>Common mistakes</dt><dd>Pushing to the checked-out branch of a <em>non-bare</em> repository — Git refuses (<code>receive.denyCurrentBranch</code>).</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 1: Repository creation</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 1 — Create the repository and its first commit</span><pre><code class="language-bash">mkdir -p ~/work &amp;&amp; cd ~/work
+git init -b main enterprise-retail-data-platform
+cd enterprise-retail-data-platform
+mkdir -p sql/source/tables sql/warehouse sql/tests python/ingestion/src/retail_ingest python/dq \
+         adf databricks/src/notebooks fabric docs infra .github/workflows pipelines tests
+printf &quot;# Enterprise Retail Data Platform\n\nSQL Server -&gt; Python -&gt; ADF -&gt; Databricks -&gt; Fabric, delivered with CI/CD.\n&quot; &gt; README.md
+printf &quot;# keep\n&quot; &gt; adf/.gitkeep; printf &quot;# keep\n&quot; &gt; fabric/.gitkeep
+git status -s                # ?? README.md  ?? adf/  ?? fabric/
+git add README.md adf/.gitkeep fabric/.gitkeep
+git commit -m &quot;Initialize repository structure&quot;
+ls .git                      # HEAD config description hooks index info logs objects refs
+cat .git/HEAD                # ref: refs/heads/main
+</code></pre>
+<p>Empty folders without files are not recorded; they will appear when files are added in Stage 2. <code>.gitignore</code>/<code>.gitattributes</code> are added in Chapter 24 (and a first version in Chapter 5).</p></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S05, S40 · &quot;fatal: not a git repository&quot; in a CI job</span><p>The pipeline step ran in the wrong directory (or the checkout step was missing). Print <code>pwd</code> and <code>git rev-parse --show-toplevel</code>, and make sure the checkout step runs first.</p></div><div class="src"><span class="tag add">Course addition · A developer committed from the wrong folder</span><p>Running <code>git init</code> in <code>C:\Users\meera</code> made her whole profile a repository. Fix: confirm with <code>git rev-parse --show-toplevel</code>, move to the real project, and delete the accidental <code>.git</code> in the profile folder (after verifying it has no wanted history).</p></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>One repository per product/platform with a documented top-level layout (or a deliberate multi-repo design — Chapter 24).</li>
+<li>Keep a README at the root: purpose, layout, how to run, how to contribute.</li>
+<li>Run <code>git status</code> before and after every Git operation.</li>
+<li>Never edit files inside <code>.git</code> by hand except where documentation tells you to (for example hooks).</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual</span><table>
+<tr><th>Problem</th><th>Cause / solution</th></tr>
+<tr><td><code>git: command not found</code> or not recognized</td><td>Install Git and ensure it is available on your PATH. Reopen the terminal after installation.</td></tr>
+<tr><td><code>fatal: not a git repository</code></td><td>You are outside a repository. Change to the project folder or initialize it with <code>git init</code>.</td></tr>
+<tr><td>File does not appear in <code>git status</code></td><td>Check whether it is ignored using <code>git check-ignore -v filename</code>; also verify the current directory.</td></tr>
+<tr><td>Changes not included in commit</td><td>They may not have been staged. Run <code>git status</code>, then <code>git add</code> the required paths.</td></tr>
+<tr><td>Accidentally staged a file</td><td>Use <code>git restore --staged filename</code> to unstage it while keeping the working file changes.</td></tr>
+<tr><td>Committed to wrong repository</td><td>Stop and inspect <code>git rev-parse --show-toplevel</code> and <code>git status</code> before attempting corrective history changes.</td></tr>
+</table></div><div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fatal: not a git repository (or any of the parent directories): .git</code></td>
+<td>Command run outside a repository</td>
+<td><code>cd</code> into the repo or <code>git init</code></td>
+</tr>
+<tr>
+<td><code>nothing added to commit but untracked files present</code></td>
+<td>Files not staged</td>
+<td><code>git add &lt;files&gt;</code></td>
+</tr>
+<tr>
+<td><code>On branch main  No commits yet</code></td>
+<td>New repository</td>
+<td>Make the first commit</td>
+</tr>
+<tr>
+<td><code>fatal: detected dubious ownership in repository at '...'</code></td>
+<td>Repository owned by another OS user (security check since Git 2.35.2)</td>
+<td>Fix ownership, or <code>git config --global --add safe.directory &lt;path&gt;</code> if trusted</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create <code>retail-lab</code> with <code>git init -b main</code> and list <code>.git</code>.</p><span class="exp-out">You see HEAD, config, objects, refs, hooks.</span></li><li><p>Create <code>README.md</code> and an empty folder <code>data/</code>; run <code>git status</code>.</p><span class="exp-out">Only README.md is reported; the empty folder is ignored.</span></li><li><p>Stage README.md, modify it again and run <code>git status -s</code>.</p><span class="exp-out">Output <code>AM README.md</code>.</span></li><li><p>Commit and run <code>cat .git/HEAD</code> and <code>cat .git/refs/heads/main</code>.</p><span class="exp-out">HEAD contains <code>ref: refs/heads/main</code>; main contains a 40-character commit ID.</span></li><li><p>Create a bare repository and push your lab repository to it.</p><span class="exp-out"><code>git push</code> succeeds; the bare folder has no working files.</span></li></ol></div><div class="src"><span class="tag ">Source S05 · Chapter manual · lab</span><ol>
+<li>Create a folder named <code>GitPractice</code> and initialize it as a Git repository.</li>
+<li>Create <code>README.md</code>, <code>sql/customer_report.sql</code>, and <code>python/check_data.py</code>.</li>
+<li>Run <code>git status</code> and identify the untracked files.</li>
+<li>Stage only <code>README.md</code>. Confirm that the other files remain untracked.</li>
+<li>Commit the README with the message <code>Add project documentation</code>.</li>
+<li>Stage the SQL and Python files and create a second commit.</li>
+<li>Modify the SQL file. Compare the output of <code>git diff</code> before and after staging it.</li>
+<li>Create a <code>.gitignore</code> file containing <code>*.log</code>. Create a test log file and verify that Git ignores it.</li>
+<li>Use <code>git rev-parse --show-toplevel</code> and <code>git rev-parse --git-dir</code> to inspect your repository.</li>
+<li>Use <code>git log --oneline</code> to view your commits.</li>
+</ol>
+<h4>Mini project: Customer ETL repository</h4>
+<p>Build a small repository with a README, a SQL extraction script, a Python data validation script, and a <code>.gitignore</code>. Make at least three meaningful commits: project setup, extraction logic, and validation logic. Use <code>git status</code> and <code>git diff --staged</code> before each commit.</p></div><div class="src"><span class="tag s40">Source S40 · 11. Practical Exercise – Chapter 4</span><ol>
+<li>Create <code>retail-data-platform</code> with <code>git init -b main</code> and the folder structure above.</li>
+<li>Explore <code>.git</code> — open <code>HEAD</code>, <code>config</code>, <code>refs/heads</code>.</li>
+<li>Create three files; stage only two; commit; confirm the third is still untracked.</li>
+<li>Add <code>.gitkeep</code> to keep an empty folder.</li>
+<li>Use <code>git ls-files</code> to list tracked files.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 4 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S05 · Chapter manual · interview</span><h4>1. What is a Git repository?</h4><p>A project managed by Git, containing working files and Git metadata that records commits, references, and configuration.</p>
+<h4>2. What is the working directory?</h4><p>The checked-out project files where a developer creates and edits content.</p>
+<h4>3. What is the staging area?</h4><p>The index that holds the selected content for the next commit.</p>
+<h4>4. What is the difference between staging and committing?</h4><p>Staging selects changes for the next commit; committing records the staged snapshot in local repository history.</p>
+<h4>5. What is the difference between a local and remote repository?</h4><p>A local repository is stored on your machine. A remote repository is another repository hosted elsewhere for sharing and collaboration.</p>
+<h4>6. What is the purpose of the .git directory?</h4><p>It stores Git's object database, references, index, configuration, logs, and other repository metadata.</p>
+<h4>7. Does git init track all files automatically?</h4><p>No. It initializes repository metadata. Files must be added to the index with <code>git add</code> before they can be included in commits.</p>
+<h4>8. What is the difference between git add . and git add -A?</h4><p><code>git add .</code> stages changes under the current directory; <code>git add -A</code> stages additions, modifications, and deletions across the working tree.</p>
+<h4>9. How can you check whether a file is tracked?</h4><p>Use <code>git ls-files</code> to list tracked paths, or inspect <code>git status</code> for a specific file's state.</p>
+<h4>10. What happens if you delete the .git directory?</h4><p>The directory loses its normal Git repository metadata and local history. The working files may remain, but Git no longer recognizes that folder as the same repository.</p>
+<h4>11. Can you commit without an internet connection?</h4><p>Yes. Git commits are created locally. Internet access is generally needed only when communicating with a remote host.</p>
+<h4>12. What is a bare repository?</h4><p>A repository without a checked-out working tree, often used as a shared central repository on a server.</p>
+<h4>13. How do you unstage a file without discarding its changes?</h4><p>Use <code>git restore --staged filename</code>.</p>
+<h4>14. Does .gitignore affect files already tracked?</h4><p>No. Ignore rules normally apply to untracked files. A tracked file remains tracked until it is removed from the index.</p>
+<h4>15. Which command shows the root folder of the current repository?</h4><p><code>git rev-parse --show-toplevel</code>.</p></div><div class="src"><span class="tag s40">Source S40 · 12. Chapter 4 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is a Git repository?</td>
+<td>Project files plus a <code>.git</code> directory holding complete history</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Working directory vs staging area?</td>
+<td>Working directory = files you edit; staging area = changes prepared for the next commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What is the index?</td>
+<td>Another name for the staging area (<code>.git/index</code>)</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Local vs remote repository?</td>
+<td>Local is on your machine; remote is hosted and shared</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What does <code>git init</code> do?</td>
+<td>Creates a <code>.git</code> directory and an empty repository</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is in <code>.git</code>?</td>
+<td>HEAD, config, index, objects, refs, hooks, logs</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>Can Git track empty folders?</td>
+<td>No — add a placeholder file like <code>.gitkeep</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>What is a bare repository?</td>
+<td>A repository with only history and no working tree, used on servers</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What does <code>git init</code> create?</summary><div class="ans"><p>A <code>.git</code> directory containing the object database, refs, HEAD, config and other metadata — an empty repository.</p></div></details><details class="qa"><summary>What is the staging area?</summary><div class="ans"><p>The index: the list of file versions that will form the next commit.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What is a bare repository and when is it used?</summary><div class="ans"><p>A repository without a working tree, used as a central push/fetch target on servers.</p></div></details><details class="qa"><summary>What does <code>git status -s</code> output <code>MM file.sql</code> mean?</summary><div class="ans"><p>The file has staged changes (first M) and further unstaged changes (second M).</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Why can't Git commit an empty directory?</summary><div class="ans"><p>Trees store entries for files (blobs) and sub-trees that contain files; a directory with no files produces no tree entry. Use a placeholder file.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A new team member cloned the repo but <code>git status</code> shows hundreds of modified SQL files without edits. What do you check?</summary><div class="ans"><p>Line-ending normalization (<code>core.autocrlf</code>, <code>.gitattributes</code>), file mode changes (<code>core.fileMode</code>), and whether an editor reformatted files; <code>git diff --stat</code> and <code>git diff -w</code> help confirm.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which file tells Git which branch is checked out?</strong></p><ol><li data-ok="0">.git/config</li><li data-ok="1">.git/HEAD</li><li data-ok="0">.git/index</li><li data-ok="0">.git/refs/remotes</li></ol><div class="exp">HEAD normally contains <code>ref: refs/heads/&lt;branch&gt;</code>.</div></div><div class="mcq"><p><strong>2. In <code>git status -s</code>, what does <code>??</code> mean?</strong></p><ol><li data-ok="0">Conflict</li><li data-ok="0">Staged</li><li data-ok="1">Untracked</li><li data-ok="0">Deleted</li></ol><div class="exp"><code>??</code> marks untracked files.</div></div><div class="mcq"><p><strong>3. Where are commit objects stored?</strong></p><ol><li data-ok="0">.git/refs</li><li data-ok="1">.git/objects</li><li data-ok="0">.git/logs</li><li data-ok="0">.git/hooks</li></ol><div class="exp">All objects live in the object database.</div></div><div class="mcq"><p><strong>4. What is true about a bare repository?</strong></p><ol><li data-ok="0">It cannot receive pushes</li><li data-ok="1">It has no working tree</li><li data-ok="0">It has no objects</li><li data-ok="0">It is only used on Windows</li></ol><div class="exp">Bare repos store only the Git database.</div></div><div class="mcq"><p><strong>5. You create an empty folder <code>logs/</code> and run <code>git add .</code>. What happens?</strong></p><ol><li data-ok="0">logs/ is committed as an empty tree</li><li data-ok="1">Nothing is staged for logs/</li><li data-ok="0">Git reports an error</li><li data-ok="0">logs/ becomes ignored</li></ol><div class="exp">Git does not track empty directories.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>A repository = working tree + <code>.git</code> (objects, refs, index, config, hooks, logs).</li>
+<li>Files move: untracked → staged → committed; edits make them modified again.</li>
+<li>Bare repositories have no working tree and serve as shared remotes.</li>
+<li>The project repository now exists with a documented top-level layout and a first commit.</li>
+</ul></div><div class="src"><span class="tag ">Source S05 · Chapter manual · summary</span><ul>
+<li>A Git repository contains project files and the metadata needed to manage version history.</li>
+<li>The working directory is where you edit files.</li>
+<li>The staging area (index) selects content for the next commit.</li>
+<li>The local repository stores commits on your machine.</li>
+<li>A remote repository enables sharing and collaboration.</li>
+<li>The hidden <code>.git</code> directory stores Git's internal data and configuration.</li>
+<li><code>git init</code> initializes a repository; it does not automatically track or commit files.</li>
+<li><code>git add</code> stages content, and <code>git commit</code> records it in local history.</li>
+<li><code>git status</code> is one of the most useful commands for understanding the current state.</li>
+</ul>
+<div class="callout success"><strong>Key commands to remember</strong><br/>
+<code>git init</code> · <code>git status</code> · <code>git add</code> · <code>git diff</code> · <code>git diff --staged</code> · <code>git commit</code> · <code>git log --oneline</code> · <code>git ls-files</code> · <code>git rev-parse</code>
+</div>
+<h4>Official learning resources</h4>
+<ul>
+<li><a href="https://git-scm.com/docs" rel="noopener" target="_blank">Git official documentation</a></li>
+<li><a href="https://git-scm.com/book/en/v2" rel="noopener" target="_blank">Pro Git book</a></li>
+<li><a href="https://git-scm.com/docs/git-init" rel="noopener" target="_blank">git init reference</a></li>
+<li><a href="https://git-scm.com/docs/git-add" rel="noopener" target="_blank">git add reference</a></li>
+<li><a href="https://git-scm.com/docs/git-status" rel="noopener" target="_blank">git status reference</a></li>
+<li><a href="https://git-scm.com/docs/gitignore" rel="noopener" target="_blank">gitignore reference</a></li>
+</ul>
+<p class="small">Next chapter suggestion: Git configuration and identity in practice, or Git basic commands for inspecting repository history and changes.</p></div><div class="src"><span class="tag s40">Source S40 · 13. Chapter 4 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository</td>
+<td>Project + <code>.git</code> history</td>
+</tr>
+<tr>
+<td>Working directory</td>
+<td>Files you edit</td>
+</tr>
+<tr>
+<td>Staging area</td>
+<td>Next commit's content</td>
+</tr>
+<tr>
+<td>Local repository</td>
+<td>Committed history on your machine</td>
+</tr>
+<tr>
+<td>Remote repository</td>
+<td>Shared server copy</td>
+</tr>
+<tr>
+<td><code>.git</code></td>
+<td>Git's database and configuration</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Create a repository with <code>git init</code> and explain every top-level item in <code>.git</code>.</li><li>Distinguish working tree, staging area (index), local repository and remote repository.</li><li>Classify files as untracked, tracked-unmodified, modified and staged using <code>git status</code>.</li><li>Explain bare vs non-bare repositories.</li><li>Lay out a data-platform repository with clear top-level folders.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-init">git-init</a> · <a href="https://git-scm.com/docs/git-status">git-status</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository">Pro Git — Getting a Git Repository</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository">Pro Git — Recording Changes to the Repository</a></li>
+<li><a href="https://git-scm.com/docs/gitrepository-layout">gitrepository-layout</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_03_Git_Installation_and_Configuration.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Installation and Configuration</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_05_Basic_Git_Commands.html"><span class="mn-label">Next →</span><span class="mn-title">Basic Git Commands</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

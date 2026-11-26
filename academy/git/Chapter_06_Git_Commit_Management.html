@@ -1,0 +1,1810 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Read a commit object (git cat-file -p HEAD) and name its fields."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Commit Management — Chapter 6 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Commit Management</div>
+<div class="brand-sub">Chapter 6 · 44 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">6.1</span>What is a commit?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">6.2</span>Understanding commit history</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">6.3</span>Anatomy of a Git commit</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">6.4</span>Commit ID (SHA)</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">6.5</span>Parent commits</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">6.6</span>Writing meaningful commit messages</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">6.7</span>Single-line commits</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">6.8</span>Multi-line commits</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">6.9</span>Amending previous commits</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">6.10</span>Modifying commit messages</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">6.11</span>Viewing previous commits</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">6.12</span>Comparing commits</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">6.13</span>Reverting commits</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">6.14</span>Resetting commits</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">6.15</span>Recovering deleted commits</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">6.16</span>Choosing between amend, revert, and reset</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">6.17</span>What is a Commit?</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">6.18</span>Understanding Commit History</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">6.19</span>Anatomy of a Git Commit</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">6.20</span>Commit ID (SHA)</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">6.21</span>Parent Commits</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">6.22</span>Writing Meaningful Commit Messages</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">6.23</span>Single-Line Commits</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">6.24</span>Multi-Line Commits</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">6.25</span>Amending Previous Commits</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">6.26</span>Modifying Commit Messages</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">6.27</span>Viewing Previous Commits</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">6.28</span>Comparing Commits</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">6.29</span>Reverting Commits</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">6.30</span>Resetting Commits</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">6.31</span>Recovering Deleted Commits</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 2: Basic development</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">🎯</span>Chapter 6 Interview Questions</a>
+<a href="#lesson-42" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-43" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-44" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 2 · Chapter 6</div><h1>Git Commit Management</h1><p class="page-subtitle">Read a commit object (<code>git cat-file -p HEAD</code>) and name its fields.</p><div class="meta-row"><span class="meta-pill">Phase <b>2</b></span><span class="meta-pill">Lessons <b>44</b></span><span class="meta-pill">Sources <b>S07, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is a commit?; Understanding commit history; Anatomy of a Git commit; Commit ID (SHA); Parent commits; Writing meaningful commit messages; Single-line commits; Multi-line commits; Amending previous commits; Modifying commit messages. <br><strong>Before you start:</strong> complete Chapter 5 – Basic Git Commands. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Managing commits: what a commit contains, how commit IDs and parents form history, how to write good messages, and how to amend, compare, revert, reset and recover commits.</p>
+<p><strong>Why it matters.</strong> History is documentation. Clean, well-described commits make reviews faster, rollbacks safer and audits possible.</p>
+<p><strong>Where it is used.</strong> Every commit you make; release notes; <code>git blame</code>, <code>git bisect</code> and audits rely on it.</p>
+<p><strong>In this course's project.</strong> Stage 2 continues: the team adopts the commit-message convention, fixes a bad commit with <code>--amend</code>, and recovers a "lost" commit with the reflog.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers commits in depth — their anatomy, IDs and parents, how to write great messages, how to amend, view, compare, revert, reset and recover commits.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to explain exactly what a commit contains, write professional commit messages, and safely change, undo or recover commits.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S07 · Chapter manual · objectives</span><span class="pill">Intermediate foundations · Hands-on</span>
+
+<p class="lead">By the end of this chapter, you should be able to read Git history, understand what a commit contains, create clear commit messages, amend local commits, choose between revert and reset, and use reflog to recover work safely.</p>
+<ul>
+<li>Explain commits, commit IDs, parent commits, and history graphs.</li>
+<li>Inspect commits and compare versions of files.</li>
+<li>Create single-line and multi-line commit messages.</li>
+<li>Amend the latest commit and understand when rewriting history is unsafe.</li>
+<li>Choose between <code>git revert</code> and <code>git reset</code>.</li>
+<li>Use <code>git reflog</code> to find previous positions of branch references.</li>
+</ul></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Read a commit object (<code>git cat-file -p HEAD</code>) and name its fields.</li>
+<li>Write single-line and multi-line messages following the 50/72 convention and a team prefix (e.g. Conventional Commits) with ticket IDs.</li>
+<li>Amend the last commit (content, message, author) and explain why amending pushed commits is dangerous.</li>
+<li>Compare commits with <code>git diff</code>, <code>git show</code> and <code>git log -p</code>, and choose between amend, revert and reset.</li>
+<li>Recover a commit after <code>git reset --hard</code> using <code>git reflog</code>.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">6.1</div><h2>What is a commit?</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 1. What is a commit?</span><p>A <strong>Git commit</strong> is a recorded snapshot of the project content represented by the staging area at the time the commit is created. It is saved in the local repository's object database and connected to the existing history.</p>
+<p>A commit is more than a simple “save”. It records a project state that can be inspected, compared, checked out, or used as the base for later work.</p>
+<h4>Example</h4>
+<pre><code>git status
+git add sql/load_customers.sql
+git commit -m "Add active customer filter"</code></pre>
+<p>The commit contains the staged version of <code>sql/load_customers.sql</code>. Any unstaged edits made after staging are not included in that commit.</p>
+<div class="callout success"><strong>Remember:</strong> A commit is local by default. It is not automatically uploaded to GitHub, GitLab, Bitbucket, or Azure Repos. Sharing commits normally requires <code>git push</code>.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">6.2</div><h2>Understanding commit history</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 2. Understanding commit history</span><p>Commit history is the sequence and graph of commits connected through parent relationships. On a simple branch, commits often appear as a linear sequence. When branches merge, the history becomes a graph.</p>
+<div class="diagram">
+<div class="flow">
+<div class="box">Commit A<br/><span class="small">Initial project</span></div><div class="arrow">→</div>
+<div class="box">Commit B<br/><span class="small">Add SQL logic</span></div><div class="arrow">→</div>
+<div class="box">Commit C<br/><span class="small">Add validation</span></div><div class="arrow">→</div>
+<div class="box">Commit D<br/><span class="small">Fix null handling</span></div>
+</div>
+<p class="small">Simplified linear history: each commit points to its parent.</p>
+</div>
+<pre><code># View history
+git log
+
+# Compact history
+git log --oneline
+
+# Visualize branches and merges
+git log --oneline --graph --decorate --all
+
+# Show the most recent 10 commits
+git log -10</code></pre>
+<p>Git history is not just a numbered list. Branches are references to commits, and merge commits can have more than one parent. The graph records how lines of development connect.</p></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">6.3</div><h2>Anatomy of a Git commit</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 3. Anatomy of a Git commit</span><p>A commit object contains key pieces of metadata and a reference to the top-level tree representing the project snapshot.</p>
+<table>
+<tr><th>Commit component</th><th>Description</th></tr>
+<tr><td><strong>Tree</strong></td><td>Identifies the top-level directory snapshot for this commit. Trees reference files (blobs) and subdirectories (other trees).</td></tr>
+<tr><td><strong>Parent</strong></td><td>Identifies the previous commit or commits from which this commit was created. The initial commit has no parent.</td></tr>
+<tr><td><strong>Author</strong></td><td>Name, email, and timestamp associated with the original author of the change.</td></tr>
+<tr><td><strong>Committer</strong></td><td>Name, email, and timestamp for the person who created this commit object. This can differ from the author, for example after a patch is applied.</td></tr>
+<tr><td><strong>Message</strong></td><td>Human-readable explanation of the commit.</td></tr>
+<tr><td><strong>Commit ID</strong></td><td>Hash identifying the commit object and its contents.</td></tr>
+</table>
+<h4>Conceptual commit structure</h4>
+<pre><code>tree      &lt;tree-object-id&gt;
+parent    &lt;parent-commit-id&gt;
+author    Developer Name &lt;developer@example.com&gt; &lt;timestamp&gt;
+committer Developer Name &lt;developer@example.com&gt; &lt;timestamp&gt;
+
+Add active customer filter</code></pre>
+<p>This is a simplified illustration of the commit object's textual representation. Git hashes the object content, including its header and message, to calculate the object ID.</p>
+<h4>Inspect commit metadata</h4>
+<pre><code># Show latest commit details and patch
+git show
+
+# Show commit metadata without the patch
+git show --no-patch --format=fuller HEAD
+
+# Show raw commit object content
+git cat-file -p HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">6.4</div><h2>Commit ID (SHA)</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 4. Commit ID (SHA)</span><p>Every commit object is identified by a hash, commonly called its <strong>commit hash</strong> or <strong>SHA</strong>. The ID is calculated from the commit object's content, so changing the commit message, tree, parent, or metadata produces a different commit ID.</p>
+<p>In many existing repositories, object IDs use SHA-1 and are displayed as 40 hexadecimal characters. Git also supports repositories using the SHA-256 object format, where IDs are longer. Do not assume every repository uses the same hash length.</p>
+<pre><code># Show full commit IDs
+git log --format="%H %s"
+
+# Show abbreviated commit IDs
+git log --oneline
+
+# Show the current commit ID
+git rev-parse HEAD</code></pre>
+<h4>Full and abbreviated IDs</h4>
+<ul>
+<li><strong>Full ID:</strong> The complete object identifier.</li>
+<li><strong>Abbreviated ID:</strong> A shorter prefix that Git can resolve uniquely in that repository at that time.</li>
+<li><strong>HEAD:</strong> A symbolic reference to the current checkout; on a branch, it normally points to that branch.</li>
+</ul>
+<div class="callout">A commit ID is content-derived, not a sequential number such as commit 1, commit 2, commit 3. Two repositories can have different commits with different IDs even if their histories look similar.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">6.5</div><h2>Parent commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 5. Parent commits</span><p>A parent commit is the commit from which a new commit directly follows. Parent links are what allow Git to build the history graph.</p>
+<ul>
+<li>An initial/root commit has no parent.</li>
+<li>A normal commit usually has one parent.</li>
+<li>A merge commit usually has two or more parents.</li>
+</ul>
+<div class="diagram">
+<p><strong>Simple history</strong></p>
+<div class="flow"><div class="box">A<br/><span class="small">Root</span></div><span class="arrow">→</span><div class="box">B<br/><span class="small">Parent: A</span></div><span class="arrow">→</span><div class="box">C<br/><span class="small">Parent: B</span></div></div>
+<p><strong>Merge history</strong></p>
+<div class="flow"><div class="box">A</div><span class="arrow">→</span><div class="box">B</div><span class="arrow">→</span><div class="box">D<br/><span class="small">Merge commit</span></div></div>
+<div class="flow"><div class="box"> </div><span class="arrow"> </span><div class="box">C</div><span class="arrow">↗</span><div class="box"> </div></div>
+<p class="small">Conceptual illustration: merge commit D connects two lines of development and has both B and C as parents.</p>
+</div>
+<pre><code># Show parent commit IDs for HEAD
+git rev-list --parents -n 1 HEAD
+
+# Show the first parent of HEAD
+git rev-parse HEAD^
+
+# Show the commit before HEAD
+git show HEAD~1</code></pre>
+<p><code>HEAD~1</code> means the first-parent commit one step back. The caret notation such as <code>HEAD^2</code> can refer to the second parent of a merge commit.</p></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">6.6</div><h2>Writing meaningful commit messages</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 6. Writing meaningful commit messages</span><p>A commit message explains the purpose of a change. Good messages make history easier to review, troubleshoot, audit, and understand months later.</p>
+<h4>Recommended approach</h4>
+<ul>
+<li>Keep the subject concise and specific.</li>
+<li>Use an imperative verb: <em>Add</em>, <em>Fix</em>, <em>Update</em>, <em>Remove</em>, or <em>Refactor</em>.</li>
+<li>Explain the reason or context in the body when the change is not self-explanatory.</li>
+<li>Separate the subject from the body with a blank line.</li>
+<li>Follow your team's convention, such as ticket IDs or Conventional Commits, if one exists.</li>
+</ul>
+<table>
+<tr><th>Weak message</th><th>Better message</th></tr>
+<tr><td><code>update</code></td><td><code>Update customer extraction filter</code></td></tr>
+<tr><td><code>fix bug</code></td><td><code>Fix null handling in customer validation</code></td></tr>
+<tr><td><code>changes</code></td><td><code>Add retry handling to source ingestion</code></td></tr>
+<tr><td><code>final code</code></td><td><code>Remove duplicate rows from sales staging load</code></td></tr>
+</table>
+<h4>Example for a Data Engineering project</h4>
+<pre><code>Fix duplicate customer records in daily load
+
+Deduplicate source rows using CustomerID and UpdatedAt
+before merging records into the warehouse dimension.
+
+This prevents the daily load from failing when the source
+delivers multiple updates for the same customer.</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">6.7</div><h2>Single-line commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 7. Single-line commits</span><p>A single-line commit uses a concise subject message. This is suitable for a small, self-contained change whose purpose is clear.</p>
+<pre><code>git add sql/load_customers.sql
+git commit -m "Add active customer filter"</code></pre>
+<p>Other examples:</p>
+<pre><code>git commit -m "Create customer validation script"
+git commit -m "Fix date conversion in sales load"
+git commit -m "Update pipeline deployment parameters"</code></pre>
+<p>Keep the message focused on the change. Avoid putting a long explanation into an oversized subject line; use a multi-line message when more context is needed.</p></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">6.8</div><h2>Multi-line commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 8. Multi-line commits</span><p>A multi-line commit message has a subject followed by a blank line and a descriptive body. The subject summarizes the change; the body explains what changed and why.</p>
+<h4>Using the configured text editor</h4>
+<pre><code>git commit</code></pre>
+<p>Git opens the editor configured for your environment. Enter the subject, a blank line, and then the body. Save and close the editor to complete the commit.</p>
+<h4>Using multiple -m options</h4>
+<pre><code>git commit \
+  -m "Fix customer load duplicate handling" \
+  -m "Deduplicate source records by CustomerID and UpdatedAt.
+This prevents duplicate source rows from breaking the
+warehouse load."</code></pre>
+<p>In PowerShell or Windows Command Prompt, you can enter the command on one line if shell continuation syntax differs:</p>
+<pre><code>git commit -m "Fix customer load duplicate handling" -m "Deduplicate source records by CustomerID and UpdatedAt to prevent duplicate rows from breaking the warehouse load."</code></pre>
+<div class="callout">The exact style is a team convention. A useful message answers: <strong>What changed?</strong> and, when needed, <strong>Why was it necessary?</strong></div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">6.9</div><h2>Amending previous commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 9. Amending previous commits</span><p><code>git commit --amend</code> replaces the latest commit with a new commit. It is commonly used to add a missed file or correct the latest commit message.</p>
+<h4>Add a forgotten file to the latest commit</h4>
+<pre><code># Stage the file you forgot
+git add README.md
+
+# Create a replacement for the latest commit
+git commit --amend --no-edit</code></pre>
+<h4>Change the latest commit message</h4>
+<pre><code>git commit --amend -m "Improve customer validation rules"</code></pre>
+<p>Amending creates a new commit object with a different ID. The previous commit is no longer the branch tip, although it may remain recoverable for a time through reflog and object retention.</p>
+<div class="callout danger"><strong>Shared-history warning:</strong> Amend is safest before you push the commit. If the old commit has already been shared, amending rewrites history. Coordinate with collaborators and follow team policy before force-pushing any replacement history.</div></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">6.10</div><h2>Modifying commit messages</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 10. Modifying commit messages</span><p>There are different approaches depending on whether the commit is the latest commit or an older commit.</p>
+<h4>Modify the latest commit message</h4>
+<pre><code>git commit --amend -m "Corrected latest commit message"</code></pre>
+<h4>Modify an older commit message</h4>
+<p>Use interactive rebase to reword a commit in the current branch's recent history:</p>
+<pre><code># Open an interactive rebase for the last 4 commits
+git rebase -i HEAD~4</code></pre>
+<p>In the editor, change <code>pick</code> to <code>reword</code> beside the commit whose message you want to change. Save and close. Git then prompts you to enter a new message.</p>
+<div class="callout warn"><strong>Rebase rewrites commit IDs.</strong> This is generally appropriate for unpublished local commits. Rewriting commits already used by others can disrupt shared history. Do not rebase commits that your team expects to remain unchanged on a shared branch unless the team has agreed on the procedure.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">6.11</div><h2>Viewing previous commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 11. Viewing previous commits</span><p>Git offers several ways to inspect historical commits, including summaries, patches, file-specific history, and metadata.</p>
+<pre><code># List all reachable commits
+git log
+
+# Compact list
+git log --oneline
+
+# Latest five commits
+git log -5 --oneline
+
+# Show a selected commit
+git show &lt;commit-id&gt;
+
+# Show the commit before HEAD
+git show HEAD~1
+
+# Show a file's history
+git log --follow -- sql/customer_load.sql
+
+# Show commit metadata
+git show --no-patch --format=fuller &lt;commit-id&gt;</code></pre>
+<p><code>--follow</code> can follow the history of a single file across detected renames. It is intended for use with one path.</p></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">6.12</div><h2>Comparing commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 12. Comparing commits</span><p>Use <code>git diff</code> to compare the project state between two commits, or between a commit and your current working state.</p>
+<pre><code># Compare two commits
+git diff &lt;commit-A&gt; &lt;commit-B&gt;
+
+# Compare a commit with the current HEAD
+git diff &lt;commit-id&gt; HEAD
+
+# Compare only one file between commits
+git diff &lt;commit-A&gt; &lt;commit-B&gt; -- sql/customer_load.sql
+
+# Show a summary of changed files
+git diff --stat &lt;commit-A&gt; &lt;commit-B&gt;
+
+# Show names and change types only
+git diff --name-status &lt;commit-A&gt; &lt;commit-B&gt;</code></pre>
+<h4>Example scenario</h4>
+<p>You want to know what changed in the customer load script between last week's version and the current version. Find the two commit IDs using <code>git log</code>, then run:</p>
+<pre><code>git diff 1a2b3c4 5d6e7f8 -- sql/customer_load.sql</code></pre>
+<p>The IDs above are examples. Replace them with IDs from your own repository.</p></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">6.13</div><h2>Reverting commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 13. Reverting commits</span><p><code>git revert</code> creates a <strong>new commit</strong> that applies the inverse of the changes introduced by an earlier commit. It preserves the existing history rather than moving the branch backward.</p>
+<h4>Revert the latest commit</h4>
+<pre><code>git revert HEAD</code></pre>
+<h4>Revert a specific commit</h4>
+<pre><code>git revert &lt;commit-id&gt;</code></pre>
+<h4>Revert without automatically committing</h4>
+<pre><code>git revert --no-commit &lt;commit-id&gt;
+git status
+# Review the result, then commit when ready
+git commit -m "Revert customer load filter change"</code></pre>
+<p>Git may open an editor for the revert message. If the original change conflicts with later changes, you may need to resolve conflicts, stage the resolutions, and continue the revert.</p>
+<pre><code># After resolving conflicts:
+git add &lt;resolved-files&gt;
+git revert --continue
+
+# Cancel an in-progress revert
+git revert --abort</code></pre>
+<div class="callout success"><strong>Best for shared branches:</strong> Revert is usually the safer way to undo a commit that has already been pushed, because it adds a new corrective commit instead of rewriting shared history.</div></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">6.14</div><h2>Resetting commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 14. Resetting commits</span><p><code>git reset</code> moves the current branch reference to a selected commit. Depending on the mode, it can also reset the staging area and working tree. Unlike revert, reset does not create a new commit that reverses the changes.</p>
+<table>
+<tr><th>Mode</th><th>Branch tip / HEAD</th><th>Index</th><th>Working tree</th><th>Typical use</th></tr>
+<tr><td><code>--soft</code></td><td>Moves to target</td><td>Preserved</td><td>Preserved</td><td>Remove latest commit but keep changes staged.</td></tr>
+<tr><td><code>--mixed</code> (default)</td><td>Moves to target</td><td>Reset to target</td><td>Preserved</td><td>Remove latest commit and leave changes unstaged.</td></tr>
+<tr><td><code>--hard</code></td><td>Moves to target</td><td>Reset to target</td><td>Reset to target</td><td>Discard local tracked changes and move branch back.</td></tr>
+</table>
+<h4>Examples</h4>
+<pre><code># Undo the latest commit but keep changes staged
+git reset --soft HEAD~1
+
+# Undo the latest commit and keep changes in working tree, unstaged
+git reset --mixed HEAD~1
+
+# Move branch back and discard tracked changes after target
+git reset --hard HEAD~1</code></pre>
+<div class="callout danger"><strong>Danger:</strong> <code>git reset --hard</code> can permanently discard uncommitted tracked changes. Moving a branch backward can also remove commits from that branch's visible history. Avoid rewriting commits already shared with others unless you have coordinated the change.</div>
+<h4>Reset is not the same as deleting a commit object immediately</h4>
+<p>Reset normally moves a reference. The old commit object may still exist for a while and can often be found through the reflog. Git may eventually prune unreachable objects according to repository maintenance and retention rules.</p></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">6.15</div><h2>Recovering deleted commits</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · 15. Recovering deleted commits</span><p>A commit may appear to disappear after a reset, rebase, amend, or branch movement. It may still be recoverable because Git records recent movements of references in the <strong>reflog</strong>.</p>
+<h4>Step 1 — Inspect the reflog</h4>
+<pre><code>git reflog</code></pre>
+<p>The reflog shows recent local updates to references such as <code>HEAD</code> and branch tips. You may see entries such as a previous commit, a reset, or an amend operation.</p>
+<h4>Step 2 — Identify the commit to recover</h4>
+<pre><code># Inspect recent HEAD movements
+git reflog --date=local
+
+# Inspect a candidate commit
+git show &lt;candidate-commit-id&gt;</code></pre>
+<h4>Step 3 — Create a recovery branch (recommended)</h4>
+<pre><code>git branch recovery-work &lt;candidate-commit-id&gt;</code></pre>
+<p>This creates a branch pointing to the candidate commit without moving your current branch. Inspect the recovery branch and verify the files and history.</p>
+<h4>Step 4 — Restore the branch if appropriate</h4>
+<p>If you have confirmed that the candidate is the correct commit and understand the impact, you can switch to the recovery branch or move the intended branch reference as part of a planned recovery.</p>
+<pre><code>git switch recovery-work</code></pre>
+<div class="callout warn"><strong>Recovery limitations:</strong> Reflog is local to your repository and entries expire according to configuration and maintenance. Uncommitted changes that were never recorded may not be recoverable this way. If a commit has been pruned and no other copy exists, recovery may be difficult or impossible. Avoid running aggressive cleanup while investigating lost work.</div>
+<h4>Other recovery options</h4>
+<ul>
+<li>Check other local branches and tags.</li>
+<li>Check remote-tracking branches with <code>git log --all --oneline --graph</code>.</li>
+<li>Check whether a teammate or remote repository has the commit.</li>
+<li>Use <code>git fsck --no-reflogs --unreachable</code> as an advanced diagnostic when a commit is not found in normal references. Review results carefully; not every unreachable object is a useful commit.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">6.16</div><h2>Choosing between amend, revert, and reset</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · Choosing between amend, revert, and reset</span><table>
+<tr><th>Operation</th><th>What it does</th><th>Best suited for</th></tr>
+<tr><td><code>git commit --amend</code></td><td>Replaces the latest commit with a new commit.</td><td>Correcting the latest local commit or adding a forgotten staged file.</td></tr>
+<tr><td><code>git revert &lt;id&gt;</code></td><td>Creates a new commit that reverses an earlier commit's changes.</td><td>Undoing a commit in shared history safely.</td></tr>
+<tr><td><code>git reset --soft</code></td><td>Moves branch tip; preserves staged and working-tree changes.</td><td>Reworking the latest local commit while keeping changes staged.</td></tr>
+<tr><td><code>git reset --mixed</code></td><td>Moves branch tip; resets index, keeps working-tree files.</td><td>Reworking a local commit with changes left unstaged.</td></tr>
+<tr><td><code>git reset --hard</code></td><td>Moves branch tip and resets index and tracked working tree.</td><td>Discarding local tracked changes when you are absolutely certain.</td></tr>
+<tr><td><code>git reflog</code></td><td>Shows recent local reference movements.</td><td>Finding a previous commit after a reset, amend, or rebase.</td></tr>
+</table>
+<div class="callout success"><strong>Simple rule:</strong> For a commit already shared with your team, prefer <code>git revert</code>. For unpublished local work, amend or reset may be appropriate when you understand the consequences.</div></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">6.17</div><h2>
+What is a Commit?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is a Commit?</span><h4>1.1 Definition</h4>
+<p>A <strong>commit</strong> is a permanent, immutable <strong>snapshot of the staged project</strong> at a point in time, together with metadata (author, committer, date, message) and a link to its parent commit(s).</p>
+<h4>1.2 Characteristics</h4>
+<ul>
+<li>Identified by a unique <strong>hash (SHA)</strong>.</li>
+<li><strong>Immutable</strong> — any change produces a <em>new</em> commit with a new hash.</li>
+<li>Linked to its parent(s), forming a history graph.</li>
+<li>Stored in the <strong>local</strong> repository until pushed.</li>
+</ul>
+<h4>1.3 Think of it as</h4>
+<p>A save point in a game — you can always return to it, compare with it, or build from it.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">6.18</div><h2>
+Understanding Commit History
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Understanding Commit History</span><h4>2.1 History is a chain (graph)</h4>
+<pre><code class="language-text">a1b2c3d ◄── 3f2a7d1 ◄── 9c8b7a6 ◄── e4f5a6b   (main, HEAD)
+(root)                                         newest
+</code></pre>
+<p>Each commit points <strong>backwards</strong> to its parent. The branch name points to the newest commit.</p>
+<h4>2.2 Viewing history</h4>
+<pre><code class="language-bash">git log --oneline
+git log --oneline --graph --all
+git log --stat
+git log --format=&quot;%h | %an | %ad | %s&quot; --date=short
+</code></pre>
+<h4>2.3 Linear vs non-linear history</h4>
+<ul>
+<li><strong>Linear</strong> — every commit has one parent (fast-forward merges, rebase).</li>
+<li><strong>Non-linear</strong> — merge commits with two parents show where branches were joined.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">6.19</div><h2>
+Anatomy of a Git Commit
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Anatomy of a Git Commit</span><pre><code class="language-bash">git cat-file -p HEAD
+</code></pre>
+<pre><code class="language-text">tree 9b1e4c2f8a...                          ← snapshot of the project root
+parent 3f2a7d1c4b...                        ← previous commit
+author Ravi Kumar &lt;ravi.kumar@company.com&gt; 1795002012 +0530
+committer Ravi Kumar &lt;ravi.kumar@company.com&gt; 1795002012 +0530
+
+Filter active customers in usp_load_customers
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tree</code></td>
+<td>Hash of the tree object representing the full directory snapshot</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td>Hash(es) of the previous commit(s); none for the first (root) commit; two or more for merges</td>
+</tr>
+<tr>
+<td><code>author</code></td>
+<td>Person who originally wrote the change + timestamp + timezone</td>
+</tr>
+<tr>
+<td><code>committer</code></td>
+<td>Person who created this commit object (differs after rebase, cherry-pick, <code>--amend</code> by others, applying patches)</td>
+</tr>
+<tr>
+<td>message</td>
+<td>Subject line and optional body</td>
+</tr>
+<tr>
+<td>(optional) <code>gpgsig</code></td>
+<td>Signature for signed commits</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">6.20</div><h2>
+Commit ID (SHA)
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Commit ID (SHA)</span><h4>4.1 Definition</h4>
+<p>The <strong>commit ID</strong> is a 40-character hexadecimal <strong>SHA-1 hash</strong> calculated from the commit's entire content (tree, parents, author, committer, dates, message).</p>
+<pre><code class="language-text">9c8b7a6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b
+</code></pre>
+<h4>4.2 Properties</h4>
+<ul>
+<li><strong>Unique</strong> — practically no two commits share a hash.</li>
+<li><strong>Deterministic</strong> — the same content always gives the same hash.</li>
+<li><strong>Tamper-evident</strong> — changing anything (even one character in the message) produces a new hash, and every descendant commit's hash changes too.</li>
+<li><strong>Short form</strong> — the first 7+ characters are usually enough: <code>9c8b7a6</code>.</li>
+</ul>
+<pre><code class="language-bash">git rev-parse HEAD           # full hash
+git rev-parse --short HEAD   # short hash
+git log --abbrev-commit
+</code></pre>
+<div class="callout "><p><strong>Note</strong> Git can also use SHA-256 for new repositories (<code>git init --object-format=sha256</code>), producing 64-character IDs; hosting support is still limited.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">6.21</div><h2>
+Parent Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Parent Commits</span><h4>5.1 Types</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Commit type</th>
+<th>Number of parents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Root (first) commit</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Normal commit</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Merge commit</td>
+<td>2 (or more for octopus merges)</td>
+</tr>
+</tbody>
+</table></div>
+<h4>5.2 Referring to ancestors</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Reference</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HEAD</code></td>
+<td>Current commit</td>
+</tr>
+<tr>
+<td><code>HEAD~1</code> or <code>HEAD^</code></td>
+<td>Parent</td>
+</tr>
+<tr>
+<td><code>HEAD~2</code></td>
+<td>Grandparent (follow first parents)</td>
+</tr>
+<tr>
+<td><code>HEAD^1</code></td>
+<td>First parent of a merge (the branch you were on)</td>
+</tr>
+<tr>
+<td><code>HEAD^2</code></td>
+<td>Second parent of a merge (the branch merged in)</td>
+</tr>
+<tr>
+<td><code>main@{yesterday}</code></td>
+<td>Where <code>main</code> was yesterday (reflog)</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git show HEAD^2          # the merged-in branch tip of a merge commit
+git log --first-parent   # follow only the mainline
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">6.22</div><h2>
+Writing Meaningful Commit Messages
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Writing Meaningful Commit Messages</span><h4>6.1 Why messages matter</h4>
+<p>Commit messages are the documentation of <em>why</em> code changed. During a production incident, a good message saves hours.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Bad</th>
+<th>Good</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>update</code></td>
+<td><code>Filter inactive customers from daily load</code></td>
+</tr>
+<tr>
+<td><code>fixed bug</code></td>
+<td><code>Fix duplicate orders caused by missing join key</code></td>
+</tr>
+<tr>
+<td><code>changes</code></td>
+<td><code>Add region column to dim_customer</code></td>
+</tr>
+<tr>
+<td><code>wip</code></td>
+<td><code>Add incremental watermark to orders extract</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4>6.2 The seven rules</h4>
+<ol>
+<li>Separate subject from body with a blank line.</li>
+<li>Limit the subject line to about <strong>50 characters</strong>.</li>
+<li>Capitalise the subject line.</li>
+<li>Do not end the subject line with a period.</li>
+<li>Use the <strong>imperative mood</strong> ("Add", "Fix", "Remove" — as if completing "If applied, this commit will …").</li>
+<li>Wrap the body at <strong>72 characters</strong>.</li>
+<li>Use the body to explain <strong>what and why</strong>, not how.</li>
+</ol>
+<h4>6.3 Conventional Commits format</h4>
+<pre><code class="language-text">&lt;type&gt;(&lt;optional scope&gt;): &lt;description&gt;
+
+[optional body]
+
+[optional footer(s)]
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feat</code></td>
+<td>New feature</td>
+</tr>
+<tr>
+<td><code>fix</code></td>
+<td>Bug fix</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>Documentation only</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td>Formatting, no logic change</td>
+</tr>
+<tr>
+<td><code>refactor</code></td>
+<td>Code restructuring without behaviour change</td>
+</tr>
+<tr>
+<td><code>perf</code></td>
+<td>Performance improvement</td>
+</tr>
+<tr>
+<td><code>test</code></td>
+<td>Adding/fixing tests</td>
+</tr>
+<tr>
+<td><code>build</code></td>
+<td>Build system or dependencies</td>
+</tr>
+<tr>
+<td><code>ci</code></td>
+<td>CI/CD configuration</td>
+</tr>
+<tr>
+<td><code>chore</code></td>
+<td>Maintenance</td>
+</tr>
+<tr>
+<td><code>revert</code></td>
+<td>Reverting a previous commit</td>
+</tr>
+</tbody>
+</table></div>
+<p>Examples:</p>
+<pre><code class="language-text">feat(sql): add dim_product table
+fix(etl): handle null order dates
+perf(sql): add index on fact_sales.order_date
+ci: run pytest on pull requests
+feat(api)!: rename customer_id to cust_id     ← &quot;!&quot; marks a breaking change
+</code></pre>
+<h4>6.4 Linking work items</h4>
+<pre><code class="language-text">fix(adf): retry copy activity on transient errors
+
+Refs: DE-1423          (Jira)
+Fixes #42              (GitHub issue — closes on merge)
+AB#1423                (Azure Boards)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">6.23</div><h2>
+Single-Line Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Single-Line Commits</span><p>Use for small, self-explanatory changes.</p>
+<pre><code class="language-bash">git commit -m &quot;Add vw_active_customers view&quot;
+</code></pre>
+<p>Good when the subject fully explains the change and no extra context is needed.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">6.24</div><h2>
+Multi-Line Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Multi-Line Commits</span><p>Use when the reason, impact or context needs explanation.</p>
+<p><strong>Option 1 — multiple <code>-m</code> flags</strong> (each becomes a paragraph):</p>
+<pre><code class="language-bash">git commit -m &quot;Fix duplicate customers in daily load&quot; \
+           -m &quot;The MERGE matched on email, which is not unique. Match on customer_id instead and add a unique index.&quot; \
+           -m &quot;Refs: DE-1423&quot;
+</code></pre>
+<p><strong>Option 2 — editor:</strong></p>
+<pre><code class="language-bash">git commit
+</code></pre>
+<pre><code class="language-text">Fix duplicate customers in daily load
+
+The MERGE statement matched on email, which is not unique
+across source systems. Match on customer_id instead and add
+a unique index to prevent regressions.
+
+Refs: DE-1423
+</code></pre>
+<p>Save and close the editor to complete the commit. Leaving the message empty aborts the commit.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">6.25</div><h2>
+Amending Previous Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Amending Previous Commits</span><h4>9.1 Purpose</h4>
+<p><code>git commit --amend</code> replaces the <strong>last commit</strong> with a new one — to add forgotten files, fix content or change the message.</p>
+<h4>9.2 Examples</h4>
+<pre><code class="language-bash"># Forgot to include a file
+git add sql/views/vw_active_customers.sql
+git commit --amend --no-edit
+
+# Fix a small mistake in the last commit's content
+# (edit the file)
+git add sql/procedures/usp_load_customers.sql
+git commit --amend --no-edit
+
+# Change author on the last commit
+git commit --amend --author=&quot;Ravi Kumar &lt;ravi.kumar@company.com&gt;&quot; --no-edit
+
+# Reset the date to now
+git commit --amend --no-edit --date=now
+</code></pre>
+<h4>9.3 Rules</h4>
+<div class="callout c-warn"><p><strong>Warning</strong> Amending creates a new commit hash. If the original commit was already pushed, amending rewrites shared history. Only amend unpushed commits, or commits on your own branch followed by <code>git push --force-with-lease</code>.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">6.26</div><h2>
+Modifying Commit Messages
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Modifying Commit Messages</span><h4>10.1 Last commit (not pushed)</h4>
+<pre><code class="language-bash">git commit --amend -m &quot;Add active customers view&quot;
+</code></pre>
+<h4>10.2 Older commits — interactive rebase</h4>
+<pre><code class="language-bash">git rebase -i HEAD~3
+</code></pre>
+<p>Change <code>pick</code> to <code>reword</code> (or <code>r</code>) for the commits to rename:</p>
+<pre><code class="language-text">pick   a1b2c3d Add staging table
+reword b2c3d4e add proc          ← will prompt for a new message
+pick   c3d4e5f Add view
+</code></pre>
+<p>Save, close, write the new message when prompted.</p>
+<h4>10.3 Already pushed?</h4>
+<ul>
+<li>On your own feature branch: reword, then <code>git push --force-with-lease</code>.</li>
+<li>On a shared branch (<code>main</code>): do <strong>not</strong> rewrite; live with it or add a clarifying commit/PR comment.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">6.27</div><h2>
+Viewing Previous Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Viewing Previous Commits</span><pre><code class="language-bash">git log --oneline                     # list
+git show 3f2a7d1                      # one commit with diff
+git show 3f2a7d1 --stat               # files changed only
+git show 3f2a7d1:sql/tables/dim_customer.sql   # one file at that commit
+git log -p -2                         # last two commits with diffs
+git switch --detach 3f2a7d1           # check out the whole project at that commit (read-only exploration)
+git switch -                          # return
+git blame sql/procedures/usp_load_customers.sql   # last commit per line
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">6.28</div><h2>
+Comparing Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Comparing Commits</span><pre><code class="language-bash">git diff 3f2a7d1 9c8b7a6                    # all changes between two commits
+git diff 3f2a7d1 9c8b7a6 -- sql/            # only SQL folder
+git diff HEAD~3 HEAD --stat                 # summary of last 3 commits' changes
+git diff v1.0.0 v1.1.0 --name-only          # files changed between releases
+git range-diff main~3..main feature~3..feature   # compare two versions of a commit series (after rebase)
+</code></pre>
+<p>Use <code>git difftool</code> to open a visual comparison in VS Code.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">6.29</div><h2>
+Reverting Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Reverting Commits</span><h4>13.1 Definition</h4>
+<p><code>git revert</code> creates a <strong>new commit that applies the inverse</strong> of a previous commit. History is preserved — safe on shared branches.</p>
+<pre><code class="language-text">A ── B ── C ── D        git revert C        A ── B ── C ── D ── C'   (C' undoes C)
+</code></pre>
+<h4>13.2 Examples</h4>
+<pre><code class="language-bash">git revert 3f2a7d1                    # opens editor with &quot;Revert ...&quot; message
+git revert 3f2a7d1 --no-edit          # use default message
+git revert HEAD~2..HEAD               # revert the last two commits (each gets a revert commit)
+git revert --no-commit a1b2 c3d4      # stage several reverts, then one commit
+git commit -m &quot;Revert orders load changes&quot;
+git revert -m 1 &lt;merge-commit&gt;        # revert a merge, keeping the first parent's side
+</code></pre>
+<h4>13.3 Conflicts</h4>
+<p>If later commits touched the same lines, resolve the conflict, <code>git add</code>, then <code>git revert --continue</code> (or <code>--abort</code>).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">6.30</div><h2>
+Resetting Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Resetting Commits</span><h4>14.1 Definition</h4>
+<p><code>git reset</code> moves the <strong>current branch pointer</strong> back to an earlier commit; the later commits are no longer part of the branch.</p>
+<pre><code class="language-text">Before: A ── B ── C ── D (main)        git reset --hard B        After: A ── B (main)
+</code></pre>
+<h4>14.2 Modes</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Commits C, D</th>
+<th>Their changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git reset --soft B</code></td>
+<td>Removed from branch</td>
+<td>Kept, <strong>staged</strong></td>
+</tr>
+<tr>
+<td><code>git reset --mixed B</code> (default)</td>
+<td>Removed</td>
+<td>Kept, <strong>unstaged</strong></td>
+</tr>
+<tr>
+<td><code>git reset --hard B</code></td>
+<td>Removed</td>
+<td><strong>Discarded</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h4>14.3 Examples</h4>
+<pre><code class="language-bash">git reset --soft HEAD~1      # undo the last commit, keep changes ready to re-commit
+git reset --soft HEAD~3      # squash last 3 commits: then git commit -m &quot;...&quot;
+git reset HEAD~1             # undo commit and unstage
+git reset --hard HEAD~1      # throw away the last commit completely
+</code></pre>
+<div class="callout c-warn"><p><strong>Warning</strong> Use reset only on commits that have not been shared. For pushed commits use <code>git revert</code>.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">6.31</div><h2>
+Recovering Deleted Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. Recovering Deleted Commits</span><h4>15.1 The reflog</h4>
+<p>Git records every movement of <code>HEAD</code> and branch pointers in the <strong>reflog</strong>. Even "deleted" commits remain in the object database until garbage collection removes them (by default, unreachable reflog entries expire after 30 days; reachable after 90 days).</p>
+<pre><code class="language-bash">git reset --hard HEAD~2     # accidentally removed two commits
+git reflog
+</code></pre>
+<pre><code class="language-text">a1b2c3d HEAD@{0}: reset: moving to HEAD~2
+9c8b7a6 HEAD@{1}: commit: Add fact_sales table
+4d5e6f7 HEAD@{2}: commit: Add dim_product table
+a1b2c3d HEAD@{3}: commit: Initial project structure
+</code></pre>
+<h4>15.2 Recover</h4>
+<pre><code class="language-bash">git reset --hard 9c8b7a6          # move branch back
+# or keep current state and create a rescue branch:
+git branch rescue-fact-sales 9c8b7a6
+</code></pre>
+<h4>15.3 Recovering a deleted branch</h4>
+<pre><code class="language-bash">git branch -D feature/orders      # deleted
+git reflog | grep feature/orders  # find its last commit
+git branch feature/orders &lt;sha&gt;
+</code></pre>
+<h4>15.4 When reflog doesn't help</h4>
+<pre><code class="language-bash">git fsck --lost-found             # lists dangling commits/blobs
+git show &lt;dangling-sha&gt;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — &quot;Fix and recommit&quot; vs &quot;revert&quot; for shared mistakes</span><p><strong>S41</strong> suggests fixing a pushed bad commit by amending/recommitting. <strong>S07/S40</strong> recommend revert. <strong>Resolution:</strong> for commits already pushed to a shared branch, use <code>git revert</code> or a new fixing commit; amend only unpushed commits. Both are valid in their own context — the deciding factor is whether history is shared.</p></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">tree 9c1f…</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Snapshot of the whole project at this commit</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">parent 5c2e…</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Previous commit (two parents for a merge, none for the first commit)</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="151.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">author Asha Rao &lt;asha…&gt;</text><text x="150.0" y="168.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">1767000000 +0530</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Who wrote the change and when</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="211.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">committer Asha Rao &lt;asha…&gt;</text><text x="150.0" y="228.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">1767000100 +0530</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Who created this commit object (differs after rebase/cherry-pick/amend by others)</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">message</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Subject line (≤ 50 chars), blank line, body wrapped at 72 explaining why</text></svg></div><figcaption>Anatomy of a commit (git cat-file -p HEAD)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 216" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Not pushed yet (private history)</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Fix last commit: git commit --amend</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Drop recent commits: git reset --soft / --mixed / --hard</text><rect x="20.0" y="130.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Rewrite several: git rebase -i (Ch17)</text><rect x="20.0" y="169.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Recover mistakes: git reflog + git reset / git branch</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Already pushed (shared history)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Add a new fixing commit or git revert</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">git revert &lt;sha&gt; (creates an inverse commit)</text><rect x="490.0" y="130.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Do not rewrite; coordinate if unavoidable</text><rect x="490.0" y="169.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">git revert the revert, or new commit</text></svg></div><figcaption>Choosing the right undo for commits</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-commit-amend"><header>git commit --amend</header><dl><dt>Syntax</dt><dd><pre><code>git commit --amend [-m &lt;msg&gt;] [--no-edit] [--reset-author]</code></pre></dd><dt>Purpose</dt><dd>Replace the most recent commit with a new one that includes the current index and/or a new message.</dd><dt>Behaviour</dt><dd>Creates a <em>new</em> commit ID; the old commit is no longer referenced by the branch (still in the reflog).</dd><dt>Expected output</dt><dd><pre><code>[main 7aa21d4] Add dim_customer load procedure (RDP-101)
+ Date: Thu Nov 26 10:15:02 2026 +0530
+ 2 files changed, 41 insertions(+)</code></pre></dd><dt>Example</dt><dd><pre><code>git add sql/tests/test_dim_customer.sql
+git commit --amend --no-edit          # add a forgotten file
+git commit --amend -m &quot;Add dim_customer load procedure (RDP-101)&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Amending a commit that was already pushed — others now have a different history; a normal push is rejected.</dd><dt>Troubleshooting</dt><dd>If you must, use <code>git push --force-with-lease</code> only on your own feature branch and tell collaborators. Never on <code>main</code>.</dd></dl></div><div class="cmd" id="cmd-git-show"><header>git show</header><dl><dt>Syntax</dt><dd><pre><code>git show [&lt;commit&gt;] [--stat] [--name-only] [&lt;commit&gt;:&lt;path&gt;]</code></pre></dd><dt>Purpose</dt><dd>Display a commit's metadata and diff, or a file at a specific commit.</dd><dt>Expected output</dt><dd><pre><code>commit 7aa21d4c… (HEAD -&gt; main)
+Author: Asha Rao &lt;asha.rao@retail-example.com&gt;
+Date:   Thu Nov 26 10:15:02 2026 +0530
+
+    Add dim_customer load procedure (RDP-101)</code></pre></dd><dt>Example</dt><dd><pre><code>git show HEAD~1 --stat
+git show v1.0.0:sql/warehouse/usp_load_dim_customer.sql</code></pre></dd></dl></div><div class="cmd" id="cmd-git-reflog"><header>git reflog</header><dl><dt>Syntax</dt><dd><pre><code>git reflog [show &lt;ref&gt;]</code></pre></dd><dt>Purpose</dt><dd>Show where HEAD (or a branch) pointed over time — the safety net for local recovery.</dd><dt>Expected output</dt><dd><pre><code>7aa21d4 HEAD@{0}: reset: moving to HEAD~2
+c41e0b9 HEAD@{1}: commit: Add fact_sales load (RDP-108)
+9b7d2e1 HEAD@{2}: commit: Add dim_product load (RDP-107)</code></pre></dd><dt>Example</dt><dd><pre><code>git reflog
+git branch rescue/RDP-108 HEAD@{1}     # or: git reset --hard HEAD@{1}</code></pre></dd><dt>Common mistakes</dt><dd>Waiting too long — unreachable reflog entries expire (default 30 days for unreachable, 90 days for reachable) and <code>git gc</code> can then delete the objects.</dd></dl></div><div class="cmd" id="cmd-commit-message-convention-used-in-the-project"><header>Commit message convention used in the project</header><dl><dt>Syntax</dt><dd><pre><code>&lt;type&gt;(&lt;scope&gt;): &lt;summary in imperative mood, ≤ 50 chars&gt;
+
+&lt;body: what and why, wrapped at 72 columns&gt;
+
+Refs: RDP-&lt;id&gt;</code></pre></dd><dt>Purpose</dt><dd>Consistent, searchable messages that link to work items.</dd><dt>Example</dt><dd><pre><code>feat(sql): add dim_customer load procedure
+
+Loads Type-1 customer attributes from stg.Customer and
+derives Region from the address table.
+
+Refs: RDP-101</code></pre></dd><dt>Common mistakes</dt><dd>"fixed stuff", "WIP", "final changes" — meaningless in <code>git log</code> and release notes.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 2: Basic development</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 2 — Commit discipline on the project</span><pre><code class="language-bash"># Asha creates the first warehouse procedure but forgets its test
+git add sql/warehouse/usp_load_dim_customer.sql
+git commit -m &quot;feat(sql): add dim_customer load procedure&quot; -m &quot;Refs: RDP-101&quot;
+git add sql/tests/test_dim_customer.sql
+git commit --amend --no-edit                   # not pushed yet -&gt; safe to amend
+git show --stat HEAD                           # both files in one commit
+
+# Ravi accidentally resets away two commits
+git reset --hard HEAD~2
+git reflog                                     # find &quot;commit: Add fact_sales load&quot;
+git reset --hard HEAD@{1}                      # history restored
+git log --oneline -3
+</code></pre>
+<p>Team rule recorded in <code>CONTRIBUTING.md</code>: <em>amend and reset only unpushed commits; use revert for anything on <code>main</code>.</em></p></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S07, S40 · Wrong ticket number in a pushed commit message</span><p>The commit is on <code>main</code> and shared. Do not amend. Add the correct link in the pull request / work item, or add a follow-up commit message reference; in Azure Boards/GitHub you can link the commit manually.</p></div><div class="src"><span class="tag add">Course addition · A bad change reached `main`</span><p><code>git revert &lt;sha&gt;</code> creates a new commit that undoes it; push normally. History stays honest and nobody's clone breaks.</p></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>One logical change per commit; commit often on feature branches.</li>
+<li>Subject in imperative mood ("Add", "Fix"), ≤ 50 characters, no trailing period; body explains <em>why</em>.</li>
+<li>Reference the work item (RDP-101, #42 or AB#123 depending on platform — Chapters 15 and 30).</li>
+<li>Never rewrite published history on shared branches; protect <code>main</code>.</li>
+<li>Know the reflog exists before you panic.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Situation / message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>! [rejected] main -&gt; main (non-fast-forward)</code> after amend</td>
+<td>Remote has the old commit</td>
+<td>Do not force-push shared branches; revert instead</td>
+</tr>
+<tr>
+<td>Editor opens and commit aborts with <code>Aborting commit due to empty commit message.</code></td>
+<td>Message left empty</td>
+<td>Write a message, save and close</td>
+</tr>
+<tr>
+<td><code>fatal: You have nothing to amend.</code></td>
+<td>No commits yet</td>
+<td>Make the first commit</td>
+</tr>
+<tr>
+<td>Commit missing after reset</td>
+<td>Branch moved</td>
+<td><code>git reflog</code> then <code>git reset --hard HEAD@{n}</code> or create a branch</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Commit a file, then add a forgotten file with <code>--amend --no-edit</code>.</p><span class="exp-out"><code>git show --stat HEAD</code> lists both files; only one new commit exists.</span></li><li><p>Run <code>git cat-file -p HEAD</code> and identify tree, parent, author, committer.</p><span class="exp-out">Four labelled fields plus message.</span></li><li><p>Write a multi-line message with <code>-m</code> twice.</p><span class="exp-out"><code>git log -1</code> shows subject and body separated by a blank line.</span></li><li><p>Reset two commits away with <code>--hard</code> and recover them via the reflog.</p><span class="exp-out"><code>git log</code> shows the commits again.</span></li><li><p>Revert a commit and inspect <code>git log --oneline</code>.</p><span class="exp-out">A new <code>Revert "..."</code> commit is on top.</span></li></ol></div><div class="src"><span class="tag ">Source S07 · Chapter manual · lab</span><p>Complete the lab in a disposable practice repository. It demonstrates commit creation, history inspection, comparison, revert, reset, and reflog recovery.</p>
+<h4>Part A — Create a project and commit history</h4>
+<pre><code>mkdir CommitManagementLab
+cd CommitManagementLab
+git init -b main
+
+# Create sample files in PowerShell
+New-Item -ItemType Directory -Force sql, python
+Set-Content README.md "# Customer Data Pipeline"
+Set-Content sql/load_customers.sql "SELECT CustomerID, Name FROM dbo.Customer;"
+Set-Content python/validate.py "print('Validation started')"
+
+git add .
+git commit -m "Create customer pipeline project"
+
+Add-Content sql/load_customers.sql "WHERE IsActive = 1;"
+git add sql/load_customers.sql
+git commit -m "Filter inactive customers"</code></pre>
+<h4>Part B — Inspect commits and compare versions</h4>
+<pre><code>git log --oneline --graph
+git show HEAD
+git show HEAD~1
+git diff HEAD~1 HEAD -- sql/load_customers.sql</code></pre>
+<h4>Part C — Amend the latest commit</h4>
+<pre><code>Set-Content README.md "# Customer Data Pipeline`nVersion-controlled ETL project."
+git add README.md
+git commit --amend --no-edit
+git log --oneline -3</code></pre>
+<p>Observe that the latest commit ID changes after the amend operation.</p>
+<h4>Part D — Revert a commit</h4>
+<pre><code># Find the commit that added the filter
+git log --oneline
+
+# Revert the relevant commit (replace ID with your own)
+git revert &lt;commit-id&gt;
+
+git log --oneline
+git show HEAD</code></pre>
+<p>Observe that Git creates a new commit to reverse the selected change.</p>
+<h4>Part E — Practice reset and recovery</h4>
+<p>Only do this in your practice repository. First create a disposable commit:</p>
+<pre><code>Set-Content python/temporary_check.py "print('temporary check')"
+git add python/temporary_check.py
+git commit -m "Add temporary validation check"
+
+# Record the current history
+git log --oneline
+
+# Move branch back one commit (changes remain in working tree)
+git reset --mixed HEAD~1
+
+# Inspect recent reference movements
+git reflog</code></pre>
+<p>Find the commit that was at the branch tip before the reset. Create a recovery branch pointing to it:</p>
+<pre><code>git branch recovery-before-reset &lt;commit-id-from-reflog&gt;
+git log recovery-before-reset --oneline</code></pre>
+<div class="callout success"><strong>Lab success criteria:</strong> You can explain why amend changed a commit ID, why revert added a new commit, how reset moved the branch, and how reflog helped locate the previous commit.</div></div><div class="src"><span class="tag s40">Source S40 · 16. Practical Exercise – Chapter 6</span><ol>
+<li>Make three commits using Conventional Commit messages (one single-line, one multi-line with body and ticket reference).</li>
+<li>Inspect the last commit with <code>git cat-file -p HEAD</code> and identify tree, parent, author, committer.</li>
+<li>Forget a file, then add it using <code>git commit --amend --no-edit</code>.</li>
+<li>Reword an older commit with <code>git rebase -i HEAD~3</code>.</li>
+<li>Compare the first and last commits with <code>git diff</code>.</li>
+<li>Revert the middle commit with <code>git revert</code>.</li>
+<li>Run <code>git reset --hard HEAD~2</code>, then recover with <code>git reflog</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 6 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S07 · Chapter manual · interview</span><h4>1. What is a Git commit?</h4><p>A commit is a recorded snapshot of the project content represented by the staging area, along with metadata and parent references.</p>
+<h4>2. What information does a commit contain?</h4><p>It references a tree snapshot and contains parent reference(s), author and committer metadata, timestamps, and a commit message.</p>
+<h4>3. What is a commit SHA?</h4><p>It is the hash-based object ID identifying the commit. Common repositories use SHA-1 IDs; Git also supports SHA-256 repositories.</p>
+<h4>4. What is a parent commit?</h4><p>A parent is the commit directly preceding a commit in history. Root commits have none; merge commits usually have multiple parents.</p>
+<h4>5. What is the difference between author and committer?</h4><p>The author is credited with creating the change; the committer is credited with creating the commit object. They can be different people.</p>
+<h4>6. What happens when you amend a commit?</h4><p>Git creates a replacement commit for the latest commit. Its ID changes because the commit object content changes.</p>
+<h4>7. How do you change the latest commit message?</h4><p>Use <code>git commit --amend -m "New message"</code>.</p>
+<h4>8. How do you change an older commit message?</h4><p>Use interactive rebase, mark the target commit as <code>reword</code>, and provide the new message. This rewrites history.</p>
+<h4>9. What is the difference between revert and reset?</h4><p>Revert creates a new commit that reverses an earlier change. Reset moves the current branch tip and may also reset the index and working tree.</p>
+<h4>10. Which is safer for undoing a commit already pushed to a shared branch?</h4><p>Usually <code>git revert</code>, because it preserves existing shared history and adds a corrective commit.</p>
+<h4>11. What does git reset --soft do?</h4><p>It moves the branch tip to the target commit while keeping the index and working tree unchanged.</p>
+<h4>12. What does git reset --hard do?</h4><p>It moves the branch tip and resets the index and tracked working tree to the target commit, potentially discarding local work.</p>
+<h4>13. What is reflog?</h4><p>A local log of recent updates to references, useful for finding commits that are no longer pointed to by a branch or tag.</p>
+<h4>14. Can you recover a commit after git reset?</h4><p>Often yes, if the commit remains available. Inspect <code>git reflog</code>, identify the commit ID, and create a recovery branch.</p>
+<h4>15. Does Git history work like a simple numbered list?</h4><p>No. It is a directed graph of commits connected by parent links. Branches and merges create multiple paths through that graph.</p></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 6 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is a commit?</td>
+<td>An immutable snapshot of staged content plus metadata and parent links</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>What does a commit object contain?</td>
+<td>Tree hash, parent hash(es), author, committer, message</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What is a commit SHA?</td>
+<td>Hash of the commit's content, used as its unique ID</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Author vs committer?</td>
+<td>Author wrote the change; committer created the commit object</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you change the last commit message?</td>
+<td><code>git commit --amend -m "new message"</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Revert vs reset?</td>
+<td>Revert adds an undo commit (safe for shared); reset moves the branch (rewrites history)</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you recover after <code>reset --hard</code>?</td>
+<td><code>git reflog</code> then <code>git reset --hard &lt;sha&gt;</code> or <code>git branch rescue &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>HEAD~2</code> vs <code>HEAD^2</code>?</td>
+<td>Grandparent vs second parent of a merge commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>What are Conventional Commits?</td>
+<td>A structured message format <code>type(scope): description</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Why not amend pushed commits?</td>
+<td>It rewrites history others may have based work on</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is a commit ID?</summary><div class="ans"><p>A hash (SHA-1, or SHA-256 in SHA-256 repositories) computed from the commit's content, including its tree, parents, author and message. It uniquely identifies the commit.</p></div></details><details class="qa"><summary>How do you change the last commit message?</summary><div class="ans"><p><code>git commit --amend -m "New message"</code> (only if not pushed).</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What is the difference between author and committer?</summary><div class="ans"><p>Author wrote the change; committer created the commit object. They differ after rebase, cherry-pick or when applying someone else's patch.</p></div></details><details class="qa"><summary>When do you use revert instead of reset?</summary><div class="ans"><p>When the commit is already shared; revert adds a new inverse commit instead of rewriting history.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>How long can you recover a commit after <code>git reset --hard</code>?</summary><div class="ans"><p>While a reflog entry references it — by default 30 days for unreachable entries (<code>gc.reflogExpireUnreachable</code>) — and until <code>git gc</code> prunes the objects.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>You committed to <code>main</code> locally instead of a feature branch and have not pushed. Fix it.</summary><div class="ans"><p><code>git branch feature/RDP-120-x</code> (keeps the commit), <code>git reset --hard origin/main</code> on main, then <code>git switch feature/RDP-120-x</code>.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-42">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. What does <code>git commit --amend</code> produce?</strong></p><ol><li data-ok="0">The same commit ID with new content</li><li data-ok="1">A new commit that replaces the last one</li><li data-ok="0">A merge commit</li><li data-ok="0">A revert commit</li></ol><div class="exp">Commits are immutable; amend creates a new one.</div></div><div class="mcq"><p><strong>2. Which command safely undoes a pushed commit?</strong></p><ol><li data-ok="0">git reset --hard</li><li data-ok="1">git revert &lt;sha&gt;</li><li data-ok="0">git commit --amend</li><li data-ok="0">git clean -f</li></ol><div class="exp">Revert does not rewrite history.</div></div><div class="mcq"><p><strong>3. Which command shows previous positions of HEAD?</strong></p><ol><li data-ok="0">git log --all</li><li data-ok="1">git reflog</li><li data-ok="0">git show HEAD</li><li data-ok="0">git status</li></ol><div class="exp">The reflog records HEAD movements.</div></div><div class="mcq"><p><strong>4. Recommended maximum length of a commit subject line?</strong></p><ol><li data-ok="0">20 characters</li><li data-ok="1">About 50 characters</li><li data-ok="0">120 characters</li><li data-ok="0">No limit</li></ol><div class="exp">The 50/72 convention keeps logs readable.</div></div><div class="mcq"><p><strong>5. How many parents does a normal (non-merge, non-root) commit have?</strong></p><ol><li data-ok="0">0</li><li data-ok="1">1</li><li data-ok="0">2</li><li data-ok="0">Any number</li></ol><div class="exp">Merge commits have 2+, the root commit has none.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-43">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>A commit = tree + parent(s) + author/committer + message, identified by a hash.</li>
+<li>Good messages: short imperative subject, explanatory body, ticket reference.</li>
+<li>Amend/reset rewrite local history; revert is the safe undo for shared history.</li>
+<li>The reflog lets you recover from almost any local mistake.</li>
+</ul></div><div class="src"><span class="tag ">Source S07 · Chapter manual · summary</span><ul>
+<li>A commit records a snapshot of staged content and metadata.</li>
+<li>Commit history is a graph built from parent relationships.</li>
+<li>A commit object references a tree and includes parent(s), author, committer, and message.</li>
+<li>Commit IDs are hashes of commit-object content, not sequential numbers.</li>
+<li>Good messages describe the change and, when useful, explain why it was made.</li>
+<li><code>git commit --amend</code> replaces the latest commit and changes its ID.</li>
+<li><code>git log</code>, <code>git show</code>, and <code>git diff</code> help inspect and compare history.</li>
+<li><code>git revert</code> adds a new commit that reverses an earlier change.</li>
+<li><code>git reset</code> moves the branch tip and can reset the index and working tree.</li>
+<li><code>git reflog</code> can help recover commits after branch movements, provided the objects remain available.</li>
+</ul>
+<div class="callout success"><strong>Commands to remember</strong><br/>
+<code>git log --oneline --graph</code> · <code>git show</code> · <code>git rev-parse HEAD</code> · <code>git diff A B</code> · <code>git commit --amend</code> · <code>git rebase -i</code> · <code>git revert</code> · <code>git reset</code> · <code>git reflog</code>
+</div>
+<h4>Official learning resources</h4>
+<ul>
+<li><a href="https://git-scm.com/docs/git-commit" rel="noopener" target="_blank">git commit reference</a></li>
+<li><a href="https://git-scm.com/docs/git-log" rel="noopener" target="_blank">git log reference</a></li>
+<li><a href="https://git-scm.com/docs/git-show" rel="noopener" target="_blank">git show reference</a></li>
+<li><a href="https://git-scm.com/docs/git-diff" rel="noopener" target="_blank">git diff reference</a></li>
+<li><a href="https://git-scm.com/docs/git-revert" rel="noopener" target="_blank">git revert reference</a></li>
+<li><a href="https://git-scm.com/docs/git-reset" rel="noopener" target="_blank">git reset reference</a></li>
+<li><a href="https://git-scm.com/docs/git-reflog" rel="noopener" target="_blank">git reflog reference</a></li>
+<li><a href="https://git-scm.com/book/en/v2" rel="noopener" target="_blank">Pro Git book</a></li>
+</ul>
+<p class="small">Next chapter suggestion: Git branching — creating, switching, merging, and deleting branches.</p></div><div class="src"><span class="tag s40">Source S40 · 18. Chapter 6 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commit</td>
+<td>Immutable snapshot + metadata</td>
+</tr>
+<tr>
+<td>SHA</td>
+<td>Content-based unique ID</td>
+</tr>
+<tr>
+<td>Parents</td>
+<td>Link commits into history</td>
+</tr>
+<tr>
+<td>Messages</td>
+<td>Imperative subject, body explains why</td>
+</tr>
+<tr>
+<td>Amend</td>
+<td>Replace last commit</td>
+</tr>
+<tr>
+<td>Revert</td>
+<td>Undo by adding a commit</td>
+</tr>
+<tr>
+<td>Reset</td>
+<td>Move branch pointer</td>
+</tr>
+<tr>
+<td>Reflog</td>
+<td>Recover "lost" commits</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Read a commit object (<code>git cat-file -p HEAD</code>) and name its fields.</li><li>Write single-line and multi-line messages following the 50/72 convention and a team prefix (e.g. Conventional Commits) with ticket IDs.</li><li>Amend the last commit (content, message, author) and explain why amending pushed commits is dangerous.</li><li>Compare commits with <code>git diff</code>, <code>git show</code> and <code>git log -p</code>, and choose between amend, revert and reset.</li><li>Recover a commit after <code>git reset --hard</code> using <code>git reflog</code>.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-44">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-commit">git-commit</a> · <a href="https://git-scm.com/docs/git-show">git-show</a> · <a href="https://git-scm.com/docs/git-reflog">git-reflog</a> · <a href="https://git-scm.com/docs/git-revert">git-revert</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Basics-Undoing-Things">Pro Git — Undoing Things</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">Pro Git — Commit Guidelines</a></li>
+<li><a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits specification</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_05_Basic_Git_Commands.html"><span class="mn-label">← Previous</span><span class="mn-title">Basic Git Commands</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_07_Understanding_Git_Branches.html"><span class="mn-label">Next →</span><span class="mn-title">Understanding Git Branches</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

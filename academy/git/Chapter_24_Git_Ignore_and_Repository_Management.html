@@ -1,0 +1,1549 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Write .gitignore patterns for files, folders, wildcards, negation and per-directory rules; set a global ignore file."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Ignore and Repository Management — Chapter 24 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Ignore and Repository Management</div>
+<div class="brand-sub">Chapter 24 · 41 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">24.1</span>What is .gitignore?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">24.2</span>Creating .gitignore</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">24.3</span>Ignore specific files</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">24.4</span>Ignore folders</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">24.5</span>Wildcard patterns</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">24.6</span>Global Git ignore</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">24.7</span>Ignoring already tracked files</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">24.8</span>gitattributes</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">24.9</span>Line-ending management</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">24.10</span>Binary files</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">24.11</span>Large files in Git</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">24.12</span>Git LFS</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">24.13</span>Repository size management</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">24.14</span>Repository cleanup</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">24.15</span>What is .gitignore?</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">24.16</span>Creating .gitignore</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">24.17</span>Ignore Specific Files</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">24.18</span>Ignore Folders</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">24.19</span>Wildcard Patterns</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">24.20</span>Global Git Ignore</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">24.21</span>Ignoring Already Tracked Files</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">24.22</span>.gitattributes</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">24.23</span>Line-Ending Management</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">24.24</span>Binary Files</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">24.25</span>Large Files in Git</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">24.26</span>Git LFS</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">24.27</span>Repository Size Management</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">24.28</span>Repository Cleanup</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 8: Enterprise governance</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">🎯</span>Chapter 24 Interview Questions</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 8 · Chapter 24</div><h1>Git Ignore and Repository Management</h1><p class="page-subtitle">Write <code>.gitignore</code> patterns for files, folders, wildcards, negation and per-directory rules; set a global ignore file.</p><div class="meta-row"><span class="meta-pill">Phase <b>8</b></span><span class="meta-pill">Lessons <b>41</b></span><span class="meta-pill">Sources <b>S25, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is .gitignore?; Creating .gitignore; Ignore specific files; Ignore folders; Wildcard patterns; Global Git ignore; Ignoring already tracked files; gitattributes; Line-ending management; Binary files. <br><strong>Before you start:</strong> complete Chapter 23 – Git Authentication and Security. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Controlling what enters the repository and how it is stored: <code>.gitignore</code> (patterns, global ignores, untracking), <code>.gitattributes</code> (line endings, diff/merge drivers, binary handling), large files and Git LFS, submodules, repository size management and cleanup.</p>
+<p><strong>Why it matters.</strong> Data projects are full of things that must not be committed — virtual environments, data extracts, Parquet/CSV samples, PBIX files, credentials — and of files that need special handling (SQL with CRLF, notebooks, binaries).</p>
+<p><strong>Where it is used.</strong> Every repository, from day one; CI checks for size and forbidden files.</p>
+<p><strong>In this course's project.</strong> Stage 8: the platform repository gets a complete <code>.gitignore</code> and <code>.gitattributes</code>, LFS for a few required binaries, and a cleanup of an accidentally committed 300 MB CSV.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers <code>.gitignore</code> in depth, global ignores, untracking files, <code>.gitattributes</code>, line endings, binary files, large files and Git LFS, and keeping repositories small and clean.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to keep unwanted files out of Git, control line endings and binary handling, and manage repository size.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S25 · Chapter manual · objectives</span><p>Keep repositories clean, consistent and efficient with ignore rules, attributes and large-file strategies.</p><div class="grid"><div class="tile"><b>01</b><br/>Write and troubleshoot .gitignore patterns</div><div class="tile"><b>02</b><br/>Understand tracked files and global ignores</div><div class="tile"><b>03</b><br/>Use .gitattributes for line endings and binary behavior</div><div class="tile"><b>04</b><br/>Manage large files and repository growth</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Write <code>.gitignore</code> patterns for files, folders, wildcards, negation and per-directory rules; set a global ignore file.</li>
+<li>Stop tracking already-committed files with <code>git rm --cached</code> and verify with <code>git check-ignore -v</code>.</li>
+<li>Configure <code>.gitattributes</code> for line endings, binary files, diff drivers and export rules; renormalize a repo.</li>
+<li>Use Git LFS for large binary assets and know its limits.</li>
+<li>Measure and reduce repository size; remove large files from history.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">24.1</div><h2>What is .gitignore?</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 1. What is .gitignore?</span><p>A .gitignore file tells Git which untracked paths to intentionally leave out of normal status and add operations. Ignore rules do not affect files already tracked. Multiple ignore files can apply at different directory levels.</p><h4>Commands and practical example</h4><pre><code># Example .gitignore
+.env
+*.log
+__pycache__/
+build/
+dist/</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">24.2</div><h2>Creating .gitignore</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 2. Creating .gitignore</span><p>Create a root .gitignore for shared project rules. Keep generated files, local configuration and editor-specific artifacts out of version control when they are not part of the project deliverable.</p><h4>Commands and practical example</h4><pre><code>touch .gitignore
+printf "*.log\n.env\n__pycache__/\n" &gt;&gt; .gitignore
+git status --short</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">24.3</div><h2>Ignore specific files</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 3. Ignore specific files</span><p>A literal path can ignore a particular file relative to the .gitignore location. Anchor it with a leading slash when it should match only at that directory level.</p><h4>Commands and practical example</h4><pre><code># Ignore a root-level local config
+/local.settings.json
+# Ignore a nested file relative to this .gitignore
+config/dev-only.json</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">24.4</div><h2>Ignore folders</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 4. Ignore folders</span><p>A directory pattern such as logs/ ignores matching directories and their contents. Use root anchoring when the rule should apply only to a top-level folder.</p><h4>Commands and practical example</h4><pre><code>logs/
+/build/
+/temp-output/</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">24.5</div><h2>Wildcard patterns</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 5. Wildcard patterns</span><p>Ignore patterns support *, ?, character ranges and recursive matching with **. A leading ! negates an earlier pattern, but parent directory exclusions can prevent re-inclusion. Test patterns with check-ignore.</p><h4>Commands and practical example</h4><pre><code>*.tmp
+data/**/*.parquet
+!important.tmp
+git check-ignore -v path/to/file</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">24.6</div><h2>Global Git ignore</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 6. Global Git ignore</span><p>A global excludes file is useful for machine-specific files such as editor settings and OS metadata that should not be imposed on every project. Shared build outputs belong in the repository's .gitignore.</p><h4>Commands and practical example</h4><pre><code>git config --global core.excludesfile ~/.config/git/ignore
+git config --show-origin --get core.excludesfile</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">24.7</div><h2>Ignoring already tracked files</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 7. Ignoring already tracked files</span><p>Adding a tracked file to .gitignore does not untrack it. Use git rm --cached to remove it from the index while keeping the working copy, then commit the index change. Verify the path carefully.</p><h4>Commands and practical example</h4><pre><code>echo "local.settings.json" &gt;&gt; .gitignore
+git rm --cached local.settings.json
+git add .gitignore
+git commit -m "Stop tracking local settings"</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">24.8</div><h2>gitattributes</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 8. .gitattributes</span><p>A .gitattributes file assigns path-specific attributes. It can control text normalization, diff and merge behavior, export rules and filters. It is commonly used to standardize line endings and identify binary files.</p><h4>Commands and practical example</h4><pre><code># Example .gitattributes
+* text=auto
+*.sql text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.parquet binary</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">24.9</div><h2>Line-ending management</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 9. Line-ending management</span><p>Windows commonly uses CRLF while Linux/macOS tools commonly use LF. Configure normalization consistently with .gitattributes and set core.autocrlf according to team policy. Avoid noisy whole-file diffs caused by inconsistent endings.</p><h4>Commands and practical example</h4><pre><code>git config --show-origin --get core.autocrlf
+git config --global core.autocrlf true
+git check-attr text eol -- scripts/deploy.sh</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">24.10</div><h2>Binary files</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 10. Binary files</span><p>Binary assets such as images, archives, database extracts and model files often do not diff or merge meaningfully. Mark binary paths in attributes and avoid storing generated binaries unless they are intentionally versioned.</p><h4>Commands and practical example</h4><pre><code>*.png binary
+*.jpg binary
+*.parquet binary
+*.zip binary</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">24.11</div><h2>Large files in Git</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 11. Large files in Git</span><p>Large binaries can make Git history grow quickly because old versions remain in history. Avoid committing generated exports, raw data and build artifacts unless intentionally versioned. Store datasets in systems designed for data storage.</p><h4>Commands and practical example</h4><pre><code>git count-objects -v
+git rev-list --objects --all</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">24.12</div><h2>Git LFS</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 12. Git LFS</span><p>Git Large File Storage replaces large file content in Git history with small pointer files and stores actual content in an LFS object store. Consider hosting quotas and bandwidth. LFS is not a substitute for a data lake or artifact repository.</p><h4>Commands and practical example</h4><pre><code>git lfs install
+git lfs track "*.psd"
+git lfs track "*.zip"
+git add .gitattributes
+git add model-artifact.zip
+git lfs ls-files</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">24.13</div><h2>Repository size management</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 13. Repository size management</span><p>Measure before cleaning. Inspect object counts and large blobs; avoid committing datasets; use LFS for suitable versioned binaries; and store analytical datasets in ADLS, OneLake or approved artifact storage. Removing a file from the latest commit does not remove historical copies.</p><h4>Commands and practical example</h4><pre><code>git count-objects -v
+git rev-list --objects --all
+git gc
+git maintenance run</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">24.14</div><h2>Repository cleanup</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · 14. Repository cleanup</span><p>Use git clean only after a dry run; it deletes untracked files and directories. Use git rm for tracked files. Rewriting history to remove large files or secrets is disruptive and should follow an approved procedure with backups and coordination.</p><h4>Commands and practical example</h4><pre><code>git clean -nd   # preview
+git clean -fd   # destructive
+git rm -- path/to/tracked-file
+git status</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">24.15</div><h2>
+What is .gitignore?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is .gitignore?</span><h4>1.1 Definition</h4>
+<p><code>.gitignore</code> is a text file listing <strong>patterns of files and folders Git should not track</strong>. Ignored files don't appear as untracked in <code>git status</code> and are skipped by <code>git add .</code>.</p>
+<h4>1.2 What to ignore</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Secrets</td>
+<td><code>.env</code>, <code>*.pem</code>, <code>local.settings.json</code></td>
+</tr>
+<tr>
+<td>Dependencies / environments</td>
+<td><code>.venv/</code>, <code>node_modules/</code></td>
+</tr>
+<tr>
+<td>Build outputs</td>
+<td><code>dist/</code>, <code>build/</code>, <code>bin/</code>, <code>obj/</code>, <code>*.egg-info/</code></td>
+</tr>
+<tr>
+<td>Caches</td>
+<td><code>__pycache__/</code>, <code>.pytest_cache/</code>, <code>.ipynb_checkpoints/</code></td>
+</tr>
+<tr>
+<td>Logs and temp</td>
+<td><code>*.log</code>, <code>tmp/</code></td>
+</tr>
+<tr>
+<td>Data files</td>
+<td><code>data/</code>, <code>*.csv</code>, <code>*.parquet</code></td>
+</tr>
+<tr>
+<td>IDE / OS files</td>
+<td><code>.idea/</code>, <code>.DS_Store</code>, <code>Thumbs.db</code></td>
+</tr>
+<tr>
+<td>Tool state</td>
+<td><code>.terraform/</code>, <code>*.tfstate</code>, <code>.databricks/</code></td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout "><p><strong>Note</strong> <code>.gitignore</code> only affects <strong>untracked</strong> files. Files already tracked continue to be tracked (see section 7).</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">24.16</div><h2>
+Creating .gitignore
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Creating .gitignore</span><pre><code class="language-bash">touch .gitignore                 # create in the repository root
+code .gitignore                  # edit
+git add .gitignore
+git commit -m &quot;chore: add .gitignore&quot;
+</code></pre>
+<p>Templates:</p>
+<ul>
+<li>GitHub's template collection (<code>github/gitignore</code> repository), chosen when creating a repo.</li>
+<li><code>gitignore.io</code> / <code>gh</code> extensions to generate combined templates (Python + VS Code + Windows).</li>
+</ul>
+<p>You can have <code>.gitignore</code> files in <strong>subdirectories</strong> — their patterns apply relative to that folder.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">24.17</div><h2>
+Ignore Specific Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Ignore Specific Files</span><pre><code class="language-gitignore"># A file anywhere in the repo
+secrets.json
+
+# A file only at the root
+/config.local.yaml
+
+# A specific path
+python/etl/debug_output.txt
+
+# By extension
+*.log
+*.tmp
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">24.18</div><h2>
+Ignore Folders
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Ignore Folders</span><pre><code class="language-gitignore"># Folder anywhere
+__pycache__/
+.venv/
+logs/
+
+# Folder only at root
+/build/
+
+# Folder contents but keep the folder (with a placeholder)
+data/*
+!data/.gitkeep
+</code></pre>
+<p>A trailing <code>/</code> means "directory only".</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">24.19</div><h2>
+Wildcard Patterns
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Wildcard Patterns</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*</code></td>
+<td>Any characters except <code>/</code> (<code>*.csv</code> → <code>a.csv</code>, <code>x/b.csv</code>)</td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td>Exactly one character (<code>file?.sql</code> → <code>file1.sql</code>)</td>
+</tr>
+<tr>
+<td><code>[abc]</code>, <code>[0-9]</code></td>
+<td>One character from a set/range</td>
+</tr>
+<tr>
+<td><code>**/</code></td>
+<td>Any number of directories (<code>**/logs</code> → <code>logs</code>, <code>a/b/logs</code>)</td>
+</tr>
+<tr>
+<td><code>/**</code></td>
+<td>Everything inside (<code>build/**</code>)</td>
+</tr>
+<tr>
+<td><code>a/**/b</code></td>
+<td><code>a/b</code>, <code>a/x/b</code>, <code>a/x/y/b</code></td>
+</tr>
+<tr>
+<td><code>!pattern</code></td>
+<td><strong>Negate</strong> — re-include previously ignored files</td>
+</tr>
+<tr>
+<td><code>#</code></td>
+<td>Comment</td>
+</tr>
+<tr>
+<td><code>\#</code>, <code>\!</code></td>
+<td>Literal <code>#</code> or <code>!</code></td>
+</tr>
+<tr>
+<td>Leading <code>/</code></td>
+<td>Anchored to the <code>.gitignore</code>'s directory</td>
+</tr>
+<tr>
+<td>Trailing <code>/</code></td>
+<td>Directory only</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Negation rule:</strong> you cannot re-include a file if its <strong>parent directory</strong> is ignored. Use <code>dir/*</code> instead of <code>dir/</code> when you need exceptions.</p>
+<p><strong>Complete Data Engineering example:</strong></p>
+<pre><code class="language-gitignore"># ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+
+# ---------- Notebooks ----------
+.ipynb_checkpoints/
+
+# ---------- Secrets / local config ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+local.settings.json
+
+# ---------- Data ----------
+data/*
+!data/.gitkeep
+*.csv
+*.parquet
+*.xlsx
+!tests/fixtures/*.csv
+
+# ---------- Databricks / Terraform ----------
+.databricks/
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ---------- SQL projects ----------
+bin/
+obj/
+*.dbmdl
+*.jfm
+
+# ---------- IDE / OS ----------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---------- Logs ----------
+*.log
+logs/
+</code></pre>
+<p><strong>Debugging patterns:</strong></p>
+<pre><code class="language-bash">git check-ignore -v data/sales.csv
+# .gitignore:28:*.csv   data/sales.csv
+git status --ignored
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">24.20</div><h2>
+Global Git Ignore
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Global Git Ignore</span><p>For files specific to <strong>your</strong> machine/editor (not the project), use a global ignore file instead of every repository's <code>.gitignore</code>.</p>
+<pre><code class="language-bash">git config --global core.excludesFile ~/.gitignore_global
+</code></pre>
+<pre><code class="language-gitignore"># ~/.gitignore_global
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+</code></pre>
+<p><strong>Ignore precedence (highest first):</strong></p>
+<ol>
+<li>Command line patterns</li>
+<li><code>.gitignore</code> in the same directory, then parent directories</li>
+<li><code>.git/info/exclude</code> (per-repo, <strong>not shared</strong> — personal ignores)</li>
+<li><code>core.excludesFile</code> (global)</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">24.21</div><h2>
+Ignoring Already Tracked Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Ignoring Already Tracked Files</span><h4>7.1 Stop tracking (remove from the repository, keep locally)</h4>
+<pre><code class="language-bash">echo &quot;config/local.json&quot; &gt;&gt; .gitignore
+git rm --cached config/local.json
+git commit -m &quot;Stop tracking local config&quot;
+</code></pre>
+<p>For a folder:</p>
+<pre><code class="language-bash">git rm -r --cached logs/
+</code></pre>
+<p>After pushing, the file is <strong>deleted</strong> for teammates when they pull (warn them to back it up).</p>
+<h4>7.2 Re-apply <code>.gitignore</code> to everything</h4>
+<pre><code class="language-bash">git rm -r --cached .
+git add .
+git commit -m &quot;Apply .gitignore rules&quot;
+</code></pre>
+<h4>7.3 Keep tracking but ignore local changes (temporary)</h4>
+<pre><code class="language-bash">git update-index --skip-worktree config/settings.json      # ignore my local edits
+git update-index --no-skip-worktree config/settings.json   # undo
+git ls-files -v | grep ^S                                   # list skip-worktree files
+</code></pre>
+<p>(<code>--assume-unchanged</code> is a performance hint, not intended for this purpose.) Better long-term solution: commit a template (<code>settings.example.json</code>) and ignore the real file.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">24.22</div><h2>
+.gitattributes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. .gitattributes</span><h4>8.1 Definition</h4>
+<p><code>.gitattributes</code> assigns <strong>attributes to paths</strong> to control how Git handles them: line endings, binary detection, diff drivers, merge strategies, LFS, export behaviour, linguist stats.</p>
+<h4>8.2 Example</h4>
+<pre><code class="language-gitattributes"># Normalise all text files
+* text=auto
+
+# Force line endings
+*.sh    text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.sql   text eol=crlf
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+
+# Binary files: no line-ending conversion, no textual diff/merge
+*.png   binary
+*.jpg   binary
+*.xlsx  binary
+*.pbix  binary
+*.dacpac binary
+
+# Custom diff
+*.ipynb diff=jupyternotebook
+
+# Merge strategy for generated files
+CHANGELOG.md merge=union
+
+# Git LFS
+*.pbix  filter=lfs diff=lfs merge=lfs -text
+
+# Exclude from 'git archive'
+tests/  export-ignore
+
+# Mark generated/vendored files for GitHub stats &amp; diffs
+adf/ARMTemplate*.json linguist-generated=true
+</code></pre>
+<p>Commit <code>.gitattributes</code> at the repository root so the whole team shares it.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">24.23</div><h2>
+Line-Ending Management
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Line-Ending Management</span><h4>9.1 The problem</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Line ending</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>CRLF (<code>\r\n</code>)</td>
+</tr>
+<tr>
+<td>Linux/macOS</td>
+<td>LF (<code>\n</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Mixed endings cause <strong>every line to appear changed</strong> in diffs, noisy conflicts, and <strong>shell scripts failing on Linux</strong> (<code>/bin/bash^M: bad interpreter</code>).</p>
+<h4>9.2 Solutions</h4>
+<p><strong>1. <code>.gitattributes</code> (repository-wide — recommended):</strong> <code>* text=auto</code> normalises text files to LF in the repository and converts on checkout according to platform/<code>eol</code> settings.</p>
+<p><strong>2. <code>core.autocrlf</code> (per user):</strong></p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Behaviour</th>
+<th>Use on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>true</code></td>
+<td>LF→CRLF on checkout, CRLF→LF on commit</td>
+<td>Windows</td>
+</tr>
+<tr>
+<td><code>input</code></td>
+<td>CRLF→LF on commit, no conversion on checkout</td>
+<td>Linux/macOS</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>No conversion</td>
+<td>When <code>.gitattributes</code> handles everything</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git config --global core.autocrlf true     # Windows
+git config --global core.autocrlf input    # macOS/Linux
+</code></pre>
+<h4>9.3 Fix an existing repository</h4>
+<pre><code class="language-bash"># after adding .gitattributes
+git add --renormalize .
+git commit -m &quot;Normalize line endings&quot;
+</code></pre>
+<p>Check endings of tracked files:</p>
+<pre><code class="language-bash">git ls-files --eol
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">24.24</div><h2>
+Binary Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Binary Files</span><h4>10.1 Characteristics</h4>
+<p>Images, Excel, Power BI (<code>.pbix</code>), compiled files, archives, DACPACs.</p>
+<ul>
+<li>Git <strong>cannot show meaningful diffs</strong> or <strong>merge</strong> them.</li>
+<li>Every change stores a full new copy (poor delta compression) → repository growth.</li>
+</ul>
+<h4>10.2 Handling</h4>
+<ul>
+<li>Mark as <code>binary</code> in <code>.gitattributes</code>.</li>
+<li>Resolve conflicts by choosing a version: <code>git checkout --ours file.pbix</code> / <code>--theirs</code>.</li>
+<li>Prefer <strong>text-based formats</strong> when possible: Power BI <strong>PBIP/TMDL</strong> instead of <code>.pbix</code>, SQL scripts instead of <code>.bacpac</code>, notebooks as <code>.py</code> source.</li>
+<li>Store large binaries in <strong>Git LFS</strong> or external storage.</li>
+<li>Lock files to avoid parallel edits (LFS locking).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">24.25</div><h2>
+Large Files in Git
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Large Files in Git</span><h4>11.1 Why large files are a problem</h4>
+<ul>
+<li>Every version stays in history forever → slow clones and fetches.</li>
+<li>GitHub warns at <strong>50 MB</strong> and <strong>blocks files over 100 MB</strong>; recommended repository size is small (ideally &lt; 1 GB).</li>
+<li>CI pipelines slow down.</li>
+</ul>
+<h4>11.2 What not to commit</h4>
+<p>Datasets (CSV/Parquet extracts), database backups, model artifacts, logs, <code>.zip</code> of builds, videos.</p>
+<h4>11.3 Alternatives</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Better home</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data</td>
+<td>ADLS Gen2, OneLake, S3, Databricks Volumes</td>
+</tr>
+<tr>
+<td>ML models</td>
+<td>MLflow model registry, Azure ML</td>
+</tr>
+<tr>
+<td>Build artifacts</td>
+<td>GitHub Releases/Packages, Azure Artifacts</td>
+</tr>
+<tr>
+<td>Reports/binaries that must be versioned</td>
+<td>Git LFS</td>
+</tr>
+<tr>
+<td>Small test fixtures</td>
+<td>Git (keep them small)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Prevent accidents: <code>check-added-large-files</code> pre-commit hook; GitHub push limits.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">24.26</div><h2>
+Git LFS
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Git LFS</span><h4>12.1 Definition</h4>
+<p><strong>Git Large File Storage (LFS)</strong> replaces large files in your repository with <strong>small text pointer files</strong>, storing the actual content on a separate <strong>LFS server</strong> (GitHub, Azure Repos, GitLab and Bitbucket all support it).</p>
+<pre><code class="language-text">version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 52428800
+</code></pre>
+<h4>12.2 Setup and usage</h4>
+<pre><code class="language-bash">git lfs install                         # once per machine
+git lfs track &quot;*.pbix&quot;                  # adds rule to .gitattributes
+git lfs track &quot;models/**/*.pkl&quot;
+git add .gitattributes
+git add reports/sales.pbix
+git commit -m &quot;Add sales report via LFS&quot;
+git push
+</code></pre>
+<pre><code class="language-bash">git lfs ls-files                        # files managed by LFS
+git lfs status
+git lfs pull                            # download LFS content
+git lfs fetch --all
+GIT_LFS_SKIP_SMUDGE=1 git clone &lt;url&gt;   # clone without downloading LFS content
+</code></pre>
+<h4>12.3 Migrate existing files into LFS</h4>
+<pre><code class="language-bash">git lfs migrate import --include=&quot;*.pbix&quot; --everything    # rewrites history!
+git push --force-with-lease --all
+</code></pre>
+<h4>12.4 File locking</h4>
+<pre><code class="language-bash">git lfs track &quot;*.pbix&quot; --lockable
+git lfs lock reports/sales.pbix
+git lfs locks
+git lfs unlock reports/sales.pbix
+</code></pre>
+<h4>12.5 Considerations</h4>
+<p>Storage and bandwidth quotas/costs on hosting platforms; all collaborators and CI need LFS installed (<code>actions/checkout</code> with <code>lfs: true</code>).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">24.27</div><h2>
+Repository Size Management
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Repository Size Management</span><h4>13.1 Measure</h4>
+<pre><code class="language-bash">git count-objects -vH
+du -sh .git
+git rev-list --objects --all \
+  | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' \
+  | awk '$1==&quot;blob&quot;' | sort -k3 -n -r | head -20       # largest blobs in history
+</code></pre>
+<p>GitHub also shows size in <strong>Settings</strong> and warns on large pushes.</p>
+<h4>13.2 Reduce for users</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Technique</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shallow clone</td>
+<td><code>git clone --depth 1 &lt;url&gt;</code></td>
+</tr>
+<tr>
+<td>Partial clone</td>
+<td><code>git clone --filter=blob:none &lt;url&gt;</code></td>
+</tr>
+<tr>
+<td>Sparse checkout</td>
+<td><code>git sparse-checkout init --cone &amp;&amp; git sparse-checkout set sql python</code></td>
+</tr>
+<tr>
+<td>Single branch</td>
+<td><code>git clone --single-branch -b main &lt;url&gt;</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4>13.3 Reduce the repository itself</h4>
+<p>Remove large files from history (section 14), move binaries to LFS, split monolithic repositories when appropriate.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">24.28</div><h2>
+Repository Cleanup
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Repository Cleanup</span><h4>14.1 Local housekeeping</h4>
+<pre><code class="language-bash">git fetch --prune                             # remove stale remote-tracking branches
+git branch --merged main | grep -vE &quot;^\*|main|develop&quot; | xargs -r git branch -d   # delete merged branches
+git stash list &amp;&amp; git stash clear              # (review first)
+git worktree prune
+git clean -n &amp;&amp; git clean -fd                  # untracked files
+git gc                                          # pack &amp; prune
+</code></pre>
+<h4>14.2 Remote housekeeping</h4>
+<ul>
+<li>Enable <em>Automatically delete head branches</em>.</li>
+<li>Delete stale branches (<code>git push origin --delete &lt;branch&gt;</code> or GitHub <strong>Branches → Stale</strong>).</li>
+<li>Archive repositories no longer used (<strong>Settings → Archive</strong>).</li>
+</ul>
+<h4>14.3 Rewriting history to remove large/unwanted files</h4>
+<pre><code class="language-bash">pip install git-filter-repo
+git clone --mirror &lt;url&gt; rdp-cleanup.git
+cd rdp-cleanup.git
+git filter-repo --strip-blobs-bigger-than 50M
+git filter-repo --path data/ --invert-paths            # remove a folder from history
+git push --force --mirror
+</code></pre>
+<p>Then coordinate: everyone re-clones; check that branch protection temporarily allows the force push; run <code>git gc</code> on the server side (handled by the host).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — Line endings for SQL scripts: LF or CRLF?</span><p><strong>S25</strong> sets <code>*.sql text eol=lf</code>; <strong>S40</strong> sets <code>*.sql text eol=crlf</code> for SQL edited in SSMS/Visual Studio on Windows. <strong>Resolution:</strong> both are valid if made explicit. Recommended default: <code>* text=auto</code> with <code>*.sql text eol=lf</code>; use CRLF only for Windows-only script types (<code>.bat</code>, <code>.cmd</code>, <code>.ps1</code>) or if your SQL tooling demonstrably requires CRLF on disk. What matters is one committed rule plus a one-time <code>git add --renormalize .</code>.</p></div><div class="c-add"><span class="ct">Submodules (S41)</span><p>S41 asks about submodules; the topic was missing from the chapter manuals, so a concise section is included above with the Fabric limitation (verified: Fabric Git integration does not support submodules).</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual</span><div class="diagram">Repository root
+├── .git/                 Git database and metadata
+├── .gitignore            Shared untracked-file exclusions
+├── .gitattributes        Text/binary and merge attributes
+├── src/                  Source code
+├── tests/                Tests
+└── generated/            Often ignored build/output artifacts</div></div><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 260" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="31.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">.gitignore (committed, any</text><text x="150.0" y="48.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">directory)</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Team rules — applies to the directory and below</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">.git/info/exclude</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Personal rules for this clone only, not shared</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">core.excludesFile (global)</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Personal rules for every repo, e.g. ~/.gitignore_global for .DS_Store, .idea/</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Already tracked files</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Ignore rules do NOT apply — untrack with git rm --cached</text></svg></div><figcaption>Where ignore rules come from (all are combined)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="82.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Detect (size</text><text x="82.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">check / git</text><text x="82.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">count-objects)</text><line x1="148.0" y1="60.0" x2="176.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="179.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="241.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Decide: keep in</text><text x="241.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">LFS or delete</text><line x1="307.0" y1="60.0" x2="335.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="338.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="400.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git filter-repo</text><text x="400.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">--path big.csv</text><text x="400.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">--invert-paths</text><text x="400.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(or lfs migrate)</text><line x1="466.0" y1="60.0" x2="494.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="559.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Force-push all</text><text x="559.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">refs</text><line x1="625.0" y1="60.0" x2="653.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="656.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="718.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Team re-clones</text><line x1="784.0" y1="60.0" x2="812.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="815.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="877.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Add .gitignore /</text><text x="877.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">LFS rule + CI</text><text x="877.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">size guard</text></svg></div><figcaption>Removing a large file that was already pushed</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-gitignore-patterns"><header>.gitignore patterns</header><dl><dt>Syntax</dt><dd><pre><code># comment
+*.log            # any .log file at any level
+/tmp/            # tmp folder at the repo root only
+data/**/*.csv    # csv files anywhere under data/
+!data/reference/*.csv   # negation: keep these
+.venv/           # a directory named .venv anywhere</code></pre></dd><dt>Purpose</dt><dd>Tell Git which untracked files to ignore.</dd><dt>Behaviour</dt><dd>A trailing <code>/</code> matches directories only; a leading <code>/</code> anchors to the .gitignore's directory; <code>**</code> matches across directories; later rules override earlier ones; you cannot re-include a file if its parent directory is excluded.</dd><dt>Example</dt><dd><pre><code># Enterprise Retail Data Platform .gitignore (excerpt)
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+local.settings.json
+*.log
+tmp/
+data/raw/
+*.parquet
+*.pbix
+.databricks/
+bin/
+obj/</code></pre></dd><dt>Common mistakes</dt><dd>Adding a rule for a file that is already tracked and expecting Git to ignore it.</dd></dl></div><div class="cmd" id="cmd-git-check-ignore-git-rm-cached"><header>git check-ignore / git rm --cached</header><dl><dt>Syntax</dt><dd><pre><code>git check-ignore -v &lt;path&gt;
+git rm -r --cached &lt;path&gt;
+git ls-files --others --ignored --exclude-standard</code></pre></dd><dt>Purpose</dt><dd>Debug which rule ignores a path; stop tracking files while keeping them locally.</dd><dt>Expected output</dt><dd><pre><code>.gitignore:9:*.log	python/ingestion/logs/run.log</code></pre></dd><dt>Example</dt><dd><pre><code>git check-ignore -v python/ingestion/logs/run.log
+git rm -r --cached data/raw
+git commit -m &quot;chore: stop tracking raw data extracts&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Running <code>git rm --cached</code> on config other developers need — they lose it on next pull; commit a template instead.</dd></dl></div><div class="cmd" id="cmd-gitattributes"><header>.gitattributes</header><dl><dt>Syntax</dt><dd><pre><code>&lt;pattern&gt; &lt;attr&gt; [&lt;attr&gt;…]</code></pre></dd><dt>Purpose</dt><dd>Per-path settings: text/eol normalization, binary, diff/merge drivers, LFS filters, export-ignore.</dd><dt>Example</dt><dd><pre><code>* text=auto
+*.sql   text eol=lf        # recommended default (see conflict box)
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+*.py    text eol=lf
+*.sh    text eol=lf
+*.json  text eol=lf
+*.ipynb text eol=lf
+*.pbix  binary
+*.parquet filter=lfs diff=lfs merge=lfs -text
+docs/** export-ignore</code></pre></dd><dt>Common mistakes</dt><dd>Changing eol rules without renormalizing.</dd><dt>Troubleshooting</dt><dd>After changing attributes: <code>git add --renormalize .</code> and commit separately; check with <code>git ls-files --eol</code>.</dd></dl></div><div class="cmd" id="cmd-git-lfs"><header>Git LFS</header><dl><dt>Syntax</dt><dd><pre><code>git lfs install
+git lfs track &quot;&lt;pattern&gt;&quot;
+git lfs ls-files
+git lfs migrate import --include=&quot;&lt;pattern&gt;&quot; --everything</code></pre></dd><dt>Purpose</dt><dd>Store large binaries outside the normal object store; Git keeps small pointer files.</dd><dt>Expected output</dt><dd><pre><code>Tracking &quot;*.parquet&quot;</code></pre></dd><dt>Example</dt><dd><pre><code>git lfs install
+git lfs track &quot;tests/fixtures/*.parquet&quot;
+git add .gitattributes tests/fixtures/orders_sample.parquet
+git commit -m &quot;test: add parquet fixture via LFS&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Using LFS for data that should not be in Git at all (production extracts); forgetting that LFS storage/bandwidth has quotas; platforms like ADF/Fabric Git integration do not resolve LFS pointers.</dd></dl></div><div class="cmd" id="cmd-submodules-overview"><header>Submodules (overview)</header><dl><dt>Syntax</dt><dd><pre><code>git submodule add &lt;url&gt; &lt;path&gt;
+git clone --recurse-submodules &lt;url&gt;
+git submodule update --init --recursive</code></pre></dd><dt>Purpose</dt><dd>Embed another repository at a fixed commit.</dd><dt>Behaviour</dt><dd>The parent stores the submodule URL in <code>.gitmodules</code> and a commit pointer (gitlink). Updating the submodule requires a commit in the parent.</dd><dt>Example</dt><dd><pre><code>git submodule add git@github.com:retail-data/shared-sql-utils.git sql/shared</code></pre></dd><dt>Common mistakes</dt><dd>Forgetting <code>--recurse-submodules</code> — the folder stays empty. Note: Fabric Git integration does not support submodules.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 8: Enterprise governance</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 8 — Repository hygiene for the platform</span><pre><code class="language-bash"># 1. Complete ignore + attributes files (see command reference)
+git add .gitignore .gitattributes
+git commit -m &quot;chore: standard ignore and attributes&quot;
+git add --renormalize .
+git commit -m &quot;chore: normalize line endings&quot;
+
+# 2. Someone committed data/raw/orders_2026.csv (300 MB) last week
+git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(rest)' | sort -n | tail -3
+pip install git-filter-repo
+git filter-repo --path data/raw/orders_2026.csv --invert-paths   # in a fresh mirror clone
+git push --force --all &amp;&amp; git push --force --tags                 # coordinated, protection temporarily adjusted
+# 3. Prevent recurrence: CI step fails if any added file &gt; 50 MB
+</code></pre>
+<p>Team announcement: "History rewritten on 2026-11-26 — please re-clone."</p></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S25, S40 · `.env` still shows in `git status` after adding it to .gitignore</span><p>It is tracked. <code>git rm --cached .env</code>, commit, and rotate the secrets it contained if it was pushed.</p></div><div class="src"><span class="tag add">Course addition · Every line of a SQL file shows as changed</span><p>Line endings changed (CRLF ↔ LF). Add explicit <code>*.sql text eol=…</code>, renormalize once, and ask everyone to pull.</p></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Commit <code>.gitignore</code> and <code>.gitattributes</code> in the first commit.</li>
+<li>Use the global ignore file for OS/IDE clutter, not the project file.</li>
+<li>Never commit data extracts, secrets, virtual environments or build output.</li>
+<li>Use LFS sparingly for necessary binaries; prefer artifact stores/lakes for data.</li>
+<li>Add CI guards for file size and forbidden paths; review <code>git count-objects -vH</code> periodically.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message / symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File not ignored</td>
+<td>Already tracked / later negation / parent dir excluded</td>
+<td><code>git rm --cached</code>; <code>git check-ignore -v</code></td>
+</tr>
+<tr>
+<td><code>remote: error: File x is 312.00 MB; this exceeds GitHub's file size limit of 100.00 MB</code></td>
+<td>Large file in pushed commits</td>
+<td>Remove from history (filter-repo / lfs migrate)</td>
+</tr>
+<tr>
+<td><code>warning: CRLF will be replaced by LF</code> / <code>LF will be replaced by CRLF</code></td>
+<td>eol conversion</td>
+<td>Expected; define attributes</td>
+</tr>
+<tr>
+<td><code>This repository is over its data quota</code> (LFS)</td>
+<td>LFS storage/bandwidth exceeded</td>
+<td>Buy data packs, prune, move data elsewhere</td>
+</tr>
+<tr>
+<td>Empty submodule folder</td>
+<td>Cloned without submodules</td>
+<td><code>git submodule update --init --recursive</code></td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Write a .gitignore excluding <code>*.log</code> but keeping <code>important.log</code>.</p><span class="exp-out"><code>git status</code> shows only important.log.</span></li><li><p>Commit <code>.env</code>, then untrack it.</p><span class="exp-out"><code>.env</code> remains on disk but <code>git ls-files</code> no longer lists it.</span></li><li><p>Add <code>.gitattributes</code> with eol rules and run <code>git ls-files --eol</code>.</p><span class="exp-out">Index shows <code>i/lf</code> for normalized text.</span></li><li><p>Track <code>*.parquet</code> with LFS and commit a small file.</p><span class="exp-out"><code>git lfs ls-files</code> lists it.</span></li><li><p>Find the three largest blobs in history.</p><span class="exp-out">Sorted list with sizes and paths.</span></li></ol></div><div class="src"><span class="tag ">Source S25 · Chapter manual · lab</span><p>Create a test repository with source, logs, local configuration and a generated folder. Write ignore rules, test them with git check-ignore -v, then track a file and demonstrate that adding it to .gitignore does not untrack it. Use git rm --cached to untrack it while retaining the local file. Add sample .gitattributes rules.</p><div class="call"><b>Practice safely:</b> Use a disposable repository or test organization. Never use real production secrets, private keys or sensitive data in examples. Verify changes with status, diffs and logs.</div></div><div class="src"><span class="tag s40">Source S40 · 15. Practical Exercise – Chapter 24</span><ol>
+<li>Create the complete Data Engineering <code>.gitignore</code> above; verify with <code>git check-ignore -v</code>.</li>
+<li>Configure a global ignore file for OS/editor files.</li>
+<li>Accidentally commit <code>config/local.json</code>, then stop tracking it.</li>
+<li>Add <code>.gitattributes</code>, run <code>git add --renormalize .</code>, and inspect <code>git ls-files --eol</code>.</li>
+<li>Install Git LFS, track <code>*.pbix</code>, commit a dummy binary file and inspect the pointer with <code>git show HEAD:reports/x.pbix</code>.</li>
+<li>Find the five largest blobs in your repository history.</li>
+<li>In a throw-away mirror clone, remove a folder from history with <code>git filter-repo</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 24 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S25 · Chapter manual · interview</span><h4>1. What does .gitignore do?</h4><p>It excludes matching untracked paths from normal Git status/add behavior.</p><h4>2. Does .gitignore affect tracked files?</h4><p>No. Already tracked files remain tracked until explicitly removed from the index.</p><h4>3. How do you ignore all log files?</h4><p>Add *.log to .gitignore.</p><h4>4. How do you ignore a directory?</h4><p>Add its directory pattern, such as logs/.</p><h4>5. What does ! do in an ignore pattern?</h4><p>It negates a previous pattern, subject to parent-directory traversal rules.</p><h4>6. How do you debug an ignore rule?</h4><p>Use git check-ignore -v path.</p><h4>7. What is a global ignore file for?</h4><p>Machine-specific exclusions such as editor and operating-system files.</p><h4>8. How do you stop tracking a file but keep it locally?</h4><p>Use git rm --cached file and commit the index change.</p><h4>9. What is .gitattributes?</h4><p>A file assigning path-specific attributes such as text normalization and binary handling.</p><h4>10. Why standardize line endings?</h4><p>To avoid noisy diffs and inconsistent file content across operating systems.</p><h4>11. What is Git LFS?</h4><p>An extension that stores large file content separately while Git tracks pointer files.</p><h4>12. Should large analytical datasets usually be committed to Git?</h4><p>Usually not; use data or artifact storage designed for those assets.</p><h4>13. Does deleting a large file from the latest commit shrink old history?</h4><p>No. Historical versions remain unless history is rewritten.</p><h4>14. What does git clean -n do?</h4><p>It previews untracked files/directories that a clean operation would remove.</p><h4>15. Why use git clean -f carefully?</h4><p>It deletes untracked files that Git may not be able to recover.</p></div><div class="src"><span class="tag s40">Source S40 · 16. Chapter 24 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is <code>.gitignore</code>?</td>
+<td>File listing patterns Git shouldn't track</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Why is a tracked file not ignored after adding to <code>.gitignore</code>?</td>
+<td>Ignore only affects untracked files — use <code>git rm --cached</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>How do you debug an ignore rule?</td>
+<td><code>git check-ignore -v &lt;path&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What is <code>.gitattributes</code>?</td>
+<td>Per-path settings: line endings, binary, LFS, diff/merge drivers</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you handle line endings?</td>
+<td><code>* text=auto</code> in <code>.gitattributes</code>, <code>core.autocrlf</code> per OS</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is Git LFS?</td>
+<td>Stores large files externally with pointers in Git</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you remove a large file from history?</td>
+<td><code>git filter-repo</code> (or BFG) then force-push</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>GitHub file size limit?</td>
+<td>Warning at 50 MB, blocked above 100 MB</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is <code>.gitignore</code>?</summary><div class="ans"><p>A file listing patterns of untracked files Git should ignore.</p></div></details><details class="qa"><summary>Why does Git keep tracking a file I added to .gitignore?</summary><div class="ans"><p>Ignore rules affect only untracked files; untrack it with <code>git rm --cached</code>.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What is <code>.gitattributes</code> used for?</summary><div class="ans"><p>Path-specific behaviour: line-ending normalization, marking binaries, custom diff/merge drivers, LFS filters, export rules.</p></div></details><details class="qa"><summary>What problem does Git LFS solve?</summary><div class="ans"><p>Large binary files bloating the repository; LFS stores them on a separate server and keeps pointer files in Git.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>How do you remove a large file from the entire history?</summary><div class="ans"><p><code>git filter-repo --path &lt;file&gt; --invert-paths</code> (or <code>git lfs migrate import</code> to move it to LFS), then force-push all refs and have everyone re-clone.</p></div></details><details class="qa"><summary>What is a submodule and a common pitfall?</summary><div class="ans"><p>A pointer to another repository at a specific commit; pitfalls are empty folders without <code>--recurse-submodules</code> and forgetting to commit updated pointers.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A data engineer wants sample Parquet files for unit tests in the repo. What do you recommend?</summary><div class="ans"><p>Small, synthetic fixtures (KB-sized) committed normally, or LFS if larger; never production extracts; generate data in tests where possible.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which file holds personal ignore rules for one clone only?</strong></p><ol><li data-ok="0">.gitignore</li><li data-ok="1">.git/info/exclude</li><li data-ok="0">~/.gitconfig</li><li data-ok="0">.gitattributes</li></ol><div class="exp">Not shared with others.</div></div><div class="mcq"><p><strong>2. <code>/tmp/</code> in the root .gitignore ignores…</strong></p><ol><li data-ok="0">tmp folders everywhere</li><li data-ok="1">Only the tmp folder at the repository root</li><li data-ok="0">Files named tmp</li><li data-ok="0">Nothing</li></ol><div class="exp">Leading slash anchors.</div></div><div class="mcq"><p><strong>3. Which command explains why a path is ignored?</strong></p><ol><li data-ok="0">git status --ignored</li><li data-ok="1">git check-ignore -v path</li><li data-ok="0">git ls-files -i</li><li data-ok="0">git log --ignored</li></ol><div class="exp">Prints file:line:pattern.</div></div><div class="mcq"><p><strong>4. GitHub blocks files larger than…</strong></p><ol><li data-ok="0">10 MB</li><li data-ok="0">50 MB</li><li data-ok="1">100 MB</li><li data-ok="0">1 GB</li></ol><div class="exp">Files over 100 MB are rejected (warnings from 50 MB).</div></div><div class="mcq"><p><strong>5. After changing eol rules you should run…</strong></p><ol><li data-ok="0">git gc</li><li data-ok="1">git add --renormalize .</li><li data-ok="0">git reset --hard</li><li data-ok="0">git lfs prune</li></ol><div class="exp">Re-applies attributes to tracked files.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li><code>.gitignore</code> for untracked noise; <code>rm --cached</code> for already-tracked files.</li>
+<li><code>.gitattributes</code> makes line endings and binary handling consistent.</li>
+<li>LFS for necessary large binaries; data belongs in storage, not Git.</li>
+<li>Keep repositories small; clean history with filter-repo when needed.</li>
+</ul></div><div class="src"><span class="tag ">Source S25 · Chapter manual · summary</span><ul><li>Write and troubleshoot .gitignore patterns</li><li>Understand tracked files and global ignores</li><li>Use .gitattributes for line endings and binary behavior</li><li>Manage large files and repository growth</li></ul><div class="call warn"><b>Key takeaway:</b> Understand the effect of each command before running it. For security and repository maintenance, follow organizational policy and preserve a recovery path.</div></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 24 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.gitignore</code></td>
+<td>Patterns for untracked files to ignore</td>
+</tr>
+<tr>
+<td>Global/exclude</td>
+<td>Personal ignore rules</td>
+</tr>
+<tr>
+<td>Untracking</td>
+<td><code>git rm --cached</code></td>
+</tr>
+<tr>
+<td><code>.gitattributes</code></td>
+<td>Line endings, binary, LFS, diff/merge</td>
+</tr>
+<tr>
+<td>Large files</td>
+<td>Keep out of Git; use LFS or external storage</td>
+</tr>
+<tr>
+<td>Cleanup</td>
+<td>Prune, gc, filter-repo</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Write <code>.gitignore</code> patterns for files, folders, wildcards, negation and per-directory rules; set a global ignore file.</li><li>Stop tracking already-committed files with <code>git rm --cached</code> and verify with <code>git check-ignore -v</code>.</li><li>Configure <code>.gitattributes</code> for line endings, binary files, diff drivers and export rules; renormalize a repo.</li><li>Use Git LFS for large binary assets and know its limits.</li><li>Measure and reduce repository size; remove large files from history.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/gitignore">gitignore</a> · <a href="https://git-scm.com/docs/gitattributes">gitattributes</a> · <a href="https://git-scm.com/docs/git-check-ignore">git-check-ignore</a></li>
+<li><a href="https://github.com/github/gitignore">GitHub — gitignore templates</a></li>
+<li><a href="https://git-lfs.com/">Git LFS</a> · <a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github">GitHub Docs — About large files</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules">Pro Git — Submodules</a></li>
+<li><a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository">GitHub Docs — Removing sensitive data (filter-repo)</a></li>
+</ul></div><div class="src"><span class="tag ">Source S25 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/gitignore" rel="noopener" target="_blank">gitignore</a></li><li><a href="https://git-scm.com/docs/gitattributes" rel="noopener" target="_blank">gitattributes</a></li><li><a href="https://git-lfs.com/" rel="noopener" target="_blank">Git LFS</a></li><li><a href="https://git-scm.com/docs/git-clean" rel="noopener" target="_blank">git clean</a></li></ul><p class="small">Use official documentation for version-specific behavior and current hosting-provider settings. Test commands that modify history or remove data in a disposable repository first.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_23_Git_Authentication_and_Security.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Authentication and Security</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_25_Git_Best_Practices.html"><span class="mn-label">Next →</span><span class="mn-title">Git Best Practices</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

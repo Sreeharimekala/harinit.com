@@ -1,0 +1,1957 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Explain Git&#x27;s origin (2005, Linux kernel, BitKeeper) and its design goals: speed, integrity, distributed work, non-linear development."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Introduction to Git — Chapter 2 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Introduction to Git</div>
+<div class="brand-sub">Chapter 2 · 33 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">2.1</span>What is Git?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">2.2</span>History and Evolution of Git</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">2.3</span>Why Was Git Developed?</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">2.4</span>Features of Git</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">2.5</span>Git Architecture</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">2.6</span>How Git Works Internally</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">2.7</span>Git Workflow</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">2.8</span>Git Terminology</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">2.9</span>Git Use Cases in Software Development</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">2.10</span>Git in Data Engineering Projects</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">2.11</span>What is Git?</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">2.12</span>History and Evolution of Git</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">2.13</span>Why Was Git Developed?</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">2.14</span>Features of Git</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">2.15</span>Git Architecture</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">2.16</span>How Git Works Internally</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">2.17</span>Git Workflow</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">2.18</span>Git Terminology</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">2.19</span>Git Use Cases in Software Development</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">2.20</span>Git in Data Engineering Projects</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">🏗️</span>Continuous project</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🎯</span>Chapter 2 Interview Questions</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 1 · Chapter 2</div><h1>Introduction to Git</h1><p class="page-subtitle">Explain Git's origin (2005, Linux kernel, BitKeeper) and its design goals: speed, integrity, distributed work, non-linear development.</p><div class="meta-row"><span class="meta-pill">Phase <b>1</b></span><span class="meta-pill">Lessons <b>33</b></span><span class="meta-pill">Sources <b>S01, S03, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is Git?; History and Evolution of Git; Why Was Git Developed?; Features of Git; Git Architecture; How Git Works Internally; Git Workflow; Git Terminology; Git Use Cases in Software Development; Git in Data Engineering Projects. <br><strong>Before you start:</strong> complete Chapter 1 – Introduction to Version Control. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Git is a free, open-source, distributed version-control system. It stores your project as a series of <em>snapshots</em> (commits) in a local database (<code>.git</code>), identified by cryptographic hashes.</p>
+<p><strong>Why it matters.</strong> Git is the de-facto standard: GitHub, Azure Repos, GitLab, Bitbucket, ADF, Databricks Git folders and Fabric Git integration all speak Git. Understanding its model — snapshots, three areas, branches as pointers — makes every later chapter easier.</p>
+<p><strong>Where it is used.</strong> On every developer machine, on build agents (CI/CD), inside data-platform tools that synchronize with repositories.</p>
+<p><strong>In this course's project.</strong> All Enterprise Retail Data Platform assets will live in one Git repository, <code>enterprise-retail-data-platform</code>.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter introduces Git itself — what it is, where it came from, why it was built, how it is designed, how it works internally, its workflow and vocabulary, and how it is used in software and Data Engineering projects.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to explain what Git is, describe its history and design goals, draw its architecture (working directory, staging area, local and remote repositories), explain its object model at a high level, follow the standard Git workflow, and use Git terminology correctly.</p>
+</div>
+<hr /></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Explain Git's origin (2005, Linux kernel, BitKeeper) and its design goals: speed, integrity, distributed work, non-linear development.</li>
+<li>Describe Git as a snapshot (not diff) store and explain how SHA hashes guarantee integrity.</li>
+<li>Draw the working tree → staging area → local repository → remote repository flow and name the command for each transition.</li>
+<li>Define repository, commit, branch, HEAD, remote, clone, merge, tag in one sentence each.</li>
+<li>Name the Git-related use cases in software and in data engineering.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">2.1</div><h2>What is Git?</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 1. What is Git?</span><h4>Definition</h4>
+<p><strong>Git is a free, open-source, distributed version control system (DVCS)</strong> used to track changes in files and coordinate work among multiple people. It was designed to handle projects of different sizes with speed and reliability.</p>
+<p>Git records project history through commits. A repository can contain files, branches, tags, and the history of changes. Developers can work in their local repositories and exchange changes with remote repositories.</p>
+<h4>What problems does Git solve?</h4>
+<ul><li>Tracks how files change over time.</li><li>Helps developers work on separate features using branches.</li><li>Supports combining changes from different contributors.</li><li>Allows developers to inspect and compare committed versions.</li><li>Supports local commits without an internet connection.</li><li>Connects local work with shared remote repositories.</li></ul>
+<h4>Example</h4>
+<p>Suppose you are developing a customer data application. You create <code>customer.py</code>, then add validation, logging, and database integration. Git lets you record these milestones as commits rather than maintaining manually named copies of the file.</p>
+<pre><code>git init
+git add customer.py
+git commit -m "Add customer module"
+
+# Make another change, then record it
+git add customer.py
+git commit -m "Add customer validation"</code></pre>
+<div class="callout"><strong>Important:</strong> Git is the version control engine. GitHub, GitLab, Bitbucket, and Azure Repos are platforms that can host Git repositories and provide collaboration features. Git does not require GitHub.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">2.2</div><h2>History and Evolution of Git</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 2. History and Evolution of Git</span><h4>Background: Linux kernel development</h4>
+<p>Before Git, the Linux kernel development community used a combination of tools and workflows to coordinate a large, distributed group of contributors. In the early 2000s, the community used BitKeeper, a proprietary distributed version control system, under a no-cost arrangement.</p>
+<p>In 2005, the relationship around the use of BitKeeper changed. The Linux kernel community needed a replacement that could support its scale, distributed workflow, speed, and integrity requirements.</p>
+<h4>Creation of Git</h4>
+<p>Linus Torvalds created Git in 2005 to support Linux kernel development. Git was designed around fast performance, distributed development, strong data integrity, and efficient handling of large projects with many contributors.</p>
+<h4>High-level timeline</h4>
+<table><tr><th>Period</th><th>Milestone</th></tr>
+<tr><td>Before 2005</td><td>The Linux kernel community used BitKeeper and other development practices to coordinate contributions.</td></tr>
+<tr><td>2005</td><td>Linus Torvalds created Git for Linux kernel development.</td></tr>
+<tr><td>2005 onward</td><td>Git became an open-source project and grew beyond its original use case.</td></tr>
+<tr><td>2008</td><td>GitHub launched as a hosted platform for Git repositories and collaboration.</td></tr>
+<tr><td>2010s onward</td><td>Git became a widely adopted foundation for software development, code review, and CI/CD workflows.</td></tr>
+<tr><td>Today</td><td>Git is used across application development, cloud engineering, data platforms, infrastructure as code, and open-source projects.</td></tr>
+</table>
+<h4>Why Git became widely adopted</h4>
+<ul><li>Developers can work with repository history locally.</li><li>Branching and merging support parallel development.</li><li>It is open source and runs on major operating systems.</li><li>It integrates with many hosting, IDE, and automation platforms.</li><li>It supports both small projects and very large codebases.</li></ul>
+<div class="callout">Git and GitHub are different milestones: Git was created in 2005; GitHub launched in 2008 and provides a hosted collaboration platform for Git repositories.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">2.3</div><h2>Why Was Git Developed?</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 3. Why Was Git Developed?</span><p>Git was created to meet the demanding requirements of Linux kernel development. The project involved a large number of contributors, frequent changes, and a need to integrate work efficiently across a distributed community.</p>
+<h4>Key design requirements</h4>
+<ol>
+<li><strong>Performance:</strong> common operations needed to be fast, including history inspection, comparisons, and branching.</li>
+<li><strong>Distributed development:</strong> developers needed complete local repositories so they could work independently.</li>
+<li><strong>Integrity:</strong> Git needed a reliable way to identify stored content and detect unexpected changes.</li>
+<li><strong>Efficient branching and merging:</strong> contributors needed to develop and integrate work in parallel.</li>
+<li><strong>Scalability:</strong> the system needed to support a large project and many contributors.</li>
+<li><strong>Open development:</strong> the tool needed to be available to the community under an open-source license.</li>
+</ol>
+<h4>How those requirements appear in Git today</h4>
+<table><tr><th>Original need</th><th>Git capability</th></tr>
+<tr><td>Work independently</td><td>Local repositories and local commits</td></tr>
+<tr><td>Integrate parallel work</td><td>Branches, merges, rebases, and cherry-picks</td></tr>
+<tr><td>Inspect project history</td><td>Commits, logs, diffs, and references</td></tr>
+<tr><td>Protect data integrity</td><td>Content-addressed object storage and object checksums</td></tr>
+<tr><td>Handle large development activity</td><td>Efficient local operations and repository storage mechanisms</td></tr>
+</table></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">2.4</div><h2>Features of Git</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 4. Features of Git</span><h4>4.1 Distributed architecture</h4>
+<p>Each clone is a repository with the project history needed for normal Git work. Developers can make commits locally and synchronize later.</p>
+<h4>4.2 Local operations</h4>
+<p>Commands such as <code>git status</code>, <code>git diff</code>, and <code>git log</code> usually operate locally and do not need a network connection.</p>
+<h4>4.3 Branching and merging</h4>
+<p>Branches let developers isolate work. Changes can later be merged into another branch.</p>
+<pre><code>git branch feature/customer-validation
+git switch feature/customer-validation
+# Make changes and commit them
+git switch main
+git merge feature/customer-validation</code></pre>
+<h4>4.4 Data integrity</h4>
+<p>Git identifies objects using content-derived hash identifiers. Modern Git repositories use SHA-1 by default for compatibility, and Git also supports repositories initialized with SHA-256 object format. Hashes help identify objects and detect accidental corruption; they should not be treated as a substitute for security controls.</p>
+<h4>4.5 Staging area</h4>
+<p>Git provides an intermediate area called the <strong>index</strong> or <strong>staging area</strong>. You choose which changes should be included in the next commit.</p>
+<h4>4.6 Commit history</h4>
+<p>Each commit records a snapshot of the project, metadata such as author and commit message, and links to parent commit(s).</p>
+<h4>4.7 Multiple collaboration platforms</h4>
+<p>Git can work with remote repositories hosted on GitHub, GitLab, Bitbucket, Azure Repos, or a server managed by an organization.</p>
+<h4>4.8 Open source and cross-platform</h4>
+<p>Git is open-source software and is available for Windows, Linux, and macOS.</p>
+<h4>4.9 Flexible workflows</h4>
+<p>Teams can use feature branching, Git Flow, GitHub Flow, trunk-based development, or a workflow tailored to their release process.</p>
+<h4>4.10 Tool integration</h4>
+<p>Git integrates with editors, IDEs, code review tools, build systems, test automation, and CI/CD platforms.</p></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">2.5</div><h2>Git Architecture</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 5. Git Architecture</span><p>Understanding Git architecture is essential because it explains where changes exist before and after a commit.</p>
+<h4>5.1 The four main areas</h4>
+<ol>
+<li><strong>Working tree:</strong> the checked-out files and folders that you view and edit.</li>
+<li><strong>Staging area (index):</strong> the proposed content for the next commit.</li>
+<li><strong>Local repository:</strong> the committed objects and history stored in the <code>.git</code> directory.</li>
+<li><strong>Remote repository:</strong> another repository, usually hosted on a server or platform, used to exchange work with others.</li>
+</ol>
+<div class="diagram">             YOUR LOCAL COMPUTER
+┌─────────────────────────────────────────┐
+│  Working tree                           │
+│  Edit files                              │
+│       │                                  │
+│       │ git add                          │
+│       ▼                                  │
+│  Staging area (index)                    │
+│       │                                  │
+│       │ git commit                       │
+│       ▼                                  │
+│  Local repository (.git)                 │
+└───────────────────┬─────────────────────┘
+                    │ git push / fetch
+                    ▼
+          Remote repository
+          (GitHub / Azure Repos)</div>
+<h4>5.2 How data moves through the areas</h4>
+<table><tr><th>Command</th><th>Typical effect</th></tr>
+<tr><td><code>git status</code></td><td>Shows the state of the working tree and staging area.</td></tr>
+<tr><td><code>git add file</code></td><td>Stages the current content of the file.</td></tr>
+<tr><td><code>git commit</code></td><td>Creates a commit from the staged snapshot.</td></tr>
+<tr><td><code>git push</code></td><td>Transfers local commits to a remote repository.</td></tr>
+<tr><td><code>git fetch</code></td><td>Downloads remote objects and updates remote-tracking references without integrating them into the current branch.</td></tr>
+<tr><td><code>git pull</code></td><td>Fetches and then integrates changes into the current branch, usually by merge or rebase depending on configuration and options.</td></tr>
+</table>
+<h4>5.3 The .git directory</h4>
+<p>When you initialize or clone a repository, Git creates a <code>.git</code> directory. This is where Git stores repository data and metadata.</p>
+<p>Typical internal components include:</p>
+<table><tr><th>Component</th><th>Purpose</th></tr>
+<tr><td><code>objects/</code></td><td>Stores Git objects such as blobs, trees, commits, and tags.</td></tr>
+<tr><td><code>refs/</code></td><td>Stores references such as branch and tag references.</td></tr>
+<tr><td><code>HEAD</code></td><td>Indicates the current checkout position, commonly a branch reference.</td></tr>
+<tr><td><code>index</code></td><td>Stores the staging area information.</td></tr>
+<tr><td><code>config</code></td><td>Contains repository-specific configuration.</td></tr>
+<tr><td><code>logs/</code></td><td>Contains reference logs when reflogs are enabled for those references.</td></tr>
+</table>
+<div class="callout"><strong>Note:</strong> The exact contents of <code>.git</code> can vary by repository format, Git version, and configuration. Do not manually edit internal files unless you know precisely what you are doing.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">2.6</div><h2>How Git Works Internally</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 6. How Git Works Internally</span><p>Git stores repository data as objects. The main object types are blob, tree, commit, and annotated tag.</p>
+<h4>6.1 Blob object</h4>
+<p>A <strong>blob</strong> stores the content of a file. It stores file data, not the filename or directory path. The tree object records the name and relationship to the blob.</p>
+<div class="callout">Example: the text content of <code>customer.sql</code> is stored as a blob object. If another file has identical content, Git can reuse the same object.</div>
+<h4>6.2 Tree object</h4>
+<p>A <strong>tree</strong> represents a directory snapshot. It contains entries that associate names and file modes with blob objects or other tree objects.</p>
+<p>A tree helps Git represent the directory structure of a project at a particular commit.</p>
+<h4>6.3 Commit object</h4>
+<p>A <strong>commit</strong> points to a top-level tree and records metadata such as author, committer, timestamp, message, and parent commit reference(s).</p>
+<p>A normal commit usually has one parent. A merge commit usually has two or more parents. The first commit in a repository has no parent.</p>
+<h4>6.4 Tag object</h4>
+<p>An annotated <strong>tag object</strong> can point to another Git object, usually a commit, and include a tagger, date, message, and optional signature. A lightweight tag is simply a reference to an object and does not create a separate tag object.</p>
+<h4>6.5 How the objects relate</h4>
+<div class="diagram">                 Commit object
+                (message, author,
+                 parent, tree)
+                       |
+                       ▼
+                   Tree object
+                 /      |      \
+                ▼       ▼       ▼
+             Blob    Blob    Tree
+           (file A) (file B)   |
+                               ▼
+                             Blob
+                           (file C)</div>
+<h4>6.6 Content-addressed storage</h4>
+<p>Git calculates an object identifier from an object's type, size, and content. The identifier is used to locate that object. This means object identity is based on content rather than a user-assigned filename.</p>
+<h4>6.7 Snapshot-based model</h4>
+<p>Git is commonly described as snapshot-based. A commit records the state of the tracked project at that point in history. Git uses object reuse and compression to store data efficiently; it does not simply save a full independent copy of every file for every commit.</p>
+<h4>6.8 References and HEAD</h4>
+<ul><li><strong>Branch:</strong> a movable reference that normally points to the latest commit on that line of development.</li><li><strong>Tag:</strong> a reference commonly used to mark a release or important point in history.</li><li><strong>HEAD:</strong> identifies the current checkout position. In a normal branch checkout, HEAD points symbolically to that branch.</li><li><strong>Remote-tracking branch:</strong> a local reference that records the last known position of a branch on a remote, such as <code>origin/main</code>.</li></ul>
+<h4>6.9 Explore Git internals with commands</h4>
+<pre><code># Show the current repository state
+git status
+
+# Display commit history
+git log --oneline --graph --decorate --all
+
+# Show the current HEAD reference
+git symbolic-ref HEAD
+
+# Display the object type for a commit
+git cat-file -t HEAD
+
+# Display a commit object's contents
+git cat-file -p HEAD
+
+# Show files and object identifiers in the current tree
+git ls-tree HEAD</code></pre>
+<p class="small">Some commands require an initialized repository with at least one commit. <code>git symbolic-ref HEAD</code> may behave differently when HEAD is detached.</p></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">2.7</div><h2>Git Workflow</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 7. Git Workflow</span><p>A Git workflow is the sequence of steps a developer or team follows to make, record, share, review, and integrate changes.</p>
+<h4>7.1 Basic local workflow</h4>
+<div class="diagram">Create / edit files
+       ↓
+Inspect changes (git status / git diff)
+       ↓
+Stage selected changes (git add)
+       ↓
+Commit changes (git commit)
+       ↓
+Inspect history (git log)</div>
+<h4>7.2 Collaborative workflow</h4>
+<div class="diagram">Clone or update repository
+          ↓
+Create or switch to a feature branch
+          ↓
+Make changes and test
+          ↓
+Stage and commit
+          ↓
+Push branch to remote
+          ↓
+Create pull request
+          ↓
+Review and address feedback
+          ↓
+Merge approved changes
+          ↓
+Deploy through release process</div>
+<h4>7.3 Example commands</h4>
+<pre><code># Clone a remote repository
+git clone &lt;repository-url&gt;
+
+# Create and switch to a feature branch
+git switch -c feature/customer-validation
+
+# Check status
+git status
+
+# Stage a selected file
+git add customer.py
+
+# Commit the change
+git commit -m "Add customer validation"
+
+# Push the branch to the remote
+git push -u origin feature/customer-validation</code></pre>
+<h4>7.4 Why use branches?</h4>
+<p>Branches allow developers to isolate work from the main development line. A feature can be developed, tested, and reviewed before integration. Branching does not automatically guarantee conflict-free work; overlapping changes may still need to be reconciled.</p>
+<h4>7.5 Common workflow models</h4>
+<table><tr><th>Workflow</th><th>Description</th></tr>
+<tr><td>Centralized workflow</td><td>Developers collaborate around a shared main branch, often with direct commits or controlled reviews.</td></tr>
+<tr><td>Feature branch workflow</td><td>Each feature or fix is developed in a separate branch and integrated after review.</td></tr>
+<tr><td>Git Flow</td><td>A structured model using long-lived branches such as main and develop, plus feature, release, and hotfix branches.</td></tr>
+<tr><td>GitHub Flow</td><td>A lightweight branch-based workflow centered on short-lived branches and pull requests.</td></tr>
+<tr><td>Trunk-based development</td><td>Developers integrate small changes frequently into a shared trunk, often using short-lived branches and feature flags.</td></tr>
+</table></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">2.8</div><h2>Git Terminology</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 8. Git Terminology</span><table><tr><th>Term</th><th>Meaning</th></tr>
+<tr><td>Repository (repo)</td><td>A project store containing tracked content and Git history.</td></tr>
+<tr><td>Working tree</td><td>The checked-out files that you edit.</td></tr>
+<tr><td>Staging area / index</td><td>The proposed content for the next commit.</td></tr>
+<tr><td>Commit</td><td>A recorded project snapshot with metadata and parent reference(s).</td></tr>
+<tr><td>Commit hash / object ID</td><td>An identifier for a Git object.</td></tr>
+<tr><td>Branch</td><td>A movable reference to a commit, used to represent a line of development.</td></tr>
+<tr><td>HEAD</td><td>The current checkout reference or commit position.</td></tr>
+<tr><td>Merge</td><td>Integrates changes from another line of development.</td></tr>
+<tr><td>Rebase</td><td>Replays commits onto a different base commit.</td></tr>
+<tr><td>Clone</td><td>Creates a local repository from another repository.</td></tr>
+<tr><td>Remote</td><td>A named connection to another repository.</td></tr>
+<tr><td>Origin</td><td>The conventional default name for the remote from which a repository was cloned.</td></tr>
+<tr><td>Upstream</td><td>Can mean a branch a local branch tracks, or the original project repository in a fork-based workflow; context matters.</td></tr>
+<tr><td>Fetch</td><td>Downloads objects and updates remote-tracking references without integrating them into the current branch.</td></tr>
+<tr><td>Pull</td><td>Fetches and then integrates changes into the current branch.</td></tr>
+<tr><td>Push</td><td>Uploads local commits and related objects to a remote repository.</td></tr>
+<tr><td>Tag</td><td>A reference used to mark a particular point, often a release.</td></tr>
+<tr><td>Merge conflict</td><td>A situation where Git cannot automatically reconcile competing changes.</td></tr>
+<tr><td>Stash</td><td>A mechanism for temporarily saving local modifications outside the current commit history.</td></tr>
+<tr><td>Cherry-pick</td><td>Applies the change introduced by selected commit(s) onto the current branch.</td></tr>
+<tr><td>Reflog</td><td>A local record of updates to references, useful for recovering previous positions.</td></tr>
+</table>
+<h4>Useful commands to recognize</h4>
+<pre><code>git init       # Initialize a repository
+git clone      # Copy a repository
+git status     # Inspect working tree and index
+git add        # Stage changes
+git commit     # Record staged changes
+git log        # View commit history
+git diff       # Compare changes
+git branch     # List or manage branches
+git switch     # Switch branches
+git merge      # Integrate another branch
+git fetch      # Download remote updates
+git pull       # Fetch and integrate
+git push       # Upload local commits</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">2.9</div><h2>Git Use Cases in Software Development</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 9. Git Use Cases in Software Development</span><h4>9.1 Application source code</h4>
+<p>Frontend, backend, and mobile developers use Git to maintain source files, tests, dependency definitions, and documentation.</p>
+<h4>9.2 Feature development</h4>
+<p>A developer creates a feature branch, implements a feature, commits the work, and raises a pull request for review before integration.</p>
+<h4>9.3 Bug fixing and hotfixes</h4>
+<p>A team can isolate a production fix, review it, merge it into the appropriate branches, and tag the resulting release.</p>
+<h4>9.4 Code review</h4>
+<p>Reviewers inspect proposed changes, discuss implementation, request updates, and approve changes through a hosting platform's pull request workflow.</p>
+<h4>9.5 CI/CD automation</h4>
+<p>A push or pull request can trigger automated builds, tests, security scans, and deployment workflows through tools such as GitHub Actions or Azure Pipelines.</p>
+<h4>9.6 Infrastructure as Code</h4>
+<p>Platform teams version infrastructure definitions, deployment templates, and configuration so that changes can be reviewed and reproduced.</p>
+<h4>9.7 Release and maintenance</h4>
+<p>Tags and release branches can identify the code used for a particular software release and support maintenance of older versions.</p></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">2.10</div><h2>Git in Data Engineering Projects</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · 10. Git in Data Engineering Projects</span><p>Git is useful in Data Engineering because data platforms contain code and configuration that evolve over time. A repository can provide a reviewable history of those assets, subject to the platform's Git integration and supported file formats.</p>
+<h4>10.1 SQL development</h4>
+<ul><li>Store stored procedures, views, functions, and table scripts.</li><li>Track transformation logic and schema changes.</li><li>Review database changes before deployment.</li><li>Maintain release tags and deployment scripts.</li></ul>
+<h4>10.2 Python and PySpark</h4>
+<ul><li>Version ETL scripts and reusable modules.</li><li>Track dependency files such as <code>requirements.txt</code>.</li><li>Maintain tests, logging, and configuration templates.</li><li>Keep secrets out of the repository; use secure secret stores and environment configuration.</li></ul>
+<h4>10.3 Azure Data Factory</h4>
+<p>ADF supports Git integration with Azure Repos and GitHub. Teams can work with collaboration branches, save changes to Git, use pull requests, and publish factory changes. Deployment to higher environments should follow a controlled release process using the supported ADF deployment approach.</p>
+<h4>10.4 Azure Databricks</h4>
+<p>Databricks Git folders can connect workspace development to Git repositories. Teams can version notebooks and source files, collaborate through branches, and use deployment approaches such as Databricks Asset Bundles for supported project workflows.</p>
+<h4>10.5 Microsoft Fabric</h4>
+<p>Microsoft Fabric provides Git integration for supported workspace items through supported Git providers and configurations. Teams can synchronize supported items with a repository, review changes, and coordinate deployment. Not every Fabric item or capability is necessarily supported in every Git workflow.</p>
+<h4>10.6 Infrastructure and orchestration</h4>
+<p>Data platform teams can version Terraform or Bicep definitions, pipeline YAML, deployment scripts, and environment templates.</p>
+<h4>10.7 Example Data Engineering repository structure</h4>
+<pre><code>enterprise-data-platform/
+│
+├── adf/
+│   └── pipeline-definitions/
+│
+├── databricks/
+│   ├── notebooks/
+│   └── src/
+│
+├── sql/
+│   ├── procedures/
+│   ├── views/
+│   └── tables/
+│
+├── python/
+│   └── etl/
+│
+├── infrastructure/
+│
+├── tests/
+│
+├── config/
+│   └── templates/
+│
+└── README.md</code></pre>
+<h4>10.8 Example team workflow</h4>
+<ol><li>A developer creates a feature branch for a pipeline enhancement.</li><li>The developer modifies the relevant SQL, Python, or supported pipeline files.</li><li>Changes are tested in Development.</li><li>The developer commits the changes and pushes the branch.</li><li>A pull request is opened for review.</li><li>Reviewers validate logic, testing evidence, security, and deployment impact.</li><li>Approved changes are merged.</li><li>A controlled CI/CD or platform deployment process promotes the changes to UAT and Production.</li></ol>
+<div class="callout success"><strong>Data Engineering best practice:</strong> Store code and deployment definitions in Git, but do not commit passwords, access keys, production secrets, or uncontrolled copies of large datasets. Use approved secret-management and data-storage services.</div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">2.11</div><h2>
+What is Git?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Git?</span><h4>1.1 Definition</h4>
+<p>Git is a <strong>free and open-source distributed version control system (DVCS)</strong> designed to track changes in files and coordinate work among multiple people, handling everything from small scripts to very large projects with speed and efficiency.</p>
+<h4>1.2 Key characteristics</h4>
+<ul>
+<li><strong>Distributed</strong> — every developer's clone contains the full project history.</li>
+<li><strong>Snapshot-based</strong> — each commit stores a snapshot of the whole project (unchanged files are referenced, not copied).</li>
+<li><strong>Local-first</strong> — almost every operation (commit, log, diff, branch, merge) runs on your machine without a network.</li>
+<li><strong>Integrity</strong> — every object is identified by a cryptographic hash; any corruption is detected.</li>
+<li><strong>Branch-friendly</strong> — creating, switching and merging branches is fast and cheap.</li>
+</ul>
+<h4>1.3 Snapshots, not differences</h4>
+<p>Many older systems (CVS, SVN) store a base file plus a list of changes (deltas) over time. Git thinks of data as <strong>a series of snapshots</strong>:</p>
+<pre><code class="language-text">Delta-based (SVN):        Snapshot-based (Git):
+
+Version 1: File A         Commit 1: [A1] [B1] [C1]
+Version 2: Δ A            Commit 2: [A2] [B1] [C1]   ← B and C unchanged: linked, not copied
+Version 3: Δ A, Δ C       Commit 3: [A2] [B1] [C2]
+</code></pre>
+<p>(Internally Git still compresses similar objects using deltas inside <em>packfiles</em> — but conceptually every commit is a full snapshot.)</p>
+<h4>1.4 Real-time example</h4>
+<p>You run <code>git commit</code> after editing <code>usp_load_customers.sql</code>. Git:</p>
+<ol>
+<li>Stores the new content of <code>usp_load_customers.sql</code> as an object.</li>
+<li>Records a snapshot (tree) of the entire project, re-using objects for files that didn't change.</li>
+<li>Creates a commit pointing to that snapshot, with your name, the time, a message and the previous commit.</li>
+</ol>
+<p>You can return to that exact project state at any time.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">2.12</div><h2>
+History and Evolution of Git
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. History and Evolution of Git</span><h4>2.1 Background</h4>
+<p>The Linux kernel is one of the largest open-source projects in the world, with thousands of contributors.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Period</th>
+<th>How Linux kernel changes were managed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1991–2002</td>
+<td>Changes passed around as patches and archived files (tarballs)</td>
+</tr>
+<tr>
+<td>2002–2005</td>
+<td>The project used <strong>BitKeeper</strong>, a proprietary distributed VCS, under a free-of-charge licence</td>
+</tr>
+<tr>
+<td>April 2005</td>
+<td>The free BitKeeper licence was withdrawn after a dispute</td>
+</tr>
+</tbody>
+</table></div>
+<h4>2.2 Birth of Git</h4>
+<ul>
+<li><strong>April 2005</strong> — Linus Torvalds (creator of Linux) began writing Git. Within days Git was managing its own source code, and within weeks it managed the Linux kernel.</li>
+<li><strong>July 2005</strong> — Linus handed over maintenance to <strong>Junio C. Hamano</strong>, who remains Git's maintainer.</li>
+<li><strong>December 2005</strong> — Git 1.0 released.</li>
+</ul>
+<h4>2.3 Evolution timeline</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Milestone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2005</td>
+<td>Git created; Git 1.0 released</td>
+</tr>
+<tr>
+<td>2008</td>
+<td><strong>GitHub</strong> launched — Git hosting with a social, web-based interface</td>
+</tr>
+<tr>
+<td>2008–2011</td>
+<td>Bitbucket and GitLab adopt Git</td>
+</tr>
+<tr>
+<td>2010</td>
+<td>Git 1.7; widespread enterprise adoption begins</td>
+</tr>
+<tr>
+<td>2014</td>
+<td>Git 2.0 released</td>
+</tr>
+<tr>
+<td>2013–2014</td>
+<td>Microsoft adds Git support to Team Foundation Server / Visual Studio</td>
+</tr>
+<tr>
+<td>2016</td>
+<td>Git for Windows becomes mainstream; Git LFS widely adopted</td>
+</tr>
+<tr>
+<td>2018</td>
+<td>Microsoft acquires GitHub</td>
+</tr>
+<tr>
+<td>2019</td>
+<td>Git 2.23 introduces <code>git switch</code> and <code>git restore</code> (clearer alternatives to <code>checkout</code>)</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>GitHub and other platforms change the default branch name from <code>master</code> to <code>main</code>; Git adds <code>init.defaultBranch</code></td>
+</tr>
+<tr>
+<td>2021</td>
+<td>Git 2.34 makes the <strong>ort</strong> merge strategy the default and adds SSH commit signing</td>
+</tr>
+<tr>
+<td>2020s</td>
+<td>SHA-256 repository format support, <code>git maintenance</code>, sparse checkout and partial clone improvements for very large repositories</td>
+</tr>
+</tbody>
+</table></div>
+<h4>2.4 Git today</h4>
+<p>Git is the de facto industry standard for version control. Platforms such as GitHub, GitLab, Bitbucket and Azure Repos are all built on Git, and tools like Azure Data Factory, Databricks, Microsoft Fabric, Synapse and Power BI integrate with Git repositories.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">2.13</div><h2>
+Why Was Git Developed?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Why Was Git Developed?</span><h4>3.1 The immediate reason</h4>
+<p>When the Linux kernel lost free access to BitKeeper, the community needed a replacement. None of the available free systems met the kernel's requirements, so Linus Torvalds built one.</p>
+<h4>3.2 Design goals</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Meaning</th>
+<th>How Git achieves it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Speed</strong></td>
+<td>Operations must be fast, even for huge projects</td>
+<td>Local operations, efficient storage, compressed packfiles</td>
+</tr>
+<tr>
+<td><strong>Simple design</strong></td>
+<td>A small, clear data model</td>
+<td>Four object types (blob, tree, commit, tag) and references</td>
+</tr>
+<tr>
+<td><strong>Non-linear development</strong></td>
+<td>Thousands of parallel branches</td>
+<td>Branches are lightweight pointers; powerful merging</td>
+</tr>
+<tr>
+<td><strong>Fully distributed</strong></td>
+<td>No dependency on one central server</td>
+<td>Every clone is a complete repository</td>
+</tr>
+<tr>
+<td><strong>Large project support</strong></td>
+<td>Handle the Linux kernel efficiently in speed and size</td>
+<td>Content-addressed storage, delta compression</td>
+</tr>
+<tr>
+<td><strong>Data integrity</strong></td>
+<td>Detect corruption or tampering</td>
+<td>Every object named by a hash of its content</td>
+</tr>
+</tbody>
+</table></div>
+<h4>3.3 Problems Git solved compared with older tools</h4>
+<ul>
+<li>Slow, server-dependent operations (SVN/CVS)</li>
+<li>Expensive, painful branching and merging</li>
+<li>A single point of failure (central server)</li>
+<li>No offline work</li>
+<li>Proprietary licensing (BitKeeper)</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">2.14</div><h2>
+Features of Git
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Features of Git</span><h4>4.1 Distributed architecture</h4>
+<p>Every clone is a full backup of the repository, including all history. You can work, commit, branch and view history without a network.</p>
+<h4>4.2 Speed and performance</h4>
+<p>Because operations are local, commands like <code>git log</code>, <code>git diff</code> and <code>git commit</code> are near-instant.</p>
+<h4>4.3 Branching and merging</h4>
+<p>Branches cost almost nothing to create. Teams use feature branches, release branches and hotfix branches freely. Git has sophisticated merge algorithms (three-way merge, ort strategy, rename detection).</p>
+<h4>4.4 Staging area</h4>
+<p>Git has an intermediate area (the <strong>index</strong>) where you prepare exactly what goes into the next commit — even parts of a file.</p>
+<h4>4.5 Data integrity</h4>
+<p>Every file, directory and commit is checksummed (SHA-1, with SHA-256 support). It is impossible to change content without Git knowing.</p>
+<h4>4.6 Non-linear development</h4>
+<p>Multiple lines of development can exist and be combined in many ways (merge, rebase, cherry-pick).</p>
+<h4>4.7 Free and open source</h4>
+<p>Git is licensed under GPL v2 — free to use, study and modify.</p>
+<h4>4.8 Cross-platform</h4>
+<p>Runs on Windows, Linux and macOS, with identical commands.</p>
+<h4>4.9 Efficient storage</h4>
+<p>Identical files are stored only once; packfiles compress history.</p>
+<h4>4.10 Large ecosystem</h4>
+<p>GitHub, GitLab, Bitbucket, Azure Repos, VS Code, Visual Studio, JetBrains IDEs, CI/CD systems and cloud data services all integrate with Git.</p>
+<h4>4.11 Security features</h4>
+<p>Signed commits and tags (GPG or SSH), protected branches on hosting platforms, and hooks for policy enforcement.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Benefit to a Data Engineer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distributed</td>
+<td>Work on SQL/Python scripts offline</td>
+</tr>
+<tr>
+<td>Branching</td>
+<td>Develop a new pipeline without breaking production</td>
+</tr>
+<tr>
+<td>Staging area</td>
+<td>Commit the SQL change and the Python change separately</td>
+</tr>
+<tr>
+<td>Integrity</td>
+<td>Trust that the deployed code is exactly what was reviewed</td>
+</tr>
+<tr>
+<td>Ecosystem</td>
+<td>Connect ADF, Databricks and Fabric directly to the repo</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">2.15</div><h2>
+Git Architecture
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Git Architecture</span><h4>5.1 The four areas</h4>
+<pre><code class="language-text">┌───────────────────┐  git add   ┌──────────────────┐  git commit  ┌──────────────────┐   git push   ┌──────────────────┐
+│ Working Directory │ ─────────► │  Staging Area    │ ───────────► │ Local Repository │ ───────────► │ Remote Repository│
+│ (files you edit)  │            │  (index)         │              │ (.git folder)    │              │ (GitHub/Azure)   │
+└───────────────────┘            └──────────────────┘              └──────────────────┘              └──────────────────┘
+         ▲                                                                   │  ▲                             │
+         │                   git restore / git checkout / git switch        │  │      git fetch / git pull   │
+         └───────────────────────────────────────────────────────────────────┘  └─────────────────────────────┘
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Working directory</strong></td>
+<td>The project files on your disk that you open and edit</td>
+<td>You edit <code>usp_load_customers.sql</code> in VS Code</td>
+</tr>
+<tr>
+<td><strong>Staging area (index)</strong></td>
+<td>A list of changes prepared for the next commit</td>
+<td><code>git add usp_load_customers.sql</code></td>
+</tr>
+<tr>
+<td><strong>Local repository</strong></td>
+<td>The <code>.git</code> folder containing all commits, branches and history</td>
+<td><code>git commit -m "Filter active customers"</code></td>
+</tr>
+<tr>
+<td><strong>Remote repository</strong></td>
+<td>A shared copy hosted on a server</td>
+<td><code>git push origin main</code> sends commits to GitHub</td>
+</tr>
+</tbody>
+</table></div>
+<h4>5.2 File states</h4>
+<pre><code class="language-text"> Untracked ──git add──► Staged ──git commit──► Unmodified (committed)
+                          ▲                        │
+                          │ git add                │ edit file
+                          └────── Modified ◄───────┘
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Untracked</td>
+<td>Git sees the file but has never been told to track it</td>
+</tr>
+<tr>
+<td>Unmodified</td>
+<td>Tracked and identical to the last commit</td>
+</tr>
+<tr>
+<td>Modified</td>
+<td>Tracked and changed since the last commit, not yet staged</td>
+</tr>
+<tr>
+<td>Staged</td>
+<td>Change marked to go into the next commit</td>
+</tr>
+<tr>
+<td>Committed</td>
+<td>Safely stored in the local repository</td>
+</tr>
+</tbody>
+</table></div>
+<h4>5.3 Example</h4>
+<pre><code class="language-bash">echo &quot;SELECT 1;&quot; &gt; test.sql      # Untracked
+git add test.sql                 # Staged
+git commit -m &quot;Add test&quot;         # Committed (Unmodified)
+echo &quot;SELECT 2;&quot; &gt;&gt; test.sql     # Modified
+git status
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">2.16</div><h2>
+How Git Works Internally
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. How Git Works Internally</span><h4>6.1 Content-addressable storage</h4>
+<p>Git is, at its core, a <strong>key–value database</strong>. You give it content; it stores it and returns a key — the <strong>hash</strong> (SHA-1, 40 hex characters) of that content. The same content always produces the same key.</p>
+<pre><code class="language-bash">echo &quot;hello&quot; | git hash-object --stdin
+# ce013625030ba8dba906f756967f9e9ca394464a
+</code></pre>
+<h4>6.2 Four object types</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Stores</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blob</strong></td>
+<td>The contents of a file (no filename)</td>
+</tr>
+<tr>
+<td><strong>Tree</strong></td>
+<td>A directory: names, permissions and pointers to blobs/sub-trees</td>
+</tr>
+<tr>
+<td><strong>Commit</strong></td>
+<td>Pointer to the top tree + parent commit(s) + author + committer + message</td>
+</tr>
+<tr>
+<td><strong>Tag</strong></td>
+<td>An annotated, named pointer to an object (usually a commit)</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-text">commit a1b2c3 ──► tree (project root)
+   │                 ├── blob  README.md
+   │                 └── tree  sql/
+   │                         └── blob usp_load_customers.sql
+   └── parent ──► commit 9f8e7d ──► tree ...
+</code></pre>
+<h4>6.3 References</h4>
+<ul>
+<li>A <strong>branch</strong> is a small file in <code>.git/refs/heads/</code> containing a commit hash.</li>
+<li><strong>HEAD</strong> is a file (<code>.git/HEAD</code>) that points to the current branch.</li>
+<li>A <strong>tag</strong> is a reference in <code>.git/refs/tags/</code>.</li>
+</ul>
+<h4>6.4 What happens during <code>git add</code> and <code>git commit</code></h4>
+<ol>
+<li><code>git add file.sql</code> → Git compresses the file content, stores it as a <strong>blob</strong> in <code>.git/objects</code>, and records the path + blob hash in the <strong>index</strong>.</li>
+<li><code>git commit</code> → Git builds <strong>tree</strong> objects from the index, creates a <strong>commit</strong> object pointing to the root tree and the previous commit, and moves the current branch reference to the new commit.</li>
+</ol>
+<p>(Explored in depth in Phase 7.)</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">2.17</div><h2>
+Git Workflow
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Git Workflow</span><h4>7.1 Basic local workflow</h4>
+<pre><code class="language-text">Modify files → Stage changes (git add) → Commit snapshot (git commit)
+</code></pre>
+<h4>7.2 Team workflow with a remote</h4>
+<pre><code class="language-text">1. git clone &lt;url&gt;                  Get the repository
+2. git switch -c feature/xyz        Create a feature branch
+3. Edit files                       Do the work
+4. git add .                        Stage
+5. git commit -m &quot;message&quot;          Commit locally (repeat 3–5 as needed)
+6. git push -u origin feature/xyz   Share the branch
+7. Open a Pull Request              Request review
+8. Review, CI checks, approval      Quality gate
+9. Merge into main                  Integrate
+10. git switch main &amp;&amp; git pull     Update local main
+11. git branch -d feature/xyz       Clean up
+</code></pre>
+<h4>7.3 Example — Data Engineering change</h4>
+<p>A developer needs to add a <code>region</code> column to the customer load:</p>
+<pre><code class="language-bash">git switch main &amp;&amp; git pull
+git switch -c feature/DE-210-add-region
+# edit sql/procedures/usp_load_customers.sql and python/etl/transform.py
+git add sql/procedures/usp_load_customers.sql
+git commit -m &quot;feat(sql): load region column&quot;
+git add python/etl/transform.py
+git commit -m &quot;feat(etl): map region from source&quot;
+git push -u origin feature/DE-210-add-region
+# open a PR on GitHub/Azure Repos
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">2.18</div><h2>
+Git Terminology
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Git Terminology</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository (repo)</td>
+<td>A project tracked by Git, including history</td>
+<td><code>retail-data-platform</code></td>
+</tr>
+<tr>
+<td>Working directory / tree</td>
+<td>Files currently checked out on disk</td>
+<td>Your project folder</td>
+</tr>
+<tr>
+<td>Staging area / index</td>
+<td>Prepared changes for the next commit</td>
+<td>After <code>git add</code></td>
+</tr>
+<tr>
+<td>Commit</td>
+<td>A saved snapshot with metadata and unique ID</td>
+<td><code>a1b2c3d Add dim_customer</code></td>
+</tr>
+<tr>
+<td>Commit hash / SHA</td>
+<td>Unique ID of a commit</td>
+<td><code>a1b2c3d4e5...</code></td>
+</tr>
+<tr>
+<td>Branch</td>
+<td>Movable pointer to a line of commits</td>
+<td><code>main</code>, <code>feature/orders</code></td>
+</tr>
+<tr>
+<td>HEAD</td>
+<td>Pointer to your current branch/commit</td>
+<td><code>HEAD -&gt; main</code></td>
+</tr>
+<tr>
+<td>Detached HEAD</td>
+<td>HEAD pointing directly to a commit, not a branch</td>
+<td>After <code>git switch --detach a1b2c3d</code></td>
+</tr>
+<tr>
+<td>Remote</td>
+<td>A named reference to another repository</td>
+<td><code>origin</code></td>
+</tr>
+<tr>
+<td>Origin</td>
+<td>Default name of the remote you cloned from</td>
+<td><code>origin/main</code></td>
+</tr>
+<tr>
+<td>Upstream</td>
+<td>Branch a local branch tracks / the original repo of a fork</td>
+<td><code>main</code> tracks <code>origin/main</code></td>
+</tr>
+<tr>
+<td>Clone</td>
+<td>Full copy of a remote repository</td>
+<td><code>git clone &lt;url&gt;</code></td>
+</tr>
+<tr>
+<td>Fork</td>
+<td>Server-side copy of a repository under your account</td>
+<td>Fork on GitHub</td>
+</tr>
+<tr>
+<td>Fetch</td>
+<td>Download remote changes without merging</td>
+<td><code>git fetch</code></td>
+</tr>
+<tr>
+<td>Pull</td>
+<td>Fetch + integrate remote changes</td>
+<td><code>git pull</code></td>
+</tr>
+<tr>
+<td>Push</td>
+<td>Upload local commits to a remote</td>
+<td><code>git push</code></td>
+</tr>
+<tr>
+<td>Merge</td>
+<td>Combine histories of branches</td>
+<td><code>git merge feature/x</code></td>
+</tr>
+<tr>
+<td>Merge conflict</td>
+<td>Competing changes Git cannot combine automatically</td>
+<td>Same line edited on two branches</td>
+</tr>
+<tr>
+<td>Rebase</td>
+<td>Re-apply commits on top of another base</td>
+<td><code>git rebase main</code></td>
+</tr>
+<tr>
+<td>Cherry-pick</td>
+<td>Apply a specific commit onto the current branch</td>
+<td><code>git cherry-pick a1b2c3d</code></td>
+</tr>
+<tr>
+<td>Stash</td>
+<td>Temporarily shelve uncommitted changes</td>
+<td><code>git stash</code></td>
+</tr>
+<tr>
+<td>Tag</td>
+<td>Named pointer to a specific commit, usually a release</td>
+<td><code>v1.0.0</code></td>
+</tr>
+<tr>
+<td>Pull request (PR) / Merge request (MR)</td>
+<td>Request to merge a branch, with review</td>
+<td>PR #42</td>
+</tr>
+<tr>
+<td><code>.gitignore</code></td>
+<td>File listing paths Git should ignore</td>
+<td><code>.venv/</code>, <code>*.log</code></td>
+</tr>
+<tr>
+<td>Reflog</td>
+<td>Local log of where HEAD and branches have pointed</td>
+<td><code>git reflog</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">2.19</div><h2>
+Git Use Cases in Software Development
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Git Use Cases in Software Development</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Use case</th>
+<th>How Git is used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Feature development</td>
+<td>Each feature on its own branch, merged through PRs</td>
+</tr>
+<tr>
+<td>Bug fixing</td>
+<td>Bug-fix branches; <code>git bisect</code> to find the commit that introduced a bug</td>
+</tr>
+<tr>
+<td>Code review</td>
+<td>Pull requests show diffs and allow comments and approvals</td>
+</tr>
+<tr>
+<td>Release management</td>
+<td>Release branches and version tags (<code>v2.1.0</code>)</td>
+</tr>
+<tr>
+<td>Hotfixes</td>
+<td>Hotfix branch from production tag, merged back to all active branches</td>
+</tr>
+<tr>
+<td>Continuous integration</td>
+<td>Every push/PR triggers automated builds and tests</td>
+</tr>
+<tr>
+<td>Continuous deployment</td>
+<td>Merges to <code>main</code> or new tags trigger deployments</td>
+</tr>
+<tr>
+<td>Auditing</td>
+<td><code>git log</code> and <code>git blame</code> show who changed what and why</td>
+</tr>
+<tr>
+<td>Experimentation</td>
+<td>Throw-away branches for prototypes</td>
+</tr>
+<tr>
+<td>Open-source collaboration</td>
+<td>Forks and pull requests from contributors worldwide</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>Docs stored next to code and versioned together</td>
+</tr>
+<tr>
+<td>Infrastructure as Code</td>
+<td>Terraform/Bicep/ARM files versioned and reviewed</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">2.20</div><h2>
+Git in Data Engineering Projects
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Git in Data Engineering Projects</span><h4>10.1 What Data Engineers version-control</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL</td>
+<td>Tables, views, stored procedures, functions, migration scripts</td>
+</tr>
+<tr>
+<td>Python / PySpark</td>
+<td>ETL jobs, utility modules, unit tests</td>
+</tr>
+<tr>
+<td>Notebooks</td>
+<td>Databricks and Fabric notebooks</td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>ADF / Synapse / Fabric pipeline JSON definitions</td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td>Environment YAML/JSON, parameter files (never secrets)</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td>Bicep, Terraform, ARM templates</td>
+</tr>
+<tr>
+<td>CI/CD</td>
+<td>GitHub Actions workflows, Azure Pipelines YAML</td>
+</tr>
+<tr>
+<td>Semantic models / reports</td>
+<td>Power BI projects (PBIP/TMDL), Fabric items</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>README, data dictionary, runbooks</td>
+</tr>
+</tbody>
+</table></div>
+<h4>10.2 Why it matters for Data Engineering</h4>
+<ul>
+<li>Pipelines and SQL change often — history shows exactly when a transformation changed.</li>
+<li>Multiple engineers edit the same pipelines — branching prevents overwriting.</li>
+<li>Dev, Test and Prod environments must stay consistent — CI/CD from Git guarantees the same code is deployed.</li>
+<li>Data incidents need root-cause analysis — <code>git log</code> and <code>git blame</code> reveal the change that caused wrong numbers.</li>
+<li>Audits and compliance require traceable approvals — pull requests provide them.</li>
+</ul>
+<h4>10.3 The course project</h4>
+<p>Throughout this course you will build one continuous project:</p>
+<pre><code class="language-text">retail-data-platform/
+├── sql/
+│   ├── tables/        dim_customer.sql, fact_sales.sql
+│   ├── procedures/    usp_load_customers.sql
+│   └── views/
+├── python/
+│   ├── etl/           extract_orders.py, transform.py
+│   ├── tests/
+│   └── requirements.txt
+├── databricks/        notebooks/, databricks.yml
+├── adf/               pipeline/, dataset/, linkedService/
+├── fabric/
+├── infra/             main.bicep
+├── .github/workflows/ ci.yml
+├── .gitignore
+└── README.md
+</code></pre>
+<p>Every new chapter adds to this repository, so each concept builds on what you learned previously.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-ver"><span class="ct">Verified against official documentation (Nov 2026) — Git version status and the Git 3.0 plan</span><p>Git 2.55.0 was released on 29 June 2026. The official <em>BreakingChanges</em> document lists the Git 3.0 changes (default branch <code>main</code>, SHA-256 default for new repositories, reftable default) and states no fixed release date. Course commands are valid for Git 2.23 and later; <code>git switch</code>/<code>git restore</code> require 2.23+.</p></div><div class="c-add"><span class="ct">Git vs. other tools mentioned in the interview document (S41)</span><p>S41 asks about Git GUI clients and alternative VCS tools. GUI clients are covered in Chapter 27; Mercurial and SVN comparison in Chapter 1. Every GUI and IDE still uses the same <code>.git</code> repository — you can switch between CLI and GUI at any time.</p></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 176" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="49.0" y="15.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="144.0" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Working tree (edit files)</text><line x1="242.0" y1="44.0" x2="270.0" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="273.0" y="15.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="368.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Staging area / index (git</text><text x="368.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">add)</text><line x1="466.0" y1="44.0" x2="494.0" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="592.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Local repository .git</text><text x="592.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(git commit)</text><line x1="690.0" y1="44.0" x2="718.0" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="721.0" y="15.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="816.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Remote repository (git</text><text x="816.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">push)</text><rect x="49.0" y="103.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#137a4b" stroke-width="1.8"/><text x="144.0" y="136.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Remote repository</text><line x1="242.0" y1="132.0" x2="270.0" y2="132.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="273.0" y="103.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#137a4b" stroke-width="1.8"/><text x="368.0" y="128.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Remote-tracking branches</text><text x="368.0" y="144.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(git fetch)</text><line x1="466.0" y1="132.0" x2="494.0" y2="132.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="103.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#137a4b" stroke-width="1.8"/><text x="592.0" y="128.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Working tree (git merge /</text><text x="592.0" y="144.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git pull)</text><line x1="690.0" y1="132.0" x2="718.0" y2="132.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="721.0" y="103.0" width="190.0" height="58" rx="9" fill="#e6effc" stroke="#137a4b" stroke-width="1.8"/><text x="816.0" y="128.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Working tree (git restore</text><text x="816.0" y="144.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">/ git switch)</text></svg></div><figcaption>The four places your work lives and the commands that move it</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Commit object</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">author, committer, date, message, pointer to one tree, pointer(s) to parent commit(s)</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Tree object</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">a directory listing: names, modes and pointers to blobs and sub-trees</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Blob object</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">the exact content of one file version (no file name)</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">SHA-1 / SHA-256 ID</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">hash of the object&#x27;s content; any change produces a new ID (integrity)</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Refs</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">branches and tags are files that contain a commit ID; HEAD points to the current branch</text></svg></div><figcaption>How Git stores a commit (snapshot model)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="82.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">2002–2005 Linux</text><text x="82.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">kernel uses</text><text x="82.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">BitKeeper</text><line x1="148.0" y1="60.0" x2="176.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="179.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="241.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">April 2005</text><text x="241.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">BitKeeper free</text><text x="241.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">licence</text><text x="241.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">withdrawn</text><line x1="307.0" y1="60.0" x2="335.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="338.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="400.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Linus Torvalds</text><text x="400.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">writes Git</text><text x="400.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(first commit 7</text><text x="400.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Apr 2005)</text><line x1="466.0" y1="60.0" x2="494.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="559.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">July 2005 Junio</text><text x="559.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">C Hamano becomes</text><text x="559.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">maintainer</text><line x1="625.0" y1="60.0" x2="653.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="656.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="718.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">2014 Git 2.0</text><line x1="784.0" y1="60.0" x2="812.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="815.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="877.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">2026 Git 2.5x;</text><text x="877.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Git 3.0 changes</text><text x="877.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">announced</text></svg></div><figcaption>Git&#x27;s history in short</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-version-git-help"><header>git --version / git help</header><dl><dt>Syntax</dt><dd><pre><code>git --version
+git help &lt;command&gt;
+git &lt;command&gt; -h</code></pre></dd><dt>Purpose</dt><dd>Show the installed Git version; open full or short help for a command.</dd><dt>Expected output</dt><dd><pre><code>git version 2.55.0</code></pre></dd><dt>Example</dt><dd><pre><code>git --version
+git help commit        # full manual page
+git commit -h          # short option summary in the terminal</code></pre></dd><dt>Common mistakes</dt><dd>Following a tutorial written for a much older Git (for example <code>git checkout</code> for everything) — newer versions provide <code>git switch</code> and <code>git restore</code> (Git 2.23+).</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 0 — Map the platform onto Git concepts</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Git concept</th>
+<th>What it will mean in the project</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository</td>
+<td><code>enterprise-retail-data-platform</code> — one repo for SQL, Python, ADF, Databricks, Fabric and CI/CD</td>
+</tr>
+<tr>
+<td>Commit</td>
+<td>e.g. "Add usp_load_dim_customer (RDP-101)" — one logical change</td>
+</tr>
+<tr>
+<td>Branch</td>
+<td><code>feature/RDP-101-dim-customer</code>, <code>hotfix/RDP-140-null-region</code></td>
+</tr>
+<tr>
+<td>Remote</td>
+<td><code>origin</code> = the GitHub repository (Azure Repos in Chapter 30)</td>
+</tr>
+<tr>
+<td>Tag</td>
+<td><code>v1.0.0</code> = first production release of the platform</td>
+</tr>
+<tr>
+<td>Pull request</td>
+<td>Review gate before anything reaches <code>main</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Throughout the course the same repository grows stage by stage; Chapter 3 installs Git, Chapter 4 creates the repository.</p></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S03, S40 · Working offline on a flight</span><p>Ravi edits the ingestion package with no network. He can commit, branch, view history and diff locally because the whole repository is on his laptop. When he lands, <code>git push</code> uploads his commits.</p></div><div class="src"><span class="tag add">Course addition · Proving that history was not altered</span><p>An auditor asks whether a deployed SQL script was modified after approval. Because each commit ID is a hash over its content and its parents, changing any byte of an old commit would change every following ID; the tag <code>v1.0.0</code> therefore pins exactly what was approved (signed tags add authorship proof — Chapter 23).</p></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Learn the command line first; GUIs (Chapters 26–27) are easier once the model is clear.</li>
+<li>Keep Git up to date — security fixes and new commands (<code>switch</code>, <code>restore</code>, <code>maintenance</code>) arrive regularly.</li>
+<li>Think in snapshots and pointers, not in "file versions".</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Misconception</th>
+<th>Correct view</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Git stores the differences between files."</td>
+<td>Git stores snapshots; diffs are computed on demand (packfiles compress internally).</td>
+</tr>
+<tr>
+<td>"A branch is a copy of the project."</td>
+<td>A branch is a 41-byte file containing a commit ID.</td>
+</tr>
+<tr>
+<td>"Commit uploads my work."</td>
+<td>Commit is local; <code>git push</code> uploads.</td>
+</tr>
+<tr>
+<td>"GitHub is required to use Git."</td>
+<td>Git works entirely locally; hosting is optional.</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Run <code>git --version</code> and <code>git help -a | head -40</code>.</p><span class="exp-out">You see your Git version and the list of available commands.</span></li><li><p>Draw the four-area diagram from memory and label each arrow with its command.</p><span class="exp-out">Arrows labelled add, commit, push, fetch, merge/pull, restore.</span></li><li><p>Write one-line definitions of repository, commit, branch, HEAD, remote and tag.</p><span class="exp-out">Six definitions consistent with the terminology section.</span></li><li><p>Explain, in three sentences, why changing an old commit changes all later commit IDs.</p><span class="exp-out">Mentions that each commit stores its parent's hash.</span></li></ol></div><div class="src"><span class="tag ">Source S03 · Chapter manual · lab</span><h4>Exercise 1: Understand Git</h4>
+<ol><li>Explain Git in your own words.</li><li>Explain why Git is distributed.</li><li>Explain the difference between Git and GitHub.</li><li>List three reasons Git was created.</li><li>Describe how Git can help a team maintain SQL scripts.</li></ol>
+<h4>Exercise 2: Explore the four Git areas</h4>
+<p>After Git is installed, create a practice repository and run these commands:</p>
+<pre><code>mkdir git-chapter2-practice
+cd git-chapter2-practice
+git init
+
+echo "First version" &gt; notes.txt
+git status
+
+git add notes.txt
+git status
+
+git commit -m "Add initial notes"
+git log --oneline</code></pre>
+<p>Observe how the file moves from untracked, to staged, to committed.</p>
+<h4>Exercise 3: Inspect repository internals</h4>
+<p>After creating at least one commit, run:</p>
+<pre><code>git status
+git log --oneline --graph --decorate
+git cat-file -t HEAD
+git cat-file -p HEAD
+git ls-tree HEAD
+git rev-parse HEAD</code></pre>
+<p>Write down what each command displays. Do not manually change files inside the <code>.git</code> directory.</p>
+<h4>Exercise 4: Data Engineering scenario</h4>
+<p>Create a sample repository structure for a data pipeline project. Decide which files should be versioned, which files should be excluded, how you would name feature branches, and what checks should be completed before a pull request is approved.</p></div><div class="src"><span class="tag s40">Source S40 · 11. Practical Exercise – Chapter 2</span><ol>
+<li>Draw the Git architecture (four areas) from memory and label which command moves changes between each area.</li>
+<li>Create a folder, run <code>git init</code>, create a file, and run <code>git status</code> after each of: creating, <code>git add</code>, <code>git commit</code>, editing. Write down the file state each time.</li>
+<li>Run <code>echo "hello" | git hash-object --stdin</code> twice — confirm the hash is identical (content addressing).</li>
+<li>Explain in your own words why Git is faster than SVN for <code>git log</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 2 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S03 · Chapter manual · interview</span><ol>
+<li>What is Git?</li><li>Is Git centralized or distributed?</li><li>Who created Git and when?</li><li>Why was Git developed?</li><li>What is the difference between Git and GitHub?</li><li>What are the main features of Git?</li><li>What are the four main areas in the Git workflow?</li><li>What is the working tree?</li><li>What is the staging area?</li><li>What is the purpose of the <code>.git</code> directory?</li><li>What are the main Git object types?</li><li>What is a blob object?</li><li>What is a tree object?</li><li>What information does a commit object contain?</li><li>What is the difference between a lightweight tag and an annotated tag?</li><li>What is HEAD?</li><li>What is a branch in Git?</li><li>What is the difference between fetch and pull?</li><li>What is the difference between a local and remote repository?</li><li>How is Git used in Data Engineering projects?</li></ol></div><div class="src"><span class="tag s40">Source S40 · 12. Chapter 2 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is Git?</td>
+<td>A free, open-source distributed version control system that stores project snapshots</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Who created Git and when?</td>
+<td>Linus Torvalds, April 2005</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Why was Git created?</td>
+<td>Linux kernel lost free BitKeeper access; needed a fast, distributed, reliable VCS</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Does Git store differences or snapshots?</td>
+<td>Snapshots conceptually; packfiles use delta compression</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What are the main areas of Git?</td>
+<td>Working directory, staging area, local repository, remote repository</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What are the four Git object types?</td>
+<td>Blob, tree, commit, tag</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>What is HEAD?</td>
+<td>A pointer to the current branch (or commit)</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>How does Git ensure integrity?</td>
+<td>Every object is identified by a cryptographic hash of its content</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>What is the purpose of the staging area?</td>
+<td>To select exactly which changes go into the next commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>How is Git used in Data Engineering?</td>
+<td>Versioning SQL, Python, notebooks, pipelines, config and IaC; enabling CI/CD</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What are the three local areas in Git?</summary><div class="ans"><p>The working tree (files you edit), the staging area or index (what will go into the next commit) and the local repository (<code>.git</code>, the committed history).</p></div></details><details class="qa"><summary>Who created Git and why?</summary><div class="ans"><p>Linus Torvalds in 2005, after the Linux kernel project lost free use of BitKeeper; he needed a fast, distributed system with strong integrity.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Why is Git called "distributed"?</summary><div class="ans"><p>Every clone contains the full history and can commit, branch and merge independently; synchronization with other repositories is explicit (fetch/push).</p></div></details><details class="qa"><summary>How does Git ensure data integrity?</summary><div class="ans"><p>Every object is addressed by a hash of its content; commits include the hashes of their tree and parents, so altering history changes all subsequent IDs and is detectable (<code>git fsck</code>).</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>What is changing in Git 3.0?</summary><div class="ans"><p>The documented breaking changes include <code>main</code> as the default initial branch name, SHA-256 as the default hash for new repositories and the reftable format as the default reference backend. Existing SHA-1 repositories continue to work. (Release date not fixed at the time of writing.)</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A data engineer asks why notebooks should be in Git if Databricks already keeps revision history. What do you answer?</summary><div class="ans"><p>Workspace revision history is per-notebook and per-workspace; Git gives branching, reviews, history across all assets (SQL, ADF, notebooks), tags for releases and CI/CD deployment to other environments.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which command moves changes from the working tree into the staging area?</strong></p><ol><li data-ok="0">git commit</li><li data-ok="1">git add</li><li data-ok="0">git push</li><li data-ok="0">git fetch</li></ol><div class="exp"><code>git add</code> stages; <code>git commit</code> records the staged snapshot.</div></div><div class="mcq"><p><strong>2. What does a Git branch technically consist of?</strong></p><ol><li data-ok="0">A copy of all files</li><li data-ok="1">A reference that stores a commit ID</li><li data-ok="0">A folder on the server</li><li data-ok="0">A zip archive of history</li></ol><div class="exp">Branches are lightweight pointers.</div></div><div class="mcq"><p><strong>3. Which object type stores a file's content?</strong></p><ol><li data-ok="0">tree</li><li data-ok="0">commit</li><li data-ok="1">blob</li><li data-ok="0">tag</li></ol><div class="exp">Blobs store content; trees store names.</div></div><div class="mcq"><p><strong>4. Which statement about <code>git commit</code> is correct?</strong></p><ol><li data-ok="0">It uploads changes to GitHub</li><li data-ok="1">It records the staged snapshot in the local repository</li><li data-ok="0">It requires a network connection</li><li data-ok="0">It merges branches</li></ol><div class="exp">Commits are local.</div></div><div class="mcq"><p><strong>5. Which default is documented to change in Git 3.0?</strong></p><ol><li data-ok="0">Commit messages become optional</li><li data-ok="1">New repositories default to the branch name main</li><li data-ok="0">Git stops supporting SSH</li><li data-ok="0">Staging area is removed</li></ol><div class="exp">The BreakingChanges document lists main, SHA-256 and reftable defaults.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Git is a distributed, snapshot-based VCS created in 2005; it is maintained by Junio C Hamano and a large community.</li>
+<li>Work moves through the working tree, staging area, local repository and remote repository.</li>
+<li>Objects (blob, tree, commit, tag) are content-addressed by hash, giving speed and integrity.</li>
+<li>Git 3.0 will change defaults (main, SHA-256, reftable) but existing repositories keep working.</li>
+</ul></div><div class="src"><span class="tag ">Source S03 · Chapter manual · summary</span><table><tr><th>Concept</th><th>Key point</th></tr>
+<tr><td>Git</td><td>Free, open-source distributed version control system.</td></tr>
+<tr><td>Origin</td><td>Created by Linus Torvalds in 2005 for Linux kernel development.</td></tr>
+<tr><td>Repository</td><td>Project content and Git history.</td></tr>
+<tr><td>Working tree</td><td>Files currently checked out for editing.</td></tr>
+<tr><td>Staging area</td><td>Index containing the proposed next commit snapshot.</td></tr>
+<tr><td>Commit</td><td>Recorded snapshot with metadata and parent reference(s).</td></tr>
+<tr><td>Blob</td><td>Stores file content.</td></tr>
+<tr><td>Tree</td><td>Represents directory structure and references blobs or subtrees.</td></tr>
+<tr><td>HEAD</td><td>Identifies the current checkout position.</td></tr>
+<tr><td>Remote</td><td>Another repository used to exchange work.</td></tr>
+</table>
+<h4>Key learning points</h4>
+<ul><li>Git was designed for fast, distributed collaboration.</li><li>Git stores repository data as objects and references.</li><li>The main object types are blob, tree, commit, and tag.</li><li>The normal local workflow moves changes through the working tree, staging area, and local repository.</li><li>Remote repositories allow teams to share and synchronize work.</li><li>Git is useful for application code, SQL, Python, data pipelines, and infrastructure definitions.</li></ul></div><div class="src"><span class="tag s40">Source S40 · 13. Chapter 2 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Git</td>
+<td>Distributed, snapshot-based version control system</td>
+</tr>
+<tr>
+<td>History</td>
+<td>Created by Linus Torvalds in 2005 for Linux kernel development</td>
+</tr>
+<tr>
+<td>Design goals</td>
+<td>Speed, simplicity, branching, distribution, integrity</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td>Working directory → staging → local repo → remote repo</td>
+</tr>
+<tr>
+<td>Internals</td>
+<td>Content-addressed objects (blob, tree, commit, tag) and references</td>
+</tr>
+<tr>
+<td>Workflow</td>
+<td>Branch → edit → add → commit → push → PR → merge</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Next chapter: Chapter 3 – Git Installation and Configuration</strong></p></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Explain Git's origin (2005, Linux kernel, BitKeeper) and its design goals: speed, integrity, distributed work, non-linear development.</li><li>Describe Git as a snapshot (not diff) store and explain how SHA hashes guarantee integrity.</li><li>Draw the working tree → staging area → local repository → remote repository flow and name the command for each transition.</li><li>Define repository, commit, branch, HEAD, remote, clone, merge, tag in one sentence each.</li><li>Name the Git-related use cases in software and in data engineering.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git">Pro Git — A Short History of Git</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F">Pro Git — What is Git?</a></li>
+<li><a href="https://git-scm.com/docs/gitglossary">Git glossary (gitglossary)</a></li>
+<li><a href="https://git-scm.com/docs/BreakingChanges">Git BreakingChanges (Git 3.0 plan)</a></li>
+<li><a href="https://docs.github.com/en/get-started/using-git/about-git">GitHub Docs — About Git</a></li>
+</ul></div><div class="src"><span class="tag ">Source S03 · Chapter manual</span><ul>
+<li><a href="https://git-scm.com/book/en/v2" rel="noopener" target="_blank">Pro Git book</a></li>
+<li><a href="https://git-scm.com/docs" rel="noopener" target="_blank">Git command reference</a></li>
+<li><a href="https://git-scm.com/about" rel="noopener" target="_blank">About Git</a></li>
+<li><a href="https://docs.github.com/en/get-started" rel="noopener" target="_blank">GitHub — Get started</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/data-factory/source-control" rel="noopener" target="_blank">Azure Data Factory source control</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/databricks/repos/" rel="noopener" target="_blank">Azure Databricks Git folders</a></li>
+<li><a href="https://learn.microsoft.com/en-us/fabric/cicd/git-integration/intro-to-git-integration" rel="noopener" target="_blank">Microsoft Fabric Git integration</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_01_Introduction_to_Version_Control.html"><span class="mn-label">← Previous</span><span class="mn-title">Introduction to Version Control</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_03_Git_Installation_and_Configuration.html"><span class="mn-label">Next →</span><span class="mn-title">Git Installation and Configuration</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

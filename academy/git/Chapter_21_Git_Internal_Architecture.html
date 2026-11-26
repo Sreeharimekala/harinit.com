@@ -1,0 +1,1561 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Describe the four object types and draw how a commit references a tree, sub-trees and blobs."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Internal Architecture — Chapter 21 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Internal Architecture</div>
+<div class="brand-sub">Chapter 21 · 42 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">21.1</span>Git object model</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">21.2</span>Blob objects</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">21.3</span>Tree objects</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">21.4</span>Commit objects</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">21.5</span>Tag objects</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">21.6</span>SHA-1 and object identification</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">21.7</span>Understanding object storage</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">21.8</span>git/objects directory</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">21.9</span>git/refs directory</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">21.10</span>HEAD file</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">21.11</span>Index file</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">21.12</span>Git references</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">21.13</span>Git garbage collection</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">21.14</span>Git packfiles</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">21.15</span>Repository optimization</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">21.16</span>Git Object Model</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">21.17</span>Blob Objects</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">21.18</span>Tree Objects</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">21.19</span>Commit Objects</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">21.20</span>Tag Objects</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">21.21</span>SHA-1 and Object Identification</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">21.22</span>Understanding Git Object Storage</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">21.23</span>.git/objects Directory</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">21.24</span>.git/refs Directory</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">21.25</span>HEAD File</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">21.26</span>Index File</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">21.27</span>Git References</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">21.28</span>Git Garbage Collection</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">21.29</span>Git Packfiles</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">21.30</span>Git Repository Optimization</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">🎯</span>Chapter 21 Interview Questions</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-42" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 7 · Chapter 21</div><h1>Git Internal Architecture</h1><p class="page-subtitle">Describe the four object types and draw how a commit references a tree, sub-trees and blobs.</p><div class="meta-row"><span class="meta-pill">Phase <b>7</b></span><span class="meta-pill">Lessons <b>42</b></span><span class="meta-pill">Sources <b>S22, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Git object model; Blob objects; Tree objects; Commit objects; Tag objects; SHA-1 and object identification; Understanding object storage; git/objects directory; git/refs directory; HEAD file. <br><strong>Before you start:</strong> complete Chapter 20 – Git Tags and Releases. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Git's internal architecture: a content-addressable object database (blobs, trees, commits, annotated tags), references (branches, tags, HEAD, remote-tracking refs), the index, and storage optimizations (loose objects, packfiles, garbage collection).</p>
+<p><strong>Why it matters.</strong> Internals explain <em>why</em> Git behaves as it does — why branches are cheap, why rewriting history changes IDs, how recovery is possible, and how to keep large repositories fast.</p>
+<p><strong>Where it is used.</strong> Troubleshooting, recovery, performance tuning, tooling, interviews.</p>
+<p><strong>In this course's project.</strong> Stage 5: the team inspects how one SQL file is stored, follows the chain from <code>main</code> to a blob, and checks repository size before adding Databricks/Fabric assets.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter opens the <code>.git</code> directory and explains how Git really stores data — the object model, blobs, trees, commits, tags, hashing, object storage, refs, HEAD, the index, garbage collection, packfiles and optimisation.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to explain exactly what Git stores on disk and inspect any object or reference yourself.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S22 · Chapter manual · objectives</span><p>Explore how Git stores snapshots as objects and connects them through references, indexes and packfiles.</p><div class="grid"><div class="tile"><b>01</b><br/>Describe Git's content-addressable object model</div><div class="tile"><b>02</b><br/>Distinguish blob, tree, commit and tag objects</div><div class="tile"><b>03</b><br/>Understand HEAD, refs, index and .git</div><div class="tile"><b>04</b><br/>Explain loose objects, packfiles and garbage collection</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Describe the four object types and draw how a commit references a tree, sub-trees and blobs.</li>
+<li>Explain how SHA-1 (and SHA-256) object IDs are computed and why identical content is stored once.</li>
+<li>Navigate <code>.git/objects</code>, <code>.git/refs</code>, <code>HEAD</code>, <code>packed-refs</code> and the index.</li>
+<li>Explain loose objects vs packfiles and what <code>git gc</code> does.</li>
+<li>Use basic optimization commands (<code>count-objects</code>, <code>gc</code>, <code>maintenance</code>).</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">21.1</div><h2>Git object model</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 1. Git object model</span><p>Git is a content-addressable object database. Its four main object types are blob, tree, commit and annotated tag. Each object's ID is derived from its Git object representation. Commits point to trees and parents; trees point to blobs and subtrees.</p><h4>Commands and practical example</h4><pre><code>git cat-file -t HEAD
+git cat-file -p HEAD
+git log --graph --oneline --decorate --all</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">21.2</div><h2>Blob objects</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 2. Blob objects</span><p>A blob stores file content only. It does not store the filename, directory path or executable bit; that metadata is stored in the tree entry. Identical content can be represented by the same blob object across paths.</p><h4>Commands and practical example</h4><pre><code>git hash-object -w sample.csv
+git cat-file -p &lt;blob-id&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">21.3</div><h2>Tree objects</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 3. Tree objects</span><p>A tree represents a directory snapshot. Entries associate names and modes with object IDs, usually blobs for files and trees for subdirectories. Trees preserve the structure of a committed snapshot.</p><h4>Commands and practical example</h4><pre><code>git ls-tree HEAD
+git ls-tree -r HEAD
+git write-tree</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">21.4</div><h2>Commit objects</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 4. Commit objects</span><p>A commit records a top-level tree, parent commit(s), author and committer metadata, timestamps and a message. Root commits have no parent; merge commits have multiple parents.</p><h4>Commands and practical example</h4><pre><code>git cat-file -p HEAD
+git show --no-patch --format=fuller HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">21.5</div><h2>Tag objects</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 5. Tag objects</span><p>An annotated tag is a Git object containing the target object, tagger metadata and message. A lightweight tag is only a reference and does not create a tag object.</p><h4>Commands and practical example</h4><pre><code>git tag v1.0-light
+git tag -a v1.0.0 -m "Release 1.0.0"
+git cat-file -t v1.0.0
+git cat-file -p v1.0.0</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">21.6</div><h2>SHA-1 and object identification</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 6. SHA-1 and object identification</span><p>Git historically used SHA-1 object IDs and also supports SHA-256 repositories. An object ID is calculated from the Git object representation, not simply raw file bytes. Tooling should not assume every ID is 40 hexadecimal characters.</p><h4>Commands and practical example</h4><pre><code>git rev-parse --show-object-format
+git rev-parse HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">21.7</div><h2>Understanding object storage</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 7. Understanding object storage</span><p>Loose objects are compressed and stored under .git/objects using a fan-out directory: the first two hexadecimal characters form a directory and the rest form the filename. Prefer Git commands over editing these internal files directly.</p><h4>Commands and practical example</h4><pre><code>git count-objects -v
+git cat-file -t &lt;object-id&gt;
+git cat-file -p &lt;object-id&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">21.8</div><h2>git/objects directory</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 8. .git/objects directory</span><p>This directory contains loose objects and pack storage. A loose object's path is derived from its object ID. Git may later consolidate loose objects into packfiles for efficient storage.</p><h4>Commands and practical example</h4><pre><code>git count-objects -v
+find .git/objects -maxdepth 2 -type f</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">21.9</div><h2>git/refs directory</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 9. .git/refs directory</span><p>References are names pointing to object IDs. Local branches commonly live under refs/heads, remote-tracking refs under refs/remotes and tags under refs/tags. Some refs are consolidated in packed-refs.</p><h4>Commands and practical example</h4><pre><code>git show-ref
+git for-each-ref --format='%(refname) %(objectname:short)'</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">21.10</div><h2>HEAD file</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 10. HEAD file</span><p>HEAD identifies the current checkout. It normally contains a symbolic reference such as refs/heads/main; in detached-HEAD state it contains an object ID directly. Inspect it with Git commands rather than editing it manually.</p><h4>Commands and practical example</h4><pre><code>git symbolic-ref -q HEAD
+git rev-parse HEAD
+git status --short --branch</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">21.11</div><h2>Index file</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 11. Index file</span><p>The index, also called the staging area, records the proposed next commit snapshot, including path, mode and object ID metadata. It is a structured binary file, not merely a list of changed names.</p><h4>Commands and practical example</h4><pre><code>git ls-files --stage
+git diff
+git diff --cached
+git write-tree</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">21.12</div><h2>Git references</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 12. Git references</span><p>A branch is a movable reference to a commit; a tag normally identifies a fixed release point. Remote-tracking refs record the last fetched state of remote branches. Git updates refs through reference-management mechanisms.</p><h4>Commands and practical example</h4><pre><code>git show-ref
+git branch -avv
+git tag --list</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">21.13</div><h2>Git garbage collection</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 13. Git garbage collection</span><p>Garbage collection packs loose objects and prunes eligible unreachable objects according to retention rules. Reflogs can keep otherwise unreachable commits temporarily recoverable. Avoid aggressive pruning during recovery.</p><h4>Commands and practical example</h4><pre><code>git gc
+git gc --auto
+git prune --dry-run</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">21.14</div><h2>Git packfiles</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 14. Git packfiles</span><p>Packfiles store many Git objects together and may use delta compression to reduce repeated content. Pack indexes let Git locate objects efficiently. They are central to repository storage efficiency.</p><h4>Commands and practical example</h4><pre><code>git count-objects -v
+git verify-pack -v .git/objects/pack/*.idx</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">21.15</div><h2>Repository optimization</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · 15. Repository optimization</span><p>Use normal maintenance, avoid committing generated datasets, consider Git LFS for suitable binary assets, and use commit-graph and multi-pack-index features for large repositories. Do not rewrite shared history without coordination.</p><h4>Commands and practical example</h4><pre><code>git maintenance run
+git commit-graph write --reachable
+git multi-pack-index write</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">21.16</div><h2>
+Git Object Model
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. Git Object Model</span><h4>1.1 Definition</h4>
+<p>Git is a <strong>content-addressable filesystem</strong>: a key–value store where every piece of data (an <em>object</em>) is stored under a key equal to the <strong>hash of its content</strong>. On top of this store, Git builds a version-control user interface.</p>
+<h4>1.2 The model</h4>
+<pre><code class="language-text">                  refs/heads/main
+                        │
+                        ▼
+  commit 9c8b7a6 ─────► tree 4f1a (root)
+     │                    ├── blob 7a2b   README.md
+     │                    └── tree 3c9d   sql/
+     │                           └── tree 8e0f  procedures/
+     │                                  └── blob 1d4e  usp_load_customers.sql
+     ▼ parent
+  commit 3f2a7d1 ─────► tree 2b6c (root) ─── reuses blob 7a2b (README unchanged)
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Object type</th>
+<th>Points to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commit</td>
+<td>One tree + zero or more parent commits</td>
+</tr>
+<tr>
+<td>Tree</td>
+<td>Blobs and other trees</td>
+</tr>
+<tr>
+<td>Blob</td>
+<td>Nothing (raw content)</td>
+</tr>
+<tr>
+<td>Tag</td>
+<td>Usually a commit</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Key properties:</strong> objects are <strong>immutable</strong>; identical content is <strong>stored once</strong>; any change creates new objects up the chain (new blob → new trees → new commit).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">21.17</div><h2>
+Blob Objects
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Blob Objects</span><h4>2.1 Definition</h4>
+<p>A <strong>blob</strong> (binary large object) stores <strong>the contents of a file</strong> — nothing else: no filename, no path, no permissions, no timestamp.</p>
+<h4>2.2 Demonstration</h4>
+<pre><code class="language-bash">echo &quot;SELECT 1;&quot; &gt; test.sql
+git hash-object -w test.sql           # -w writes the object into .git/objects
+# e.g. 2f1d0e9c...
+git cat-file -t 2f1d0e9c               # blob
+git cat-file -p 2f1d0e9c               # SELECT 1;
+git cat-file -s 2f1d0e9c               # size in bytes
+</code></pre>
+<h4>2.3 Implications</h4>
+<ul>
+<li>Two files with the same content (anywhere in the project or history) share <strong>one</strong> blob.</li>
+<li>Renaming a file doesn't create a new blob — only the tree changes.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">21.18</div><h2>
+Tree Objects
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Tree Objects</span><h4>3.1 Definition</h4>
+<p>A <strong>tree</strong> represents a <strong>directory</strong>: a list of entries, each with <strong>mode, type, hash and name</strong>.</p>
+<pre><code class="language-bash">git cat-file -p HEAD^{tree}
+</code></pre>
+<pre><code class="language-text">100644 blob 7a2b...   README.md
+040000 tree 3c9d...   sql
+040000 tree 5e7f...   python
+</code></pre>
+<pre><code class="language-bash">git ls-tree HEAD
+git ls-tree -r HEAD              # recursive: every file
+git ls-tree HEAD sql/procedures/
+</code></pre>
+<h4>3.2 File modes</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>100644</code></td>
+<td>Normal file</td>
+</tr>
+<tr>
+<td><code>100755</code></td>
+<td>Executable file</td>
+</tr>
+<tr>
+<td><code>120000</code></td>
+<td>Symbolic link</td>
+</tr>
+<tr>
+<td><code>040000</code></td>
+<td>Directory (tree)</td>
+</tr>
+<tr>
+<td><code>160000</code></td>
+<td>Submodule (gitlink)</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">21.19</div><h2>
+Commit Objects
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Commit Objects</span><h4>4.1 Definition</h4>
+<p>A <strong>commit</strong> object records a <strong>snapshot (root tree)</strong>, its <strong>parent(s)</strong>, <strong>author</strong>, <strong>committer</strong> and <strong>message</strong>.</p>
+<pre><code class="language-bash">git cat-file -p HEAD
+</code></pre>
+<pre><code class="language-text">tree 4f1a2b3c...
+parent 3f2a7d1c...
+author Ravi Kumar &lt;ravi.kumar@company.com&gt; 1795002012 +0530
+committer Ravi Kumar &lt;ravi.kumar@company.com&gt; 1795002012 +0530
+
+Add fact_sales table
+</code></pre>
+<h4>4.2 Notes</h4>
+<ul>
+<li>The root commit has no <code>parent</code>; merge commits have several.</li>
+<li>Signed commits include a <code>gpgsig</code> header.</li>
+<li>The commit hash covers all of this — changing any field yields a new commit.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">21.20</div><h2>
+Tag Objects
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Tag Objects</span><h4>5.1 Definition</h4>
+<p>An <strong>annotated tag</strong> is stored as a <strong>tag object</strong> containing the target object hash, its type, the tag name, the tagger, date and message (plus optional signature). Lightweight tags are <strong>not</strong> objects — just refs.</p>
+<pre><code class="language-bash">git cat-file -p v1.0.0
+</code></pre>
+<pre><code class="language-text">object 9c8b7a6d...
+type commit
+tag v1.0.0
+tagger Ravi Kumar &lt;ravi.kumar@company.com&gt; 1795002012 +0530
+
+Release 1.0.0
+</code></pre>
+<pre><code class="language-bash">git rev-parse v1.0.0          # hash of the tag object
+git rev-parse v1.0.0^{commit} # hash of the commit it points to
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">21.21</div><h2>
+SHA-1 and Object Identification
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. SHA-1 and Object Identification</span><h4>6.1 How the ID is calculated</h4>
+<p>Git hashes a <strong>header + content</strong>:</p>
+<pre><code class="language-text">&quot;&lt;type&gt; &lt;size-in-bytes&gt;\0&lt;content&gt;&quot;
+</code></pre>
+<pre><code class="language-bash">printf 'hello\n' | git hash-object --stdin
+# ce013625030ba8dba906f756967f9e9ca394464a
+
+printf 'blob 6\0hello\n' | sha1sum
+# ce013625030ba8dba906f756967f9e9ca394464a  -
+</code></pre>
+<h4>6.2 Properties</h4>
+<ul>
+<li>160-bit SHA-1 → 40 hexadecimal characters.</li>
+<li>Abbreviations (first 7+ chars) work while unambiguous: <code>git rev-parse --short HEAD</code>.</li>
+<li>Git uses a <strong>collision-detecting SHA-1 implementation</strong> (hardened after the 2017 SHAttered attack).</li>
+<li><strong>SHA-256</strong> repositories are supported (<code>git init --object-format=sha256</code>, 64-char IDs); interoperability with hosting platforms is still limited.</li>
+</ul>
+<h4>6.3 Integrity</h4>
+<p>Because each commit hash covers its tree and parents, the hash of the latest commit effectively <strong>fingerprints the entire history</strong>. Any corruption or tampering changes hashes and is detected (<code>git fsck</code>).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">21.22</div><h2>
+Understanding Git Object Storage
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Understanding Git Object Storage</span><h4>7.1 Loose objects</h4>
+<p>New objects are stored individually, <strong>zlib-compressed</strong>, at:</p>
+<pre><code class="language-text">.git/objects/&lt;first 2 hex chars&gt;/&lt;remaining 38 chars&gt;
+</code></pre>
+<p>Example: object <code>ce0136...</code> → <code>.git/objects/ce/013625030ba8dba906f756967f9e9ca394464a</code>.</p>
+<h4>7.2 Packed objects</h4>
+<p>Periodically Git packs many loose objects into <strong>packfiles</strong> for efficiency (see section 14).</p>
+<h4>7.3 Inspecting storage</h4>
+<pre><code class="language-bash">find .git/objects -type f | head
+git count-objects -vH
+</code></pre>
+<pre><code class="language-text">count: 34            # loose objects
+size: 136.00 KiB
+in-pack: 512         # objects in packfiles
+packs: 1
+size-pack: 2.10 MiB
+</code></pre>
+<h4>7.4 Reading a raw object with Python</h4>
+<pre><code class="language-python">import zlib
+data = open('.git/objects/ce/013625030ba8dba906f756967f9e9ca394464a','rb').read()
+print(zlib.decompress(data))   # b'blob 6\x00hello\n'
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">21.23</div><h2>
+.git/objects Directory
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. .git/objects Directory</span><pre><code class="language-text">.git/objects/
+├── 0a/ ... ff/          # loose objects (256 possible fan-out folders)
+├── info/
+│   ├── packs            # list of packfiles (for dumb HTTP)
+│   ├── alternates       # optional: borrow objects from another repo
+│   └── commit-graph     # optional: accelerates history traversal
+└── pack/
+    ├── pack-&lt;hash&gt;.pack # compressed objects
+    ├── pack-&lt;hash&gt;.idx  # index into the pack
+    └── pack-&lt;hash&gt;.rev  # reverse index (newer Git)
+</code></pre>
+<p>The two-character fan-out keeps directories small for filesystem performance.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">21.24</div><h2>
+.git/refs Directory
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. .git/refs Directory</span><p><strong>References (refs)</strong> are human-readable names that point to object hashes.</p>
+<pre><code class="language-text">.git/refs/
+├── heads/               # local branches
+│   ├── main             → 9c8b7a6...
+│   └── feature/orders   → 4d5e6f7...
+├── remotes/
+│   └── origin/
+│       ├── main
+│       └── HEAD         → ref: refs/remotes/origin/main
+├── tags/
+│   └── v1.0.0           → tag object hash
+└── stash                → latest stash commit
+</code></pre>
+<pre><code class="language-bash">cat .git/refs/heads/main
+git show-ref
+git for-each-ref --format='%(refname) %(objectname:short)'
+git update-ref refs/heads/test 9c8b7a6     # plumbing: create/move a ref
+</code></pre>
+<p><strong>Packed refs:</strong> for performance, many refs are stored in <code>.git/packed-refs</code> (one line each). A loose file in <code>refs/</code> overrides the packed entry. (Newer Git also supports the <strong>reftable</strong> backend.)</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">21.25</div><h2>
+HEAD File
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. HEAD File</span><p><code>.git/HEAD</code> records the current position:</p>
+<pre><code class="language-text">ref: refs/heads/main          ← normal (symbolic ref to a branch)
+9c8b7a6d5e4f3a2b...           ← detached HEAD (raw commit hash)
+</code></pre>
+<pre><code class="language-bash">cat .git/HEAD
+git symbolic-ref HEAD           # refs/heads/main
+git rev-parse HEAD              # commit hash
+</code></pre>
+<p>Other special head files:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ORIG_HEAD</code></td>
+<td>HEAD before a reset, merge or rebase</td>
+</tr>
+<tr>
+<td><code>FETCH_HEAD</code></td>
+<td>Branches fetched by the last <code>git fetch</code></td>
+</tr>
+<tr>
+<td><code>MERGE_HEAD</code></td>
+<td>Commit(s) being merged (during a merge)</td>
+</tr>
+<tr>
+<td><code>CHERRY_PICK_HEAD</code></td>
+<td>Commit being cherry-picked</td>
+</tr>
+<tr>
+<td><code>REVERT_HEAD</code></td>
+<td>Commit being reverted</td>
+</tr>
+<tr>
+<td><code>REBASE_HEAD</code></td>
+<td>Commit being applied during rebase</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">21.26</div><h2>
+Index File
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Index File</span><h4>11.1 Definition</h4>
+<p><code>.git/index</code> is a <strong>binary file</strong> that represents the <strong>staging area</strong>: a sorted list of every tracked path with its <strong>blob hash, file mode, stage number</strong> and cached file-system metadata (size, timestamps) used to detect changes quickly.</p>
+<h4>11.2 Inspect</h4>
+<pre><code class="language-bash">git ls-files --stage
+</code></pre>
+<pre><code class="language-text">100644 7a2b... 0    README.md
+100644 1d4e... 0    sql/procedures/usp_load_customers.sql
+</code></pre>
+<p>The third column is the <strong>stage number</strong>:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Meaning (during conflicts)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Normal, no conflict</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Common ancestor (base)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>"Ours"</td>
+</tr>
+<tr>
+<td>3</td>
+<td>"Theirs"</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git ls-files -u          # show unmerged (conflicted) entries
+git show :1:file.sql     # base version
+git show :2:file.sql     # ours
+git show :3:file.sql     # theirs
+</code></pre>
+<h4>11.3 Role in commands</h4>
+<ul>
+<li><code>git add</code> writes blobs and updates index entries.</li>
+<li><code>git commit</code> turns the index into trees (<code>git write-tree</code>).</li>
+<li><code>git status</code> compares HEAD ↔ index ↔ working directory.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">21.27</div><h2>
+Git References
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Git References</span><h4>12.1 Types of references</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Reference</th>
+<th>Example</th>
+<th>Stored</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local branch</td>
+<td><code>main</code></td>
+<td><code>refs/heads/main</code></td>
+</tr>
+<tr>
+<td>Remote-tracking branch</td>
+<td><code>origin/main</code></td>
+<td><code>refs/remotes/origin/main</code></td>
+</tr>
+<tr>
+<td>Tag</td>
+<td><code>v1.0.0</code></td>
+<td><code>refs/tags/v1.0.0</code></td>
+</tr>
+<tr>
+<td>HEAD</td>
+<td><code>HEAD</code></td>
+<td><code>.git/HEAD</code></td>
+</tr>
+<tr>
+<td>Stash</td>
+<td><code>stash@{0}</code></td>
+<td><code>refs/stash</code> + reflog</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td><code>refs/notes/commits</code></td>
+<td>Commit notes</td>
+</tr>
+<tr>
+<td>PR refs (GitHub)</td>
+<td><code>refs/pull/42/head</code></td>
+<td>On the server</td>
+</tr>
+</tbody>
+</table></div>
+<h4>12.2 Revision syntax (how to name commits)</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a1b2c3d</code></td>
+<td>Commit by (short) hash</td>
+</tr>
+<tr>
+<td><code>main</code>, <code>v1.0.0</code></td>
+<td>Ref names</td>
+</tr>
+<tr>
+<td><code>HEAD~3</code></td>
+<td>3rd generation ancestor</td>
+</tr>
+<tr>
+<td><code>HEAD^2</code></td>
+<td>Second parent</td>
+</tr>
+<tr>
+<td><code>main@{2}</code></td>
+<td>Where main was 2 moves ago (reflog)</td>
+</tr>
+<tr>
+<td><code>main@{yesterday}</code></td>
+<td>Where main was yesterday</td>
+</tr>
+<tr>
+<td><code>@{upstream}</code> / <code>@{u}</code></td>
+<td>Upstream of current branch</td>
+</tr>
+<tr>
+<td><code>HEAD:path/file</code></td>
+<td>File content at a commit</td>
+</tr>
+<tr>
+<td><code>:/fix tax</code></td>
+<td>Youngest commit whose message matches</td>
+</tr>
+<tr>
+<td><code>A..B</code></td>
+<td>Commits reachable from B not from A</td>
+</tr>
+<tr>
+<td><code>A...B</code></td>
+<td>Symmetric difference</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git rev-parse main@{yesterday}
+git show HEAD:README.md
+git log :/hotfix -1
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">21.28</div><h2>
+Git Garbage Collection
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Git Garbage Collection</span><h4>13.1 What it does</h4>
+<p><code>git gc</code> housekeeps the repository:</p>
+<ul>
+<li>Packs loose objects into packfiles.</li>
+<li>Packs refs into <code>packed-refs</code>.</li>
+<li>Expires old reflog entries.</li>
+<li><strong>Prunes unreachable objects</strong> (objects not referenced by any ref or reflog) older than the grace period (default 2 weeks).</li>
+<li>Writes the commit-graph.</li>
+</ul>
+<h4>13.2 When it runs</h4>
+<p>Automatically (<code>git gc --auto</code>) after certain commands when thresholds are exceeded (e.g. ~6,700 loose objects, 50 packs).</p>
+<h4>13.3 Commands</h4>
+<pre><code class="language-bash">git gc                           # normal
+git gc --aggressive              # slower, better compression
+git gc --prune=now               # prune unreachable objects immediately (dangerous after mistakes!)
+git reflog expire --expire=now --all   # expire reflog (used before prune when purging secrets)
+git prune                        # low-level pruning
+</code></pre>
+<h4>13.4 Relevant settings</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gc.auto</code></td>
+<td>6700</td>
+<td>Loose objects before auto gc</td>
+</tr>
+<tr>
+<td><code>gc.autoPackLimit</code></td>
+<td>50</td>
+<td>Packs before consolidation</td>
+</tr>
+<tr>
+<td><code>gc.reflogExpire</code></td>
+<td>90 days</td>
+<td>Reachable reflog entries</td>
+</tr>
+<tr>
+<td><code>gc.reflogExpireUnreachable</code></td>
+<td>30 days</td>
+<td>Unreachable reflog entries</td>
+</tr>
+<tr>
+<td><code>gc.pruneExpire</code></td>
+<td>2 weeks ago</td>
+<td>Grace period for unreachable objects</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">21.29</div><h2>
+Git Packfiles
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Git Packfiles</span><h4>14.1 Definition</h4>
+<p>A <strong>packfile</strong> stores many objects in one file, using <strong>zlib compression</strong> and <strong>delta compression</strong> — similar objects are stored as a base object plus a list of differences.</p>
+<h4>14.2 Files</h4>
+<ul>
+<li><code>pack-&lt;hash&gt;.pack</code> — the objects.</li>
+<li><code>pack-&lt;hash&gt;.idx</code> — an index for fast lookup by hash.</li>
+</ul>
+<h4>14.3 Inspecting</h4>
+<pre><code class="language-bash">git verify-pack -v .git/objects/pack/pack-*.idx | sort -k3 -n | tail -5   # largest objects
+git count-objects -vH
+</code></pre>
+<h4>14.4 When packfiles are created</h4>
+<ul>
+<li><code>git gc</code> / <code>git repack</code>.</li>
+<li><strong>Network transfer</strong> — <code>git push</code>, <code>git fetch</code> and <code>git clone</code> send packfiles.</li>
+</ul>
+<pre><code class="language-bash">git repack -a -d -f --depth=50 --window=250
+</code></pre>
+<div class="callout "><p><strong>Note</strong> This is why "Git stores snapshots" and "Git is space efficient" are both true: logically every commit is a snapshot; physically, similar content is delta-compressed in packs.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">21.30</div><h2>
+Git Repository Optimization
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. Git Repository Optimization</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Technique</th>
+<th>Command / setting</th>
+<th>Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Background maintenance</td>
+<td><code>git maintenance start</code></td>
+<td>Scheduled prefetch, commit-graph, loose-object packing, incremental repack</td>
+</tr>
+<tr>
+<td>Commit-graph</td>
+<td><code>git commit-graph write --reachable</code></td>
+<td>Faster <code>log</code>, <code>merge-base</code>, graph operations</td>
+</tr>
+<tr>
+<td>File system monitor</td>
+<td><code>git config core.fsmonitor true</code></td>
+<td>Faster <code>git status</code> in large working trees</td>
+</tr>
+<tr>
+<td>Untracked cache</td>
+<td><code>git config core.untrackedCache true</code></td>
+<td>Faster untracked file detection</td>
+</tr>
+<tr>
+<td>Multi-pack index</td>
+<td><code>git multi-pack-index write</code></td>
+<td>Efficient lookup across many packs</td>
+</tr>
+<tr>
+<td>Partial clone</td>
+<td><code>git clone --filter=blob:none &lt;url&gt;</code></td>
+<td>Download file contents on demand</td>
+</tr>
+<tr>
+<td>Shallow clone</td>
+<td><code>git clone --depth 1 &lt;url&gt;</code></td>
+<td>CI builds needing only latest snapshot</td>
+</tr>
+<tr>
+<td>Sparse checkout</td>
+<td><code>git sparse-checkout set sql python</code></td>
+<td>Check out only needed folders</td>
+</tr>
+<tr>
+<td>Git LFS</td>
+<td><code>git lfs track "*.pbix"</code></td>
+<td>Keep large binaries out of history</td>
+</tr>
+<tr>
+<td>Scalar</td>
+<td><code>scalar clone &lt;url&gt;</code></td>
+<td>Preconfigured settings for very large repos</td>
+</tr>
+<tr>
+<td>Remove large history</td>
+<td><code>git filter-repo --strip-blobs-bigger-than 50M</code></td>
+<td>Smaller repository</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git maintenance start
+git maintenance run --task=gc
+git count-objects -vH
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual</span><div class="diagram">Commit C3 --tree--&gt; Tree T3 --&gt; Blob B1 (orders.sql)
+                   +--&gt; Tree T4 (tests/) --&gt; Blob B2
+       +--parent--&gt; Commit C2 --&gt; Commit C1
+Annotated tag v1.0.0 --&gt; Commit C3</div></div><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="31.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">refs/heads/main → 7a8b9c0</text><text x="150.0" y="48.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">(commit)</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">tree 9c1f…, parent 5c2e…, author/committer, message</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">9c1f… (tree, root)</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">100644 blob README.md · 040000 tree sql · 040000 tree python · …</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/ (tree) → warehouse/ (tree)</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">100644 blob usp_load_dim_customer.sql → e69d…</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">e69d… (blob)</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">The exact bytes of usp_load_dim_customer.sql (no file name, no metadata)</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="271.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Annotated tag v1.0.0 (tag</text><text x="150.0" y="288.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">object)</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">object 7a8b9c0, type commit, tagger, message, optional signature</text></svg></div><figcaption>Object graph for one commit on main</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 104" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="98.4" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Content bytes</text><line x1="179.8" y1="52.0" x2="207.8" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="210.8" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="289.2" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Prepend header &quot;blob</text><text x="289.2" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">&lt;size&gt;\0&quot;</text><line x1="370.6" y1="52.0" x2="398.6" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="401.6" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Hash (SHA-1 or</text><text x="480.0" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">SHA-256)</text><line x1="561.4" y1="52.0" x2="589.4" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="592.4" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="670.8" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">40 hex chars (SHA-1)</text><line x1="752.2" y1="52.0" x2="780.2" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="783.2" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="861.6" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Stored as</text><text x="861.6" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">.git/objects/ab/cdef…</text><text x="861.6" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(zlib-compressed)</text></svg></div><figcaption>How an object ID is computed</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 233" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Loose objects</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">One zlib-compressed file per object</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Created by add/commit</text><rect x="20.0" y="130.0" width="450.0" height="48" rx="7" fill="#e6effc"/><text x="32.0" y="158.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Fast to write, wasteful at scale</text><rect x="20.0" y="186.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="205.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Pruned when unreachable and older than the grace period</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Packfiles (.pack + .idx)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Many objects in one file</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Created by gc, fetch, push, repack</text><rect x="490.0" y="130.0" width="450.0" height="48" rx="7" fill="#e7f6ee"/><text x="502.0" y="150.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Delta-compressed against similar objects — small and fast to</text><text x="502.0" y="166.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">transfer</text><rect x="490.0" y="186.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="205.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Repacked periodically by gc / maintenance</text></svg></div><figcaption>Loose objects vs packfiles</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-count-objects"><header>git count-objects</header><dl><dt>Syntax</dt><dd><pre><code>git count-objects -vH</code></pre></dd><dt>Purpose</dt><dd>Show how many loose objects exist and how big the packs are.</dd><dt>Expected output</dt><dd><pre><code>count: 42
+size: 168.00 KiB
+in-pack: 1873
+packs: 1
+size-pack: 2.41 MiB
+prune-packable: 0
+garbage: 0
+size-garbage: 0 bytes</code></pre></dd><dt>Example</dt><dd><pre><code>git count-objects -vH</code></pre></dd></dl></div><div class="cmd" id="cmd-git-gc-git-maintenance"><header>git gc / git maintenance</header><dl><dt>Syntax</dt><dd><pre><code>git gc [--aggressive] [--prune=&lt;date&gt;]
+git maintenance run [--task=&lt;task&gt;]
+git maintenance start</code></pre></dd><dt>Purpose</dt><dd>Pack loose objects, remove unreachable objects past expiry, pack refs; schedule background maintenance.</dd><dt>Behaviour</dt><dd>Runs automatically (<code>gc --auto</code>) after some commands. <code>git maintenance start</code> registers the repository for scheduled tasks (prefetch, commit-graph, loose-objects, incremental-repack).</dd><dt>Example</dt><dd><pre><code>git gc
+git maintenance start</code></pre></dd><dt>Common mistakes</dt><dd>Running <code>git gc --prune=now</code> right after a mistake — it can delete the unreachable objects you wanted to recover.</dd></dl></div><div class="cmd" id="cmd-peeking-inside-git"><header>Peeking inside .git</header><dl><dt>Syntax</dt><dd><pre><code>cat .git/HEAD
+cat .git/refs/heads/main
+cat .git/packed-refs
+git rev-parse main</code></pre></dd><dt>Purpose</dt><dd>See how references point to commits.</dd><dt>Expected output</dt><dd><pre><code>ref: refs/heads/main
+7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b</code></pre></dd><dt>Example</dt><dd><pre><code>cat .git/HEAD
+git rev-parse HEAD
+ls .git/objects | head</code></pre></dd><dt>Common mistakes</dt><dd>Editing files under <code>.git/refs</code> manually — use <code>git update-ref</code> (Chapter 22). With the reftable backend, refs are not plain files at all.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Trace a SQL file from main to its blob</span><pre><code class="language-bash">git rev-parse main                               # commit ID
+git cat-file -p main                             # tree + parent + author
+git cat-file -p main^{tree}                      # root tree entries
+git ls-tree main sql/warehouse/                  # tree entries in a folder
+git rev-parse main:sql/warehouse/usp_load_dim_customer.sql   # blob ID
+git cat-file -p main:sql/warehouse/usp_load_dim_customer.sql | head
+git count-objects -vH                            # size before adding notebooks
+</code></pre>
+<p>Observation for the team: two identical <code>.gitkeep</code> files are stored as <strong>one</strong> blob; renaming a file creates a new tree but re-uses the blob.</p></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S22, S40 · Why is our repository 2 GB?</span><p><code>git count-objects -vH</code> shows a large <code>size-pack</code>. <code>git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | sort -k3 -n | tail</code> lists the largest blobs — typically CSV/Parquet samples or PBIX files committed by mistake. Remove them from history (Chapter 24) and use Git LFS or external storage.</p></div><div class="src"><span class="tag add">Course addition · Same file content in two folders</span><p>Git stores one blob; both tree entries point to it. Duplicate content does not double repository size.</p></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Let Git run <code>gc --auto</code>; enable <code>git maintenance start</code> on large repos.</li>
+<li>Never edit <code>.git</code> internals by hand; use plumbing commands.</li>
+<li>Keep large binaries out of history; watch <code>count-objects</code>.</li>
+<li>Learn the object model — it makes rebase, reset and reflog intuitive.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Symptom / message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>warning: There are too many unreachable loose objects; run 'git prune'</code></td>
+<td>Many unreachable objects</td>
+<td><code>git gc</code> (or <code>git prune</code> after confirming nothing needs recovery)</td>
+</tr>
+<tr>
+<td><code>error: object file .git/objects/xx/... is empty</code></td>
+<td>Disk/sync corruption (e.g. cloud-synced folder)</td>
+<td>Chapter 22: fsck, re-clone, recover from remote</td>
+</tr>
+<tr>
+<td>Repo very slow</td>
+<td>Huge history/binaries</td>
+<td><code>git maintenance</code>, partial clone, LFS, cleanup</td>
+</tr>
+<tr>
+<td><code>fatal: bad object</code></td>
+<td>Missing object</td>
+<td><code>git fetch</code> from remote; fsck</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Run <code>git cat-file -p HEAD</code> and follow the tree to one blob.</p><span class="exp-out">You print a file's content from its blob ID.</span></li><li><p>Create two files with identical content and commit; compare their blob IDs with <code>git ls-tree</code>.</p><span class="exp-out">The IDs are equal.</span></li><li><p>Run <code>git count-objects -vH</code> before and after <code>git gc</code>.</p><span class="exp-out">Loose count drops; <code>in-pack</code> increases.</span></li><li><p>Inspect <code>.git/HEAD</code> and <code>.git/refs/heads/main</code>.</p><span class="exp-out">Symbolic ref and commit ID.</span></li><li><p>Compute <code>echo hello | git hash-object --stdin</code>.</p><span class="exp-out"><code>ce013625030ba8dba906f756967f9e9ca394464a</code> (SHA-1 repositories).</span></li></ol></div><div class="src"><span class="tag ">Source S22 · Chapter manual · lab</span><p>In a disposable repository, create two files and commit them. Use cat-file to inspect HEAD, its tree and a blob. Use ls-tree to list paths, show-ref to inspect references and count-objects to view storage statistics. Create an annotated tag and inspect its tag object.</p><div class="call"><b>Practice safely:</b> Use a disposable repository or test organization. Never use real production secrets, private keys or sensitive data in examples. Verify changes with status, diffs and logs.</div></div><div class="src"><span class="tag s40">Source S40 · 16. Practical Exercise – Chapter 21</span><ol>
+<li>Create a blob with <code>git hash-object -w</code>, inspect it with <code>cat-file -t/-p/-s</code>.</li>
+<li>Run <code>git cat-file -p HEAD</code>, then <code>-p</code> its tree, then a sub-tree, down to a blob.</li>
+<li>Verify a hash manually with <code>printf 'blob N\0content' | sha1sum</code>.</li>
+<li>Explore <code>.git/objects</code>, <code>.git/refs</code>, <code>.git/HEAD</code>, <code>git ls-files --stage</code>.</li>
+<li>Run <code>git count-objects -vH</code>, then <code>git gc</code>, then again — compare loose vs packed counts.</li>
+<li>Find the 5 largest objects with <code>git verify-pack</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 21 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S22 · Chapter manual · interview</span><h4>1. What are Git's four main object types?</h4><p>Blob, tree, commit and annotated-tag objects.</p><h4>2. What does a blob store?</h4><p>File content, not its filename or directory path.</p><h4>3. What does a tree store?</h4><p>A directory snapshot with names, modes and references to blobs or subtrees.</p><h4>4. What does a commit point to?</h4><p>A top-level tree, parent commit(s), metadata and a message.</p><h4>5. What is a lightweight tag?</h4><p>A reference to an object without a separate annotated tag object.</p><h4>6. Where are loose objects stored?</h4><p>Under .git/objects using a two-character fan-out directory.</p><h4>7. What does HEAD represent?</h4><p>The current checkout's symbolic branch reference or a direct object ID in detached state.</p><h4>8. What is the Git index?</h4><p>The staging-area structure describing the next commit snapshot.</p><h4>9. What is a packfile?</h4><p>A compact file containing many Git objects, often delta-compressed.</p><h4>10. Does Git always use SHA-1?</h4><p>No. Git supports SHA-1 and SHA-256 object formats.</p><h4>11. What does git gc do?</h4><p>It performs housekeeping such as packing objects and pruning eligible unreachable objects.</p><h4>12. Are branches and tags the same?</h4><p>No. Branches normally move as commits are added; tags usually mark a fixed object.</p><h4>13. Should users edit .git internals directly?</h4><p>Generally no; use Git commands to preserve repository consistency.</p><h4>14. What is a tree's role?</h4><p>It describes directory structure and points to blobs or subtrees.</p><h4>15. What is a merge commit?</h4><p>A commit with multiple parents joining lines of development.</p></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 21 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What are Git's object types?</td>
+<td>Blob, tree, commit, tag</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Does a blob store the filename?</td>
+<td>No — trees store names</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>How is an object ID calculated?</td>
+<td>SHA-1 of "type size\0content"</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What is a ref?</td>
+<td>A name pointing to an object hash (branch, tag, remote)</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What does HEAD contain?</td>
+<td>A symbolic ref to a branch, or a commit hash when detached</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is the index file?</td>
+<td>Binary staging area listing paths, blob hashes, modes, stages</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>What is a packfile?</td>
+<td>Compressed collection of objects using delta compression</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>What does <code>git gc</code> do?</td>
+<td>Packs objects/refs, expires reflogs, prunes unreachable objects</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What are the four Git object types?</summary><div class="ans"><p>Blob (file content), tree (directory listing), commit (snapshot + metadata + parents), tag (annotated tag).</p></div></details><details class="qa"><summary>Where are objects stored?</summary><div class="ans"><p>In <code>.git/objects</code>, as loose files or inside packfiles.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>How is a blob's ID calculated?</summary><div class="ans"><p>Hash of the header <code>blob &lt;size&gt;\0</code> followed by the content (SHA-1 by default, SHA-256 in SHA-256 repositories).</p></div></details><details class="qa"><summary>What is a packfile?</summary><div class="ans"><p>A file containing many objects, delta-compressed, with an index (<code>.idx</code>) for fast lookup.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Why doesn't renaming a file duplicate its content?</summary><div class="ans"><p>The blob ID depends only on content; the rename changes the tree entry name, re-using the same blob.</p></div></details><details class="qa"><summary>What does <code>git gc</code> do?</summary><div class="ans"><p>Packs loose objects and refs, removes unreachable objects older than the prune expiry, expires old reflog entries, and may write a commit-graph.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>Someone asks whether Git stores diffs. How do you explain?</summary><div class="ans"><p>Logically Git stores full snapshots (trees and blobs); physically packfiles store some objects as deltas for compression. Diffs shown to users are computed on demand.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which object stores file names?</strong></p><ol><li data-ok="0">blob</li><li data-ok="1">tree</li><li data-ok="0">commit</li><li data-ok="0">tag</li></ol><div class="exp">Trees map names to blobs/trees.</div></div><div class="mcq"><p><strong>2. Two files with identical content in different folders are stored as…</strong></p><ol><li data-ok="0">Two blobs</li><li data-ok="1">One blob referenced twice</li><li data-ok="0">A tree</li><li data-ok="0">A packfile each</li></ol><div class="exp">Content addressing deduplicates.</div></div><div class="mcq"><p><strong>3. Which file usually contains <code>ref: refs/heads/main</code>?</strong></p><ol><li data-ok="0">.git/config</li><li data-ok="1">.git/HEAD</li><li data-ok="0">.git/index</li><li data-ok="0">.git/packed-refs</li></ol><div class="exp">HEAD is a symbolic ref.</div></div><div class="mcq"><p><strong>4. What does a packfile improve?</strong></p><ol><li data-ok="0">Security</li><li data-ok="1">Storage size and transfer efficiency</li><li data-ok="0">Merge quality</li><li data-ok="0">Branch naming</li></ol><div class="exp">Delta compression.</div></div><div class="mcq"><p><strong>5. Running <code>git gc --prune=now</code> right after a bad reset may…</strong></p><ol><li data-ok="0">Speed up recovery</li><li data-ok="1">Remove objects you wanted to recover</li><li data-ok="0">Restore the reflog</li><li data-ok="0">Fix conflicts</li></ol><div class="exp">Recover first, then clean.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Git is a content-addressable store of blobs, trees, commits and tags.</li>
+<li>Refs (branches, tags, HEAD) are names pointing to objects.</li>
+<li>Identical content is stored once; history rewrites create new objects.</li>
+<li>gc and maintenance keep the store compact; watch for large binaries.</li>
+</ul></div><div class="src"><span class="tag ">Source S22 · Chapter manual · summary</span><ul><li>Describe Git's content-addressable object model</li><li>Distinguish blob, tree, commit and tag objects</li><li>Understand HEAD, refs, index and .git</li><li>Explain loose objects, packfiles and garbage collection</li></ul><div class="call warn"><b>Key takeaway:</b> Understand the effect of each command before running it. For security and repository maintenance, follow organizational policy and preserve a recovery path.</div></div><div class="src"><span class="tag s40">Source S40 · 18. Chapter 21 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Object model</td>
+<td>Content-addressed blobs, trees, commits, tags</td>
+</tr>
+<tr>
+<td>Hashes</td>
+<td>SHA-1 (or SHA-256) of content</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>Loose objects + packfiles</td>
+</tr>
+<tr>
+<td>Refs &amp; HEAD</td>
+<td>Names pointing to commits</td>
+</tr>
+<tr>
+<td>Index</td>
+<td>Binary staging area</td>
+</tr>
+<tr>
+<td>GC &amp; optimisation</td>
+<td>Housekeeping and performance features</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Describe the four object types and draw how a commit references a tree, sub-trees and blobs.</li><li>Explain how SHA-1 (and SHA-256) object IDs are computed and why identical content is stored once.</li><li>Navigate <code>.git/objects</code>, <code>.git/refs</code>, <code>HEAD</code>, <code>packed-refs</code> and the index.</li><li>Explain loose objects vs packfiles and what <code>git gc</code> does.</li><li>Use basic optimization commands (<code>count-objects</code>, <code>gc</code>, <code>maintenance</code>).</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-42">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/book/en/v2/Git-Internals-Git-Objects">Pro Git — Git Internals: Git Objects</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Internals-Git-References">Pro Git — Git References</a> · <a href="https://git-scm.com/book/en/v2/Git-Internals-Packfiles">Packfiles</a></li>
+<li><a href="https://git-scm.com/docs/git-gc">git-gc</a> · <a href="https://git-scm.com/docs/git-maintenance">git-maintenance</a> · <a href="https://git-scm.com/docs/git-count-objects">git-count-objects</a></li>
+<li><a href="https://git-scm.com/docs/gitrepository-layout">gitrepository-layout</a> · <a href="https://git-scm.com/docs/hash-function-transition">Hash function transition (SHA-256)</a></li>
+</ul></div><div class="src"><span class="tag ">Source S22 · Chapter manual</span><ul><li><a href="https://git-scm.com/book/en/v2/Git-Internals-Git-Objects" rel="noopener" target="_blank">Git Internals</a></li><li><a href="https://git-scm.com/docs/gitrepository-layout" rel="noopener" target="_blank">Repository layout</a></li><li><a href="https://git-scm.com/docs/git-maintenance" rel="noopener" target="_blank">Git maintenance</a></li><li><a href="https://git-scm.com/docs/hash-function-transition" rel="noopener" target="_blank">Hash-function transition</a></li></ul><p class="small">Use official documentation for version-specific behavior and current hosting-provider settings. Test commands that modify history or remove data in a disposable repository first.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_20_Git_Tags_and_Releases.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Tags and Releases</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_22_Git_Advanced_Internals.html"><span class="mn-label">Next →</span><span class="mn-title">Git Advanced Internals</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

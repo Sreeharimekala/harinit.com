@@ -1,0 +1,1096 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Cherry-pick a single commit, several commits and a range (A^..B)."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Cherry-Pick — Chapter 19 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Cherry-Pick</div>
+<div class="brand-sub">Chapter 19 · 32 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">19.1</span>What is Cherry-Pick?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">19.2</span>Why use Cherry-Pick?</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">19.3</span>Cherry-picking a single or multiple commits</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">19.4</span>Cherry-picking commit ranges</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">19.5</span>Resolving conflicts</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">19.6</span>Aborting or continuing cherry-pick</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">19.7</span>Cherry-Pick vs Merge vs Rebase</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">19.8</span>Real-time development use cases</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">19.9</span>Practical safeguards</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">19.10</span>What is Cherry-Pick?</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">19.11</span>Why Do We Use Cherry-Pick?</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">19.12</span>Cherry-Picking a Single Commit</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">19.13</span>Cherry-Picking Multiple Commits</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">19.14</span>Cherry-Picking Commit Ranges</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">19.15</span>Resolving Cherry-Pick Conflicts</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">19.16</span>Aborting Cherry-Pick</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">19.17</span>Continuing Cherry-Pick</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">19.18</span>Cherry-Pick vs Merge vs Rebase</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">19.19</span>Real-Time Development Use Cases</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🎯</span>Chapter 19 Interview Questions</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 6 · Chapter 19</div><h1>Git Cherry-Pick</h1><p class="page-subtitle">Cherry-pick a single commit, several commits and a range (<code>A^..B</code>).</p><div class="meta-row"><span class="meta-pill">Phase <b>6</b></span><span class="meta-pill">Lessons <b>32</b></span><span class="meta-pill">Sources <b>S20, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is Cherry-Pick?; Why use Cherry-Pick?; Cherry-picking a single or multiple commits; Cherry-picking commit ranges; Resolving conflicts; Aborting or continuing cherry-pick; Cherry-Pick vs Merge vs Rebase; Real-time development use cases; Practical safeguards. <br><strong>Before you start:</strong> complete Chapter 18 – Git Reset, Revert and Restore. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> <code>git cherry-pick</code> applies the change introduced by existing commit(s) onto the current branch as new commit(s).</p>
+<p><strong>Why it matters.</strong> It lets you deliver a specific fix to another line (a release or hotfix branch) without merging everything else from the source branch.</p>
+<p><strong>Where it is used.</strong> Back-porting fixes to release branches, rescuing a commit from an abandoned branch, moving a commit made on the wrong branch.</p>
+<p><strong>In this course's project.</strong> Stage 5: a data-quality fix made on <code>main</code> is cherry-picked to <code>release/1.0</code> for an urgent patch release.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers <code>git cherry-pick</code> — applying specific commits from one branch onto another.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to cherry-pick single commits, multiple commits and ranges, resolve cherry-pick conflicts, and know when cherry-pick is the right tool.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S20 · Chapter manual · objectives</span><p>Apply selected commit changes to another branch without merging the entire source branch.</p><div class="grid"><div class="tile"><strong>01</strong>Explain cherry-pick and its commit-level behavior</div><div class="tile"><strong>02</strong>Cherry-pick one commit, several commits or a range</div><div class="tile"><strong>03</strong>Resolve, continue or abort conflicts</div><div class="tile"><strong>04</strong>Compare cherry-pick with merge and rebase</div><div class="tile"><strong>05</strong>Apply targeted fixes across release and maintenance branches</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Cherry-pick a single commit, several commits and a range (<code>A^..B</code>).</li>
+<li>Use <code>-x</code> to record the source commit and <code>-n</code> to apply without committing.</li>
+<li>Resolve cherry-pick conflicts and continue, skip, quit or abort.</li>
+<li>Compare cherry-pick, merge and rebase and choose appropriately.</li>
+<li>Detect already-applied commits with <code>git cherry</code> / <code>git log --cherry-pick</code>.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">19.1</div><h2>What is Cherry-Pick?</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 1. What is Cherry-Pick?</span><p>Cherry-pick applies the change introduced by one or more existing commits onto the current branch. Git creates new commit(s) on the destination branch, so the resulting commit IDs differ from the originals. It copies changes, not the original branch ancestry.</p><h4>Commands and example</h4><pre><code>git switch release/2.4
+git cherry-pick a1b2c3d</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">19.2</div><h2>Why use Cherry-Pick?</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 2. Why use Cherry-Pick?</span><p>Use cherry-pick when a specific fix is needed on another branch but the rest of the source branch is not ready. For example, a critical null-handling fix may need to go to a production maintenance branch while a larger feature remains under development.</p><h4>Commands and example</h4><pre><code># A fix is committed on develop
+git switch release/2.4
+git cherry-pick &lt;fix-commit-sha&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">19.3</div><h2>Cherry-picking a single or multiple commits</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 3. Cherry-picking a single or multiple commits</span><p>A single SHA applies one commit. Multiple SHAs can be supplied in the desired order. Review dependencies: a commit may rely on schema changes or helper functions from earlier commits. Cherry-picking only the final dependent commit may fail to compile or behave correctly.</p><h4>Commands and example</h4><pre><code>git cherry-pick a1b2c3d
+
+# Apply selected commits in the specified order
+git cherry-pick a1b2c3d d4e5f6a</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">19.4</div><h2>Cherry-picking commit ranges</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 4. Cherry-picking commit ranges</span><p>A range such as <code>A..B</code> selects commits reachable from B but not A; it excludes A. Use <code>A^..B</code> when you intend to include A as well. Inspect the selected commits before applying the range, because range selection can include more commits than expected.</p><h4>Commands and example</h4><pre><code>git log --oneline A..B
+git cherry-pick A..B
+
+# Include A itself
+git cherry-pick A^..B</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">19.5</div><h2>Resolving conflicts</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 5. Resolving conflicts</span><p>If the patch cannot be applied cleanly, Git pauses and reports conflicts. Inspect <code>git status</code>, edit files to the intended final state, stage the resolutions, and continue. Run tests after the operation; a conflict-free cherry-pick can still introduce a logical problem.</p><h4>Commands and example</h4><pre><code>git cherry-pick &lt;commit-sha&gt;
+git status
+# Resolve conflict markers and validate the files
+git add sql/customer_reconciliation.sql
+git cherry-pick --continue</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">19.6</div><h2>Aborting or continuing cherry-pick</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 6. Aborting or continuing cherry-pick</span><p>Use <code>git cherry-pick --continue</code> after resolving and staging conflicts. Use <code>git cherry-pick --abort</code> to cancel the operation and return to the pre-operation state. <code>--skip</code> omits the current commit; use it only when intentionally excluding that change.</p><h4>Commands and example</h4><pre><code>git cherry-pick --continue
+# Or cancel the in-progress operation:
+git cherry-pick --abort
+
+# Skip current commit only if its change is intentionally not required:
+git cherry-pick --skip</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">19.7</div><h2>Cherry-Pick vs Merge vs Rebase</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 7. Cherry-Pick vs Merge vs Rebase</span><p>Cherry-pick applies selected commit changes and creates new commits. Merge integrates branch histories and preserves ancestry. Rebase replays a series of commits onto a new base and rewrites those commits. Prefer merge when the complete branch history belongs together; cherry-pick for a targeted patch; rebase for updating/cleaning a private feature branch.</p><h4>Commands and example</h4><pre><code>git merge feature/customer-dq
+git rebase origin/main
+git cherry-pick &lt;one-specific-fix&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">19.8</div><h2>Real-time development use cases</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 8. Real-time development use cases</span><p>Typical uses include backporting a production fix to supported release branches, moving a small bug fix from development to a hotfix branch, and applying a carefully selected configuration correction. Avoid using cherry-pick as a routine substitute for a coherent merge strategy; repeated cherry-picks can create duplicate-looking commits and complicate history.</p><h4>Commands and example</h4><pre><code># Create a hotfix branch from the production release
+git switch -c hotfix/late-order-null release/2.4
+
+# Apply the approved fix from develop
+git cherry-pick &lt;fix-sha&gt;
+
+# Validate and publish the hotfix branch
+pytest
+git push -u origin hotfix/late-order-null</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">19.9</div><h2>Practical safeguards</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · 9. Practical safeguards</span><p>Before cherry-picking, confirm the commit SHA, inspect its patch and parent context, check dependencies, and confirm the destination branch. If the same change has already been applied, Git may report an empty cherry-pick or conflicts. Do not blindly resolve by accepting one side; understand the intended result.</p><h4>Commands and example</h4><pre><code>git show --stat &lt;commit-sha&gt;
+git show --format=fuller &lt;commit-sha&gt;
+git switch release/2.4
+git status
+git cherry-pick &lt;commit-sha&gt;
+git log --oneline -5</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">19.10</div><h2>
+What is Cherry-Pick?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Cherry-Pick?</span><h4>1.1 Definition</h4>
+<p><code>git cherry-pick &lt;commit&gt;</code> <strong>takes the changes introduced by an existing commit and applies them as a new commit on the current branch</strong>.</p>
+<h4>1.2 Visual</h4>
+<pre><code class="language-text">main:          A ── B ── F (fix)
+                    \
+release/2.4:         C ── D
+
+git switch release/2.4
+git cherry-pick F
+
+release/2.4:         C ── D ── F'     (F' has the same changes as F, new ID)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">19.11</div><h2>
+Why Do We Use Cherry-Pick?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Why Do We Use Cherry-Pick?</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Use case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Back-port a bug fix</td>
+<td>Fix merged to <code>main</code> also needed in <code>release/2.4</code></td>
+</tr>
+<tr>
+<td>Forward-port a hotfix</td>
+<td>Hotfix on <code>release/2.4</code> also needed in <code>main</code>/<code>develop</code></td>
+</tr>
+<tr>
+<td>Rescue commits</td>
+<td>Take one good commit from an abandoned branch</td>
+</tr>
+<tr>
+<td>Commit made on wrong branch</td>
+<td>Cherry-pick it to the right one, then remove from the wrong one</td>
+</tr>
+<tr>
+<td>Selective promotion</td>
+<td>Promote only specific changes to an environment branch (e.g. ADF/Fabric environment-branch setups)</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">19.12</div><h2>
+Cherry-Picking a Single Commit
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Cherry-Picking a Single Commit</span><pre><code class="language-bash">git log main --oneline -5          # find the commit
+# f00ba12 fix(sql): correct tax rounding
+
+git switch release/2.4
+git cherry-pick f00ba12
+</code></pre>
+<pre><code class="language-text">[release/2.4 7e6d5c4] fix(sql): correct tax rounding
+ Date: Thu Nov 26 15:10:00 2026 +0530
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+</code></pre>
+<p>Useful options:</p>
+<pre><code class="language-bash">git cherry-pick -x f00ba12     # append &quot;(cherry picked from commit f00ba12...)&quot; to the message — recommended for traceability
+git cherry-pick -e f00ba12     # edit the message
+git cherry-pick -n f00ba12     # apply changes without committing (--no-commit)
+git cherry-pick -s f00ba12     # add Signed-off-by line
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">19.13</div><h2>
+Cherry-Picking Multiple Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Cherry-Picking Multiple Commits</span><pre><code class="language-bash">git cherry-pick a1b2c3d e4f5a6b 9c8b7a6
+</code></pre>
+<p>Commits are applied in the order listed. Combine several into one commit:</p>
+<pre><code class="language-bash">git cherry-pick -n a1b2c3d e4f5a6b
+git commit -m &quot;Back-port orders fixes to release 2.4&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">19.14</div><h2>
+Cherry-Picking Commit Ranges
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Cherry-Picking Commit Ranges</span><pre><code class="language-bash">git cherry-pick a1b2c3d..e4f5a6b      # commits AFTER a1b2c3d up to and including e4f5a6b
+git cherry-pick a1b2c3d^..e4f5a6b     # INCLUDING a1b2c3d
+git cherry-pick main~3..main          # last 3 commits of main
+</code></pre>
+<div class="callout "><p><strong>Note</strong> <code>A..B</code> excludes A. Use <code>A^..B</code> to include it.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">19.15</div><h2>
+Resolving Cherry-Pick Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Resolving Cherry-Pick Conflicts</span><p>Conflicts happen when the target branch's code differs from the source context:</p>
+<pre><code class="language-text">error: could not apply f00ba12... fix(sql): correct tax rounding
+hint: After resolving the conflicts, mark them with &quot;git add/rm &lt;pathspec&gt;&quot;, then run &quot;git cherry-pick --continue&quot;.
+</code></pre>
+<pre><code class="language-bash">git status
+# edit conflicted files, remove markers
+git add sql/procedures/usp_load_sales.sql
+git cherry-pick --continue
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">19.16</div><h2>
+Aborting Cherry-Pick
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Aborting Cherry-Pick</span><pre><code class="language-bash">git cherry-pick --abort
+</code></pre>
+<p>Returns the branch to the state before the cherry-pick operation started (including multi-commit sequences).</p>
+<p>To undo a completed cherry-pick: <code>git reset --hard HEAD~1</code> (unpushed) or <code>git revert HEAD</code> (pushed).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">19.17</div><h2>
+Continuing Cherry-Pick
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Continuing Cherry-Pick</span><pre><code class="language-bash">git cherry-pick --continue    # after resolving conflicts
+git cherry-pick --skip        # skip the current commit in a sequence
+git cherry-pick --quit        # stop, keeping commits already picked
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">19.18</div><h2>
+Cherry-Pick vs Merge vs Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Cherry-Pick vs Merge vs Rebase</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Cherry-pick</th>
+<th>Merge</th>
+<th>Rebase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Selected commits</td>
+<td>Entire branch</td>
+<td>Entire branch</td>
+</tr>
+<tr>
+<td>Creates</td>
+<td>New commits (copies)</td>
+<td>Merge commit (or fast-forward)</td>
+<td>New copies of all branch commits</td>
+</tr>
+<tr>
+<td>History</td>
+<td>Duplicate changes with different IDs</td>
+<td>Preserves both histories</td>
+<td>Linear, rewritten</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>Duplicates; later merges may conflict or double-apply</td>
+<td>Low</td>
+<td>Rewrites history</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>Hotfix back-ports, rescuing commits</td>
+<td>Integrating features</td>
+<td>Updating/cleaning own branches</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout c-tip"><p><strong>Tip</strong> Prefer merging when you want <em>everything</em> from a branch. Use cherry-pick for <em>specific</em> changes, and always use <code>-x</code> to record where they came from.</p>
+</div>
+<p>Check which commits are already applied (by content) to another branch:</p>
+<pre><code class="language-bash">git cherry -v release/2.4 main     # &quot;+&quot; = not yet in release/2.4, &quot;-&quot; = equivalent exists
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">19.19</div><h2>
+Real-Time Development Use Cases
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Real-Time Development Use Cases</span><h4>10.1 Back-port a production fix</h4>
+<p><code>main</code> has a fix for incorrect sales tax rounding (<code>f00ba12</code>). Release 2.4 is in UAT and needs it:</p>
+<pre><code class="language-bash">git switch release/2.4
+git pull
+git cherry-pick -x f00ba12
+git push
+</code></pre>
+<h4>10.2 Commit on the wrong branch</h4>
+<pre><code class="language-bash">git switch feature/orders
+git cherry-pick 1a2b3c4           # commit accidentally made on main
+git switch main
+git reset --hard HEAD~1           # remove it from main (if not pushed)
+</code></pre>
+<h4>10.3 Salvage from an abandoned branch</h4>
+<pre><code class="language-bash">git log experiment/delta-tuning --oneline
+git switch -c feature/partition-optimisation main
+git cherry-pick -x 5d6e7f8        # only the useful optimisation commit
+</code></pre>
+<h4>10.4 Hotfix to multiple supported versions</h4>
+<pre><code class="language-bash">for b in release/2.3 release/2.4; do
+  git switch &quot;$b&quot; &amp;&amp; git cherry-pick -x f00ba12 &amp;&amp; git push
+done
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-add"><span class="ct">Patches: format-patch and am (S41)</span><p>S41 discusses creating and applying patches. Correct workflow: <code>git format-patch -1 &lt;sha&gt;</code> (or <code>origin/main..HEAD</code>) writes <code>.patch</code> files with author and message; the receiver applies them with <code>git am *.patch</code> (keeps authorship) or <code>git apply file.patch</code> (changes only, no commit). Check first with <code>git apply --check file.patch</code>. S41's answer ("fetch the patch with <code>git fetch &lt;remote&gt; &lt;branch&gt;</code>, then <code>git apply &lt;patch-file&gt;</code>") is incomplete: <code>git fetch</code> downloads commits, not a patch file. Either merge/cherry-pick the fetched commits, or create a file with <code>git format-patch</code> (or obtain one) and then apply it.</p></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="400" y1="40" x2="510" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">release/1.0</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="110" x2="510" y2="110" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="510" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="510.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">F</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">R1</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">F′</text></svg></div><figcaption>Cherry-pick copies the change of F onto release/1.0 as a new commit F′</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 88" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="71.1" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Fix merged on</text><text x="71.1" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">main (F)</text><line x1="125.3" y1="44.0" x2="153.3" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="156.3" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="207.4" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git switch</text><text x="207.4" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">release/1.0</text><line x1="261.6" y1="44.0" x2="289.6" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="292.6" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="343.7" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git cherry-</text><text x="343.7" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">pick -x F</text><line x1="397.9" y1="44.0" x2="425.9" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="428.9" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Resolve +</text><text x="480.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">test</text><line x1="534.1" y1="44.0" x2="562.1" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="565.1" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="616.3" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">PR to</text><text x="616.3" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">release/1.0</text><line x1="670.4" y1="44.0" x2="698.4" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="701.4" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="752.6" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Tag v1.0.1</text><line x1="806.7" y1="44.0" x2="834.7" y2="44.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="837.7" y="15.0" width="102.3" height="58" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="888.9" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Deploy</text></svg></div><figcaption>Back-port procedure</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-cherry-pick"><header>git cherry-pick</header><dl><dt>Syntax</dt><dd><pre><code>git cherry-pick [-x] [-n] [-m &lt;parent&gt;] &lt;commit&gt;…
+git cherry-pick &lt;A&gt;^..&lt;B&gt;
+git cherry-pick --continue | --skip | --quit | --abort</code></pre></dd><dt>Purpose</dt><dd>Apply the changes of given commits as new commits on the current branch.</dd><dt>Key parameters</dt><dd><ul><li><code>-x</code> — append "(cherry picked from commit …)" to the message</li><li><code>-n</code> / <code>--no-commit</code> — apply to index/working tree only</li><li><code>-m 1</code> — pick a merge commit relative to parent 1</li><li><code>--signoff</code> — add Signed-off-by</li><li><code>A^..B</code> — range including A</li></ul></dd><dt>Expected output</dt><dd><pre><code>[release/1.0 6d5c4b3] fix(dq): allow zero-amount promotional orders
+ Date: Tue Nov 24 16:02:11 2026 +0530
+ 1 file changed, 2 insertions(+), 1 deletion(-)</code></pre></dd><dt>Example</dt><dd><pre><code>git switch release/1.0
+git cherry-pick -x 8e7f6a5
+git cherry-pick -x 1a2b3c4^..4d5e6f7     # several consecutive commits</code></pre></dd><dt>Common mistakes</dt><dd>Cherry-picking many commits instead of merging a branch; picking a commit that depends on earlier unpicked commits.</dd></dl></div><div class="cmd" id="cmd-git-cherry-git-log-cherry-pick"><header>git cherry / git log --cherry-pick</header><dl><dt>Syntax</dt><dd><pre><code>git cherry -v &lt;upstream&gt; [&lt;head&gt;]
+git log --oneline --cherry-pick --right-only &lt;upstream&gt;...&lt;head&gt;</code></pre></dd><dt>Purpose</dt><dd>Find commits whose changes are not yet in another branch (compares patch IDs, so cherry-picked copies count as present).</dd><dt>Expected output</dt><dd><pre><code>+ 8e7f6a5 fix(dq): allow zero-amount promotional orders
+- 4c3b2a1 docs: update runbook</code></pre></dd><dt>Example</dt><dd><pre><code>git cherry -v release/1.0 main     # &quot;+&quot; = not yet in release/1.0, &quot;-&quot; = equivalent change already there</code></pre></dd><dt>Common mistakes</dt><dd>Comparing commit IDs manually — cherry-picked commits have different IDs.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Patch release via cherry-pick</span><pre><code class="language-bash"># Fix already merged on main as 8e7f6a5 (PR #63)
+git fetch origin
+git switch release/1.0 &amp;&amp; git pull --ff-only
+git cherry -v release/1.0 origin/main | grep &quot;^+&quot;
+git cherry-pick -x 8e7f6a5
+python -m pytest python/dq -q
+git push origin release/1.0             # or a PR into release/1.0 if protected
+git tag -a v1.0.1 -m &quot;Patch: promotional orders&quot;
+git push origin v1.0.1
+</code></pre>
+<p>The <code>-x</code> line lets auditors find the original commit; the PR description links issue #60.</p></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S20, S40 · Commit made on the wrong branch</span><p>Meera committed an ADF change on <code>main</code> locally (not pushed). <code>git switch feature/RDP-104-adf-orders-pipeline</code>, <code>git cherry-pick &lt;sha&gt;</code>, then <code>git switch main &amp;&amp; git reset --hard origin/main</code>.</p></div><div class="src"><span class="tag add">Course addition · Cherry-pick results in an empty commit</span><p>The change already exists on the target (for example applied through another fix). Git reports that the cherry-pick is empty; use <code>git cherry-pick --skip</code>, or <code>--allow-empty</code> if you deliberately want the record.</p></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Prefer merging branches; cherry-pick selected fixes only.</li>
+<li>Use <code>-x</code> when back-porting from public branches.</li>
+<li>Pick oldest first; check dependencies; test after picking.</li>
+<li>Fix on <code>main</code> first, then back-port — avoids the fix being lost in the next release.</li>
+<li>Use <code>git cherry</code> to verify what is missing.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error: could not apply 8e7f6a5...</code> + CONFLICT</td>
+<td>Target differs</td>
+<td>Resolve, <code>git add</code>, <code>git cherry-pick --continue</code></td>
+</tr>
+<tr>
+<td><code>The previous cherry-pick is now empty, possibly due to conflict resolution.</code></td>
+<td>Change already present</td>
+<td><code>--skip</code> or <code>--allow-empty</code></td>
+</tr>
+<tr>
+<td><code>error: commit &lt;sha&gt; is a merge but no -m option was given.</code></td>
+<td>Picking a merge commit</td>
+<td><code>-m 1</code> (or pick the individual commits)</td>
+</tr>
+<tr>
+<td><code>fatal: bad revision</code></td>
+<td>Commit not fetched</td>
+<td><code>git fetch</code> the source branch</td>
+</tr>
+<tr>
+<td><code>error: cherry-pick is already in progress</code></td>
+<td>Unfinished pick</td>
+<td><code>--continue</code> or <code>--abort</code></td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create a commit on <code>feature</code> and cherry-pick it to <code>main</code>.</p><span class="exp-out"><code>main</code> has a new commit with the same diff and a different ID.</span></li><li><p>Cherry-pick with <code>-x</code>.</p><span class="exp-out">Message ends with "(cherry picked from commit …)".</span></li><li><p>Pick a range of three commits with <code>A^..C</code>.</p><span class="exp-out">Three new commits in order.</span></li><li><p>Create a conflict and resolve it with <code>--continue</code>.</p><span class="exp-out">Pick completes.</span></li><li><p>Run <code>git cherry -v main feature</code>.</p><span class="exp-out">Picked commits are marked <code>-</code>.</span></li></ol></div><div class="src"><span class="tag ">Source S20 · Chapter manual · lab</span><p>Create a develop branch and commit a small independent fix. Create a release branch from an earlier commit and cherry-pick the fix. Then deliberately create an overlapping edit to practise conflict resolution, continue the operation, and compare the commit graphs.</p><div class="callout good"><strong>Validation:</strong> Use <code>git status</code>, <code>git log --oneline --graph --decorate</code>, and relevant diffs to verify each step. Practise destructive commands only in a disposable repository or branch.</div></div><div class="src"><span class="tag s40">Source S40 · 11. Practical Exercise – Chapter 19</span><ol>
+<li>Create <code>release/1.0</code> from <code>main</code>. On <code>main</code>, make three commits (feature, fix, feature).</li>
+<li>Cherry-pick only the fix onto <code>release/1.0</code> with <code>-x</code>.</li>
+<li>Cherry-pick a range of two commits.</li>
+<li>Create a conflicting cherry-pick, resolve it and continue; repeat and abort.</li>
+<li>Run <code>git cherry -v release/1.0 main</code> and interpret the output.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 19 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S20 · Chapter manual · interview</span><h4>1. What is cherry-pick?</h4><p>It applies the change introduced by selected commit(s) onto the current branch.</p><h4>2. Does cherry-pick preserve the original commit ID?</h4><p>No. It creates a new commit with a different ID.</p><h4>3. When is cherry-pick useful?</h4><p>When a targeted fix is needed on another branch without merging all source-branch work.</p><h4>4. How do you cherry-pick one commit?</h4><p>Run <code>git cherry-pick &lt;sha&gt;</code>.</p><h4>5. How do you cherry-pick multiple commits?</h4><p>Provide multiple commit SHAs in the intended order.</p><h4>6. What does A..B select?</h4><p>Commits reachable from B but not A; A itself is excluded.</p><h4>7. How do you include A in a range?</h4><p>Use <code>A^..B</code>.</p><h4>8. How do you inspect a commit before cherry-picking?</h4><p>Use <code>git show &lt;sha&gt;</code>.</p><h4>9. How do you continue after resolving conflicts?</h4><p>Stage resolved files and run <code>git cherry-pick --continue</code>.</p><h4>10. How do you cancel a cherry-pick?</h4><p>Run <code>git cherry-pick --abort</code>.</p><h4>11. What does cherry-pick --skip do?</h4><p>It skips the current commit in an in-progress sequence.</p><h4>12. How does cherry-pick differ from merge?</h4><p>Cherry-pick applies selected changes; merge integrates branch histories.</p><h4>13. How does cherry-pick differ from rebase?</h4><p>Cherry-pick selects individual commits; rebase replays a branch's commit series onto a new base.</p><h4>14. What is a backport?</h4><p>Applying a fix from a newer development line to an older supported release line.</p><h4>15. What risk comes from cherry-picking dependent commits?</h4><p>The selected change may rely on code or schema changes that were not applied.</p></div><div class="src"><span class="tag s40">Source S40 · 12. Chapter 19 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is cherry-pick?</td>
+<td>Apply specific commits' changes onto the current branch</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>When do you use it?</td>
+<td>Back-porting fixes, rescuing commits, wrong-branch commits</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What does <code>-x</code> do?</td>
+<td>Adds the original commit ID to the message</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>How do you cherry-pick a range including the first commit?</td>
+<td><code>git cherry-pick A^..B</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you abort?</td>
+<td><code>git cherry-pick --abort</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Cherry-pick vs merge?</td>
+<td>Selected commits copied vs whole branch integrated</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>Risk of cherry-pick?</td>
+<td>Duplicate commits and potential future conflicts</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What does <code>git cherry-pick</code> do?</summary><div class="ans"><p>Applies the changes of one or more existing commits onto the current branch as new commits.</p></div></details><details class="qa"><summary>How do you abort a cherry-pick with conflicts?</summary><div class="ans"><p><code>git cherry-pick --abort</code>.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Why use <code>-x</code>?</summary><div class="ans"><p>It records the original commit ID in the new commit message for traceability.</p></div></details><details class="qa"><summary>Cherry-pick vs merge?</summary><div class="ans"><p>Merge integrates all commits of a branch; cherry-pick copies selected changes, creating new commits with new IDs.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>How does <code>git cherry</code> know a change was already applied if IDs differ?</summary><div class="ans"><p>It compares patch IDs (a hash of the diff), so equivalent changes are recognized.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A hotfix is needed in v1.2 and v1.3 release branches and in main. Process?</summary><div class="ans"><p>Fix on main via PR (or a hotfix branch merged to main), then cherry-pick <code>-x</code> the fix into release/1.3 and release/1.2, test each, tag patch versions, deploy.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which option records the original commit ID?</strong></p><ol><li data-ok="0">-n</li><li data-ok="1">-x</li><li data-ok="0">-m</li><li data-ok="0">-s</li></ol><div class="exp"><code>-x</code> appends the source.</div></div><div class="mcq"><p><strong>2. To pick commits A through C inclusive, use…</strong></p><ol><li data-ok="0">A..C</li><li data-ok="1">A^..C</li><li data-ok="0">A...C</li><li data-ok="0">C..A</li></ol><div class="exp"><code>A..C</code> excludes A.</div></div><div class="mcq"><p><strong>3. Cherry-picked commit IDs are…</strong></p><ol><li data-ok="0">Identical to the originals</li><li data-ok="1">New IDs</li><li data-ok="0">Prefixed with cp-</li><li data-ok="0">Not stored</li></ol><div class="exp">Different parent/committer → new hash.</div></div><div class="mcq"><p><strong>4. Best practice for a fix needed in main and a release branch?</strong></p><ol><li data-ok="0">Fix only in release</li><li data-ok="1">Fix on main, then cherry-pick to release</li><li data-ok="0">Merge release into main daily</li><li data-ok="0">Copy files manually</li></ol><div class="exp">Prevents regressions in the next release.</div></div><div class="mcq"><p><strong>5. <code>git cherry -v upstream head</code> marks commits not yet in upstream with…</strong></p><ol><li data-ok="1">+</li><li data-ok="0">-</li><li data-ok="1"></li><li data-ok="0">!</li></ol><div class="exp"><code>-</code> means an equivalent change exists.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Cherry-pick copies changes, not commits; new IDs are created.</li>
+<li>Use for back-ports and rescues; prefer merging for whole features.</li>
+<li><code>-x</code> for traceability; <code>--continue/--skip/--abort</code> for conflicts.</li>
+<li><code>git cherry</code> finds what is still missing.</li>
+</ul></div><div class="src"><span class="tag ">Source S20 · Chapter manual · summary</span><ul><li>Explain cherry-pick and its commit-level behavior</li><li>Cherry-pick one commit, several commits or a range</li><li>Resolve, continue or abort conflicts</li><li>Compare cherry-pick with merge and rebase</li><li>Apply targeted fixes across release and maintenance branches</li></ul><div class="callout warn"><strong>Safety reminder:</strong> Before rewriting or discarding history, check whether commits are shared, inspect the working tree, and preserve important work. Prefer reversible, auditable operations on shared branches.</div></div><div class="src"><span class="tag s40">Source S40 · 13. Chapter 19 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cherry-pick</td>
+<td>Copy commit changes to current branch</td>
+</tr>
+<tr>
+<td>Ranges</td>
+<td><code>A..B</code> excludes A; <code>A^..B</code> includes</td>
+</tr>
+<tr>
+<td>Control</td>
+<td><code>--continue</code>, <code>--skip</code>, <code>--abort</code></td>
+</tr>
+<tr>
+<td>Use cases</td>
+<td>Back-ports, rescue, wrong branch</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Cherry-pick a single commit, several commits and a range (<code>A^..B</code>).</li><li>Use <code>-x</code> to record the source commit and <code>-n</code> to apply without committing.</li><li>Resolve cherry-pick conflicts and continue, skip, quit or abort.</li><li>Compare cherry-pick, merge and rebase and choose appropriately.</li><li>Detect already-applied commits with <code>git cherry</code> / <code>git log --cherry-pick</code>.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-cherry-pick">git-cherry-pick</a> · <a href="https://git-scm.com/docs/git-cherry">git-cherry</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Distributed-Git-Maintaining-a-Project">Pro Git — Maintaining a Project (cherry-picking)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/cherry-pick">Azure Repos — Copy changes with cherry-pick</a></li>
+</ul></div><div class="src"><span class="tag ">Source S20 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/git-cherry-pick" rel="noopener" target="_blank">Git Cherry-Pick</a></li><li><a href="https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging" rel="noopener" target="_blank">Git Tools - Advanced Merging</a></li></ul><p class="small">Documentation links are provided for deeper reading. Git command behavior can vary by options and version; consult the official manual for the exact syntax supported by your installed Git version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_18_Git_Reset_Revert_and_Restore.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Reset, Revert and Restore</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_20_Git_Tags_and_Releases.html"><span class="mn-label">Next →</span><span class="mn-title">Git Tags and Releases</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

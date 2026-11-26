@@ -1,0 +1,1251 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Stash tracked changes, staged changes, untracked (-u) and ignored (-a) files, and only specific paths."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Stash — Chapter 16 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Stash</div>
+<div class="brand-sub">Chapter 16 · 35 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">16.1</span>What is Git Stash?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">16.2</span>Why do we need Git Stash?</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">16.3</span>Stashing modified files</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">16.4</span>Stashing staged changes</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">16.5</span>Viewing stash history</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">16.6</span>Applying vs popping</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">16.7</span>Deleting stash entries</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">16.8</span>Creating named stashes and managing many</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">16.9</span>Stash conflicts</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">16.10</span>Practical use cases</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">16.11</span>What is Git Stash?</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">16.12</span>Why Do We Need Git Stash?</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">16.13</span>Stashing Modified Files</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">16.14</span>Stashing Staged Changes</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">16.15</span>Viewing Stash History</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">16.16</span>Applying Stashed Changes</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">16.17</span>Popping Stashed Changes</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">16.18</span>Deleting Stash Entries</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">16.19</span>Creating Named Stashes</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">16.20</span>Managing Multiple Stashes</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">16.21</span>Stash Conflicts</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">16.22</span>Practical Use Cases</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🎯</span>Chapter 16 Interview Questions</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 6 · Chapter 16</div><h1>Git Stash</h1><p class="page-subtitle">Stash tracked changes, staged changes, untracked (<code>-u</code>) and ignored (<code>-a</code>) files, and only specific paths.</p><div class="meta-row"><span class="meta-pill">Phase <b>6</b></span><span class="meta-pill">Lessons <b>35</b></span><span class="meta-pill">Sources <b>S17, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is Git Stash?; Why do we need Git Stash?; Stashing modified files; Stashing staged changes; Viewing stash history; Applying vs popping; Deleting stash entries; Creating named stashes and managing many; Stash conflicts; Practical use cases. <br><strong>Before you start:</strong> complete Chapter 15 – GitHub Issues and Project Management. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> <code>git stash</code> saves uncommitted changes (working tree and index) on a local stack and returns you to a clean state, so you can switch context and later re-apply the work.</p>
+<p><strong>Why it matters.</strong> Urgent interruptions — a production bug, a reviewer's request — happen while you are mid-change. Stash lets you switch safely without half-baked commits.</p>
+<p><strong>Where it is used.</strong> Locally only; stashes are never pushed. IDEs expose it as "Stash changes".</p>
+<p><strong>In this course's project.</strong> Stage 5: Karan is mid-way through a silver-layer notebook change when a hotfix is requested; he stashes, fixes, and restores his work — including untracked files.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers <code>git stash</code> — temporarily shelving uncommitted work so you can switch context, and restoring it later.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to stash, list, inspect, apply, pop, drop, name and manage multiple stashes, and resolve stash conflicts.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S17 · Chapter manual · objectives</span><p>Temporarily put work aside without creating a commit, then bring it back when you are ready.</p><div class="grid"><div class="tile"><strong>01</strong>Explain the stash stack and its purpose</div><div class="tile"><strong>02</strong>Stash tracked changes, including staged and untracked files when required</div><div class="tile"><strong>03</strong>Inspect, name, apply, pop and remove stash entries</div><div class="tile"><strong>04</strong>Diagnose conflicts and choose a safe recovery approach</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Stash tracked changes, staged changes, untracked (<code>-u</code>) and ignored (<code>-a</code>) files, and only specific paths.</li>
+<li>List, show and name stash entries; apply vs pop; drop and clear.</li>
+<li>Resolve a conflict when applying a stash and know the entry is kept.</li>
+<li>Create a branch from a stash (<code>git stash branch</code>) and stash only staged changes (<code>--staged</code>).</li>
+<li>Recover a dropped stash.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">16.1</div><h2>What is Git Stash?</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 1. What is Git Stash?</span><p>Git stash temporarily saves selected working-tree changes and returns the working tree to a clean state. It is useful when you need to switch branches or handle urgent work before your current task is ready to commit. A stash is stored locally in the repository; it is not automatically pushed to a remote.</p><h4>Commands and example</h4><pre><code>git status
+git stash
+git stash list</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">16.2</div><h2>Why do we need Git Stash?</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 2. Why do we need Git Stash?</span><p>Imagine you are modifying a SQL stored procedure on a feature branch and a production defect arrives. You may need to switch to a hotfix branch, but Git will prevent or complicate that switch if your changes would be overwritten. Stashing lets you park the unfinished work, switch context, and restore it later.</p><h4>Commands and example</h4><pre><code># Save current tracked changes
+git stash push -m "WIP: optimize customer load"
+
+# Switch to urgent work
+git switch hotfix/customer-load
+
+# Return later
+git switch feature/customer-load
+git stash pop</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">16.3</div><h2>Stashing modified files</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 3. Stashing modified files</span><p>By default, <code>git stash</code> (equivalent to <code>git stash push</code>) saves tracked modifications in the working tree and index. Untracked files are not included by default. Use <code>-u</code> / <code>--include-untracked</code> to include untracked files. Ignored files require <code>-a</code> / <code>--all</code>; use that carefully because build output and secrets may be included.</p><h4>Commands and example</h4><pre><code>git stash push -m "WIP: pipeline validation"
+git stash push -u -m "WIP: include new test files"
+git stash push -a -m "WIP: include ignored files" # use cautiously</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">16.4</div><h2>Stashing staged changes</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 4. Stashing staged changes</span><p>Stash normally saves both staged and unstaged tracked changes. The index is restored to the state it had before the stash operation (typically clean). If you want to keep the staged/unstaged distinction when applying, use <code>--index</code> with apply or pop. <code>--keep-index</code> is useful when you want to stash unstaged work but leave the staged changes available for a commit.</p><h4>Commands and example</h4><pre><code>git add sql/customer_load.sql
+git stash push -m "WIP: staged and unstaged changes"
+
+# Apply and attempt to restore the original index state
+git stash apply --index stash@{0}
+
+# Alternative: keep staged changes in place while stashing other work
+git stash push --keep-index -m "WIP: unstaged only" </code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">16.5</div><h2>Viewing stash history</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 5. Viewing stash history</span><p>Stashes form a stack. The newest entry is <code>stash@{0}</code>, followed by <code>stash@{1}</code>, and so on. These references can change when entries are added or removed, so inspect the list before selecting one. Use <code>show -p</code> to inspect the patch.</p><h4>Commands and example</h4><pre><code>git stash list
+git stash show stash@{0}
+git stash show -p stash@{0}
+git stash show --stat stash@{1}</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">16.6</div><h2>Applying vs popping</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 6. Applying vs popping</span><p><code>apply</code> reapplies a stash and keeps the stash entry. <code>pop</code> reapplies it and, if the application succeeds, removes that entry. If a pop results in conflicts, Git normally keeps the stash so you can resolve the conflict and retry or recover manually. Prefer apply when the work is important or you want a safety copy.</p><h4>Commands and example</h4><pre><code>git stash apply stash@{1}
+git status
+# After verifying the restored changes:
+git stash drop stash@{1}
+
+# Or apply and remove on success:
+git stash pop</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">16.7</div><h2>Deleting stash entries</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 7. Deleting stash entries</span><p>Use <code>drop</code> to remove one entry and <code>clear</code> to remove every stash entry in the repository. Clearing is destructive and there is no ordinary undo command. Confirm the list and, if necessary, save a patch or create a branch before deleting valuable work.</p><h4>Commands and example</h4><pre><code>git stash list
+git stash drop stash@{2}
+git stash clear</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">16.8</div><h2>Creating named stashes and managing many</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 8. Creating named stashes and managing many</span><p>Use descriptive messages so the stash list communicates the task and context. Keep stashes small and short-lived. The stash reference is positional, so do not assume an entry remains at index zero after another stash is created.</p><h4>Commands and example</h4><pre><code>git stash push -m "WIP: add late-arriving order handling"
+git stash push -u -m "WIP: add reconciliation test"
+git stash list
+git stash show -p stash@{1}</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">16.9</div><h2>Stash conflicts</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 9. Stash conflicts</span><p>A stash can conflict when the target branch has changed the same lines or files. Git reports unmerged paths. Resolve the files as with a merge conflict, inspect the result, and stage resolved paths if appropriate. An apply conflict does not remove the stash. Avoid running <code>git stash pop</code> repeatedly while a conflict is unresolved.</p><h4>Commands and example</h4><pre><code>git stash apply stash@{0}
+git status
+# Edit conflicted files, remove conflict markers, validate
+git add path/to/resolved-file
+# Keep or remove the stash after verifying the result
+git stash list</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">16.10</div><h2>Practical use cases</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · 10. Practical use cases</span><p>Common uses include switching to a production hotfix, pausing work before a pull/rebase, testing a clean working tree, and moving unfinished changes between branches. A stash is not a substitute for a durable commit or backup: it is local, easy to clear, and not part of normal remote collaboration.</p><h4>Commands and example</h4><pre><code># Pause current work
+git stash push -u -m "WIP: ADF schedule validator"
+
+# Handle another branch
+git switch main
+git pull --ff-only
+
+# Resume
+git switch feature/schedule-validator
+git stash apply stash@{0}
+git status</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">16.11</div><h2>
+What is Git Stash?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Git Stash?</span><h4>1.1 Definition</h4>
+<p><code>git stash</code> <strong>saves your uncommitted changes</strong> (staged and unstaged modifications to tracked files) onto a <strong>stack</strong>, and <strong>reverts your working directory to the last commit</strong> (clean state). You can re-apply the saved changes later on the same or a different branch.</p>
+<h4>1.2 How it's stored</h4>
+<p>Each stash is stored as a special commit referenced by <code>refs/stash</code>; the list is a stack (<code>stash@{0}</code> is the most recent).</p>
+<pre><code class="language-text">stash@{0}  ← newest
+stash@{1}
+stash@{2}  ← oldest
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">16.12</div><h2>
+Why Do We Need Git Stash?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Why Do We Need Git Stash?</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>How stash helps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Urgent production bug while mid-feature</td>
+<td>Stash, switch to hotfix branch, fix, come back, pop</td>
+</tr>
+<tr>
+<td><code>git pull</code> refuses because of local edits</td>
+<td>Stash, pull, pop</td>
+</tr>
+<tr>
+<td>Started work on the wrong branch</td>
+<td>Stash, switch to correct branch, pop</td>
+</tr>
+<tr>
+<td>Want to test the code without your changes</td>
+<td>Stash, test, pop</td>
+</tr>
+<tr>
+<td>Need a clean working tree for rebase/merge</td>
+<td>Stash before, pop after</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Real-time scenario:</strong> You are halfway through modifying <code>usp_load_orders.sql</code> on <code>feature/orders-incremental</code> when the team reports a production failure. Your changes aren't ready to commit.</p>
+<pre><code class="language-bash">git stash push -m &quot;WIP: incremental watermark for orders&quot;
+git switch -c hotfix/null-dates main
+# fix, commit, push, PR...
+git switch feature/orders-incremental
+git stash pop
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">16.13</div><h2>
+Stashing Modified Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Stashing Modified Files</span><pre><code class="language-bash">git stash                 # stash staged + unstaged changes to tracked files
+git stash push            # same (explicit)
+</code></pre>
+<p><strong>What is and isn't stashed by default:</strong></p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>File state</th>
+<th>Stashed by default?</th>
+<th>Option to include</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modified tracked files (unstaged)</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Staged changes</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Untracked (new) files</td>
+<td><strong>No</strong></td>
+<td><code>-u</code> / <code>--include-untracked</code></td>
+</tr>
+<tr>
+<td>Ignored files</td>
+<td><strong>No</strong></td>
+<td><code>-a</code> / <code>--all</code></td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git stash -u               # also untracked files
+git stash -a               # also ignored files
+git stash push -- sql/procedures/usp_load_orders.sql   # only specific paths
+git stash push -p          # choose hunks interactively
+git stash --keep-index     # stash but keep staged changes in the working directory
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">16.14</div><h2>
+Stashing Staged Changes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Stashing Staged Changes</span><p>By default, a stash records both the index (staged) and the working tree. When you re-apply:</p>
+<pre><code class="language-bash">git stash apply            # restores changes, but staged changes become unstaged
+git stash apply --index    # restores the staged/unstaged split exactly
+git stash pop --index
+</code></pre>
+<p>Stash <strong>only</strong> the staged changes (Git 2.35+):</p>
+<pre><code class="language-bash">git stash push --staged -m &quot;only the SQL I staged&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">16.15</div><h2>
+Viewing Stash History
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Viewing Stash History</span><pre><code class="language-bash">git stash list
+</code></pre>
+<pre><code class="language-text">stash@{0}: On feature/orders-incremental: WIP: incremental watermark for orders
+stash@{1}: WIP on main: 9c8b7a6 Add fact_sales table
+</code></pre>
+<p>Inspect a stash:</p>
+<pre><code class="language-bash">git stash show                 # summary of latest stash
+git stash show stash@{1}       # summary of a specific stash
+git stash show -p stash@{1}    # full diff
+git stash show -u stash@{0}    # include untracked files (Git 2.32+)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">16.16</div><h2>
+Applying Stashed Changes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Applying Stashed Changes</span><p><code>apply</code> re-applies a stash <strong>and keeps it</strong> in the stash list.</p>
+<pre><code class="language-bash">git stash apply                # latest (stash@{0})
+git stash apply stash@{2}      # specific stash
+git stash apply --index        # restore staged state too
+</code></pre>
+<p>Use <code>apply</code> when you want to apply the same changes to multiple branches, or keep a safety copy.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">16.17</div><h2>
+Popping Stashed Changes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Popping Stashed Changes</span><p><code>pop</code> re-applies a stash <strong>and removes it</strong> from the list (if there was no conflict).</p>
+<pre><code class="language-bash">git stash pop
+git stash pop stash@{1}
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th><code>apply</code></th>
+<th><code>pop</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Applies changes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Removes stash</td>
+<td>No</td>
+<td>Yes (only if successful)</td>
+</tr>
+<tr>
+<td>Typical use</td>
+<td>Reuse / keep backup</td>
+<td>Normal "resume work"</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">16.18</div><h2>
+Deleting Stash Entries
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Deleting Stash Entries</span><pre><code class="language-bash">git stash drop                 # delete latest
+git stash drop stash@{2}       # delete a specific stash
+git stash clear                # delete ALL stashes
+</code></pre>
+<div class="callout c-warn"><p><strong>Warning</strong> <code>git stash clear</code> cannot be undone with normal commands. A dropped stash can sometimes be found with <code>git fsck --unreachable | grep commit</code> and restored with <code>git stash apply &lt;sha&gt;</code>.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">16.19</div><h2>
+Creating Named Stashes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Creating Named Stashes</span><p>Always add a descriptive message — "WIP on main" is meaningless after a few days.</p>
+<pre><code class="language-bash">git stash push -m &quot;DE-1423: half-done SCD2 logic&quot;
+git stash push -u -m &quot;orders: new staging files not yet committed&quot;
+</code></pre>
+<pre><code class="language-text">stash@{0}: On feature/DE-1423: DE-1423: half-done SCD2 logic
+</code></pre>
+<p>(<code>git stash save "message"</code> is the older, deprecated syntax.)</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">16.20</div><h2>
+Managing Multiple Stashes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Managing Multiple Stashes</span><pre><code class="language-bash">git stash list
+git stash show -p stash@{3}            # check content before applying
+git stash apply stash@{3}
+git stash drop stash@{3}
+git stash branch feature/from-stash stash@{1}
+</code></pre>
+<p><code>git stash branch &lt;name&gt; [stash]</code> creates a new branch <strong>from the commit where the stash was created</strong>, applies the stash there, and drops it if successful — the cleanest way to turn old stashed work into a real branch without conflicts.</p>
+<p><strong>Good practices:</strong></p>
+<ul>
+<li>Keep the stash list short — turn long-lived work into commits on a branch instead.</li>
+<li>Name every stash.</li>
+<li>Review <code>git stash list</code> weekly and drop stale entries.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">16.21</div><h2>
+Stash Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Stash Conflicts</span><h4>11.1 When they occur</h4>
+<p>If the branch changed the same lines since the stash was created, applying it causes a conflict:</p>
+<pre><code class="language-text">Auto-merging sql/procedures/usp_load_orders.sql
+CONFLICT (content): Merge conflict in sql/procedures/usp_load_orders.sql
+The stash entry is kept in case you need it again.
+</code></pre>
+<h4>11.2 Resolution</h4>
+<pre><code class="language-bash"># edit the file, remove conflict markers
+git add sql/procedures/usp_load_orders.sql      # mark resolved (or git restore --staged to keep unstaged)
+git stash drop                                   # pop doesn't auto-drop after a conflict
+</code></pre>
+<h4>11.3 Avoiding conflicts</h4>
+<ul>
+<li>Apply onto the branch the stash came from.</li>
+<li>Use <code>git stash branch</code> for old stashes.</li>
+<li>Don't keep stashes for long.</li>
+</ul>
+<h4>11.4 Undo a messy apply</h4>
+<pre><code class="language-bash">git restore .            # discard the applied changes (stash is still in the list)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">16.22</div><h2>
+Practical Use Cases
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Practical Use Cases</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Use case</th>
+<th>Commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Urgent hotfix</td>
+<td><code>git stash push -m "wip"</code> → switch → fix → switch back → <code>git stash pop</code></td>
+</tr>
+<tr>
+<td>Pull with local edits</td>
+<td><code>git stash</code> → <code>git pull</code> → <code>git stash pop</code> (or <code>git pull --autostash</code>)</td>
+</tr>
+<tr>
+<td>Rebase with local edits</td>
+<td><code>git rebase --autostash main</code></td>
+</tr>
+<tr>
+<td>Wrong branch</td>
+<td><code>git stash</code> → <code>git switch correct</code> → <code>git stash pop</code></td>
+</tr>
+<tr>
+<td>Test clean build</td>
+<td><code>git stash -u</code> → run tests → <code>git stash pop</code></td>
+</tr>
+<tr>
+<td>Split work</td>
+<td><code>git stash push -- fileA</code> to set part of the work aside</td>
+</tr>
+<tr>
+<td>Share WIP across branches</td>
+<td><code>git stash apply</code> on several branches</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — `git stash save` and named stash syntax</span><p><strong>S41</strong> shows a reference like <code>stash@{manoj}</code> and its embedded cheat-sheet image uses <code>git stash save "msg"</code>. <strong>Resolution (git-stash docs):</strong> <code>git stash save</code> is deprecated in favour of <code>git stash push -m "msg"</code>; stash entries are referenced by index (<code>stash@{0}</code>) or reflog date syntax (<code>stash@{2.hours.ago}</code>), not by name — the message is only a description.</p></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 260" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">stash@{0}</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">On feature/RDP-115-silver-orders: WIP silver dedup logic</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">stash@{1}</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">On main: experiment with partition columns</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">stash@{2}</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">WIP on feature/RDP-102-orders-ingest: 8a1b2c3 Add extractor</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Storage</text><text x="300.0" y="211.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Each entry is a commit (refs/stash + reflog) whose parents capture HEAD, the index and</text><text x="300.0" y="227.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">optionally untracked files</text></svg></div><figcaption>The stash stack (newest on top)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="71.1" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Mid-change on</text><text x="71.1" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">feature</text><text x="71.1" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">branch</text><line x1="125.3" y1="60.0" x2="153.3" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="156.3" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="207.4" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git stash</text><text x="207.4" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">push -u -m</text><text x="207.4" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">&quot;WIP silver</text><text x="207.4" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">dedup&quot;</text><line x1="261.6" y1="60.0" x2="289.6" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="292.6" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="343.7" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git switch -c</text><text x="343.7" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">hotfix/...</text><text x="343.7" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">main</text><line x1="397.9" y1="60.0" x2="425.9" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="428.9" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Fix, PR,</text><text x="480.0" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">merge</text><line x1="534.1" y1="60.0" x2="562.1" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="565.1" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="616.3" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git switch</text><text x="616.3" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">feature/...</text><line x1="670.4" y1="60.0" x2="698.4" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="701.4" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="752.6" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git stash pop</text><line x1="806.7" y1="60.0" x2="834.7" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="837.7" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="888.9" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Continue</text></svg></div><figcaption>Interruption workflow</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Commands Reference</span><pre><code class="language-bash">git stash
+git stash list
+git stash apply
+git stash pop
+git stash drop
+git stash clear
+git stash push -m &quot;message&quot;
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git stash</code></td>
+<td>Save changes and clean the working directory</td>
+</tr>
+<tr>
+<td><code>git stash list</code></td>
+<td>List stashes</td>
+</tr>
+<tr>
+<td><code>git stash apply</code></td>
+<td>Apply a stash, keep it</td>
+</tr>
+<tr>
+<td><code>git stash pop</code></td>
+<td>Apply a stash, remove it</td>
+</tr>
+<tr>
+<td><code>git stash drop</code></td>
+<td>Delete one stash</td>
+</tr>
+<tr>
+<td><code>git stash clear</code></td>
+<td>Delete all stashes</td>
+</tr>
+<tr>
+<td><code>git stash push -m "message"</code></td>
+<td>Create a named stash</td>
+</tr>
+</tbody>
+</table></div></div><div class="cmd" id="cmd-git-stash-push"><header>git stash push</header><dl><dt>Syntax</dt><dd><pre><code>git stash [push] [-u|--include-untracked] [-a|--all] [-k|--keep-index] [-S|--staged] [-m &lt;msg&gt;] [-- &lt;pathspec&gt;…]</code></pre></dd><dt>Purpose</dt><dd>Save local modifications and revert the working tree to HEAD.</dd><dt>Key parameters</dt><dd><ul><li><code>-u</code> — include untracked files</li><li><code>-a</code> — include untracked <em>and ignored</em> files</li><li><code>-m "msg"</code> — descriptive name</li><li><code>--staged</code> — stash only staged changes (Git 2.35+)</li><li><code>--keep-index</code> — stash but leave staged changes in place</li><li><code>-- &lt;paths&gt;</code> — stash only these paths</li></ul></dd><dt>Expected output</dt><dd><pre><code>Saved working directory and index state On feature/RDP-115-silver-orders: WIP silver dedup logic</code></pre></dd><dt>Example</dt><dd><pre><code>git stash push -u -m &quot;WIP silver dedup logic&quot;
+git stash push -m &quot;only notebook&quot; -- databricks/src/notebooks/silver/orders_clean.py</code></pre></dd><dt>Common mistakes</dt><dd>Forgetting <code>-u</code> — new files stay in the working tree and travel with you to the other branch.</dd></dl></div><div class="cmd" id="cmd-git-stash-list-show"><header>git stash list / show</header><dl><dt>Syntax</dt><dd><pre><code>git stash list
+git stash show [-p] [stash@{n}]</code></pre></dd><dt>Purpose</dt><dd>See saved entries and their changes.</dd><dt>Expected output</dt><dd><pre><code>stash@{0}: On feature/RDP-115-silver-orders: WIP silver dedup logic
+stash@{1}: WIP on main: 5c2e9ab Add source table dbo.Customer</code></pre></dd><dt>Example</dt><dd><pre><code>git stash show -p stash@{1}</code></pre></dd><dt>Common mistakes</dt><dd><code>git stash show</code> without <code>--include-untracked</code> (<code>-u</code>) does not show untracked files stored in the entry.</dd></dl></div><div class="cmd" id="cmd-git-stash-apply-pop-drop-clear"><header>git stash apply / pop / drop / clear</header><dl><dt>Syntax</dt><dd><pre><code>git stash apply [--index] [stash@{n}]
+git stash pop [--index] [stash@{n}]
+git stash drop [stash@{n}]
+git stash clear</code></pre></dd><dt>Purpose</dt><dd>Re-apply changes (apply keeps the entry, pop removes it on success); delete entries.</dd><dt>Behaviour</dt><dd><code>--index</code> also restores what was staged. If applying conflicts, <code>pop</code> does <strong>not</strong> drop the entry.</dd><dt>Expected output</dt><dd><pre><code>CONFLICT (content): Merge conflict in databricks/src/notebooks/silver/orders_clean.py
+The stash entry is kept in case you need it again.</code></pre></dd><dt>Example</dt><dd><pre><code>git stash pop
+git stash apply stash@{1}
+git stash drop stash@{1}</code></pre></dd><dt>Common mistakes</dt><dd><code>git stash clear</code> deletes all entries at once — rarely what you want.</dd></dl></div><div class="cmd" id="cmd-git-stash-branch"><header>git stash branch</header><dl><dt>Syntax</dt><dd><pre><code>git stash branch &lt;new-branch&gt; [stash@{n}]</code></pre></dd><dt>Purpose</dt><dd>Create a branch at the commit where the stash was made, apply the stash there, and drop it if successful.</dd><dt>Example</dt><dd><pre><code>git stash branch feature/RDP-118-partitioning stash@{1}</code></pre></dd><dt>Common mistakes</dt><dd>Applying an old stash onto a very different branch and fighting conflicts — <code>stash branch</code> avoids that.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Hotfix interruption with stash</span><pre><code class="language-bash">git switch feature/RDP-115-silver-orders
+git status -s                    #  M databricks/src/notebooks/silver/orders_clean.py   ?? databricks/src/notebooks/silver/dedup_utils.py
+git stash push -u -m &quot;WIP silver dedup logic&quot;
+git status                       # nothing to commit, working tree clean
+
+git switch main &amp;&amp; git pull --ff-only
+git switch -c hotfix/RDP-140-null-region
+# ... fix, commit, push, PR, merge (Chapter 9) ...
+
+git switch feature/RDP-115-silver-orders
+git stash list
+git stash pop                    # untracked dedup_utils.py is restored too
+git status -s
+</code></pre>
+<p>If <code>pop</code> reports a conflict: resolve the file, <code>git add</code> it, then <code>git stash drop</code> once you are sure the work is complete.</p></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S17, S40 · Recovering a stash dropped by mistake</span><p><code>git stash drop</code> prints the dropped commit ID (<code>Dropped stash@{0} (3a9f…)</code>). Re-apply with <code>git stash apply 3a9f…</code>. If the ID is lost, list unreachable stash commits: <code>git fsck --no-reflogs | grep "dangling commit"</code> and inspect candidates with <code>git show &lt;sha&gt;</code>.</p></div><div class="src"><span class="tag add">Course addition · Testing only what is staged</span><p>Before committing, stash unstaged edits but keep the index: <code>git stash push --keep-index -u</code>, run tests on exactly what will be committed, then <code>git stash pop</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Always name stashes (<code>-m</code>); keep the stack short.</li>
+<li>Use <code>-u</code> when you have new files.</li>
+<li>Prefer a WIP commit on your own feature branch for work that will sit for days; stash is for short interruptions.</li>
+<li>Use <code>git stash branch</code> for old stashes.</li>
+<li>Stashes are local — they are not a backup.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>No local changes to save</code></td>
+<td>Nothing modified (or only untracked without <code>-u</code>)</td>
+<td>Use <code>-u</code> or nothing to do</td>
+</tr>
+<tr>
+<td><code>error: Your local changes to the following files would be overwritten by merge</code> (on apply)</td>
+<td>Working tree changes overlap</td>
+<td>Commit/stash current changes first</td>
+</tr>
+<tr>
+<td><code>CONFLICT ... The stash entry is kept in case you need it again.</code></td>
+<td>Stash conflicts with current files</td>
+<td>Resolve, <code>git add</code>, then <code>git stash drop</code></td>
+</tr>
+<tr>
+<td><code>error: stash@{5} is not a valid reference</code></td>
+<td>Index out of range</td>
+<td><code>git stash list</code></td>
+</tr>
+<tr>
+<td><code>... already exists, no checkout</code> / <code>could not restore untracked files from stash</code></td>
+<td>Untracked file already exists</td>
+<td>Move the existing file away, apply again</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Modify one tracked file and create one new file; run <code>git stash</code>.</p><span class="exp-out">The new file is still present (not stashed).</span></li><li><p>Repeat with <code>git stash push -u -m "test"</code>.</p><span class="exp-out">Working tree clean; <code>git stash list</code> shows "test".</span></li><li><p>Create two stashes and apply the older one with <code>git stash apply stash@{1}</code>.</p><span class="exp-out">Changes from the older entry appear; both entries remain.</span></li><li><p>Produce a conflict on <code>git stash pop</code>, resolve and drop.</p><span class="exp-out">After resolution, <code>git stash list</code> no longer contains the entry.</span></li><li><p>Drop a stash and recover it with the printed SHA.</p><span class="exp-out"><code>git stash apply &lt;sha&gt;</code> restores the changes.</span></li></ol></div><div class="src"><span class="tag ">Source S17 · Chapter manual · lab</span><p>Create a branch, modify a tracked SQL file, add a new untracked test file, and create a named stash that includes both. Switch branches, inspect the stash, return, apply it, verify the files, and remove the stash only after confirming the restored work.</p><div class="callout good"><strong>Validation:</strong> Use <code>git status</code>, <code>git log --oneline --graph --decorate</code>, and relevant diffs to verify each step. Practise destructive commands only in a disposable repository or branch.</div></div><div class="src"><span class="tag s40">Source S40 · 14. Practical Exercise – Chapter 16</span><ol>
+<li>Modify two tracked files and create one new file; run <code>git stash</code> and observe the new file remains.</li>
+<li>Run <code>git stash -u -m "with untracked"</code>; check <code>git stash list</code> and <code>git stash show -p</code>.</li>
+<li>Switch branches, commit something, switch back and <code>git stash pop</code>.</li>
+<li>Create two named stashes; apply the older one with <code>apply</code>, then drop it.</li>
+<li>Create a stash conflict and resolve it.</li>
+<li>Convert a stash into a branch with <code>git stash branch</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 16 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S17 · Chapter manual · interview</span><h4>1. What does git stash do?</h4><p>It saves selected local changes and cleans the working tree so you can change context.</p><h4>2. Does git stash include untracked files by default?</h4><p>No. Use <code>git stash push -u</code> to include untracked files.</p><h4>3. What is the difference between apply and pop?</h4><p>Apply keeps the stash entry; pop removes it after successful application.</p><h4>4. How do you inspect a stash patch?</h4><p>Use <code>git stash show -p stash@{0}</code>.</p><h4>5. How do you create a named stash?</h4><p>Use <code>git stash push -m "message"</code>.</p><h4>6. How do you remove one stash?</h4><p>Use <code>git stash drop stash@{n}</code>.</p><h4>7. What does git stash clear do?</h4><p>It deletes all stash entries in the repository.</p><h4>8. Can a stash cause conflicts?</h4><p>Yes, if the target branch has overlapping changes.</p><h4>9. Is a stash shared with teammates?</h4><p>No. Stashes are local unless you explicitly export their changes another way.</p><h4>10. How do you include ignored files?</h4><p>Use <code>git stash push -a</code>, with care.</p><h4>11. What does --keep-index do?</h4><p>It leaves staged changes in the index while stashing other changes.</p><h4>12. How do you preserve staged state on apply?</h4><p>Use <code>git stash apply --index</code>.</p><h4>13. Where is the newest stash?</h4><p>Usually <code>stash@{0}</code>.</p><h4>14. Should stash replace commits?</h4><p>No. Commit meaningful, durable work; use stash for temporary context switches.</p><h4>15. What should you do before stash clear?</h4><p>Inspect entries and preserve any important changes in a branch, commit or patch.</p></div><div class="src"><span class="tag s40">Source S40 · 15. Chapter 16 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is git stash?</td>
+<td>Temporarily shelves uncommitted changes</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Are untracked files stashed?</td>
+<td>Not by default — use <code>-u</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>apply vs pop?</td>
+<td>apply keeps the stash; pop removes it</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>How do you name a stash?</td>
+<td><code>git stash push -m "message"</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you see stash content?</td>
+<td><code>git stash show -p stash@{n}</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What happens on a stash conflict?</td>
+<td>Resolve manually; stash isn't dropped automatically</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>What does <code>git stash branch</code> do?</td>
+<td>Creates a branch from the stash's base commit and applies it</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What does <code>git stash</code> do?</summary><div class="ans"><p>Saves uncommitted changes to a stack and cleans the working tree so you can switch tasks.</p></div></details><details class="qa"><summary>Difference between <code>stash apply</code> and <code>stash pop</code>?</summary><div class="ans"><p>Apply re-applies and keeps the entry; pop re-applies and removes it if there were no conflicts.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>How do you stash untracked files?</summary><div class="ans"><p><code>git stash push -u</code> (or <code>-a</code> to include ignored files too).</p></div></details><details class="qa"><summary>How do you see the content of a stash?</summary><div class="ans"><p><code>git stash show -p stash@{n}</code>.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>How is a stash stored internally?</summary><div class="ans"><p>As a commit referenced by <code>refs/stash</code>; older entries are in its reflog. The stash commit has HEAD and an index commit as parents (and a third parent for untracked files).</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>You need to apply a 3-week-old stash, but main has changed a lot. What is the safest way?</summary><div class="ans"><p><code>git stash branch &lt;name&gt; stash@{n}</code> — creates a branch at the original base commit, applies cleanly, then merge/rebase that branch onto the current main.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which flag includes untracked files in a stash?</strong></p><ol><li data-ok="0">-k</li><li data-ok="1">-u</li><li data-ok="0">-p</li><li data-ok="0">-m</li></ol><div class="exp"><code>-u</code> / <code>--include-untracked</code>.</div></div><div class="mcq"><p><strong>2. After <code>git stash pop</code> reports a conflict, what happens to the stash entry?</strong></p><ol><li data-ok="0">It is deleted</li><li data-ok="1">It is kept</li><li data-ok="0">It is pushed</li><li data-ok="0">It becomes a branch</li></ol><div class="exp">Git keeps it for safety.</div></div><div class="mcq"><p><strong>3. Which command creates a branch from a stash?</strong></p><ol><li data-ok="0">git stash checkout</li><li data-ok="1">git stash branch &lt;name&gt;</li><li data-ok="0">git branch --stash</li><li data-ok="0">git switch --stash</li></ol><div class="exp">It applies the stash at its original base.</div></div><div class="mcq"><p><strong>4. Are stashes pushed with <code>git push</code>?</strong></p><ol><li data-ok="0">Yes, always</li><li data-ok="0">With --tags</li><li data-ok="1">No, stashes are local</li><li data-ok="0">Only on GitHub</li></ol><div class="exp">Stashes live in the local repository.</div></div><div class="mcq"><p><strong>5. Which option stashes only staged changes (Git 2.35+)?</strong></p><ol><li data-ok="0">--keep-index</li><li data-ok="1">--staged</li><li data-ok="0">--index</li><li data-ok="0">--cached</li></ol><div class="exp"><code>--staged</code> / <code>-S</code>.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Stash saves working-tree and index changes locally; <code>-u</code> includes new files.</li>
+<li>Apply keeps, pop removes; conflicts keep the entry.</li>
+<li>Name stashes, keep the stack short, use <code>stash branch</code> for old work.</li>
+<li>Dropped stashes can usually be recovered by SHA or <code>git fsck</code>.</li>
+</ul></div><div class="src"><span class="tag ">Source S17 · Chapter manual · summary</span><ul><li>Explain the stash stack and its purpose</li><li>Stash tracked changes, including staged and untracked files when required</li><li>Inspect, name, apply, pop and remove stash entries</li><li>Diagnose conflicts and choose a safe recovery approach</li></ul><div class="callout warn"><strong>Safety reminder:</strong> Before rewriting or discarding history, check whether commits are shared, inspect the working tree, and preserve important work. Prefer reversible, auditable operations on shared branches.</div></div><div class="src"><span class="tag s40">Source S40 · 16. Chapter 16 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stash</td>
+<td>Stack of saved uncommitted changes</td>
+</tr>
+<tr>
+<td>Options</td>
+<td><code>-u</code>, <code>-a</code>, <code>--staged</code>, <code>-p</code>, paths</td>
+</tr>
+<tr>
+<td>Restore</td>
+<td><code>apply</code> (keep) / <code>pop</code> (remove)</td>
+</tr>
+<tr>
+<td>Manage</td>
+<td><code>list</code>, <code>show</code>, <code>drop</code>, <code>clear</code>, <code>branch</code></td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Stash tracked changes, staged changes, untracked (<code>-u</code>) and ignored (<code>-a</code>) files, and only specific paths.</li><li>List, show and name stash entries; apply vs pop; drop and clear.</li><li>Resolve a conflict when applying a stash and know the entry is kept.</li><li>Create a branch from a stash (<code>git stash branch</code>) and stash only staged changes (<code>--staged</code>).</li><li>Recover a dropped stash.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-stash">git-stash</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning">Pro Git — Stashing and Cleaning</a></li>
+<li><a href="https://code.visualstudio.com/docs/sourcecontrol/overview">VS Code — Source control: stash</a></li>
+</ul></div><div class="src"><span class="tag ">Source S17 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/git-stash" rel="noopener" target="_blank">Git Stash</a></li><li><a href="https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning" rel="noopener" target="_blank">Stashing and cleaning</a></li></ul><p class="small">Documentation links are provided for deeper reading. Git command behavior can vary by options and version; consult the official manual for the exact syntax supported by your installed Git version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_15_GitHub_Issues_and_Project_Management.html"><span class="mn-label">← Previous</span><span class="mn-title">GitHub Issues and Project Management</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_17_Git_Rebase.html"><span class="mn-label">Next →</span><span class="mn-title">Git Rebase</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

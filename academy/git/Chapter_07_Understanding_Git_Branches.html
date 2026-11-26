@@ -1,0 +1,1442 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Explain that a branch is a ref containing a commit ID and that new commits advance the current branch."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Understanding Git Branches — Chapter 7 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Understanding Git Branches</div>
+<div class="brand-sub">Chapter 7 · 37 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">7.1</span>What is branching?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">7.2</span>How Git branches work internally</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">7.3</span>Common branch types</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">7.4</span>Create, list and switch branches</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">7.5</span>Rename and delete branches</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">7.6</span>HEAD and detached HEAD</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">7.7</span>Feature-branch workflow example</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">7.8</span>Common mistakes and troubleshooting</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">7.9</span>What is Branching?</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">7.10</span>Why Do We Need Branches?</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">7.11</span>How Git Branches Work Internally</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">7.12</span>Main Branch</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">7.13</span>Master Branch</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">7.14</span>Development Branch</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">7.15</span>Feature Branch</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">7.16</span>Release Branch</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">7.17</span>Hotfix Branch</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">7.18</span>Creating Branches</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">7.19</span>Listing Branches</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">7.20</span>Switching Branches</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">7.21</span>Renaming Branches</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">7.22</span>Deleting Branches</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">7.23</span>Understanding HEAD</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">7.24</span>Detached HEAD State</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 3: Branching</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🎯</span>Chapter 7 Interview Questions</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 3 · Chapter 7</div><h1>Understanding Git Branches</h1><p class="page-subtitle">Explain that a branch is a ref containing a commit ID and that new commits advance the current branch.</p><div class="meta-row"><span class="meta-pill">Phase <b>3</b></span><span class="meta-pill">Lessons <b>37</b></span><span class="meta-pill">Sources <b>S08, S38, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is branching?; How Git branches work internally; Common branch types; Create, list and switch branches; Rename and delete branches; HEAD and detached HEAD; Feature-branch workflow example; Common mistakes and troubleshooting. <br><strong>Before you start:</strong> complete Chapter 6 – Git Commit Management. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> A branch is a movable pointer to a commit that lets you develop independently of other work. HEAD tells Git which branch (or commit) you are on.</p>
+<p><strong>Why it matters.</strong> Branches isolate features, fixes and experiments, enable reviews through pull requests, and protect <code>main</code> from unfinished work.</p>
+<p><strong>Where it is used.</strong> Locally (<code>git branch</code>, <code>git switch</code>), on hosting platforms (branch protection, PRs), and in data tools (ADF feature branches, Databricks Git folders, Fabric branch-out).</p>
+<p><strong>In this course's project.</strong> Stage 3 begins: each developer creates a feature branch named after a work item.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter explains branches — what they are, why teams use them, how they work internally, the common branch types, and every command for creating, listing, switching, renaming and deleting branches, plus HEAD and detached HEAD.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to create and manage branches confidently and explain how branches and HEAD work under the hood.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S08 · Chapter manual · objectives</span><p>By completing this chapter, you will be able to explain Git branches, understand how branch references work, create and manage branches, switch safely, and recognize the detached HEAD state.</p>
+<ul><li>Explain a branch as a movable reference to a commit.</li><li>Create, list, switch, rename and delete local branches.</li><li>Distinguish local branches from remote-tracking branches.</li><li>Understand HEAD and detached HEAD.</li><li>Apply feature branches to SQL, Python, ADF, Databricks and Fabric projects.</li></ul></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Explain that a branch is a ref containing a commit ID and that new commits advance the current branch.</li>
+<li>Create, list, switch, rename and delete branches with <code>git branch</code> and <code>git switch</code>.</li>
+<li>Describe main, develop, feature, release and hotfix branch roles.</li>
+<li>Explain HEAD and detached HEAD, enter detached HEAD deliberately and keep work done there.</li>
+<li>Apply the project's branch naming convention.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">7.1</div><h2>What is branching?</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 1. What is branching?</span><p>A <b>branch</b> is a movable name that points to a commit. It gives a developer an independent line of development. When a new commit is made on a branch, the branch reference advances to that commit.</p>
+<p>Example: your stable warehouse code is on <code>main</code>. You need to implement a customer validation rule. Create <code>feature/customer-validation</code>, make and test the changes there, then merge them after review.</p>
+<div class="diagram"><div class="row"><div class="box">main<br/>A → B</div><div class="box">feature/customer-validation<br/>A → C → D</div></div><p>Both branches share earlier history and then advance independently.</p></div>
+<div class="note"><b>Key concept:</b> A branch is not normally a complete copy of the project. It is a lightweight reference to a commit; Git reuses its object database.</div>
+<h4>Why branches are useful</h4>
+<ul><li>Isolation: experimental changes do not immediately affect stable code.</li><li>Parallel development: several developers can work on separate tasks.</li><li>Code review: changes can be reviewed before integration.</li><li>Release management: a release can be stabilized while new work continues.</li><li>Recovery: unfinished or risky work can remain separate from production-ready code.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">7.2</div><h2>How Git branches work internally</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 2. How Git branches work internally</span><p>Git stores commits in a directed acyclic graph (DAG). A commit points to its parent commit or commits. A branch name points to the latest commit on that line.</p>
+<div class="diagram"><div class="row"><div class="box">Commit A</div><div class="box">Commit B</div><div class="box">Commit C</div></div><p>The <code>main</code> reference may point to Commit C. Creating a new branch at this point makes another reference to the same commit.</p></div>
+<p>Local branch references live under <code>refs/heads/</code>. For example, <code>refs/heads/main</code> identifies the local main branch.</p>
+<div class="code">git branch feature/customer-check
+git show-ref --heads
+git log --oneline --decorate --graph --all</div>
+<p>Branch names move as commits are added. Commit IDs identify individual commit objects. This is why creating many branches is inexpensive compared with copying the entire project.</p></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">7.3</div><h2>Common branch types</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 3. Common branch types</span><table><tr><th>Branch type</th><th>Purpose</th><th>Example</th></tr>
+<tr><td>Main / master</td><td>Stable, releasable code line.</td><td>main</td></tr>
+<tr><td>Development</td><td>Integration branch in some models.</td><td>develop</td></tr>
+<tr><td>Feature</td><td>One feature or work item.</td><td>feature/customer-dq</td></tr>
+<tr><td>Release</td><td>Stabilize a release.</td><td>release/2.4.0</td></tr>
+<tr><td>Hotfix</td><td>Urgent production correction.</td><td>hotfix/fix-load-failure</td></tr>
+<tr><td>Bugfix</td><td>Non-urgent defect correction.</td><td>bugfix/null-date</td></tr></table>
+<p>These are naming and workflow conventions, not special Git branch types. Git treats them all as ordinary branches. A team can use only main and short-lived feature branches if that suits its delivery model.</p></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">7.4</div><h2>Create, list and switch branches</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 4. Create, list and switch branches</span><p>Use <code>git branch</code> to inspect or create local branches. Creating a branch does not switch to it.</p>
+<div class="code">git branch                         # list local branches
+git branch feature/new-report      # create branch
+git branch -v                      # list with latest commit
+git branch -a                      # local and remote-tracking branches
+git branch --show-current          # current branch
+
+# Create and switch in one step
+git switch -c feature/new-report
+
+# Switch between branches
+git switch main
+git switch feature/new-report
+
+# Older equivalent syntax
+git checkout -b feature/another-change
+git checkout main</div>
+<p><code>git switch</code> is the modern command focused on switching branches. <code>git checkout</code> remains supported and is also used for other checkout operations.</p>
+<h4>What happens during a switch?</h4>
+<ul><li>HEAD is updated to identify the selected branch.</li><li>The index and working tree are updated to match the selected commit, subject to safety checks.</li><li>Git may refuse if local uncommitted changes would be overwritten.</li></ul>
+<div class="note warn"><b>Best practice:</b> Run <code>git status</code> before switching. Commit or stash unrelated work rather than assuming every uncommitted change can safely follow you.</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">7.5</div><h2>Rename and delete branches</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 5. Rename and delete branches</span><div class="code"># Rename a local branch
+git branch -m old-name new-name
+
+# Rename the current branch
+git branch -m feature/better-name
+
+# Safely delete a merged local branch
+git branch -d feature/old-report
+
+# Force deletion, even if unmerged
+git branch -D experiment/temp</div>
+<p>The <code>-d</code> option checks whether Git considers the branch merged. <code>-D</code> forces deletion and may remove easy access to unmerged work.</p>
+<div class="note danger"><b>Warning:</b> Inspect the branch and preserve any needed commits before using <code>-D</code>. Deleting a local branch does not delete the branch on GitHub or another remote. Remote deletion is a separate operation.</div></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">7.6</div><h2>HEAD and detached HEAD</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 6. HEAD and detached HEAD</span><p><code>HEAD</code> identifies the current checkout. In normal branch-based work, HEAD is a symbolic reference to a local branch such as <code>main</code>.</p>
+<div class="diagram"><div class="row"><div class="box">HEAD</div><div class="box">main</div><div class="box">Commit C</div></div><p>HEAD symbolically points to main; main points to the current commit.</p></div>
+<p><b>Detached HEAD</b> occurs when you check out a commit ID or tag rather than a local branch. It is useful for inspecting an older version, but commits created there are not automatically attached to a named branch.</p>
+<div class="code">git switch --detach a1b2c3d
+# inspect or test the older version
+
+# Return to a branch
+git switch main
+
+# Preserve a commit made while detached
+git switch -c experiment/keep-work</div>
+<div class="note warn">If you create commits in detached HEAD and want to keep them, create a branch pointing to the commit before switching away.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">7.7</div><h2>Feature-branch workflow example</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 7. Feature-branch workflow example</span><p>Scenario: add a SQL data-quality validation to a warehouse project.</p>
+<div class="code">git switch main
+git pull --ff-only
+git switch -c feature/customer-quality-check
+
+# Edit and validate the SQL file
+git status
+git diff
+git add sql/customer_quality_check.sql
+git commit -m "Add customer quality validation"
+
+# Publish the branch for review
+git push -u origin feature/customer-quality-check</div>
+<p>Open a pull request, request review, address feedback, run checks and merge according to team policy. After merging, update main and delete the finished feature branch when appropriate.</p>
+<h4>Data Engineering branch examples</h4>
+<ul><li><code>feature/adf-customer-ingestion</code> — new ADF ingestion pipeline.</li><li><code>bugfix/sql-null-handling</code> — correct null handling in a stored procedure.</li><li><code>feature/databricks-orders-dq</code> — add notebook-based validation.</li><li><code>hotfix/fabric-refresh-failure</code> — urgent production correction.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">7.8</div><h2>Common mistakes and troubleshooting</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · 8. Common mistakes and troubleshooting</span><table><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr>
+<tr><td>Created branch but stayed on main</td><td><code>git branch</code> only creates the reference.</td><td>Run <code>git switch branch-name</code>.</td></tr>
+<tr><td>Cannot switch branches</td><td>Uncommitted changes would be overwritten.</td><td>Commit or stash the work first.</td></tr>
+<tr><td>Detached HEAD warning</td><td>A commit or tag was checked out directly.</td><td>Return to a branch or create a branch to preserve commits.</td></tr>
+<tr><td>Branch already exists</td><td>The name is already used locally.</td><td>Inspect <code>git branch</code>; switch to it or choose another name.</td></tr>
+<tr><td>Deleted the wrong branch</td><td>Branch name was not verified.</td><td>Inspect logs and merged status before deletion.</td></tr></table>
+<div class="code">git status
+git branch -avv
+git log --oneline --decorate --graph --all
+git reflog</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">7.9</div><h2>
+What is Branching?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Branching?</span><h4>1.1 Definition</h4>
+<p><strong>Branching</strong> means diverging from the main line of development to work independently, without affecting the main line. In Git, a <strong>branch</strong> is a lightweight, movable pointer to a commit.</p>
+<h4>1.2 Visual</h4>
+<pre><code class="language-text">main:              A ── B ── C ─────────── G   (merge)
+                              \           /
+feature/orders:                D ── E ── F
+</code></pre>
+<p>Commits D, E, F are made on <code>feature/orders</code>; <code>main</code> is unaffected until the merge at G.</p>
+<h4>1.3 Real-time example</h4>
+<p>You need to add an orders load pipeline while production customer loads keep running from <code>main</code>. You create <code>feature/orders-load</code>, work there for three days, and merge only when it is reviewed and tested.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">7.10</div><h2>
+Why Do We Need Branches?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Why Do We Need Branches?</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Isolation</td>
+<td>Unfinished work doesn't break the stable code</td>
+</tr>
+<tr>
+<td>Parallel development</td>
+<td>Many developers/features progress simultaneously</td>
+</tr>
+<tr>
+<td>Code review</td>
+<td>Each branch becomes a focused pull request</td>
+</tr>
+<tr>
+<td>Experimentation</td>
+<td>Try ideas safely; delete the branch if they fail</td>
+</tr>
+<tr>
+<td>Release management</td>
+<td>Stabilise a release while new development continues</td>
+</tr>
+<tr>
+<td>Hotfixes</td>
+<td>Fix production quickly without shipping unfinished features</td>
+</tr>
+<tr>
+<td>Environment flow</td>
+<td>Promote tested code through Dev → Test → Prod</td>
+</tr>
+<tr>
+<td>Traceability</td>
+<td>Branch names link work to tickets (<code>feature/DE-1423-...</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Without branches:</strong> everyone commits to one line; a half-finished change blocks a release; an urgent fix must wait.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">7.11</div><h2>
+How Git Branches Work Internally
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. How Git Branches Work Internally</span><h4>3.1 A branch is a file containing a hash</h4>
+<pre><code class="language-bash">cat .git/refs/heads/main
+# 9c8b7a6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b
+</code></pre>
+<p>Creating a branch writes one tiny file — that's why it's instant, regardless of project size.</p>
+<h4>3.2 Commits move the current branch</h4>
+<pre><code class="language-text">Before commit:    A ── B ── C   ← main ← HEAD
+After commit:     A ── B ── C ── D   ← main ← HEAD
+</code></pre>
+<p>Only the branch HEAD points to moves.</p>
+<h4>3.3 Two branches on the same commit</h4>
+<pre><code class="language-bash">git branch feature/x
+</code></pre>
+<pre><code class="language-text">A ── B ── C   ← main ← HEAD
+              ← feature/x
+</code></pre>
+<p>Both names point to C. After switching to <code>feature/x</code> and committing, only <code>feature/x</code> moves.</p>
+<h4>3.4 Where branches are stored</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local branches</td>
+<td><code>.git/refs/heads/</code></td>
+</tr>
+<tr>
+<td>Remote-tracking branches</td>
+<td><code>.git/refs/remotes/origin/</code></td>
+</tr>
+<tr>
+<td>Packed refs</td>
+<td><code>.git/packed-refs</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">7.12</div><h2>
+Main Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Main Branch</span><ul>
+<li>The <strong>primary branch</strong> of most modern repositories; represents <strong>stable, production-ready</strong> code.</li>
+<li>Default branch on GitHub, GitLab and Azure Repos since 2020.</li>
+<li>Usually <strong>protected</strong>: no direct pushes; changes arrive via pull requests with reviews and passing CI.</li>
+<li>Deployments to production are typically made from <code>main</code> (or from tags on <code>main</code>).</li>
+</ul>
+<pre><code class="language-bash">git config --global init.defaultBranch main
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">7.13</div><h2>
+Master Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Master Branch</span><ul>
+<li>The <strong>historical default</strong> branch name in Git and older repositories.</li>
+<li>Functionally identical to <code>main</code> — the name has no special meaning to Git.</li>
+<li>Many organisations renamed <code>master</code> to <code>main</code>.</li>
+</ul>
+<p><strong>Renaming master to main:</strong></p>
+<pre><code class="language-bash">git branch -m master main
+git push -u origin main
+# On GitHub/Azure Repos: set default branch to main in settings
+git push origin --delete master
+</code></pre>
+<p>Teammates update their clones:</p>
+<pre><code class="language-bash">git fetch origin
+git branch -m master main
+git branch -u origin/main main
+git remote set-head origin -a
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">7.14</div><h2>
+Development Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Development Branch</span><ul>
+<li>Commonly named <code>develop</code> or <code>dev</code>.</li>
+<li>An <strong>integration branch</strong> where completed features are merged before release (used in Git Flow).</li>
+<li>Always contains the latest delivered development changes for the next release.</li>
+<li>Deployed automatically to a Dev/Integration environment.</li>
+</ul>
+<pre><code class="language-bash">git switch -c develop main
+git push -u origin develop
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">7.15</div><h2>
+Feature Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Feature Branch</span><ul>
+<li>Created for <strong>one feature, user story or task</strong>.</li>
+<li>Naming: <code>feature/&lt;ticket&gt;-&lt;short-description&gt;</code>, e.g. <code>feature/DE-1423-orders-load</code>.</li>
+<li>Branched from <code>main</code> (GitHub Flow) or <code>develop</code> (Git Flow).</li>
+<li>Short-lived: merged via PR and deleted.</li>
+</ul>
+<pre><code class="language-bash">git switch main &amp;&amp; git pull
+git switch -c feature/DE-1423-orders-load
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">7.16</div><h2>
+Release Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Release Branch</span><ul>
+<li>Created when the code is ready to be <strong>prepared for a release</strong>, e.g. <code>release/2.4.0</code>.</li>
+<li>Only bug fixes, documentation and release metadata (version numbers) go here — <strong>no new features</strong>.</li>
+<li>Deployed to Test/UAT for validation.</li>
+<li>Merged into <code>main</code> (and tagged) and back into <code>develop</code>.</li>
+</ul>
+<pre><code class="language-bash">git switch -c release/2.4.0 develop
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">7.17</div><h2>
+Hotfix Branch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Hotfix Branch</span><ul>
+<li>Created from <code>main</code> (or the production tag) to fix a <strong>critical production issue</strong> immediately.</li>
+<li>Naming: <code>hotfix/&lt;version-or-ticket&gt;</code>, e.g. <code>hotfix/2.4.1</code> or <code>hotfix/DE-1501-null-dates</code>.</li>
+<li>Merged into <code>main</code> (tagged) <strong>and</strong> into <code>develop</code>/active release branches so the fix isn't lost.</li>
+</ul>
+<pre><code class="language-bash">git switch -c hotfix/2.4.1 v2.4.0
+</code></pre>
+<p><strong>Branch types summary:</strong></p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Created from</th>
+<th>Merged into</th>
+<th>Lifetime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main</code></td>
+<td>—</td>
+<td>—</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>develop</code></td>
+<td><code>main</code></td>
+<td>—</td>
+<td>Permanent</td>
+</tr>
+<tr>
+<td><code>feature/*</code></td>
+<td><code>develop</code> or <code>main</code></td>
+<td><code>develop</code> or <code>main</code></td>
+<td>Days</td>
+</tr>
+<tr>
+<td><code>release/*</code></td>
+<td><code>develop</code></td>
+<td><code>main</code> + <code>develop</code></td>
+<td>Days–weeks</td>
+</tr>
+<tr>
+<td><code>hotfix/*</code></td>
+<td><code>main</code></td>
+<td><code>main</code> + <code>develop</code></td>
+<td>Hours–days</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">7.18</div><h2>
+Creating Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Creating Branches</span><pre><code class="language-bash">git branch feature/dim-product                 # create (stay on current branch)
+git switch -c feature/dim-product              # create and switch (recommended)
+git checkout -b feature/dim-product            # create and switch (older syntax)
+git switch -c hotfix/null-dates a1b2c3d        # create from a specific commit
+git switch -c release/2.4.0 v2.4.0-rc1         # create from a tag
+git switch -c feature/x origin/feature/x       # create from a remote branch
+git branch --track feature/x origin/feature/x  # create with tracking
+</code></pre>
+<div class="callout c-tip"><p><strong>Tip</strong> Always update your base branch first: <code>git switch main &amp;&amp; git pull</code>, then create your branch.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">7.19</div><h2>
+Listing Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Listing Branches</span><pre><code class="language-bash">git branch                 # local branches (* marks current)
+git branch -r              # remote-tracking branches
+git branch -a              # all
+git branch -v              # with last commit
+git branch -vv             # with upstream and ahead/behind
+git branch --merged        # branches merged into current branch
+git branch --no-merged     # branches not yet merged
+git branch --list &quot;feature/*&quot;
+git branch --sort=-committerdate   # most recently updated first
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-text">  develop
+* feature/dim-product
+  main
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">7.20</div><h2>
+Switching Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Switching Branches</span><pre><code class="language-bash">git switch main                    # switch to an existing branch
+git switch -                       # switch back to the previous branch
+git checkout main                  # older syntax
+git switch -c new-branch           # create and switch
+git switch --discard-changes main  # switch, throwing away local edits
+</code></pre>
+<p><strong>What happens:</strong> Git updates the working directory and staging area to match the target branch's latest commit and moves <code>HEAD</code>.</p>
+<p><strong>If you have uncommitted changes:</strong></p>
+<ul>
+<li>If they don't conflict with the target branch, Git carries them over.</li>
+<li>If they conflict, Git refuses: commit them, stash them (<code>git stash</code>), or discard them first.</li>
+</ul>
+<pre><code class="language-text">error: Your local changes to the following files would be overwritten by checkout:
+        sql/procedures/usp_load_customers.sql
+Please commit your changes or stash them before you switch branches.
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">7.21</div><h2>
+Renaming Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Renaming Branches</span><pre><code class="language-bash">git branch -m new-name                  # rename current branch
+git branch -m old-name new-name         # rename another branch
+git branch -M old-name new-name         # force (overwrite existing name)
+</code></pre>
+<p><strong>Renaming a branch that exists on the remote:</strong></p>
+<pre><code class="language-bash">git branch -m feature/oders feature/orders
+git push origin -u feature/orders
+git push origin --delete feature/oders
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">7.22</div><h2>
+Deleting Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Deleting Branches</span><pre><code class="language-bash">git branch -d feature/dim-product       # safe delete — only if merged
+git branch -D feature/dim-product       # force delete — even if not merged
+git push origin --delete feature/dim-product   # delete on remote
+git fetch --prune                        # remove stale remote-tracking branches
+</code></pre>
+<p>Safe delete error:</p>
+<pre><code class="language-text">error: The branch 'feature/dim-product' is not fully merged.
+If you are sure you want to delete it, run 'git branch -D feature/dim-product'.
+</code></pre>
+<div class="callout "><p><strong>Note</strong> You cannot delete the branch you're currently on — switch away first. A force-deleted branch can be recovered from the reflog.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">7.23</div><h2>
+Understanding HEAD
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. Understanding HEAD</span><h4>15.1 Definition</h4>
+<p><strong>HEAD</strong> is a pointer to <strong>your current position</strong> in the repository — normally a <strong>symbolic reference to the current branch</strong>, which in turn points to a commit.</p>
+<pre><code class="language-bash">cat .git/HEAD
+# ref: refs/heads/feature/dim-product
+</code></pre>
+<pre><code class="language-text">HEAD → feature/dim-product → commit E
+</code></pre>
+<h4>15.2 Behaviour</h4>
+<ul>
+<li><code>git switch main</code> changes HEAD to <code>ref: refs/heads/main</code>.</li>
+<li><code>git commit</code> moves the branch that HEAD points to.</li>
+<li><code>HEAD~1</code>, <code>HEAD^</code> are references relative to HEAD.</li>
+</ul>
+<pre><code class="language-bash">git rev-parse HEAD
+git log -1 HEAD
+git symbolic-ref HEAD
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">7.24</div><h2>
+Detached HEAD State
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 16. Detached HEAD State</span><h4>16.1 Definition</h4>
+<p><strong>Detached HEAD</strong> means HEAD points <strong>directly to a commit</strong> instead of to a branch.</p>
+<pre><code class="language-text">Normal:    HEAD → main → C
+Detached:  HEAD → B      (no branch)
+</code></pre>
+<h4>16.2 How it happens</h4>
+<pre><code class="language-bash">git switch --detach a1b2c3d     # check out a commit
+git checkout a1b2c3d            # same (older syntax)
+git checkout v1.0.0             # checking out a tag
+git checkout origin/main        # checking out a remote-tracking branch
+</code></pre>
+<p>Git warns:</p>
+<pre><code class="language-text">You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+</code></pre>
+<h4>16.3 Uses</h4>
+<ul>
+<li>Inspect old code (e.g. reproduce a bug in release <code>v1.0.0</code>).</li>
+<li>Run tests on a historical commit.</li>
+<li>CI systems often build in detached HEAD.</li>
+</ul>
+<h4>16.4 Risk</h4>
+<p>New commits in detached HEAD belong to no branch. When you switch away, they become unreachable and will eventually be garbage-collected.</p>
+<h4>16.5 Keeping work done in detached HEAD</h4>
+<pre><code class="language-bash">git switch -c fix/from-old-version      # create a branch at the current commit
+# or after switching away:
+git reflog                              # find the commit
+git branch rescued &lt;sha&gt;
+</code></pre>
+<h4>16.6 Leaving detached HEAD</h4>
+<pre><code class="language-bash">git switch main
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — &quot;master&quot; vs &quot;main&quot;</span><p><strong>S38</strong> uses <code>master</code> throughout. <strong>S08/S40</strong> use <code>main</code>. <strong>Resolution:</strong> GitHub (since Oct 2020) and Azure Repos default to <code>main</code>, and Git 3.0 will default to <code>main</code>. The course uses <code>main</code>; when working on older repositories that use <code>master</code>, substitute the name.</p></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">feature/RDP-102</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="110" x2="510" y2="110" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">E</text></svg></div><figcaption>Branches are pointers: feature/RDP-102 was created at B and has two commits of its own</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 104" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="98.4" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git switch -c</text><text x="98.4" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">feature/RDP-102</text><line x1="179.8" y1="52.0" x2="207.8" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="210.8" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="289.2" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Git writes refs/heads</text><text x="289.2" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">/feature/RDP-102 =</text><text x="289.2" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">current commit</text><line x1="370.6" y1="52.0" x2="398.6" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="401.6" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">HEAD → ref: refs/head</text><text x="480.0" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">s/feature/RDP-102</text><line x1="561.4" y1="52.0" x2="589.4" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="592.4" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="670.8" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">New commit</text><line x1="752.2" y1="52.0" x2="780.2" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="783.2" y="15.0" width="156.8" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="861.6" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Only the feature</text><text x="861.6" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">pointer moves</text></svg></div><figcaption>What happens when you create and switch a branch</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 200" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Attached HEAD</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">.git/HEAD contains ref: refs/heads/&lt;branch&gt;; commits move that branch</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Detached HEAD</text><text x="300.0" y="91.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">.git/HEAD contains a commit ID (after switching to a tag/commit); new commits belong to no</text><text x="300.0" y="107.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">branch</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Leaving safely</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">git switch -c &lt;new-branch&gt; keeps the commits; git switch - goes back</text></svg></div><figcaption>HEAD states</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 17. Branch Commands Reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git branch</code></td>
+<td>List, create, rename, delete branches</td>
+</tr>
+<tr>
+<td><code>git switch</code></td>
+<td>Switch branches (<code>-c</code> to create)</td>
+</tr>
+<tr>
+<td><code>git checkout</code></td>
+<td>Older command to switch branches (and restore files)</td>
+</tr>
+<tr>
+<td><code>git branch -d</code></td>
+<td>Delete a merged branch safely</td>
+</tr>
+<tr>
+<td><code>git branch -D</code></td>
+<td>Force-delete a branch</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git branch                         # list
+git branch feature/a               # create
+git switch feature/a               # switch
+git checkout -b feature/b          # create + switch (classic)
+git branch -m feature/a feature/c  # rename
+git branch -d feature/c            # safe delete
+git branch -D feature/b            # force delete
+</code></pre>
+<hr /></div><div class="cmd" id="cmd-git-branch"><header>git branch</header><dl><dt>Syntax</dt><dd><pre><code>git branch                     # list local
+git branch -a | -r | -vv              # all / remote / with upstream and tip
+git branch &lt;name&gt; [&lt;start-point&gt;]
+git branch -m &lt;old&gt; &lt;new&gt;
+git branch -d | -D &lt;name&gt;</code></pre></dd><dt>Purpose</dt><dd>List, create, rename and delete branches (does not switch).</dd><dt>Expected output</dt><dd><pre><code>* main                      5c2e9ab [origin/main] Add source table dbo.Customer
+  feature/RDP-102-orders-ingest 8a1b2c3 Add orders extractor</code></pre></dd><dt>Example</dt><dd><pre><code>git branch -vv
+git branch feature/RDP-107-dim-product main
+git branch -m feature/rdp107 feature/RDP-107-dim-product
+git branch -d feature/RDP-101-dim-customer</code></pre></dd><dt>Common mistakes</dt><dd><code>git branch new</code> expecting to be on it afterwards — it only creates the pointer.</dd><dt>Troubleshooting</dt><dd>Deleting an unmerged branch: <code>error: the branch 'x' is not fully merged</code> (wording varies by version) — check with <code>git log main..x</code>; use <code>-D</code> only if the work is really unwanted.</dd></dl></div><div class="cmd" id="cmd-git-switch"><header>git switch</header><dl><dt>Syntax</dt><dd><pre><code>git switch &lt;branch&gt;
+git switch -c &lt;new-branch&gt; [&lt;start-point&gt;]
+git switch --detach &lt;commit&gt;
+git switch -</code></pre></dd><dt>Purpose</dt><dd>Change the current branch (Git 2.23+); <code>-c</code> creates and switches.</dd><dt>Expected output</dt><dd><pre><code>Switched to a new branch &#x27;feature/RDP-102-orders-ingest&#x27;</code></pre></dd><dt>Example</dt><dd><pre><code>git switch -c feature/RDP-102-orders-ingest
+git switch main
+git switch -           # previous branch
+git switch --detach v1.0.0</code></pre></dd><dt>Common mistakes</dt><dd>Switching with uncommitted changes that conflict with the target branch — Git refuses: <code>error: Your local changes to the following files would be overwritten by checkout</code>.</dd><dt>Troubleshooting</dt><dd>Commit, stash (Chapter 16) or use <code>git switch -c</code> to carry the changes to a new branch.</dd></dl></div><div class="cmd" id="cmd-git-checkout-legacy-equivalent"><header>git checkout (legacy equivalent)</header><dl><dt>Syntax</dt><dd><pre><code>git checkout &lt;branch&gt;
+git checkout -b &lt;new-branch&gt;</code></pre></dd><dt>Purpose</dt><dd>Older multi-purpose command for switching branches and restoring files.</dd><dt>Behaviour</dt><dd>Still fully supported. <code>git switch</code> (branches) and <code>git restore</code> (files) split its two jobs to reduce mistakes.</dd><dt>Common mistakes</dt><dd><code>git checkout file.sql</code> silently discards changes to that file — S41 incorrectly claims checkout always detaches HEAD; it only does so when given a commit/tag rather than a branch.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 3: Branching</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 3 — Branching per work item</span><pre><code class="language-bash">git switch main &amp;&amp; git pull --ff-only          # (after Chapter 11 the repo has a remote)
+git switch -c feature/RDP-107-dim-product      # Asha
+# ... edit sql/warehouse/usp_load_dim_product.sql ...
+git add sql/warehouse/usp_load_dim_product.sql
+git commit -m &quot;feat(sql): add dim_product load procedure&quot; -m &quot;Refs: RDP-107&quot;
+
+git switch main
+git switch -c feature/RDP-102-orders-ingest     # Ravi
+# ... python/ingestion/src/retail_ingest/extract_orders.py ...
+git commit -am &quot;feat(ingest): extract orders incrementally by ModifiedAt&quot; -m &quot;Refs: RDP-102&quot;
+
+git log --oneline --graph --all
+git branch -vv
+</code></pre>
+<p><strong>Naming convention adopted:</strong> <code>feature/RDP-&lt;id&gt;-&lt;short-desc&gt;</code>, <code>bugfix/RDP-&lt;id&gt;-…</code>, <code>hotfix/RDP-&lt;id&gt;-…</code>, <code>release/&lt;x.y&gt;</code>; lowercase description, hyphens, no spaces.</p></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S08, S40 · Testing an old release in detached HEAD</span><p>Support asks how v1.0.0 behaved. <code>git switch --detach v1.0.0</code>, run the tests, then <code>git switch -</code>. If a fix is made there, <code>git switch -c hotfix/RDP-140-v1-fix</code> before switching away so the commit is not lost.</p></div><div class="src"><span class="tag add">Course addition · Started coding on main by mistake</span><p>No commit yet: <code>git switch -c feature/RDP-110-x</code> — uncommitted changes move with you. Already committed (not pushed): create the branch, then reset <code>main</code> to <code>origin/main</code> (Chapter 6 scenario).</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Never commit directly to <code>main</code>; protect it on the server.</li>
+<li>Branch from an up-to-date <code>main</code>; keep branches short-lived (days, not weeks).</li>
+<li>Name branches by type and work item.</li>
+<li>Delete branches after merge; prune remote-tracking refs (<code>fetch.prune true</code>).</li>
+<li>Use <code>git switch</code>/<code>git restore</code> instead of <code>git checkout</code> in new scripts and docs.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fatal: a branch named 'x' already exists</code></td>
+<td>Name in use</td>
+<td>Pick another name or switch to it</td>
+</tr>
+<tr>
+<td><code>error: Your local changes ... would be overwritten by checkout</code></td>
+<td>Uncommitted conflicting changes</td>
+<td>Commit, stash or discard</td>
+</tr>
+<tr>
+<td><code>You are in 'detached HEAD' state.</code></td>
+<td>Switched to a commit/tag</td>
+<td>Create a branch if you will commit</td>
+</tr>
+<tr>
+<td><code>error: cannot delete branch 'x' used by worktree at '...'</code> / checked out</td>
+<td>Branch is current</td>
+<td>Switch to another branch first</td>
+</tr>
+<tr>
+<td><code>fatal: invalid reference: x</code></td>
+<td>Branch does not exist locally</td>
+<td><code>git fetch</code> then <code>git switch x</code> (auto-tracks <code>origin/x</code>)</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create <code>feature/a</code> and <code>feature/b</code> from main; commit once on each.</p><span class="exp-out"><code>git log --oneline --graph --all</code> shows two diverging lines.</span></li><li><p>Rename <code>feature/a</code> to <code>feature/RDP-1-a</code>.</p><span class="exp-out"><code>git branch</code> lists the new name only.</span></li><li><p>Try deleting an unmerged branch with <code>-d</code>.</p><span class="exp-out">Git refuses with "not fully merged".</span></li><li><p>Switch to a tag or older commit, commit once, then save it to a branch.</p><span class="exp-out">The commit is reachable from the new branch.</span></li><li><p>Inspect <code>.git/HEAD</code> on a branch and in detached state.</p><span class="exp-out"><code>ref: refs/heads/...</code> vs a raw commit ID.</span></li></ol></div><div class="src"><span class="tag ">Source S08 · Chapter manual · lab</span><ol><li>Initialize or clone a test repository.</li><li>Create a README on main and commit it.</li><li>Create and switch to <code>feature/add-orders-query</code>.</li><li>Add a sample SQL file and create two commits.</li><li>Switch to main and confirm the feature changes are not part of main.</li><li>Switch back and inspect the feature history.</li><li>Rename the branch to <code>feature/orders-extract</code>.</li><li>Create a temporary branch and practice safe deletion.</li><li>Check out an earlier commit in detached mode, then return to main.</li></ol>
+<div class="code">git status
+git branch -avv
+git log --oneline --decorate --graph --all
+git show-ref --heads</div>
+<p><b>Expected result:</b> You should be able to explain which commit each branch points to and why the feature branch can move forward independently.</p></div><div class="src"><span class="tag s40">Source S40 · 18. Practical Exercise – Chapter 7</span><pre><code class="language-bash">cd retail-data-platform
+git switch -c feature/dim-product
+mkdir -p sql/tables
+cat &gt; sql/tables/dim_product.sql &lt;&lt;'EOF'
+CREATE TABLE dbo.dim_product (
+    product_id   INT          NOT NULL PRIMARY KEY,
+    product_name VARCHAR(100) NOT NULL,
+    category     VARCHAR(50)  NULL
+);
+EOF
+git add . &amp;&amp; git commit -m &quot;feat(sql): add dim_product table&quot;
+git switch main
+ls sql/tables            # dim_product.sql is NOT here
+git switch feature/dim-product
+ls sql/tables            # it is here
+git log --oneline --graph --all
+cat .git/HEAD
+git switch --detach HEAD~1
+git switch -             # back
+git branch -m feature/dim-product feature/DE-200-dim-product
+git branch -vv
+</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 7 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S08 · Chapter manual · interview</span><div class="qa"><b>1. What is a Git branch?</b><p>A movable reference to a commit representing a line of development.</p></div>
+<div class="qa"><b>2. Does creating a branch copy the entire repository?</b><p>No. It creates a lightweight reference; Git reuses commit and object data.</p></div>
+<div class="qa"><b>3. Difference between git branch and git switch?</b><p>git branch manages branch references; git switch changes the checked-out branch.</p></div>
+<div class="qa"><b>4. Does git branch feature-x switch to it?</b><p>No. It creates the branch only.</p></div>
+<div class="qa"><b>5. What is HEAD?</b><p>The reference identifying the current checkout, normally pointing symbolically to a local branch.</p></div>
+<div class="qa"><b>6. What is detached HEAD?</b><p>HEAD points directly to a commit rather than to a local branch.</p></div>
+<div class="qa"><b>7. How do you create and switch to a branch?</b><p><code>git switch -c branch-name</code>.</p></div>
+<div class="qa"><b>8. How do you delete a merged local branch?</b><p><code>git branch -d branch-name</code>.</p></div>
+<div class="qa"><b>9. Difference between -d and -D?</b><p>-d checks merged status; -D forces deletion.</p></div>
+<div class="qa"><b>10. Are feature and hotfix branches special Git objects?</b><p>No. They are workflow and naming conventions.</p></div>
+<div class="qa"><b>11. Can two branches point to the same commit?</b><p>Yes. Newly created branches often start at the same commit.</p></div>
+<div class="qa"><b>12. How do you list remote-tracking branches?</b><p><code>git branch -r</code>; <code>git branch -a</code> lists local and remote-tracking branches.</p></div>
+<div class="qa"><b>13. Does deleting a local branch delete the remote branch?</b><p>No. Remote deletion is separate.</p></div>
+<div class="qa"><b>14. Why prefer short-lived feature branches?</b><p>They reduce divergence and make review and integration easier.</p></div>
+<div class="qa"><b>15. How do you preserve detached HEAD work?</b><p>Create a branch at that commit with <code>git switch -c branch-name</code>.</p></div></div><div class="src"><span class="tag s40">Source S40 · 19. Chapter 7 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is a branch in Git?</td>
+<td>A movable pointer to a commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Why is branching cheap in Git?</td>
+<td>Creating a branch writes a single small file</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td><code>main</code> vs <code>master</code>?</td>
+<td>Same purpose; <code>main</code> is the modern default name</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What is HEAD?</td>
+<td>Pointer to the current branch/commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What is detached HEAD?</td>
+<td>HEAD points to a commit, not a branch</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>How do you save commits made in detached HEAD?</td>
+<td><code>git switch -c &lt;new-branch&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td><code>git branch -d</code> vs <code>-D</code>?</td>
+<td>Safe delete (merged only) vs force delete</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td><code>git switch</code> vs <code>git checkout</code>?</td>
+<td><code>switch</code> only changes branches; <code>checkout</code> also restores files</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>How do you delete a remote branch?</td>
+<td><code>git push origin --delete &lt;branch&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Which branch types exist in Git Flow?</td>
+<td>main, develop, feature, release, hotfix</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is a branch in Git?</summary><div class="ans"><p>A lightweight movable pointer (a ref) to a commit; new commits on the branch move the pointer forward.</p></div></details><details class="qa"><summary>How do you create and switch to a branch in one command?</summary><div class="ans"><p><code>git switch -c &lt;name&gt;</code> (or <code>git checkout -b &lt;name&gt;</code>).</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What is HEAD?</summary><div class="ans"><p>A reference to the current position — normally a symbolic ref to the checked-out branch; in detached state it holds a commit ID directly.</p></div></details><details class="qa"><summary>What is the difference between <code>git branch -d</code> and <code>-D</code>?</summary><div class="ans"><p><code>-d</code> deletes only if the branch is merged into its upstream or HEAD; <code>-D</code> forces deletion.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Where are branches stored?</summary><div class="ans"><p>As files under <code>.git/refs/heads/</code> or as entries in <code>.git/packed-refs</code> (and, with the reftable backend, in reftable files).</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>You made two commits in detached HEAD and switched back to main. How do you recover them?</summary><div class="ans"><p>Git prints the commit ID when you leave; otherwise use <code>git reflog</code> to find it and <code>git branch rescue &lt;sha&gt;</code>.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. What does <code>git branch feature/x</code> do?</strong></p><ol><li data-ok="0">Creates the branch and switches to it</li><li data-ok="1">Creates the branch without switching</li><li data-ok="0">Deletes the branch</li><li data-ok="0">Pushes the branch</li></ol><div class="exp">Use <code>git switch -c</code> to create and switch.</div></div><div class="mcq"><p><strong>2. What does a detached HEAD mean?</strong></p><ol><li data-ok="0">The repository is corrupt</li><li data-ok="1">HEAD points directly to a commit, not to a branch</li><li data-ok="0">The remote is unreachable</li><li data-ok="0">The branch was deleted on the server</li></ol><div class="exp">New commits are not on any branch until you create one.</div></div><div class="mcq"><p><strong>3. Which command returns to the previously checked-out branch?</strong></p><ol><li data-ok="0">git switch HEAD~1</li><li data-ok="1">git switch -</li><li data-ok="0">git branch -</li><li data-ok="0">git checkout --prev</li></ol><div class="exp"><code>-</code> means the previous branch.</div></div><div class="mcq"><p><strong>4. Which branch name follows the project convention?</strong></p><ol><li data-ok="0">Feature RDP 107</li><li data-ok="1">feature/RDP-107-dim-product</li><li data-ok="0">asha-branch</li><li data-ok="0">final_v2</li></ol><div class="exp">Type/ticket/description.</div></div><div class="mcq"><p><strong>5. What does <code>git branch -vv</code> show additionally?</strong></p><ol><li data-ok="0">Deleted branches</li><li data-ok="1">Last commit and upstream tracking information</li><li data-ok="0">Stashes</li><li data-ok="0">Tags</li></ol><div class="exp"><code>-vv</code> shows tip commit and upstream/ahead/behind.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Branches are cheap pointers; HEAD points to the current branch.</li>
+<li><code>git switch -c</code> creates and switches; <code>git branch</code> lists, renames and deletes.</li>
+<li>Detached HEAD is safe for inspection; create a branch to keep commits.</li>
+<li>Project branches follow <code>type/RDP-id-description</code>.</li>
+</ul></div><div class="src"><span class="tag ">Source S08 · Chapter manual · summary</span><ul><li>Branches isolate work and support parallel development.</li><li>A branch name is a movable pointer to a commit.</li><li>Use <code>git switch -c</code> to create and switch in one step.</li><li>HEAD identifies the current checkout; detached HEAD requires care when committing.</li><li>Delete branches only after confirming their work is no longer needed.</li></ul>
+<h4>Official references</h4>
+<ul><li><a href="https://git-scm.com/docs/git-branch" rel="noopener" target="_blank">git branch</a></li><li><a href="https://git-scm.com/docs/git-switch" rel="noopener" target="_blank">git switch</a></li><li><a href="https://git-scm.com/docs/git-checkout" rel="noopener" target="_blank">git checkout</a></li><li><a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell" rel="noopener" target="_blank">Pro Git: Branches in a Nutshell</a></li></ul></div><div class="src"><span class="tag s40">Source S40 · 20. Chapter 7 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Branch</td>
+<td>Pointer to a commit; isolates work</td>
+</tr>
+<tr>
+<td>Branch types</td>
+<td>main/master, develop, feature, release, hotfix</td>
+</tr>
+<tr>
+<td>HEAD</td>
+<td>Your current position</td>
+</tr>
+<tr>
+<td>Detached HEAD</td>
+<td>HEAD on a commit, not a branch</td>
+</tr>
+<tr>
+<td>Commands</td>
+<td><code>branch</code>, <code>switch</code>, <code>checkout</code>, <code>-d</code>, <code>-D</code>, <code>-m</code></td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Explain that a branch is a ref containing a commit ID and that new commits advance the current branch.</li><li>Create, list, switch, rename and delete branches with <code>git branch</code> and <code>git switch</code>.</li><li>Describe main, develop, feature, release and hotfix branch roles.</li><li>Explain HEAD and detached HEAD, enter detached HEAD deliberately and keep work done there.</li><li>Apply the project's branch naming convention.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell">Pro Git — Branches in a Nutshell</a></li>
+<li><a href="https://git-scm.com/docs/git-branch">git-branch</a> · <a href="https://git-scm.com/docs/git-switch">git-switch</a> · <a href="https://git-scm.com/docs/git-checkout">git-checkout</a></li>
+<li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches">GitHub Docs — About branches</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_06_Git_Commit_Management.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Commit Management</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_08_Git_Merge.html"><span class="mn-label">Next →</span><span class="mn-title">Git Merge</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

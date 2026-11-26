@@ -1,0 +1,1479 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Predict whether git merge will fast-forward or create a merge commit by inspecting the graph (git log --graph) and the merge base."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Merge — Chapter 8 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Merge</div>
+<div class="brand-sub">Chapter 8 · 36 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">8.1</span>What is merging and why merge branches?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">8.2</span>Fast-forward merge</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">8.3</span>Three-way merge and merge strategy</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">8.4</span>Merge commits, no-fast-forward, and squash merge</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">8.5</span>Merging feature branches</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">8.6</span>Aborting a merge</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">8.7</span>Merge conflicts and resolving them</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">8.8</span>Preventing merge conflicts</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">8.9</span>Best practices for merging</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">8.10</span>What is Merging?</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">8.11</span>Why Do We Merge Branches?</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">8.12</span>Fast-Forward Merge</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">8.13</span>Three-Way Merge</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">8.14</span>Recursive Merge Strategy</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">8.15</span>Merge Commits</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">8.16</span>No-Fast-Forward Merge</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">8.17</span>Squash Merge</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">8.18</span>Merging Feature Branches</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">8.19</span>Aborting a Merge</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">8.20</span>Understanding Merge Conflicts</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">8.21</span>Resolving Merge Conflicts</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">8.22</span>Preventing Merge Conflicts</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">8.23</span>Best Practices for Merging</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 3: Branching</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🎯</span>Chapter 8 Interview Questions</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 3 · Chapter 8</div><h1>Git Merge</h1><p class="page-subtitle">Predict whether <code>git merge</code> will fast-forward or create a merge commit by inspecting the graph (<code>git log --graph</code>) and the merge base.</p><div class="meta-row"><span class="meta-pill">Phase <b>3</b></span><span class="meta-pill">Lessons <b>36</b></span><span class="meta-pill">Sources <b>S09, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is merging and why merge branches?; Fast-forward merge; Three-way merge and merge strategy; Merge commits, no-fast-forward, and squash merge; Merging feature branches; Aborting a merge; Merge conflicts and resolving them; Preventing merge conflicts; Best practices for merging. <br><strong>Before you start:</strong> complete Chapter 7 – Understanding Git Branches. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Merging joins two lines of development. Git looks at the tip of your current branch, the tip of the branch you are merging, and their <em>merge base</em> (the most recent common ancestor), and produces a result that contains both sets of changes.</p>
+<p><strong>Why it matters.</strong> Every branch you create must eventually be integrated. How you merge decides what your history looks like, how easy it is to roll back a feature, and how often your team fights conflicts.</p>
+<p><strong>Where it is used.</strong> Locally (<code>git merge</code>), and on every hosting platform through pull requests (GitHub "Create a merge commit / Squash and merge / Rebase and merge", Azure Repos "Merge (no fast forward) / Squash commit / Rebase / Semi-linear merge").</p>
+<p><strong>In this course's project.</strong> The Enterprise Retail Data Platform team merges SQL, Python and ADF feature branches into <code>main</code> several times a day; this chapter shows each merge type on real project files.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter explains how branches are combined — fast-forward and three-way merges, merge strategies, merge commits, no-fast-forward and squash merges, and how to handle, resolve and prevent merge conflicts.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to merge branches using the appropriate technique, resolve any merge conflict, and apply merging best practices.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S09 · Chapter manual · objectives</span><span class="pill">Practical learning manual</span><p class="lead">Practise integrating feature branches and resolving conflicts while preserving a clean, understandable project history.</p><ul><li>Understand the key concepts and terminology.</li><li>Run the commands and interpret their results.</li><li>Apply the workflow to SQL, Python, ADF, Databricks, and Fabric project assets.</li><li>Complete the practical exercises and review the interview questions.</li></ul></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Predict whether <code>git merge</code> will fast-forward or create a merge commit by inspecting the graph (<code>git log --graph</code>) and the merge base.</li>
+<li>Choose between normal, <code>--no-ff</code>, <code>--squash</code> and <code>--ff-only</code> merges and explain the effect on history.</li>
+<li>Resolve a content conflict in a SQL file end-to-end and verify the result with <code>git diff --check</code> and tests.</li>
+<li>Abort a merge safely and explain when <code>git merge --abort</code> cannot restore your work.</li>
+<li>Use <code>-X ours</code> / <code>-X theirs</code> and <code>git checkout --ours/--theirs</code> correctly and explain the difference.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">8.1</div><h2>What is merging and why merge branches?</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 1–2. What is merging and why merge branches?</span><p><strong>Merging</strong> integrates changes from one branch into another. A common workflow is to switch to the target branch (often <code>main</code>) and merge a completed feature branch.</p><pre><code>git switch main
+git merge feature/customer-report</code></pre><p>Merge integrates parallel work while preserving the relevant commit history. Always inspect the target branch and working tree before starting.</p></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">8.2</div><h2>Fast-forward merge</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 3. Fast-forward merge</span><p>A fast-forward merge is possible when the target branch is an ancestor of the branch being merged and no divergent target-side commits need combining. Git simply advances the target branch pointer.</p><div class="diagram"><div class="flow"><div class="box">A</div><span class="arrow">→</span><div class="box">B</div><span class="arrow">→</span><div class="box">C<br/><span class="small">feature tip</span></div></div><p class="small">main points to B; merging advances main to C. No merge commit is needed.</p></div><pre><code>git switch main
+git merge feature/report</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">8.3</div><h2>Three-way merge and merge strategy</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 4–5. Three-way merge and merge strategy</span><p>A three-way merge uses three points: the common ancestor, the current branch tip, and the other branch tip. Git combines changes from both sides and may create a merge commit.</p><div class="diagram"><div class="flow"><div class="box">Base A</div><span class="arrow">↙</span><div class="box">B: main</div><span class="arrow">↘</span><div class="box">D: merge</div></div><div class="flow"><div class="box">C: feature</div><span class="arrow">↗</span><div class="box"> </div></div><p class="small">Conceptual divergent history; merge commit D has two parents.</p></div><p>Git's modern default merge strategy for ordinary two-head merges is <code>ort</code>. Older documentation and Git versions commonly refer to the <code>recursive</code> strategy. The recursive strategy was the traditional default before Git 2.34; it is useful to recognize the term, but <code>ort</code> is the modern default.</p></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">8.4</div><h2>Merge commits, no-fast-forward, and squash merge</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 6–8. Merge commits, no-fast-forward, and squash merge</span><table><tr><th>Technique</th><th>Result</th><th>Typical reason</th></tr><tr><td>Normal merge</td><td>Fast-forward when possible; otherwise usually a merge commit.</td><td>Integrate work with natural history.</td></tr><tr><td><code>--no-ff</code></td><td>Creates a merge commit even if fast-forward is possible.</td><td>Preserve an explicit branch integration point.</td></tr><tr><td><code>--squash</code></td><td>Stages combined changes as one new snapshot; does not create a merge commit or record merge parent relationship.</td><td>Keep target history compact.</td></tr></table><pre><code># Force a merge commit
+git merge --no-ff feature/customer-report
+
+# Squash feature changes into the index
+git merge --squash feature/customer-report
+git status
+git commit -m "Add customer report"</code></pre><p>Squash merge preserves the resulting content but not the original feature commits as ancestors of the target branch.</p></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">8.5</div><h2>Merging feature branches</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 9. Merging feature branches</span><ol><li>Update your local target branch according to team policy.</li><li>Switch to the target branch.</li><li>Merge the feature branch.</li><li>Resolve conflicts if required.</li><li>Run tests and validation.</li><li>Push the updated target branch and remove the feature branch when appropriate.</li></ol><pre><code>git switch main
+git pull
+git merge --no-ff feature/customer-dq
+# run tests
+git push</code></pre><p>In hosted platforms, this process is often performed through a pull request or merge request, where reviewers and automated checks validate the change.</p></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">8.6</div><h2>Aborting a merge</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 10. Aborting a merge</span><p>If a merge is in progress and you decide not to continue, use:</p><pre><code>git merge --abort</code></pre><p>This attempts to restore the pre-merge state. It is most reliable when you had no uncommitted changes before starting the merge. If you had local edits, preserve them carefully before attempting complex recovery.</p></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">8.7</div><h2>Merge conflicts and resolving them</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 11–12. Merge conflicts and resolving them</span><p>A merge conflict occurs when Git cannot automatically reconcile changes, commonly because both branches edited overlapping lines or one branch deleted a file modified by the other.</p><p>Conflict markers in a file may look like:</p><pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+SELECT CustomerID, Name FROM dbo.Customer;
+=======
+SELECT CustomerID, Name, Status FROM dbo.Customer;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/customer-status</code></pre><p>The section above <code>=======</code> is the current branch version; below it is the incoming branch version. These markers are temporary and must be resolved manually or with a merge tool.</p><h4>Resolution steps</h4><ol><li>Run <code>git status</code> to identify conflicted paths.</li><li>Open each conflicted file and decide the correct combined result.</li><li>Remove conflict markers and validate the content.</li><li>Stage resolved files using <code>git add</code>.</li><li>Complete the merge with <code>git commit</code> if Git has not already completed it.</li><li>Run tests and inspect the final diff.</li></ol><pre><code>git status
+# edit conflicted files
+git add sql/customer_query.sql
+git diff --check
+git status
+git commit</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">8.8</div><h2>Preventing merge conflicts</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 13. Preventing merge conflicts</span><ul><li>Integrate small changes frequently rather than keeping branches open for long periods.</li><li>Keep feature branches focused and short-lived.</li><li>Coordinate ownership of shared files and high-change areas.</li><li>Communicate schema, interface, and pipeline contract changes early.</li><li>Pull or fetch and integrate target-branch changes regularly.</li><li>Use automated tests, formatting, and validation checks.</li><li>Avoid unrelated formatting changes in the same commit as functional changes.</li></ul><p>Conflicts are a normal part of parallel development; good collaboration reduces their frequency and makes resolution safer.</p></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">8.9</div><h2>Best practices for merging</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · 14. Best practices for merging</span><ul><li>Review the pull/merge request and understand all changed files.</li><li>Ensure the source branch is based on an appropriate current target.</li><li>Run unit tests, SQL validation, linting, and relevant pipeline checks.</li><li>Use consistent merge, squash, or rebase policies across the team.</li><li>Do not resolve conflicts by blindly accepting one side.</li><li>Keep merge commits and messages meaningful.</li><li>Protect the default branch and require review for production-bound changes.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">8.10</div><h2>
+What is Merging?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Merging?</span><h4>1.1 Definition</h4>
+<p><strong>Merging</strong> is the process of <strong>integrating the changes from one branch into another</strong>, combining their histories.</p>
+<h4>1.2 Key rule</h4>
+<p>You always merge <strong>into the branch you are currently on</strong>:</p>
+<pre><code class="language-bash">git switch main                  # target branch
+git merge feature/dim-product    # source branch
+</code></pre>
+<h4>1.3 What Git does</h4>
+<ol>
+<li>Finds the <strong>merge base</strong> (the best common ancestor).</li>
+<li>Compares changes on each side since the base.</li>
+<li>Combines them automatically where possible.</li>
+<li>Creates a merge commit (unless fast-forward), or stops for you to resolve conflicts.</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">8.11</div><h2>
+Why Do We Merge Branches?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Why Do We Merge Branches?</span><ul>
+<li>To deliver a finished feature into <code>main</code>/<code>develop</code>.</li>
+<li>To bring the latest <code>main</code> into your feature branch (stay up to date, reduce conflicts).</li>
+<li>To merge a release branch into <code>main</code> for production and back into <code>develop</code>.</li>
+<li>To propagate a hotfix into all active branches.</li>
+<li>To combine work from multiple developers.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">8.12</div><h2>
+Fast-Forward Merge
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Fast-Forward Merge</span><h4>3.1 When it happens</h4>
+<p>If the target branch has <strong>no new commits</strong> since the source branch was created, Git simply <strong>moves the target pointer forward</strong>. No merge commit is created; history stays linear.</p>
+<pre><code class="language-text">Before:                                After git merge feature:
+main:    A ── B                         main:    A ── B ── C ── D
+                \                                            ▲
+feature:         C ── D                 feature: ────────────┘
+</code></pre>
+<h4>3.2 Example</h4>
+<pre><code class="language-bash">git switch main
+git merge feature/dim-product
+</code></pre>
+<pre><code class="language-text">Updating 3f2a7d1..9c8b7a6
+Fast-forward
+ sql/tables/dim_product.sql | 5 +++++
+</code></pre>
+<h4>3.3 Options</h4>
+<pre><code class="language-bash">git merge --ff-only feature/x     # merge only if fast-forward is possible, else fail
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">8.13</div><h2>
+Three-Way Merge
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Three-Way Merge</span><h4>4.1 When it happens</h4>
+<p>When <strong>both</strong> branches have new commits after they diverged.</p>
+<pre><code class="language-text">main:      A ── B ── E ───────── M
+                 \              /
+feature:          C ──── D ────
+</code></pre>
+<h4>4.2 The three versions</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Base (common ancestor)</td>
+<td>B</td>
+</tr>
+<tr>
+<td>Ours (current branch tip)</td>
+<td>E</td>
+</tr>
+<tr>
+<td>Theirs (branch being merged)</td>
+<td>D</td>
+</tr>
+</tbody>
+</table></div>
+<p>For each change: if only one side changed a region, take that side; if both changed it identically, take it; if both changed it differently → <strong>conflict</strong>.</p>
+<pre><code class="language-bash">git merge-base main feature/orders    # shows B
+git merge feature/orders
+</code></pre>
+<pre><code class="language-text">Merge made by the 'ort' strategy.
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">8.14</div><h2>
+Recursive Merge Strategy
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Recursive Merge Strategy</span><h4>5.1 Definition</h4>
+<p><code>recursive</code> was Git's default strategy for merging two branches until Git 2.33. It handles cases where there is <strong>more than one common ancestor</strong> (criss-cross merges) by first merging those ancestors into a virtual base, then doing the three-way merge. It also detects renames.</p>
+<h4>5.2 ORT — the modern default</h4>
+<p>Since <strong>Git 2.34</strong>, the default is <strong><code>ort</code></strong> ("Ostensibly Recursive's Twin") — a rewrite of recursive that is much faster and handles renames better, with the same results in normal cases. Requests for <code>-s recursive</code> are now served by <code>ort</code>.</p>
+<h4>5.3 All strategies</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ort</code> (default)</td>
+<td>Two-branch merges</td>
+</tr>
+<tr>
+<td><code>recursive</code></td>
+<td>Legacy name; maps to ort in recent Git</td>
+</tr>
+<tr>
+<td><code>resolve</code></td>
+<td>Simple three-way merge, one ancestor only</td>
+</tr>
+<tr>
+<td><code>octopus</code></td>
+<td>Merge more than two branches at once (no conflicts allowed)</td>
+</tr>
+<tr>
+<td><code>ours</code></td>
+<td>Record a merge but keep the current branch's content entirely</td>
+</tr>
+<tr>
+<td><code>subtree</code></td>
+<td>Merge a project into a subdirectory</td>
+</tr>
+</tbody>
+</table></div>
+<h4>5.4 Strategy options (<code>-X</code>)</h4>
+<pre><code class="language-bash">git merge -X ours   feature/x     # on conflicting hunks, prefer current branch
+git merge -X theirs feature/x     # on conflicting hunks, prefer incoming branch
+git merge -X ignore-space-change feature/x
+git merge -X find-renames=40% feature/x
+</code></pre>
+<div class="callout "><p><strong>Note</strong> <code>-s ours</code> (strategy) discards <em>all</em> of the other branch's changes; <code>-X ours</code> (option) only decides <em>conflicting</em> hunks.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">8.15</div><h2>
+Merge Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Merge Commits</span><h4>6.1 Definition</h4>
+<p>A <strong>merge commit</strong> is a commit with <strong>two (or more) parents</strong>, recording that two lines of history were joined.</p>
+<pre><code class="language-bash">git cat-file -p HEAD
+</code></pre>
+<pre><code class="language-text">tree 1a2b3c...
+parent e5f6a7b...      ← first parent (main)
+parent d4e5f6a...      ← second parent (feature)
+author ...
+Merge branch 'feature/orders'
+</code></pre>
+<h4>6.2 Viewing</h4>
+<pre><code class="language-bash">git log --merges              # only merge commits
+git log --no-merges           # exclude them
+git log --first-parent main   # mainline history (one commit per merged feature)
+git show --stat HEAD          # merge summary
+</code></pre>
+<h4>6.3 Custom message</h4>
+<pre><code class="language-bash">git merge feature/orders -m &quot;Merge feature/orders: orders load pipeline (DE-1423)&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">8.16</div><h2>
+No-Fast-Forward Merge
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. No-Fast-Forward Merge</span><h4>7.1 Definition</h4>
+<p><code>--no-ff</code> forces Git to <strong>create a merge commit even when a fast-forward is possible</strong>.</p>
+<pre><code class="language-text">Fast-forward:    A ── B ── C ── D                         (feature history disappears into main)
+
+--no-ff:         A ── B ─────────── M
+                       \          /
+                        C ────── D                        (feature visible as a group)
+</code></pre>
+<h4>7.2 Example</h4>
+<pre><code class="language-bash">git merge --no-ff feature/dim-product -m &quot;Merge feature/dim-product&quot;
+</code></pre>
+<h4>7.3 Why use it</h4>
+<ul>
+<li>Keeps a record that a feature branch existed.</li>
+<li>Makes it easy to revert a whole feature (<code>git revert -m 1 &lt;merge&gt;</code>).</li>
+<li>Standard in Git Flow and the default "Merge" completion type in Azure DevOps PRs.</li>
+</ul>
+<pre><code class="language-bash">git config --global merge.ff false   # always create merge commits (optional)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">8.17</div><h2>
+Squash Merge
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Squash Merge</span><h4>8.1 Definition</h4>
+<p>A <strong>squash merge</strong> combines <strong>all commits from the source branch into a single new commit</strong> on the target branch.</p>
+<pre><code class="language-text">feature:  C (wip) ── D (fix typo) ── E (add tests)
+                     ▼ squash
+main:     A ── B ── S   (&quot;feat: orders load pipeline&quot;)
+</code></pre>
+<h4>8.2 Command line</h4>
+<pre><code class="language-bash">git switch main
+git merge --squash feature/orders-load
+git commit -m &quot;feat: orders load pipeline (DE-1423)&quot;
+git branch -D feature/orders-load     # -D required: Git doesn't see it as merged
+</code></pre>
+<h4>8.3 Pros and cons</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clean <code>main</code> history — one commit per feature</td>
+<td>Individual commit history of the feature is lost on main</td>
+</tr>
+<tr>
+<td>Removes WIP/typo commits</td>
+<td>Branch not recognised as merged; continuing to use it causes duplicate conflicts</td>
+</tr>
+<tr>
+<td>Easy to revert a feature</td>
+<td>Large squashes are harder to bisect</td>
+</tr>
+</tbody>
+</table></div>
+<p>Hosting platforms provide <strong>"Squash and merge"</strong> on pull requests.</p>
+<h4>8.4 Merge type comparison</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Merge commit</th>
+<th>History on main</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fast-forward</td>
+<td>No</td>
+<td>Linear, all commits</td>
+<td>Small, up-to-date branches</td>
+</tr>
+<tr>
+<td>Three-way</td>
+<td>Yes</td>
+<td>Branching</td>
+<td>Default when diverged</td>
+</tr>
+<tr>
+<td><code>--no-ff</code></td>
+<td>Always</td>
+<td>Feature grouped</td>
+<td>Git Flow, auditability</td>
+</tr>
+<tr>
+<td>Squash</td>
+<td>No (one new commit)</td>
+<td>Linear, one commit per feature</td>
+<td>Clean history from messy branches</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">8.18</div><h2>
+Merging Feature Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Merging Feature Branches</span><h4>9.1 Recommended steps</h4>
+<pre><code class="language-bash"># 1. Update main
+git switch main
+git pull
+
+# 2. Update the feature branch with main and test
+git switch feature/orders-load
+git merge main               # or: git rebase main
+# run tests
+
+# 3. Merge (usually done via Pull Request on the platform)
+git switch main
+git merge --no-ff feature/orders-load
+git push
+
+# 4. Clean up
+git branch -d feature/orders-load
+git push origin --delete feature/orders-load
+</code></pre>
+<h4>9.2 Merging main into a feature branch</h4>
+<p>Keeping a long-running feature branch current reduces final conflicts:</p>
+<pre><code class="language-bash">git switch feature/orders-load
+git fetch origin
+git merge origin/main
+</code></pre>
+<h4>9.3 Preview before merging</h4>
+<pre><code class="language-bash">git log main..feature/orders-load --oneline      # commits that will be merged
+git diff main...feature/orders-load --stat       # changes that will be merged
+git merge --no-commit --no-ff feature/orders-load   # merge but stop before committing (inspect, then commit or abort)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">8.19</div><h2>
+Aborting a Merge
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Aborting a Merge</span><p>If a merge has conflicts and you want to go back to the state before the merge:</p>
+<pre><code class="language-bash">git merge --abort
+</code></pre>
+<p>Other options:</p>
+<pre><code class="language-bash">git reset --merge          # similar to --abort
+git reset --hard ORIG_HEAD # undo a completed (unpushed) merge
+</code></pre>
+<div class="callout c-tip"><p><strong>Tip</strong> Start merges with a clean working directory (commit or stash first) so <code>--abort</code> can restore everything reliably.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">8.20</div><h2>
+Understanding Merge Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Understanding Merge Conflicts</span><h4>11.1 Definition</h4>
+<p>A <strong>merge conflict</strong> occurs when Git cannot automatically decide how to combine changes and needs a human to choose.</p>
+<h4>11.2 Causes</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Conflict type</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Content conflict</td>
+<td>Both branches changed the same lines of the same file</td>
+</tr>
+<tr>
+<td>Modify/delete</td>
+<td>One branch modified a file, the other deleted it</td>
+</tr>
+<tr>
+<td>Rename/rename</td>
+<td>Both branches renamed the same file differently</td>
+</tr>
+<tr>
+<td>Rename/modify</td>
+<td>One renamed, the other modified (usually auto-resolved by rename detection)</td>
+</tr>
+<tr>
+<td>Add/add</td>
+<td>Both branches added a file with the same path but different content</td>
+</tr>
+<tr>
+<td>Binary conflict</td>
+<td>Both changed a binary file (Git can't merge contents)</td>
+</tr>
+</tbody>
+</table></div>
+<h4>11.3 What you see</h4>
+<pre><code class="language-text">Auto-merging sql/procedures/usp_load_customers.sql
+CONFLICT (content): Merge conflict in sql/procedures/usp_load_customers.sql
+Automatic merge failed; fix conflicts and then commit the result.
+</code></pre>
+<pre><code class="language-bash">git status
+</code></pre>
+<pre><code class="language-text">You have unmerged paths.
+Unmerged paths:
+        both modified:   sql/procedures/usp_load_customers.sql
+</code></pre>
+<h4>11.4 Conflict markers</h4>
+<pre><code class="language-text">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+    SELECT * FROM customers WHERE is_active = 1;
+=======
+    SELECT * FROM customers WHERE status IN ('ACTIVE','VIP');
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/vip-customers
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Marker</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code></td>
+<td>Start of your current branch's version</td>
+</tr>
+<tr>
+<td><code>=======</code></td>
+<td>Separator</td>
+</tr>
+<tr>
+<td><code>&gt;&gt;&gt;&gt;&gt;&gt;&gt; branch</code></td>
+<td>End of the incoming branch's version</td>
+</tr>
+<tr>
+<td><code>|||||||</code> base (seven pipe characters)</td>
+<td>(with <code>diff3</code>/<code>zdiff3</code> style) the original base version</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git config --global merge.conflictstyle zdiff3   # show the base too — makes decisions easier
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">8.21</div><h2>
+Resolving Merge Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Resolving Merge Conflicts</span><h4>12.1 Create a conflict to practise</h4>
+<pre><code class="language-bash">git switch main
+git switch -c feature/vip-customers
+sed -i &quot;s/status = 'ACTIVE'/status IN ('ACTIVE','VIP')/&quot; sql/procedures/usp_load_customers.sql
+git commit -am &quot;Include VIP customers&quot;
+
+git switch main
+sed -i &quot;s/status = 'ACTIVE'/is_active = 1/&quot; sql/procedures/usp_load_customers.sql
+git commit -am &quot;Use is_active flag&quot;
+
+git merge feature/vip-customers     # CONFLICT
+</code></pre>
+<h4>12.2 Resolution steps</h4>
+<ol>
+<li><strong>Identify</strong> conflicted files: <code>git status</code> or <code>git diff --name-only --diff-filter=U</code>.</li>
+<li><strong>Understand</strong> both sides: <code>git log --merge -p</code>, talk to the other developer if needed.</li>
+<li><strong>Edit</strong> the file — keep yours, theirs, or combine — and <strong>remove all markers</strong>:</li>
+</ol>
+<pre><code class="language-sql">    SELECT * FROM customers
+    WHERE is_active = 1
+      AND status IN ('ACTIVE','VIP');
+</code></pre>
+<ol start="4">
+<li><strong>Mark resolved:</strong> <code>git add sql/procedures/usp_load_customers.sql</code></li>
+<li><strong>Verify</strong> no markers remain: <code>git diff --check</code> / search for <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>.</li>
+<li><strong>Test</strong> the result.</li>
+<li><strong>Complete:</strong> <code>git commit</code> (or <code>git merge --continue</code>).</li>
+</ol>
+<h4>12.3 Shortcuts</h4>
+<pre><code class="language-bash">git checkout --ours   path/file    # take current branch version for the whole file
+git checkout --theirs path/file    # take incoming version
+git restore --source=main path/file
+git mergetool                       # open configured visual merge tool
+</code></pre>
+<p>In <strong>VS Code</strong>, use <em>Accept Current / Accept Incoming / Accept Both</em> or the 3-way Merge Editor.</p>
+<h4>12.4 Resolving modify/delete conflicts</h4>
+<pre><code class="language-text">CONFLICT (modify/delete): sql/views/vw_old.sql deleted in feature/x and modified in HEAD.
+</code></pre>
+<ul>
+<li>Keep the file: <code>git add sql/views/vw_old.sql</code></li>
+<li>Delete it: <code>git rm sql/views/vw_old.sql</code></li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">8.22</div><h2>
+Preventing Merge Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Preventing Merge Conflicts</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Why it helps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pull/merge <code>main</code> into your branch frequently</td>
+<td>Conflicts stay small and early</td>
+</tr>
+<tr>
+<td>Keep branches short-lived (1–3 days)</td>
+<td>Less divergence</td>
+</tr>
+<tr>
+<td>Small, focused pull requests</td>
+<td>Fewer overlapping lines</td>
+</tr>
+<tr>
+<td>One object per SQL file; modular Python</td>
+<td>Different people edit different files</td>
+</tr>
+<tr>
+<td>Don't mix formatting changes with logic changes</td>
+<td>Avoid whole-file diffs</td>
+</tr>
+<tr>
+<td>Agree on formatter/linters (SQLFluff, Ruff/Black)</td>
+<td>Consistent formatting</td>
+</tr>
+<tr>
+<td>Use <code>.gitattributes</code> for line endings</td>
+<td>Avoid every-line conflicts from CRLF/LF</td>
+</tr>
+<tr>
+<td>Communicate ownership (CODEOWNERS, stand-ups)</td>
+<td>Avoid parallel edits of the same pipeline</td>
+</tr>
+<tr>
+<td>Enable <code>rerere</code></td>
+<td>Git reuses your previous resolutions</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">8.23</div><h2>
+Best Practices for Merging
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Best Practices for Merging</span><ol>
+<li>Start with a clean working directory.</li>
+<li>Update both branches (<code>git pull</code>) before merging.</li>
+<li>Merge into protected branches only through pull requests.</li>
+<li>Run tests after merging and after resolving conflicts.</li>
+<li>Never commit conflict markers — add a CI check (<code>git diff --check</code>).</li>
+<li>Write meaningful merge commit messages that reference tickets.</li>
+<li>Choose a consistent merge style for the team (merge, squash, or rebase).</li>
+<li>Delete merged branches.</li>
+<li>Don't resolve conflicts you don't understand — ask the other author.</li>
+<li>Keep <code>main</code> always deployable.</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-add"><span class="ct">Interview-document topics placed here (S41)</span><p><strong><code>git branch --merged</code> / <code>--no-merged</code></strong> (covered in S41 as an interview question) — lists branches already integrated into the current branch (safe to delete) and those that still contain unique commits. See the command reference above.</p>
+<p><strong>Merge vs. "git pull"</strong> — S41 describes <code>git pull</code> as "fetch + merge". That is the classic default; since Git 2.33 a divergent pull without a configured <code>pull.rebase</code>/<code>pull.ff</code> stops and asks you to choose. Details in Chapter 12.</p></div><div class="c-ver"><span class="ct">Verified against official documentation (Nov 2026) — Default merge strategy: ort (recursive is the older name)</span><p>S09 and S40 state that <code>ort</code> is the default strategy for ordinary two-head merges since Git 2.34 and that older material calls it <code>recursive</code>. Confirmed with the git-merge documentation; since Git 2.50, requesting <code>-s recursive</code> simply runs <code>ort</code>. No source document contradicts this.</p></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">feature</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="110" x2="510" y2="110" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">E</text></svg></div><figcaption>Before the merge: main and feature have diverged from merge base B</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">feature</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="110" x2="510" y2="110" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="40" x2="620" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><path d="M510,110 C565.0,110 565.0,40 603,40" fill="none" stroke="#44526a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">E</text><circle cx="620" cy="40" r="16" fill="#10284a"/><text x="620.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">M</text></svg></div><figcaption>After `git merge feature` on main: merge commit M has two parents (C and E)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 104" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="71.1" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git merge</text><text x="71.1" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">feature</text><line x1="125.3" y1="52.0" x2="153.3" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="156.3" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="207.4" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">CONFLICT</text><text x="207.4" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">reported</text><line x1="261.6" y1="52.0" x2="289.6" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="292.6" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="343.7" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git status —</text><text x="343.7" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">list unmerged</text><text x="343.7" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">paths</text><line x1="397.9" y1="52.0" x2="425.9" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="428.9" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Edit file,</text><text x="480.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">remove</text><text x="480.0" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">markers</text><line x1="534.1" y1="52.0" x2="562.1" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="565.1" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="616.3" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git add file</text><line x1="670.4" y1="52.0" x2="698.4" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="701.4" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="752.6" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git commit</text><line x1="806.7" y1="52.0" x2="834.7" y2="52.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="837.7" y="15.0" width="102.3" height="74" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="888.9" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Run tests</text></svg></div><figcaption>Conflict resolution loop used in every merge, rebase and cherry-pick</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-merge-branch"><header>git merge &lt;branch&gt;</header><dl><dt>Syntax</dt><dd><pre><code>git merge [--ff | --no-ff | --ff-only] [--squash] [-s &lt;strategy&gt;] [-X &lt;option&gt;] [-m &lt;msg&gt;] &lt;branch&gt;…</code></pre></dd><dt>Purpose</dt><dd>Integrate the history of <code>&lt;branch&gt;</code> into the current branch.</dd><dt>Key parameters</dt><dd><ul><li><code>--ff</code> (default) — fast-forward when possible, otherwise create a merge commit</li><li><code>--no-ff</code> — always create a merge commit, even when fast-forward is possible</li><li><code>--ff-only</code> — refuse to merge unless a fast-forward is possible (safe for updating local <code>main</code>)</li><li><code>--squash</code> — stage the combined changes but do not commit or record the merge</li><li><code>-s ort</code> — merge strategy (default for two heads since Git 2.34)</li><li><code>-X ours|theirs</code> — strategy option: prefer one side <em>only for conflicting hunks</em></li></ul></dd><dt>Behaviour</dt><dd>Finds the merge base, applies both sides' changes, and either moves the branch pointer (fast-forward) or creates a commit with two parents. Leaves conflict markers and stops if it cannot reconcile overlapping edits.</dd><dt>Expected output</dt><dd><pre><code>Updating 3f1c2a9..8d4e7b1
+Fast-forward
+ sql/warehouse/dim_customer.sql | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+(or, for a three-way merge)
+Merge made by the &#x27;ort&#x27; strategy.</code></pre></dd><dt>Example</dt><dd><pre><code>git switch main
+git pull --ff-only
+git merge --no-ff feature/RDP-101-dim-customer -m &quot;Merge RDP-101 customer dimension&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Merging while the working tree has uncommitted changes; merging into the wrong branch (always check <code>git branch --show-current</code>); expecting <code>-X ours</code> to discard <em>all</em> of the other branch (it only resolves conflicting hunks — non-conflicting changes from the other side are still merged).</dd><dt>Troubleshooting</dt><dd>Commit or stash first. If you merged into the wrong branch and have not pushed: <code>git reset --hard ORIG_HEAD</code>. If already pushed: <code>git revert -m 1 &lt;merge-commit&gt;</code>.</dd></dl></div><div class="cmd" id="cmd-git-merge-abort"><header>git merge --abort</header><dl><dt>Syntax</dt><dd><pre><code>git merge --abort</code></pre></dd><dt>Purpose</dt><dd>Stop an in-progress merge and try to reconstruct the pre-merge state.</dd><dt>Behaviour</dt><dd>Only valid while <code>MERGE_HEAD</code> exists. Equivalent to <code>git reset --merge</code>. If you had uncommitted changes before starting the merge, they may not be recoverable — that is why you should start merges from a clean tree.</dd><dt>Expected output</dt><dd><pre><code>(no output on success; `git status` shows the branch clean again)</code></pre></dd><dt>Example</dt><dd><pre><code>git merge feature/RDP-104-orders
+# CONFLICT ... decide to stop
+git merge --abort
+git status</code></pre></dd><dt>Common mistakes</dt><dd>Running <code>git reset --hard</code> instead — this also discards uncommitted work unrelated to the merge.</dd><dt>Troubleshooting</dt><dd><code>fatal: There is no merge to abort (MERGE_HEAD missing).</code> means no merge is in progress; check <code>git status</code>.</dd></dl></div><div class="cmd" id="cmd-git-merge-squash-branch"><header>git merge --squash &lt;branch&gt;</header><dl><dt>Syntax</dt><dd><pre><code>git merge --squash &lt;branch&gt;</code></pre></dd><dt>Purpose</dt><dd>Combine all changes of a branch into a single new commit on the current branch.</dd><dt>Behaviour</dt><dd>Updates the index and working tree, does <strong>not</strong> create a commit and does <strong>not</strong> record <code>&lt;branch&gt;</code> as a parent. You must run <code>git commit</code>. Afterwards <code>git branch -d &lt;branch&gt;</code> will refuse (branch is "not fully merged") — use <code>-D</code> once you are sure.</dd><dt>Expected output</dt><dd><pre><code>Squash commit -- not updating HEAD
+Automatic merge went well; stopped before committing as requested</code></pre></dd><dt>Example</dt><dd><pre><code>git switch main
+git merge --squash feature/RDP-112-dq-rules
+git commit -m &quot;Add data-quality rules for orders (RDP-112)&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Continuing to work on the squashed branch and merging it again — Git re-applies the old commits and produces conflicts.</dd><dt>Troubleshooting</dt><dd>Delete a squash-merged branch and start a new branch from the updated <code>main</code>.</dd></dl></div><div class="cmd" id="cmd-git-merge-base-git-branch-merged"><header>git merge-base / git branch --merged</header><dl><dt>Syntax</dt><dd><pre><code>git merge-base &lt;a&gt; &lt;b&gt;
+git branch --merged [&lt;commit&gt;]
+git branch --no-merged [&lt;commit&gt;]</code></pre></dd><dt>Purpose</dt><dd>Find the common ancestor of two branches; list branches already (or not yet) integrated.</dd><dt>Expected output</dt><dd><pre><code>3f1c2a9d0b7e5c4a8f2e1d6b9c0a7e3f5d2b1c4e</code></pre></dd><dt>Example</dt><dd><pre><code>git merge-base main feature/RDP-101-dim-customer
+git branch --merged main      # safe to delete
+git branch --no-merged main   # still has unique work</code></pre></dd><dt>Common mistakes</dt><dd>Running <code>git branch --merged</code> without naming a branch — it compares with the <em>current</em> branch.</dd></dl></div><div class="cmd" id="cmd-git-checkout-ours-theirs-path"><header>git checkout --ours / --theirs &lt;path&gt;</header><dl><dt>Syntax</dt><dd><pre><code>git checkout --ours &lt;path&gt;
+git checkout --theirs &lt;path&gt;
+(Git 2.23+: git restore --ours|--theirs &lt;path&gt;)</code></pre></dd><dt>Purpose</dt><dd>During a conflicted merge, take one whole side of a file.</dd><dt>Behaviour</dt><dd>In a <strong>merge</strong>, <em>ours</em> = the branch you are on, <em>theirs</em> = the branch being merged. In a <strong>rebase</strong> the meaning is swapped (ours = the branch being rebased onto). The file is still unmerged until you <code>git add</code> it.</dd><dt>Example</dt><dd><pre><code>git checkout --theirs adf/pipeline/pl_load_orders.json
+git add adf/pipeline/pl_load_orders.json</code></pre></dd><dt>Common mistakes</dt><dd>Using it for JSON/ARM files when both sides changed different properties — you silently drop the other side's change.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 3: Branching</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 3 — Branching: integrate three parallel features into `main`</span><p>Asha (SQL), Ravi (Python) and Meera (ADF) each worked on a branch created from the same <code>main</code> commit.</p>
+<pre><code class="language-bash"># 1. Asha's branch is directly ahead of main -&gt; fast-forward is possible,
+#    but the team policy is to keep an explicit integration point:
+git switch main
+git pull --ff-only
+git merge --no-ff feature/RDP-101-dim-customer -m &quot;Merge RDP-101: customer dimension&quot;
+
+# 2. Ravi's ingestion branch touches different folders -&gt; clean three-way merge
+git merge feature/RDP-102-orders-ingest
+#   Merge made by the 'ort' strategy.
+
+# 3. Meera's branch also edited sql/warehouse/dim_customer.sql -&gt; conflict
+git merge feature/RDP-103-customer-status
+#   CONFLICT (content): Merge conflict in sql/warehouse/dim_customer.sql
+git status                       # &quot;both modified: sql/warehouse/dim_customer.sql&quot;
+# edit the file: keep Asha's column list AND Meera's Status column
+git add sql/warehouse/dim_customer.sql
+git diff --cached --check        # no leftover markers / whitespace errors
+python -m pytest tests/ -q       # project tests still pass
+git commit                       # accept the prepared merge message
+git log --oneline --graph -8     # inspect the result
+git push origin main
+git branch -d feature/RDP-101-dim-customer feature/RDP-102-orders-ingest feature/RDP-103-customer-status
+</code></pre>
+<p><strong>Result:</strong> <code>main</code> contains two merge commits and one fast-forward-prevented merge; every feature can be reverted as a unit with <code>git revert -m 1 &lt;merge&gt;</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S09, S40 · Two engineers changed the same stored procedure</span><p>Both added columns to <code>usp_load_dim_customer</code>. The merge stops with a conflict. Resolution: keep <strong>both</strong> columns, re-order to match the target table, run the procedure against a dev database, add the file, commit. Lesson: agree file ownership or split large procedures to reduce overlap.</p></div><div class="src"><span class="tag add">Course addition · A feature merged too early must be removed from `main` (already pushed)</span><p>Do <strong>not</strong> reset shared history. Find the merge commit (<code>git log --merges --oneline</code>) and run <code>git revert -m 1 &lt;merge-sha&gt;</code>. <code>-m 1</code> tells Git that parent 1 (the mainline) is the version to keep. Note: if the feature is later re-merged, you must first <em>revert the revert</em>, otherwise its earlier commits are considered already merged.</p></div><div class="src"><span class="tag add">Course addition · ADF JSON conflict after two people edited the same pipeline</span><p>ADF stores each pipeline as one JSON file, so concurrent edits of one pipeline conflict even when the changes are logically independent. Resolve by opening both versions, merging activity arrays carefully, validating the JSON (<code>python -m json.tool file.json</code>), and validating the factory in ADF Studio before committing. Long-term fix: one owner per pipeline per sprint (see Chapter 33).</p></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Start every merge from a clean working tree (<code>git status</code> shows nothing to commit).</li>
+<li>Update the target first with <code>git pull --ff-only</code>, then merge.</li>
+<li>Prefer short-lived branches and frequent integration — conflicts grow with branch age.</li>
+<li>Pick one PR merge style per repository and enforce it in branch protection / branch policies.</li>
+<li>After resolving conflicts, always run <code>git diff --check</code> and the test suite before committing.</li>
+<li>Delete merged branches (<code>git branch -d</code>) and enable automatic head-branch deletion on GitHub.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message / symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error: Your local changes to the following files would be overwritten by merge</code></td>
+<td>Uncommitted edits to files the merge would change</td>
+<td><code>git stash</code> or commit, then merge again</td>
+</tr>
+<tr>
+<td><code>CONFLICT (content): Merge conflict in &lt;file&gt;</code></td>
+<td>Both sides changed overlapping lines</td>
+<td>Edit, remove markers, <code>git add</code>, <code>git commit</code></td>
+</tr>
+<tr>
+<td><code>CONFLICT (modify/delete)</code></td>
+<td>One side deleted a file the other modified</td>
+<td>Decide: <code>git add &lt;file&gt;</code> to keep it or <code>git rm &lt;file&gt;</code> to delete it</td>
+</tr>
+<tr>
+<td><code>fatal: refusing to merge unrelated histories</code></td>
+<td>The two branches have no common ancestor (e.g., remote created with its own README)</td>
+<td>If intended: <code>git merge --allow-unrelated-histories &lt;branch&gt;</code></td>
+</tr>
+<tr>
+<td><code>fatal: Not possible to fast-forward, aborting.</code></td>
+<td><code>--ff-only</code> used but branches diverged</td>
+<td>Rebase or do a normal merge, per team policy</td>
+</tr>
+<tr>
+<td><code>error: Merging is not possible because you have unmerged files.</code></td>
+<td>A previous conflict was never finished</td>
+<td>Resolve and commit, or <code>git merge --abort</code></td>
+</tr>
+<tr>
+<td>Markers <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> committed by mistake</td>
+<td>File added without editing</td>
+<td>Fix the file, commit again; add <code>git diff --check</code> to CI / pre-commit</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create a repository with <code>main</code> and a branch <code>feature/report</code>; make two commits only on the branch and merge it.</p><span class="exp-out">Output contains <code>Fast-forward</code>; <code>git log --graph</code> shows a straight line.</span></li><li><p>Repeat with <code>git merge --no-ff</code>.</p><span class="exp-out">A merge commit appears; <code>git log --merges</code> lists it; <code>git cat-file -p HEAD</code> shows two <code>parent</code> lines.</span></li><li><p>Create conflicting edits to line 2 of <code>customer.sql</code> on two branches and merge.</p><span class="exp-out"><code>CONFLICT (content)</code> message; after resolution <code>git diff --check</code> prints nothing and the merge commit exists.</span></li><li><p>Start a conflicting merge and abort it.</p><span class="exp-out"><code>git status</code> reports a clean tree and <code>HEAD</code> is unchanged (<code>git rev-parse HEAD</code> equals the value before the merge).</span></li><li><p>Squash-merge a 3-commit branch.</p><span class="exp-out"><code>main</code> gains exactly one new commit; <code>git branch -d feature/...</code> refuses with "not fully merged".</span></li></ol></div><div class="src"><span class="tag ">Source S09 · Chapter manual · lab</span><h4>Hands-on lab</h4><ol><li>Create <code>main</code> and make an initial README commit.</li><li>Create a feature branch and add a SQL script; commit it.</li><li>Merge it into main and observe whether Git fast-forwards.</li><li>Create another branch and use <code>git merge --no-ff</code>.</li><li>Create two branches that edit the same line in a file, then merge to trigger a conflict.</li><li>Resolve the conflict, stage the file, and complete the merge.</li><li>In a disposable repository, try <code>git merge --squash</code> and compare the history.</li><li>Start a merge with conflicts and use <code>git merge --abort</code>.</li></ol></div><div class="src"><span class="tag s40">Source S40 · 15. Practical Exercise – Chapter 8</span><ol>
+<li>Create <code>feature/dim-product</code>, commit, merge into <code>main</code> with a fast-forward.</li>
+<li>Create <code>feature/fact-sales</code>, make a commit on <code>main</code> too, merge with a three-way merge.</li>
+<li>Create <code>feature/dim-date</code>, merge with <code>--no-ff</code> even though a fast-forward was possible.</li>
+<li>Create <code>feature/messy</code> with 4 commits and merge with <code>--squash</code>.</li>
+<li>Create the conflict in section 12, resolve it manually, then repeat and resolve with <code>--theirs</code>.</li>
+<li>Start a conflicting merge and abort it with <code>git merge --abort</code>.</li>
+<li>View the result with <code>git log --oneline --graph --all</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 8 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S09 · Chapter manual · interview</span><h4>Interview questions</h4><ol><li>What is a fast-forward merge? — A branch pointer advances because it has no divergent commits to reconcile.</li><li>What is a three-way merge? — Git combines two branch tips using their common ancestor.</li><li>What is --no-ff? — It forces a merge commit.</li><li>What is squash merge? — It combines changes into one staged snapshot/commit without retaining feature commits as ancestors.</li><li>What causes conflicts? — Overlapping or incompatible edits that Git cannot resolve automatically.</li><li>How do you abort a merge? — <code>git merge --abort</code>.</li><li>What is the modern default merge strategy? — <code>ort</code> for ordinary two-head merges in modern Git.</li></ol></div><div class="src"><span class="tag s40">Source S40 · 16. Chapter 8 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is a fast-forward merge?</td>
+<td>Target pointer moves forward; no merge commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>What is a three-way merge?</td>
+<td>Merge using base, ours and theirs; creates a merge commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What is the merge base?</td>
+<td>Best common ancestor of the two branches</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What is Git's default merge strategy?</td>
+<td><code>ort</code> (since Git 2.34; previously <code>recursive</code>)</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Why use <code>--no-ff</code>?</td>
+<td>Preserve feature branch history and make feature reverts easy</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is a squash merge?</td>
+<td>All branch commits combined into one new commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>What causes a merge conflict?</td>
+<td>Same lines changed differently, or modify/delete, etc.</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>How do you resolve a conflict?</td>
+<td>Edit file, remove markers, <code>git add</code>, <code>git commit</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>How do you cancel a merge?</td>
+<td><code>git merge --abort</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td><code>-s ours</code> vs <code>-X ours</code>?</td>
+<td>Strategy discards other side entirely; option prefers ours only for conflicts</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is the difference between a fast-forward merge and a three-way merge?</summary><div class="ans"><p>Fast-forward happens when the current branch has no commits that the other branch lacks; Git just moves the pointer. A three-way merge is needed when both branches have new commits; Git uses the merge base and both tips and normally records a merge commit with two parents.</p></div></details><details class="qa"><summary>What does <code>git merge --abort</code> do?</summary><div class="ans"><p>It stops an in-progress merge (while <code>MERGE_HEAD</code> exists) and tries to restore the state before the merge started.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Why would a team use <code>--no-ff</code>?</summary><div class="ans"><p>To always record an explicit merge commit, so the feature appears as a group of commits that can be reverted with a single <code>git revert -m 1</code> and the history shows where integration happened.</p></div></details><details class="qa"><summary>What does <code>git merge --squash</code> do differently from a normal merge?</summary><div class="ans"><p>It stages the combined result but records no merge relationship; you create one ordinary commit. The feature branch is therefore not considered merged, and its individual commits are not in the target history.</p></div></details><details class="qa"><summary>In a merge conflict, what do <em>ours</em> and <em>theirs</em> mean?</summary><div class="ans"><p>Ours is the branch checked out (the target); theirs is the branch being merged. During a rebase the meaning is reversed.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>What is the <code>ort</code> strategy and how does <code>-X ours</code> differ from <code>-s ours</code>?</summary><div class="ans"><p><code>ort</code> ("Ostensibly Recursive's Twin") replaced <code>recursive</code> as the default two-head strategy in Git 2.34. <code>-X ours</code> is a strategy <em>option</em>: non-conflicting changes from both sides are merged and only conflicting hunks prefer our side. <code>-s ours</code> is a <em>strategy</em> that ignores the other branch's content completely and just records the merge.</p></div></details><details class="qa"><summary>How do you undo a pushed merge commit and why is <code>-m</code> required?</summary><div class="ans"><p><code>git revert -m 1 &lt;merge&gt;</code>; a merge commit has two parents, so Git must be told which parent is the mainline whose content should be restored.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A pull request shows "This branch has conflicts that must be resolved". What do you do locally?</summary><div class="ans"><p><code>git switch feature/x</code>, <code>git fetch origin</code>, then <code>git merge origin/main</code> (or rebase if the team allows), resolve conflicts, run tests, push the branch. The PR updates automatically.</p></div></details><details class="qa"><summary>After merging, a colleague says their changes in <code>config.json</code> disappeared although there was no conflict. What could have happened?</summary><div class="ans"><p>Someone resolved an earlier conflict by taking a whole side (<code>--ours</code>/<code>--theirs</code> or a GUI "accept current"), or used <code>-s ours</code>. Check with <code>git log -p --follow config.json</code> and <code>git show &lt;merge&gt;</code> (combined diff) and restore the lost lines in a new commit.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. <code>main</code> is at B, <code>feature</code> is at D with history A–B–C–D. What does <code>git merge feature</code> on <code>main</code> do by default?</strong></p><ol><li data-ok="0">Creates a merge commit with two parents</li><li data-ok="1">Moves <code>main</code> to D (fast-forward)</li><li data-ok="0">Rebases feature onto main</li><li data-ok="0">Fails because the branches diverged</li></ol><div class="exp"><code>main</code> is an ancestor of <code>feature</code>, so Git fast-forwards.</div></div><div class="mcq"><p><strong>2. Which command records a merge commit even when a fast-forward is possible?</strong></p><ol><li data-ok="0">git merge --ff-only</li><li data-ok="0">git merge --squash</li><li data-ok="1">git merge --no-ff</li><li data-ok="0">git merge -X theirs</li></ol><div class="exp"><code>--no-ff</code> always creates a merge commit.</div></div><div class="mcq"><p><strong>3. After <code>git merge --squash feature</code>, what must you run?</strong></p><ol><li data-ok="0">Nothing — the commit is created automatically</li><li data-ok="1">git commit</li><li data-ok="0">git merge --continue only</li><li data-ok="0">git push --force</li></ol><div class="exp">Squash only stages the result; you must commit.</div></div><div class="mcq"><p><strong>4. Which command undoes an already-pushed merge commit safely?</strong></p><ol><li data-ok="0">git reset --hard HEAD~1</li><li data-ok="1">git revert -m 1 &lt;merge-commit&gt;</li><li data-ok="0">git merge --abort</li><li data-ok="0">git checkout HEAD~1</li></ol><div class="exp">Reverting creates a new commit and does not rewrite shared history.</div></div><div class="mcq"><p><strong>5. What is the default merge strategy for two branches in current Git versions?</strong></p><ol><li data-ok="0">recursive</li><li data-ok="0">resolve</li><li data-ok="1">ort</li><li data-ok="0">octopus</li></ol><div class="exp"><code>ort</code> became the default in Git 2.34.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>A merge combines histories using the merge base and two tips; fast-forward only moves a pointer.</li>
+<li><code>--no-ff</code> preserves an integration point, <code>--squash</code> compresses a feature into one commit, <code>--ff-only</code> guarantees no merge commit.</li>
+<li>Conflicts are normal: identify (<code>git status</code>), edit, <code>git add</code>, <code>git commit</code>, then test.</li>
+<li>Undo locally with <code>git reset --hard ORIG_HEAD</code>; undo shared merges with <code>git revert -m 1</code>.</li>
+</ul></div><div class="src"><span class="tag ">Source S09 · Chapter manual · summary</span><ul><li>Merging integrates work from one branch into another.</li><li>Fast-forward advances a branch pointer; a three-way merge combines divergent histories.</li><li><code>--no-ff</code> forces a merge commit; squash combines changes without preserving feature commits as ancestors.</li><li>Resolve conflicts by editing, validating, staging, and completing the merge.</li><li>Small, focused branches and frequent integration reduce conflict risk.</li></ul><p><a href="https://git-scm.com/docs/git-merge" rel="noopener" target="_blank">git merge docs</a> · <a href="https://git-scm.com/docs/merge-strategies" rel="noopener" target="_blank">Merge strategies</a> · <a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging" rel="noopener" target="_blank">Pro Git: branching and merging</a></p></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 8 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fast-forward</td>
+<td>Pointer move, linear history</td>
+</tr>
+<tr>
+<td>Three-way</td>
+<td>Base + two tips, merge commit</td>
+</tr>
+<tr>
+<td>ort/recursive</td>
+<td>Default merge strategies</td>
+</tr>
+<tr>
+<td><code>--no-ff</code></td>
+<td>Always create a merge commit</td>
+</tr>
+<tr>
+<td>Squash</td>
+<td>One commit per feature</td>
+</tr>
+<tr>
+<td>Conflicts</td>
+<td>Resolve, add, commit; or abort</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Predict whether <code>git merge</code> will fast-forward or create a merge commit by inspecting the graph (<code>git log --graph</code>) and the merge base.</li><li>Choose between normal, <code>--no-ff</code>, <code>--squash</code> and <code>--ff-only</code> merges and explain the effect on history.</li><li>Resolve a content conflict in a SQL file end-to-end and verify the result with <code>git diff --check</code> and tests.</li><li>Abort a merge safely and explain when <code>git merge --abort</code> cannot restore your work.</li><li>Use <code>-X ours</code> / <code>-X theirs</code> and <code>git checkout --ours/--theirs</code> correctly and explain the difference.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-merge">git-merge documentation</a></li>
+<li><a href="https://git-scm.com/docs/git-merge-base">git-merge-base</a> · <a href="https://git-scm.com/docs/git-mergetool">git-mergetool</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging">Pro Git — Basic Branching and Merging</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging">Pro Git — Advanced Merging</a></li>
+<li><a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github">GitHub Docs — About merge methods on GitHub</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/merging-with-squash">Azure Repos — Merge strategies and squash merge</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_07_Understanding_Git_Branches.html"><span class="mn-label">← Previous</span><span class="mn-title">Understanding Git Branches</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_09_Advanced_Branch_Management.html"><span class="mn-label">Next →</span><span class="mn-title">Advanced Branch Management</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

@@ -1,0 +1,1299 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Explain how rebase creates new commits and why commit IDs change."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Rebase — Chapter 17 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Rebase</div>
+<div class="brand-sub">Chapter 17 · 37 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">17.1</span>What is Git Rebase?</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">17.2</span>Why do we need rebase?</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">17.3</span>Merge vs Rebase</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">17.4</span>Understanding commit history and basic rebase</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">17.5</span>Interactive rebase</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">17.6</span>Squashing commits</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">17.7</span>Reordering, editing messages and dropping commits</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">17.8</span>Continuing, aborting and resolving conflicts</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">17.9</span>Rebase best practices and when not to rebase</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">17.10</span>Data Engineering workflow example</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">17.11</span>What is Git Rebase?</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">17.12</span>Why Do We Need Rebase?</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">17.13</span>Merge vs Rebase</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">17.14</span>Understanding Commit History</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">17.15</span>Basic Rebase</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">17.16</span>Interactive Rebase</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">17.17</span>Squashing Commits</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">17.18</span>Reordering Commits</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">17.19</span>Editing Commit Messages</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">17.20</span>Dropping Commits</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">17.21</span>Continuing Rebase</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">17.22</span>Aborting Rebase</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">17.23</span>Resolving Rebase Conflicts</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">17.24</span>Rebase Best Practices</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">17.25</span>When Not to Use Rebase</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🎯</span>Chapter 17 Interview Questions</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 6 · Chapter 17</div><h1>Git Rebase</h1><p class="page-subtitle">Explain how rebase creates new commits and why commit IDs change.</p><div class="meta-row"><span class="meta-pill">Phase <b>6</b></span><span class="meta-pill">Lessons <b>37</b></span><span class="meta-pill">Sources <b>S18, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> What is Git Rebase?; Why do we need rebase?; Merge vs Rebase; Understanding commit history and basic rebase; Interactive rebase; Squashing commits; Reordering, editing messages and dropping commits; Continuing, aborting and resolving conflicts; Rebase best practices and when not to rebase; Data Engineering workflow example. <br><strong>Before you start:</strong> complete Chapter 16 – Git Stash. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Rebase moves (replays) a series of commits onto a new base commit, creating new commits with the same changes. Interactive rebase lets you reorder, edit, squash, fixup or drop commits.</p>
+<p><strong>Why it matters.</strong> It keeps feature branches current with <code>main</code> without merge commits and lets you clean up history before review — but it rewrites history, so it must be used on branches nobody else depends on.</p>
+<p><strong>Where it is used.</strong> Updating feature branches, cleaning commits before a PR, "Rebase and merge" PR method, <code>git pull --rebase</code>.</p>
+<p><strong>In this course's project.</strong> Stage 5: Ravi cleans five "wip" commits into two meaningful commits and rebases onto the latest <code>main</code> before review.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter explains rebasing — moving commits onto a new base — and interactive rebase for squashing, reordering, editing and dropping commits, plus conflict handling and best practices.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to rebase branches, clean up commit history with interactive rebase, resolve rebase conflicts, and know when not to rebase.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S18 · Chapter manual · objectives</span><p>Understand how Git replays commits, when to use rebase, and how to rewrite local history safely.</p><div class="grid"><div class="tile"><strong>01</strong>Explain rebase using commit graphs and merge bases</div><div class="tile"><strong>02</strong>Perform basic and interactive rebases</div><div class="tile"><strong>03</strong>Squash, reorder, edit and drop commits</div><div class="tile"><strong>04</strong>Resolve conflicts, continue or abort safely</div><div class="tile"><strong>05</strong>Choose between merge and rebase based on collaboration context</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Explain how rebase creates new commits and why commit IDs change.</li>
+<li>Compare merge and rebase by history shape, conflict handling and safety.</li>
+<li>Rebase a feature branch onto <code>main</code>, resolve conflicts, and continue/skip/abort.</li>
+<li>Use interactive rebase to squash, fixup, reword, reorder, edit and drop commits; use <code>--autosquash</code>.</li>
+<li>Apply the golden rule: never rebase commits that others have based work on.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">17.1</div><h2>What is Git Rebase?</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 1. What is Git Rebase?</span><p>Rebase takes commits from the current branch that are not in the target base and replays them, one by one, on top of a new base. The result is a new sequence of commits with new commit IDs. Rebase changes history; it does not simply move an existing commit unchanged.</p><h4>Commands and example</h4><pre><code>git switch feature/customer-dq
+git fetch origin
+git rebase origin/main</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">17.2</div><h2>Why do we need rebase?</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 2. Why do we need rebase?</span><p>Rebase can bring a feature branch up to date with the latest base branch while keeping a linear-looking history. It is also used to clean up local commits before review. It is not inherently better than merge: the right choice depends on team policy, branch sharing and the need to preserve integration history.</p><h4>Commands and example</h4><pre><code>git fetch origin
+git rebase origin/main
+# Review the resulting history
+git log --oneline --graph --decorate -15</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">17.3</div><h2>Merge vs Rebase</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 3. Merge vs Rebase</span><p>Merge combines histories and may create a merge commit; existing commits remain unchanged. Rebase replays commits onto a new base, producing new commit IDs and a more linear history. Merge is generally safe for shared branches. Rebase is most appropriate for private or coordinated feature-branch history.</p><h4>Commands and example</h4><pre><code># Merge latest main into feature
+git switch feature
+git merge origin/main
+
+# Alternative: replay feature commits on latest main
+git rebase origin/main</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">17.4</div><h2>Understanding commit history and basic rebase</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 4. Understanding commit history and basic rebase</span><p>Git history is a directed acyclic graph (DAG). Rebase identifies commits reachable from the current branch but not from the selected upstream, then replays them onto the new base. Use <code>git log --graph</code> before and after so you can see what changed.</p><h4>Commands and example</h4><pre><code>git log --oneline --graph --decorate --all
+git fetch origin
+git rebase origin/main
+git log --oneline --graph --decorate --all</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">17.5</div><h2>Interactive rebase</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 5. Interactive rebase</span><p>Interactive rebase opens a todo list for the selected commit range. You can choose actions such as pick, reword, edit, squash, fixup and drop. Start with a range such as <code>HEAD~4</code> to review the last four commits. Do not use an interactive rebase casually on commits already shared with others.</p><h4>Commands and example</h4><pre><code>git rebase -i HEAD~4
+# Example todo:
+# pick   a1b2c3d add source validation
+# reword b2c3d4e update documentation
+# squash c3d4e5f fix validation edge case
+# drop   d4e5f6a temporary debug output</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">17.6</div><h2>Squashing commits</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 6. Squashing commits</span><p><code>squash</code> combines a commit with the preceding picked commit and lets you edit the combined message. <code>fixup</code> also combines it but discards the fixup commit's message. Squashing can create a review-friendly commit, but retain meaningful detail in the final message.</p><h4>Commands and example</h4><pre><code>git rebase -i HEAD~3
+# Change later commits from "pick" to "squash" or "fixup"
+# Save and close the editor; review the final message
+git log --oneline -5</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">17.7</div><h2>Reordering, editing messages and dropping commits</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 7. Reordering, editing messages and dropping commits</span><p>In the interactive todo list, reorder lines to change replay order, use <code>reword</code> to change a message, <code>edit</code> to stop at a commit for changes, and <code>drop</code> to omit a commit. Reordering can cause conflicts or change behavior if commits depend on earlier commits. Test the final branch after rewriting.</p><h4>Commands and example</h4><pre><code>git rebase -i HEAD~5
+# reword &lt;commit&gt; improve commit message
+# edit   &lt;commit&gt; adjust transformation logic
+# drop   &lt;commit&gt; remove temporary debug commit
+# Move todo lines to reorder</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">17.8</div><h2>Continuing, aborting and resolving conflicts</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 8. Continuing, aborting and resolving conflicts</span><p>When a replay conflicts, Git pauses and marks conflicted files. Resolve the conflict, stage the resolved files, and run <code>git rebase --continue</code>. Use <code>git rebase --skip</code> only when you intentionally want to omit the current patch. Use <code>git rebase --abort</code> to return to the pre-rebase state.</p><h4>Commands and example</h4><pre><code>git status
+# Resolve conflict markers in files
+git add sql/load_orders.sql
+git rebase --continue
+
+# If the operation should be cancelled instead:
+git rebase --abort</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">17.9</div><h2>Rebase best practices and when not to rebase</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 9. Rebase best practices and when not to rebase</span><p>Fetch before rebasing, inspect the commit range, keep a backup branch for risky rewrites, run tests afterwards, and coordinate with teammates. Do not rewrite public/shared history unless the team explicitly agrees and everyone knows how to recover. Avoid force-pushing to protected branches. If a rewritten branch must be pushed, prefer <code>git push --force-with-lease</code> over <code>--force</code>; it checks that the remote ref has not advanced unexpectedly.</p><h4>Commands and example</h4><pre><code>git fetch origin
+git branch backup/feature-before-rebase
+git rebase origin/main
+# Run tests and inspect history
+git push --force-with-lease origin feature/customer-dq</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">17.10</div><h2>Data Engineering workflow example</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · 10. Data Engineering workflow example</span><p>A developer may have three local commits for a pipeline change: implementation, a correction, and documentation. Before opening a pull request, interactive rebase can combine the correction into implementation and improve the messages. If the branch is already shared, coordinate first rather than silently changing its history.</p><h4>Commands and example</h4><pre><code>git log --oneline
+git rebase -i HEAD~3
+# Use fixup/squash/reword as appropriate
+pytest
+# Push normally if history was not previously shared;
+# otherwise coordinate and use --force-with-lease if approved.</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">17.11</div><h2>
+What is Git Rebase?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Git Rebase?</span><h4>1.1 Definition</h4>
+<p><code>git rebase</code> <strong>re-applies (replays) commits from your branch on top of another base commit</strong>, creating new commits with new IDs. It "moves" the starting point of your branch.</p>
+<h4>1.2 Visual</h4>
+<pre><code class="language-text">Before:
+main:     A ── B ── E ── F
+               \
+feature:        C ── D
+
+git switch feature
+git rebase main
+
+After:
+main:     A ── B ── E ── F
+                          \
+feature:                   C' ── D'     (C', D' are new commits with the same changes)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">17.12</div><h2>
+Why Do We Need Rebase?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Why Do We Need Rebase?</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Update a feature branch</td>
+<td>Bring in the latest <code>main</code> without a merge commit</td>
+</tr>
+<tr>
+<td>Linear history</td>
+<td>Easier to read <code>git log</code>, bisect and review</td>
+</tr>
+<tr>
+<td>Clean up before PR</td>
+<td>Squash "wip"/"fix typo" commits, reword messages</td>
+</tr>
+<tr>
+<td>Reorder or split commits</td>
+<td>Make each commit one logical change</td>
+</tr>
+<tr>
+<td>Move a branch</td>
+<td>Transplant commits onto another branch (<code>--onto</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">17.13</div><h2>
+Merge vs Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Merge vs Rebase</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Merge</th>
+<th>Rebase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it does</td>
+<td>Joins two histories with a merge commit</td>
+<td>Replays commits onto a new base</td>
+</tr>
+<tr>
+<td>History shape</td>
+<td>Non-linear (branches visible)</td>
+<td>Linear</td>
+</tr>
+<tr>
+<td>Commit IDs</td>
+<td>Existing commits unchanged</td>
+<td>Rebased commits get new IDs</td>
+</tr>
+<tr>
+<td>Rewrites history</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Safe on shared/public branches</td>
+<td>Yes</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td>Conflict resolution</td>
+<td>Once for the whole merge</td>
+<td>Possibly once per replayed commit</td>
+</tr>
+<tr>
+<td>Traceability</td>
+<td>Shows exactly when integration happened</td>
+<td>Hides when branches diverged</td>
+</tr>
+<tr>
+<td>Typical use</td>
+<td>Integrating into <code>main</code>, shared branches</td>
+<td>Updating your own feature branch, cleanup</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-text">Merge:   A ── B ── E ── F ── M          Rebase:  A ── B ── E ── F ── C' ── D'
+               \            /
+                C ──── D
+</code></pre>
+<div class="callout "><p><strong>Rule of thumb</strong> <em>Rebase your own local/feature work; merge shared work.</em></p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">17.14</div><h2>
+Understanding Commit History
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Understanding Commit History</span><p>Rebase changes history, so it's important to read history before and after:</p>
+<pre><code class="language-bash">git log --oneline --graph --all
+git log main..feature        # commits in feature not in main (these are what rebase will replay)
+git merge-base main feature  # the current base
+</code></pre>
+<p>After rebasing, <code>git log main..feature</code> shows the same number of commits, but with new IDs, and <code>git merge-base main feature</code> equals <code>main</code>'s tip.</p>
+<p>Use <code>git range-diff</code> to compare the old and new versions of the commit series:</p>
+<pre><code class="language-bash">git range-diff ORIG_HEAD~2..ORIG_HEAD HEAD~2..HEAD
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">17.15</div><h2>
+Basic Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Basic Rebase</span><h4>5.1 Commands</h4>
+<pre><code class="language-bash">git switch feature/orders-load
+git fetch origin
+git rebase origin/main
+</code></pre>
+<p>Equivalent one-liner:</p>
+<pre><code class="language-bash">git rebase origin/main feature/orders-load
+</code></pre>
+<h4>5.2 Output</h4>
+<pre><code class="language-text">Successfully rebased and updated refs/heads/feature/orders-load.
+</code></pre>
+<h4>5.3 Pushing after rebase</h4>
+<p>If the branch was already pushed, its history changed, so a normal push is rejected:</p>
+<pre><code class="language-bash">git push --force-with-lease
+</code></pre>
+<h4>5.4 Pull with rebase</h4>
+<pre><code class="language-bash">git pull --rebase                       # one-time
+git config --global pull.rebase true    # default
+</code></pre>
+<h4>5.5 <code>--onto</code> (advanced)</h4>
+<p>Move commits of <code>feature-b</code> that were based on <code>feature-a</code> onto <code>main</code>:</p>
+<pre><code class="language-bash">git rebase --onto main feature-a feature-b
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">17.16</div><h2>
+Interactive Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Interactive Rebase</span><h4>6.1 Start</h4>
+<pre><code class="language-bash">git rebase -i HEAD~4        # edit the last 4 commits
+git rebase -i main          # edit all commits since the branch left main
+</code></pre>
+<h4>6.2 The todo list</h4>
+<pre><code class="language-text">pick a1b2c3d feat: add orders staging table
+pick b2c3d4e wip
+pick c3d4e5f fix typo
+pick d4e5f6a feat: add orders load procedure
+
+# Commands:
+# p, pick   = use commit
+# r, reword = use commit, but edit the commit message
+# e, edit   = use commit, but stop for amending
+# s, squash = use commit, but meld into previous commit (combine messages)
+# f, fixup  = like squash, but discard this commit's message
+# x, exec   = run command (the rest of the line) using shell
+# b, break  = stop here (continue rebase later with 'git rebase --continue')
+# d, drop   = remove commit
+# l, label / t, reset / m, merge = advanced (rebase merges)
+</code></pre>
+<p>Commits are listed <strong>oldest first</strong>. Edit the commands, save and close the editor.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">17.17</div><h2>
+Squashing Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Squashing Commits</span><p><strong>Goal:</strong> combine several small commits into one meaningful commit.</p>
+<pre><code class="language-text">pick   a1b2c3d feat: add orders staging table
+squash b2c3d4e wip
+squash c3d4e5f fix typo
+pick   d4e5f6a feat: add orders load procedure
+</code></pre>
+<p>Git opens an editor to write the combined message. Use <strong><code>fixup</code></strong> to discard the small commits' messages automatically.</p>
+<p><strong>Autosquash workflow:</strong></p>
+<pre><code class="language-bash">git commit --fixup a1b2c3d            # creates &quot;fixup! feat: add orders staging table&quot;
+git commit --squash a1b2c3d           # creates &quot;squash! ...&quot; (lets you edit message)
+git rebase -i --autosquash main       # fixup/squash commits placed and marked automatically
+git config --global rebase.autoSquash true
+</code></pre>
+<p><strong>Alternative (squash everything on a branch):</strong></p>
+<pre><code class="language-bash">git reset --soft main
+git commit -m &quot;feat: orders load pipeline&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">17.18</div><h2>
+Reordering Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Reordering Commits</span><p>Change the order of lines in the todo list:</p>
+<pre><code class="language-text">pick d4e5f6a feat: add orders load procedure
+pick a1b2c3d feat: add orders staging table
+</code></pre>
+<div class="callout "><p><strong>Note</strong> Reordering can cause conflicts if a later commit depends on an earlier one.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">17.19</div><h2>
+Editing Commit Messages
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Editing Commit Messages</span><p>Use <code>reword</code>:</p>
+<pre><code class="language-text">reword a1b2c3d add tbl
+pick   d4e5f6a feat: add orders load procedure
+</code></pre>
+<p>Git stops and opens the editor for the new message (e.g. <code>feat(sql): add stg_orders staging table</code>).</p>
+<p>To <strong>change the content</strong> of an older commit, use <code>edit</code>:</p>
+<pre><code class="language-text">edit a1b2c3d feat: add orders staging table
+</code></pre>
+<pre><code class="language-bash"># Git stops at that commit
+# modify files
+git add sql/tables/stg_orders.sql
+git commit --amend
+git rebase --continue
+</code></pre>
+<p><strong>Splitting a commit</strong> with <code>edit</code>:</p>
+<pre><code class="language-bash">git reset HEAD~1           # undo the commit, keep changes
+git add sql/              &amp;&amp; git commit -m &quot;feat(sql): staging table&quot;
+git add python/           &amp;&amp; git commit -m &quot;feat(etl): staging loader&quot;
+git rebase --continue
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">17.20</div><h2>
+Dropping Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Dropping Commits</span><p>Delete the line or mark it <code>drop</code>:</p>
+<pre><code class="language-text">pick a1b2c3d feat: add orders staging table
+drop b2c3d4e debug: print row counts
+pick d4e5f6a feat: add orders load procedure
+</code></pre>
+<p>The commit's changes disappear from the branch (recoverable via reflog).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">17.21</div><h2>
+Continuing Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Continuing Rebase</span><p>When rebase pauses (conflict, <code>edit</code>, <code>break</code>), resume with:</p>
+<pre><code class="language-bash">git rebase --continue
+</code></pre>
+<p>Other control commands:</p>
+<pre><code class="language-bash">git rebase --skip          # skip the current commit entirely
+git rebase --edit-todo     # change the remaining todo list
+git status                 # shows &quot;interactive rebase in progress; onto ...&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">17.22</div><h2>
+Aborting Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Aborting Rebase</span><pre><code class="language-bash">git rebase --abort
+</code></pre>
+<p>Returns the branch to exactly where it was before the rebase started. If the rebase already finished and you regret it:</p>
+<pre><code class="language-bash">git reset --hard ORIG_HEAD        # immediately after the rebase
+git reflog                        # or find the pre-rebase commit
+git reset --hard HEAD@{5}
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">17.23</div><h2>
+Resolving Rebase Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Resolving Rebase Conflicts</span><h4>13.1 Why rebase conflicts differ</h4>
+<p>Rebase replays commits <strong>one by one</strong>, so you may resolve conflicts for several commits. During a rebase, <strong>"ours" = the branch you're rebasing onto (e.g. main)</strong> and <strong>"theirs" = your commit being replayed</strong> — the reverse of merge.</p>
+<h4>13.2 Steps</h4>
+<pre><code class="language-text">CONFLICT (content): Merge conflict in sql/procedures/usp_load_orders.sql
+error: could not apply c3d4e5f... feat: add watermark
+</code></pre>
+<pre><code class="language-bash">git status                         # see conflicted files
+# edit, remove markers
+git add sql/procedures/usp_load_orders.sql
+git rebase --continue              # moves to next commit
+</code></pre>
+<p>Repeat until finished, or <code>git rebase --abort</code>.</p>
+<h4>13.3 Reduce repeated conflicts</h4>
+<pre><code class="language-bash">git config --global rerere.enabled true     # reuse recorded resolution
+</code></pre>
+<p>Squash commits first (fewer commits to replay), or merge instead of rebase for very divergent branches.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">17.24</div><h2>
+Rebase Best Practices
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Rebase Best Practices</span><ol>
+<li><strong>Never rebase public/shared branches</strong> (<code>main</code>, <code>develop</code>, <code>release/*</code>) or commits others have based work on.</li>
+<li>Rebase your feature branch <strong>before</strong> opening or updating a PR to keep it current.</li>
+<li>Use <code>git push --force-with-lease</code> (never plain <code>--force</code>) after rebasing a pushed branch.</li>
+<li>Create a backup branch before complex rebases: <code>git branch backup/feature-orders</code>.</li>
+<li>Clean history with interactive rebase: one logical change per commit, clear messages.</li>
+<li>Run tests after rebasing — code that merged cleanly can still be broken.</li>
+<li>Enable <code>rerere</code> and <code>rebase.autoSquash</code>.</li>
+<li>Agree as a team on merge vs rebase policy.</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">17.25</div><h2>
+When Not to Use Rebase
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. When Not to Use Rebase</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Why not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Branch is shared and others pushed to it</td>
+<td>Rewriting breaks their history and can lose work</td>
+</tr>
+<tr>
+<td><code>main</code>/<code>develop</code>/release branches</td>
+<td>Protected history; audit trail</td>
+</tr>
+<tr>
+<td>Commits already merged elsewhere</td>
+<td>Creates duplicate commits</td>
+</tr>
+<tr>
+<td>You need an exact record of when integration happened (audits)</td>
+<td>Rebase hides it</td>
+</tr>
+<tr>
+<td>Branch has many commits and massive divergence</td>
+<td>Many repeated conflicts; merge is simpler</td>
+</tr>
+<tr>
+<td>Branch contains merge commits you need to keep</td>
+<td>Rebase linearises them (unless <code>--rebase-merges</code>)</td>
+</tr>
+<tr>
+<td>You're unsure and under time pressure</td>
+<td>Merge is safer</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout c-warn"><p><strong>Golden Rule</strong> <em>Do not rebase commits that exist outside your repository and that people may have based work on.</em></p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">feature</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="400" y1="110" x2="510" y2="110" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">E</text></svg></div><figcaption>Before: feature (D, E) branched from B; main moved on to C</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">feature</text><path d="M400,40 C455.0,40 455.0,110 494,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><line x1="510" y1="110" x2="620" y2="110" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="510" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="510.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D′</text><circle cx="620" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="620.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">E′</text></svg></div><figcaption>After `git rebase main` on feature: D′ and E′ are new commits on top of C (old D, E become unreachable)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 216" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">git merge main (into feature)</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Keeps original commits; adds a merge commit</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Non-linear history, true record of what happened</text><rect x="20.0" y="130.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Safe for shared branches</text><rect x="20.0" y="169.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Conflicts resolved once</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">git rebase main (feature onto main)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Rewrites feature commits with new IDs</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Linear history, easier to read and bisect</text><rect x="490.0" y="130.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Only for private/unshared branches (force-push needed)</text><rect x="490.0" y="169.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Conflicts may be resolved per replayed commit</text></svg></div><figcaption>Merge vs rebase</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-rebase"><header>git rebase</header><dl><dt>Syntax</dt><dd><pre><code>git rebase &lt;upstream&gt;
+git rebase --onto &lt;newbase&gt; &lt;upstream&gt; [&lt;branch&gt;]
+git rebase --continue | --skip | --abort</code></pre></dd><dt>Purpose</dt><dd>Replay the current branch's commits (those not in <code>&lt;upstream&gt;</code>) on top of <code>&lt;upstream&gt;</code>.</dd><dt>Expected output</dt><dd><pre><code>Successfully rebased and updated refs/heads/feature/RDP-102-orders-ingest.</code></pre></dd><dt>Example</dt><dd><pre><code>git switch feature/RDP-102-orders-ingest
+git fetch origin
+git rebase origin/main
+# conflict -&gt; edit, then:
+git add python/ingestion/src/retail_ingest/extract_orders.py
+git rebase --continue
+git push --force-with-lease</code></pre></dd><dt>Common mistakes</dt><dd>Rebasing <code>main</code> or any shared branch; using <code>git commit</code> instead of <code>git rebase --continue</code> after resolving.</dd><dt>Troubleshooting</dt><dd><code>git rebase --abort</code> returns to the state before the rebase. After a finished bad rebase: <code>git reset --hard ORIG_HEAD</code> (or use the reflog).</dd></dl></div><div class="cmd" id="cmd-git-rebase-i-interactive"><header>git rebase -i (interactive)</header><dl><dt>Syntax</dt><dd><pre><code>git rebase -i &lt;base&gt;
+git rebase -i --autosquash &lt;base&gt;
+git commit --fixup=&lt;sha&gt;</code></pre></dd><dt>Purpose</dt><dd>Edit a list of commits: pick, reword, edit, squash, fixup, drop, reorder.</dd><dt>Key parameters</dt><dd><ul><li><code>pick</code> — keep</li><li><code>reword</code> — keep, change message</li><li><code>edit</code> — stop to amend</li><li><code>squash</code> — combine with previous, merge messages</li><li><code>fixup</code> — combine, discard this message</li><li><code>drop</code> — remove</li><li><code>exec</code> — run a command (e.g. tests) after a commit</li></ul></dd><dt>Example</dt><dd><pre><code>git rebase -i HEAD~5
+# editor:
+pick 1a2b3c4 feat(ingest): extract orders by watermark
+fixup 2b3c4d5 wip
+fixup 3c4d5e6 fix typo
+pick 4d5e6f7 test(ingest): add extract tests
+fixup 5e6f7a8 wip tests</code></pre></dd><dt>Common mistakes</dt><dd>Squashing commits that are already in <code>main</code> or that colleagues pulled.</dd></dl></div><div class="cmd" id="cmd-git-rebase-onto"><header>git rebase --onto</header><dl><dt>Syntax</dt><dd><pre><code>git rebase --onto &lt;newbase&gt; &lt;oldbase&gt; &lt;branch&gt;</code></pre></dd><dt>Purpose</dt><dd>Move a range of commits to a different base — e.g. a branch accidentally created from another feature branch.</dd><dt>Example</dt><dd><pre><code># feature/RDP-120 was created from feature/RDP-102 but should start from main
+git rebase --onto main feature/RDP-102 feature/RDP-120</code></pre></dd><dt>Common mistakes</dt><dd>Swapping the argument order — read it as "onto NEW, the commits after OLD, of BRANCH".</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Clean up and update a feature branch before review</span><pre><code class="language-bash">git switch feature/RDP-102-orders-ingest
+git log --oneline main..HEAD
+# 5e6f7a8 wip tests
+# 4d5e6f7 test(ingest): add extract tests
+# 3c4d5e6 fix typo
+# 2b3c4d5 wip
+# 1a2b3c4 feat(ingest): extract orders by watermark
+
+git rebase -i main            # fixup the three noisy commits (see command reference)
+git log --oneline main..HEAD  # 2 clean commits
+
+git fetch origin
+git rebase origin/main        # bring in Asha's latest SQL changes
+python -m pytest -q
+git push --force-with-lease   # update the PR branch
+</code></pre>
+<p>Optional team setting: <code>git config --global rerere.enabled true</code> so Git remembers how you resolved a conflict and re-applies it automatically on the next rebase.</p></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S18, S40 · Rebase conflict in the middle of five commits</span><p>Git stops at the commit that conflicts. Resolve, <code>git add</code>, <code>git rebase --continue</code>; it may stop again for later commits. If it becomes confusing, <code>git rebase --abort</code> and use merge instead. Remember: during a rebase <strong>ours</strong> is the branch you are rebasing onto (main) and <strong>theirs</strong> is your commit being replayed.</p></div><div class="src"><span class="tag add">Course addition · Colleague already pulled your branch before you rebased</span><p>Their copy has the old commits. Tell them; they should <code>git fetch</code> then <code>git reset --hard origin/&lt;branch&gt;</code> (if they have no own commits) or <code>git rebase --onto origin/&lt;branch&gt; &lt;old-tip&gt;</code> to move their own commits. Prevention: don't rebase shared branches.</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Rebase only private branches; merge shared ones.</li>
+<li>Clean history with interactive rebase before opening/marking a PR ready.</li>
+<li>Use <code>--force-with-lease</code> after rebasing a pushed branch.</li>
+<li>Use <code>commit --fixup</code> + <code>rebase -i --autosquash</code> for review fixes.</li>
+<li>Run tests after rebasing — a clean rebase can still produce broken code.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CONFLICT (content): Merge conflict in &lt;file&gt;</code> + <code>error: could not apply 2b3c4d5...</code></td>
+<td>Replayed commit conflicts</td>
+<td>Resolve, <code>git add</code>, <code>git rebase --continue</code></td>
+</tr>
+<tr>
+<td><code>It seems that there is already a rebase-merge directory</code></td>
+<td>Previous rebase not finished</td>
+<td><code>git rebase --continue</code> or <code>--abort</code></td>
+</tr>
+<tr>
+<td><code>error: cannot rebase: You have unstaged changes.</code></td>
+<td>Dirty working tree</td>
+<td>Commit/stash or <code>--autostash</code></td>
+</tr>
+<tr>
+<td><code>! [rejected] ... (non-fast-forward)</code> after rebase</td>
+<td>Remote has old commits</td>
+<td><code>git push --force-with-lease</code> (own branch)</td>
+</tr>
+<tr>
+<td>Duplicate commits after merge of rebased branch</td>
+<td>Rebased a branch others had merged</td>
+<td>Avoid rebasing shared branches; clean up with care</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create the A–B–C / D–E shape and rebase the feature onto main.</p><span class="exp-out"><code>git log --graph</code> is linear; D and E have new IDs.</span></li><li><p>Create three "wip" commits and squash them with <code>git rebase -i</code>.</p><span class="exp-out">One commit remains with your chosen message.</span></li><li><p>Make a fixup commit with <code>git commit --fixup=&lt;sha&gt;</code> and run <code>git rebase -i --autosquash</code>.</p><span class="exp-out">The fixup line is pre-positioned; result is one commit.</span></li><li><p>Create a conflict during rebase, resolve and continue.</p><span class="exp-out">"Successfully rebased and updated refs/heads/…".</span></li><li><p>Rebase and then undo with <code>git reset --hard ORIG_HEAD</code>.</p><span class="exp-out">Branch returns to the pre-rebase commits.</span></li></ol></div><div class="src"><span class="tag ">Source S18 · Chapter manual · lab</span><p>Create a feature branch with at least three commits. Fetch the latest base branch and rebase your feature branch. Then run interactive rebase to reword one commit and squash another. Inspect the graph, run tests, and explain why this is safe only if the branch is not being independently used by teammates.</p><div class="callout good"><strong>Validation:</strong> Use <code>git status</code>, <code>git log --oneline --graph --decorate</code>, and relevant diffs to verify each step. Practise destructive commands only in a disposable repository or branch.</div></div><div class="src"><span class="tag s40">Source S40 · 16. Practical Exercise – Chapter 17</span><ol>
+<li>Create <code>feature/orders</code> from <code>main</code>, make 2 commits; add 2 commits on <code>main</code>; rebase <code>feature/orders</code> onto <code>main</code> and view the graph.</li>
+<li>Make 4 commits including "wip" and "fix typo"; use <code>git rebase -i</code> to fixup, reword and reorder.</li>
+<li>Use <code>git commit --fixup</code> + <code>--autosquash</code>.</li>
+<li>Use <code>edit</code> to split a commit into two.</li>
+<li>Create a rebase conflict, resolve it, continue; repeat and abort.</li>
+<li>Push the rebased branch with <code>--force-with-lease</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 17 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S18 · Chapter manual · interview</span><h4>1. What is Git rebase?</h4><p>It replays commits from one branch onto a new base, creating new commit IDs.</p><h4>2. Does rebase preserve original commit hashes?</h4><p>No. Replayed commits have new IDs.</p><h4>3. What is a merge base?</h4><p>The best common ancestor Git uses to understand the shared history of two lines of development.</p><h4>4. What is the key difference between merge and rebase?</h4><p>Merge joins histories; rebase replays commits and rewrites the branch's history.</p><h4>5. What does git rebase -i do?</h4><p>It opens an interactive todo list for editing a range of commits.</p><h4>6. What is squash?</h4><p>Combines a commit with the preceding commit and allows a combined message.</p><h4>7. What is fixup?</h4><p>Combines a commit with the preceding commit and discards the fixup message.</p><h4>8. How do you change a commit message during interactive rebase?</h4><p>Mark the commit as <code>reword</code>.</p><h4>9. How do you remove a commit in interactive rebase?</h4><p>Mark it as <code>drop</code> or remove its todo line.</p><h4>10. How do you continue after resolving a rebase conflict?</h4><p>Stage resolved files and run <code>git rebase --continue</code>.</p><h4>11. How do you cancel a rebase?</h4><p>Run <code>git rebase --abort</code>.</p><h4>12. What does --skip do?</h4><p>It skips the current commit being replayed; use only when intentional.</p><h4>13. Why avoid rebasing shared history?</h4><p>It changes commit IDs and can disrupt teammates' branches.</p><h4>14. What is force-with-lease?</h4><p>A safer force-push option that refuses if the remote ref changed unexpectedly.</p><h4>15. When is merge preferable?</h4><p>For shared/public branches or when preserving the actual integration history matters.</p></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 17 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What is rebase?</td>
+<td>Replays commits onto a new base, creating new commits</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Merge vs rebase?</td>
+<td>Merge preserves history with a merge commit; rebase rewrites into linear history</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What is interactive rebase?</td>
+<td><code>git rebase -i</code> to pick, reword, edit, squash, fixup, drop, reorder</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>squash vs fixup?</td>
+<td>Both combine; fixup discards the commit message</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you abort a rebase?</td>
+<td><code>git rebase --abort</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What's the golden rule of rebasing?</td>
+<td>Never rebase public/shared commits</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you push after rebasing?</td>
+<td><code>git push --force-with-lease</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>During rebase, what are ours/theirs?</td>
+<td>Ours = base being rebased onto; theirs = your replayed commit</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What does <code>git rebase main</code> do on a feature branch?</summary><div class="ans"><p>Replays the feature's commits on top of the current <code>main</code>, producing new commits and linear history.</p></div></details><details class="qa"><summary>What is the golden rule of rebasing?</summary><div class="ans"><p>Do not rebase commits that exist outside your repository and that others may have based work on.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Difference between squash and fixup in interactive rebase?</summary><div class="ans"><p>Both combine a commit into the previous one; squash lets you edit the combined message, fixup discards the fixup commit's message.</p></div></details><details class="qa"><summary>How do you abort a rebase?</summary><div class="ans"><p><code>git rebase --abort</code>.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>What does <code>git rebase --onto A B C</code> do?</summary><div class="ans"><p>Takes commits reachable from C but not from B and replays them onto A, then moves C.</p></div></details><details class="qa"><summary>Why are "ours" and "theirs" reversed during rebase?</summary><div class="ans"><p>Rebase checks out the upstream and applies your commits one by one onto it, so the upstream is "ours" and your commit is "theirs".</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A PR has 23 commits like "wip", "fix", "fix again". The reviewer wants clean history. What do you do?</summary><div class="ans"><p><code>git rebase -i origin/main</code>, group into a few meaningful commits with fixup/squash/reword, run tests, <code>git push --force-with-lease</code>. Or rely on "Squash and merge" if the team uses it.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. After rebasing, why do commit IDs change?</strong></p><ol><li data-ok="0">Git compresses them</li><li data-ok="1">Their parent (and committer data) changed, so their hash changes</li><li data-ok="0">Rebase deletes history</li><li data-ok="0">IDs are random</li></ol><div class="exp">A commit's ID covers its parent.</div></div><div class="mcq"><p><strong>2. Which interactive command combines a commit and discards its message?</strong></p><ol><li data-ok="0">squash</li><li data-ok="1">fixup</li><li data-ok="0">reword</li><li data-ok="0">edit</li></ol><div class="exp">fixup keeps the previous message only.</div></div><div class="mcq"><p><strong>3. When is rebasing unsafe?</strong></p><ol><li data-ok="0">On a local feature branch</li><li data-ok="1">On a branch others have pulled and built on</li><li data-ok="0">Before opening a PR</li><li data-ok="0">With --autosquash</li></ol><div class="exp">Rewriting shared history disrupts collaborators.</div></div><div class="mcq"><p><strong>4. How do you continue after resolving a rebase conflict?</strong></p><ol><li data-ok="0">git commit</li><li data-ok="0">git merge --continue</li><li data-ok="1">git rebase --continue</li><li data-ok="0">git push</li></ol><div class="exp">Stage the files, then continue.</div></div><div class="mcq"><p><strong>5. During a rebase onto main, "theirs" refers to…</strong></p><ol><li data-ok="0">main</li><li data-ok="1">Your commit being replayed</li><li data-ok="0">The remote</li><li data-ok="0">The merge base</li></ol><div class="exp">Sides are swapped compared to merge.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Rebase replays commits onto a new base — new IDs, linear history.</li>
+<li>Interactive rebase edits history: squash, fixup, reword, reorder, drop.</li>
+<li>Use it only on private branches, then <code>--force-with-lease</code>.</li>
+<li>Abort with <code>--abort</code>; recover with <code>ORIG_HEAD</code> or the reflog.</li>
+</ul></div><div class="src"><span class="tag ">Source S18 · Chapter manual · summary</span><ul><li>Explain rebase using commit graphs and merge bases</li><li>Perform basic and interactive rebases</li><li>Squash, reorder, edit and drop commits</li><li>Resolve conflicts, continue or abort safely</li><li>Choose between merge and rebase based on collaboration context</li></ul><div class="callout warn"><strong>Safety reminder:</strong> Before rewriting or discarding history, check whether commits are shared, inspect the working tree, and preserve important work. Prefer reversible, auditable operations on shared branches.</div></div><div class="src"><span class="tag s40">Source S40 · 18. Chapter 17 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rebase</td>
+<td>Replay commits onto new base</td>
+</tr>
+<tr>
+<td>Interactive</td>
+<td>Clean, reorder, squash, edit, drop</td>
+</tr>
+<tr>
+<td>Conflicts</td>
+<td>Resolve per commit, <code>--continue</code></td>
+</tr>
+<tr>
+<td>Abort/undo</td>
+<td><code>--abort</code>, <code>ORIG_HEAD</code>, reflog</td>
+</tr>
+<tr>
+<td>Rules</td>
+<td>Only rebase your own unshared work</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Explain how rebase creates new commits and why commit IDs change.</li><li>Compare merge and rebase by history shape, conflict handling and safety.</li><li>Rebase a feature branch onto <code>main</code>, resolve conflicts, and continue/skip/abort.</li><li>Use interactive rebase to squash, fixup, reword, reorder, edit and drop commits; use <code>--autosquash</code>.</li><li>Apply the golden rule: never rebase commits that others have based work on.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-rebase">git-rebase</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Branching-Rebasing">Pro Git — Rebasing</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History">Pro Git — Rewriting History</a></li>
+<li><a href="https://git-scm.com/docs/git-rerere">git-rerere</a></li>
+<li><a href="https://docs.github.com/en/get-started/using-git/about-git-rebase">GitHub Docs — About Git rebase</a></li>
+</ul></div><div class="src"><span class="tag ">Source S18 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/git-rebase" rel="noopener" target="_blank">Git Rebase</a></li><li><a href="https://git-scm.com/book/en/v2/Git-Branching-Rebasing" rel="noopener" target="_blank">Rebasing</a></li></ul><p class="small">Documentation links are provided for deeper reading. Git command behavior can vary by options and version; consult the official manual for the exact syntax supported by your installed Git version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_16_Git_Stash.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Stash</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_18_Git_Reset_Revert_and_Restore.html"><span class="mn-label">Next →</span><span class="mn-title">Git Reset, Revert and Restore</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>
