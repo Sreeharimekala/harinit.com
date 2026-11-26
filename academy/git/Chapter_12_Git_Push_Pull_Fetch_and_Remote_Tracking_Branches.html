@@ -1,0 +1,1592 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Explain remote-tracking branches and read &quot;ahead/behind/diverged&quot; in git status and git branch -vv."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Push, Pull, Fetch and Remote-Tracking Branches — Chapter 12 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Push, Pull, Fetch and Remote-Tracking Branches</div>
+<div class="brand-sub">Chapter 12 · 41 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">12.1</span>Remote repositories recap</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">12.2</span>What is a remote-tracking branch?</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">12.3</span>Branch naming and Git references</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">12.4</span>Upstream tracking relationship</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">12.5</span>Essential remote commands</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">12.6</span>git fetch in detail</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">12.7</span>git pull in detail</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">12.8</span>git push and tracking setup</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">12.9</span>End-to-end workflow</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">12.10</span>Fetch vs pull vs push</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">12.11</span>Understanding ahead, behind and diverged</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">12.12</span>Common problems and troubleshooting</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">12.13</span>Best practices</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">12.14</span>What is Git Push?</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">12.15</span>What is Git Pull?</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">12.16</span>What is Git Fetch?</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">12.17</span>Difference Between Push, Pull and Fetch</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">12.18</span>Push Local Branches</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">12.19</span>Push New Branches</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">12.20</span>Pull Remote Branches</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">12.21</span>Fetch Specific Branches</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">12.22</span>Fetch All Branches</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">12.23</span>Synchronizing Local and Remote Repositories</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">12.24</span>Handling Rejected Pushes</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">12.25</span>Non-Fast-Forward Errors</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">12.26</span>Resolving Remote Conflicts</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">12.27</span>Force Push and Its Risks</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">12.28</span>Safe Force Push Using --force-with-lease</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 4: GitHub collaboration</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">🎯</span>Chapter 12 Interview Questions</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 4 · Chapter 12</div><h1>Git Push, Pull, Fetch and Remote-Tracking Branches</h1><p class="page-subtitle">Explain remote-tracking branches and read "ahead/behind/diverged" in <code>git status</code> and <code>git branch -vv</code>.</p><div class="meta-row"><span class="meta-pill">Phase <b>4</b></span><span class="meta-pill">Lessons <b>41</b></span><span class="meta-pill">Sources <b>S13, S38, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Remote repositories recap; What is a remote-tracking branch?; Branch naming and Git references; Upstream tracking relationship; Essential remote commands; git fetch in detail; git pull in detail; git push and tracking setup; End-to-end workflow; Fetch vs pull vs push. <br><strong>Before you start:</strong> complete Chapter 11 – Connecting Local and Remote Repositories. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> The synchronization commands — <code>fetch</code>, <code>pull</code>, <code>push</code> — and the remote-tracking branches (<code>origin/main</code>) that record what the remote looked like at your last fetch.</p>
+<p><strong>Why it matters.</strong> Misunderstanding pull vs fetch, or forcing a push, is the most common cause of lost or duplicated work in teams.</p>
+<p><strong>Where it is used.</strong> Many times a day by every developer; in CI pipelines; in IDE "Sync" buttons.</p>
+<p><strong>In this course's project.</strong> Stage 4: the team adopts <code>fetch</code> + review + <code>pull --ff-only</code>/<code>--rebase</code> on feature branches, and <code>push --force-with-lease</code> only on personal feature branches after a rebase.</p>
+<p><strong>Note on the title.</strong> The syllabus title is "Git Push, Pull and Fetch"; source S13 is titled "Understanding Remote Tracking Branches". Both are combined here.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter goes deep into synchronisation — what push, pull and fetch do, how to push and fetch branches, keep local and remote in sync, handle rejected pushes and non-fast-forward errors, resolve remote conflicts, and use force push safely.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to synchronise any branch confidently and recover from every common push/pull error.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S13 · Chapter manual · objectives</span><p>By the end of this chapter, you should be able to:</p>
+<ul><li>Explain the difference between a local branch and a remote-tracking branch.</li><li>Understand names such as <code>origin</code>, <code>origin/main</code> and <code>main</code>.</li><li>Identify which remote branch a local branch tracks.</li><li>Use <code>git fetch</code>, <code>git pull</code> and <code>git push</code> correctly.</li><li>Inspect remote configuration and diagnose branches that are ahead, behind or diverged.</li></ul>
+<div class="callout good"><strong>Core idea:</strong> A remote-tracking branch is your local repository's recorded view of a branch on a remote repository. It is updated by operations such as <code>git fetch</code>; it is not a live connection to the server.</div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Explain remote-tracking branches and read "ahead/behind/diverged" in <code>git status</code> and <code>git branch -vv</code>.</li>
+<li>Use <code>git fetch</code> to inspect incoming work before integrating it (<code>git log HEAD..origin/main</code>).</li>
+<li>Configure and use <code>git pull</code> with merge, rebase or fast-forward-only behaviour, and resolve the "divergent branches" error.</li>
+<li>Push branches and tags, delete remote branches, and handle rejected pushes.</li>
+<li>Use <code>--force-with-lease</code> (never plain <code>--force</code> on shared branches).</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">12.1</div><h2>Remote repositories recap</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 1. Remote repositories recap</span><p>A <strong>remote repository</strong> is another copy of a Git repository, commonly hosted on GitHub, GitLab, Bitbucket or an internal Git server. Your local repository can communicate with one or more remotes.</p>
+<p>Git assigns a short name to each remote URL. The conventional name <code>origin</code> is commonly assigned to the repository from which you cloned, but it is only a name—not a special Git keyword.</p>
+<div class="code"># List configured remotes
+git remote
+
+# Show remote names and their URLs
+git remote -v
+
+# Add a remote
+git remote add origin https://github.com/your-org/data-platform.git
+
+# Remove a remote configuration
+git remote remove origin</div>
+<div class="callout warn"><strong>Important:</strong> <code>git remote remove origin</code> removes the remote configuration from your local repository. It does not delete the hosted repository or its branches.</div></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">12.2</div><h2>What is a remote-tracking branch?</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 2. What is a remote-tracking branch?</span><p>A <strong>remote-tracking branch</strong> is a local reference that records the last known state of a branch from a remote. It is maintained by Git and normally updated when you fetch from that remote.</p>
+<p>For example, <code>origin/main</code> means “the last fetched state of the <code>main</code> branch on the remote named <code>origin</code>.” It is stored locally under <code>refs/remotes/origin/main</code>.</p>
+<div class="diagram">
+<div class="flow"><div class="box">Remote server<br/><code>main</code></div><div class="arrow">⟷</div><div class="box">Local reference<br/><code>origin/main</code></div></div>
+<p class="small">The remote branch exists on the server. <code>origin/main</code> is your local record of its last fetched commit.</p>
+<div class="flow"><div class="box">Your local branch<br/><code>main</code></div><div class="arrow">tracks</div><div class="box">Remote-tracking ref<br/><code>origin/main</code></div></div>
+</div>
+<h4>Local branch vs remote-tracking branch</h4>
+<table><tr><th>Item</th><th>Example</th><th>Purpose</th><th>Normally changed by</th></tr>
+<tr><td>Local branch</td><td><code>main</code></td><td>Your working branch; you can commit to it.</td><td>Commits, merge, rebase, reset, switch operations.</td></tr>
+<tr><td>Remote-tracking branch</td><td><code>origin/main</code></td><td>Records the last fetched remote branch state.</td><td><code>git fetch</code> and related network operations.</td></tr>
+<tr><td>Remote name</td><td><code>origin</code></td><td>Short name for a remote repository URL.</td><td><code>git remote add/set-url/remove</code>.</td></tr>
+</table>
+<div class="callout"><strong>Do not confuse these:</strong> <code>main</code> is usually a local branch; <code>origin/main</code> is a remote-tracking branch. You normally commit on <code>main</code>, not directly on <code>origin/main</code>.</div></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">12.3</div><h2>Branch naming and Git references</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 3. Branch naming and Git references</span><p>Git references (refs) are names that point to commits. The most common branch-related references are:</p>
+<ul><li><code>refs/heads/main</code> — local branch named <code>main</code>.</li><li><code>refs/remotes/origin/main</code> — remote-tracking branch for <code>main</code> on remote <code>origin</code>.</li><li><code>HEAD</code> — indicates the currently checked-out commit or, commonly, the current local branch.</li></ul>
+<div class="code"># List local branches
+git branch
+
+# List remote-tracking branches
+git branch -r
+
+# List local and remote-tracking branches
+git branch -a
+
+# Show full reference names
+git show-ref</div>
+<p>Example output from <code>git branch -a</code>:</p>
+<div class="code">* main
+  feature/customer-load
+  remotes/origin/HEAD -&gt; origin/main
+  remotes/origin/main
+  remotes/origin/develop
+  remotes/origin/feature/customer-load</div>
+<p><code>origin/HEAD</code> is a symbolic reference that usually indicates the remote's default branch (here, <code>origin/main</code>). It is not the same as your local <code>HEAD</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">12.4</div><h2>Upstream tracking relationship</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 4. Upstream tracking relationship</span><p>A local branch can be configured to track a remote-tracking branch. This association is often called its <strong>upstream branch</strong>. It gives Git a default source for pulling and a default destination for pushing in common workflows.</p>
+<div class="diagram"><div class="flow"><div class="box">Local branch<br/><code>main</code></div><div class="arrow">upstream of</div><div class="box">Remote-tracking branch<br/><code>origin/main</code></div></div><p class="small">The local <code>main</code> branch is configured to track <code>origin/main</code>.</p></div>
+<div class="code"># Show tracking relationship and ahead/behind status
+git branch -vv
+
+# Show upstream configured for current branch
+git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
+
+# Set upstream for current branch
+git branch --set-upstream-to=origin/main main</div>
+<p>Typical <code>git branch -vv</code> output:</p>
+<div class="code">* main  a1b2c3d [origin/main: ahead 1] Add customer validation
+  develop d4e5f6a [origin/develop] Update ingestion pipeline</div>
+<p>Here, local <code>main</code> has one commit not yet present in <code>origin/main</code>. The tracking information is a comparison with the most recently fetched remote-tracking reference; fetch first if you need an up-to-date view.</p>
+<h4>Tracking a branch when creating it</h4>
+<div class="code"># Create a local branch that tracks origin/develop
+git switch --track origin/develop
+
+# Equivalent explicit form
+git switch -c develop --track origin/develop</div></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">12.5</div><h2>Essential remote commands</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 5. Essential remote commands</span><table><tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>git remote</code></td><td>Lists configured remote names.</td></tr>
+<tr><td><code>git remote -v</code></td><td>Lists remote names with fetch and push URLs.</td></tr>
+<tr><td><code>git remote add origin &lt;url&gt;</code></td><td>Adds a remote named <code>origin</code>.</td></tr>
+<tr><td><code>git remote remove origin</code></td><td>Removes that remote from local configuration.</td></tr>
+<tr><td><code>git clone &lt;url&gt;</code></td><td>Creates a local repository from an existing remote repository and normally configures <code>origin</code>.</td></tr>
+<tr><td><code>git fetch</code></td><td>Downloads remote updates and updates remote-tracking references; does not by itself merge them into your current branch.</td></tr>
+<tr><td><code>git pull</code></td><td>Fetches and then integrates changes into the current branch (merge by default, or rebase when configured/requested).</td></tr>
+<tr><td><code>git push</code></td><td>Sends local commits to a remote branch, subject to push configuration and server rules.</td></tr></table>
+<h4>Inspecting remote details</h4>
+<div class="code">git remote -v
+git remote show origin
+git config --get-regexp '^remote\\.'
+git branch -vv</div>
+<p><code>git remote show origin</code> can display the remote's fetch/push URLs, tracked branches and local branches configured for pull/push.</p></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">12.6</div><h2>git fetch in detail</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 6. git fetch in detail</span><p><code>git fetch</code> contacts a remote, downloads commits and objects that are missing locally, and updates the relevant remote-tracking references. It does not automatically change your checked-out files or merge changes into your current local branch.</p>
+<div class="code"># Fetch from the default remote
+git fetch
+
+# Fetch from a named remote
+git fetch origin
+
+# Fetch all configured remotes
+git fetch --all
+
+# Fetch and remove stale remote-tracking refs for branches deleted on remote
+git fetch --prune</div>
+<h4>Before and after fetch</h4>
+<div class="diagram"><div class="flow"><div class="box">Before fetch<br/><code>origin/main</code><br/>Commit A</div><div class="arrow">fetch</div><div class="box">After fetch<br/><code>origin/main</code><br/>Commit C</div></div><p class="small">The remote-tracking reference advances from A to C. Your local <code>main</code> branch and working files remain unchanged by fetch alone.</p></div>
+<p>After fetching, inspect the changes before integrating them:</p>
+<div class="code">git fetch origin
+git log --oneline --decorate --graph main..origin/main
+git diff main..origin/main
+git status -sb</div>
+<div class="callout good"><strong>Safe review pattern:</strong> Fetch first, inspect incoming commits and differences, then merge or rebase when appropriate. This is especially useful before updating production SQL or pipeline code.</div></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">12.7</div><h2>git pull in detail</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 7. git pull in detail</span><p><code>git pull</code> is a convenience command that performs a fetch and then integrates the fetched changes into the current branch. By default, the integration is usually a merge; options or configuration can make it rebase instead.</p>
+<div class="code"># Pull from the configured upstream
+git pull
+
+# Explicit remote and branch
+git pull origin main
+
+# Fetch and rebase local commits on top of upstream
+git pull --rebase
+
+# Only allow a fast-forward update
+git pull --ff-only</div>
+<table><tr><th>Mode</th><th>Behavior</th><th>When useful</th></tr>
+<tr><td>Default merge</td><td>Fetches, then merges upstream into current branch.</td><td>When merge commits are acceptable in your team's workflow.</td></tr>
+<tr><td><code>--rebase</code></td><td>Fetches, then replays local commits on top of upstream.</td><td>When your team prefers a linear history.</td></tr>
+<tr><td><code>--ff-only</code></td><td>Updates only if a fast-forward is possible; otherwise stops.</td><td>When you want to avoid an automatic merge commit.</td></tr></table>
+<div class="callout warn"><strong>Remember:</strong> Pull changes your current branch and potentially your working tree. If you want to inspect incoming work first, use <code>git fetch</code>.</div></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">12.8</div><h2>git push and tracking setup</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 8. git push and tracking setup</span><p><code>git push</code> publishes local commits to a remote repository. It does not normally push every local branch automatically; the destination depends on the command, upstream configuration and push settings.</p>
+<div class="code"># Push local main to origin/main explicitly
+git push origin main
+
+# First push of a new branch and set its upstream
+git push -u origin feature/customer-load
+
+# Push the current branch to its configured upstream
+git push
+
+# Push all local branches (use intentionally)
+git push --all origin</div>
+<p>The <code>-u</code> option (same as <code>--set-upstream</code>) configures the upstream relationship. After the first push, a plain <code>git push</code> and <code>git pull</code> can usually use that relationship.</p>
+<div class="callout danger"><strong>Shared repository safety:</strong> Avoid <code>git push --force</code> on shared branches unless your team explicitly approves it. If rewriting history is necessary, understand the impact and prefer <code>--force-with-lease</code> where appropriate.</div></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">12.9</div><h2>End-to-end workflow</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 9. End-to-end workflow</span><h4>Scenario: clone a Data Engineering repository and publish a feature branch</h4>
+<div class="code"># 1. Clone the project
+git clone https://github.com/your-org/data-platform.git
+cd data-platform
+
+# 2. Inspect remotes and branches
+git remote -v
+git branch -a
+
+# 3. Create a feature branch from current main
+git switch main
+git pull --ff-only
+git switch -c feature/customer-quality-check
+
+# 4. Make changes and commit
+git add sql/customer_quality_check.sql
+git commit -m "Add customer data quality validation"
+
+# 5. Publish branch and set upstream
+git push -u origin feature/customer-quality-check
+
+# 6. Later, refresh remote information
+git fetch origin
+
+# 7. Update local main when appropriate
+git switch main
+git pull --ff-only</div>
+<p>In this workflow, the feature branch is local until pushed. The first push creates or updates the remote branch and establishes its upstream tracking relationship.</p>
+<div class="diagram"><div class="flow"><div class="box">Clone<br/>origin configured</div><div class="arrow">→</div><div class="box">Create local<br/>feature branch</div><div class="arrow">→</div><div class="box">Commit changes</div><div class="arrow">→</div><div class="box">Push -u<br/>to origin</div></div></div></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">12.10</div><h2>Fetch vs pull vs push</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 10. Fetch vs pull vs push</span><table><tr><th>Operation</th><th>Direction</th><th>Updates remote-tracking refs?</th><th>Integrates into current branch?</th></tr>
+<tr><td><code>fetch</code></td><td>Remote → local repository</td><td>Yes</td><td>No</td></tr>
+<tr><td><code>pull</code></td><td>Remote → local repository, then integration</td><td>Yes</td><td>Yes, merge or rebase depending on mode</td></tr>
+<tr><td><code>push</code></td><td>Local → remote</td><td>May update local tracking information after success</td><td>Not applicable</td></tr></table>
+<div class="grid2"><div class="tile"><strong>Fetch = Download and inspect</strong><p>Refresh your local knowledge of the remote without integrating into your current branch.</p></div><div class="tile"><strong>Pull = Download and integrate</strong><p>Fetch plus merge or rebase into the current branch.</p></div><div class="tile"><strong>Push = Publish</strong><p>Send your local commits to the remote repository.</p></div><div class="tile"><strong>Clone = Initial copy</strong><p>Copy a repository and set up remote configuration, commonly named <code>origin</code>.</p></div></div></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">12.11</div><h2>Understanding ahead, behind and diverged</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 11. Understanding ahead, behind and diverged</span><p>After fetching, Git can compare your local branch with its upstream branch.</p>
+<ul><li><strong>Ahead 2:</strong> your local branch has two commits not present in its upstream.</li><li><strong>Behind 3:</strong> the upstream has three commits not present in your local branch.</li><li><strong>Ahead 2, behind 3:</strong> both sides have unique commits; the branches have diverged.</li></ul>
+<div class="code"># Refresh remote-tracking references first
+git fetch
+
+# Show branch tracking and ahead/behind information
+git branch -vv
+
+# Compact status
+git status -sb
+
+# Commits on local branch but not upstream
+git log --oneline @{upstream}..HEAD
+
+# Commits on upstream but not local branch
+git log --oneline HEAD..@{upstream}</div>
+<div class="callout">Ahead/behind counts are only as current as your last fetch. A stale remote-tracking branch can make the counts out of date.</div></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">12.12</div><h2>Common problems and troubleshooting</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 12. Common problems and troubleshooting</span><h4>Fatal: no upstream configured</h4><p><strong>Cause:</strong> The current local branch has no upstream branch configured.</p>
+<div class="code">git push -u origin feature/my-change
+# or configure an existing upstream
+git branch --set-upstream-to=origin/feature/my-change</div>
+<h4>Updates were rejected because the remote contains work</h4><p><strong>Cause:</strong> The remote branch has commits your local branch does not contain, so a non-fast-forward push would overwrite remote history.</p>
+<div class="code">git fetch origin
+git log --oneline --graph --decorate --all
+# Integrate using the team's preferred method:
+git pull --rebase
+# Resolve conflicts if needed, then:
+git push</div>
+<h4>Remote branch was deleted but still appears locally</h4>
+<div class="code">git fetch --prune
+# Or prune one remote
+git remote prune origin</div>
+<h4>Wrong remote URL</h4>
+<div class="code">git remote -v
+git remote set-url origin https://github.com/your-org/data-platform.git</div>
+<h4>Cannot find remote branch</h4>
+<div class="code">git fetch origin
+git branch -r
+# Check exact spelling and remote name</div>
+<h4>Local branch tracks the wrong upstream</h4>
+<div class="code">git branch --set-upstream-to=origin/main main
+git branch -vv</div></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">12.13</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · 14. Best practices</span><ul><li>Run <code>git fetch</code> before comparing your branch with the remote.</li><li>Use <code>git branch -vv</code> to verify upstream configuration.</li><li>Use <code>git push -u</code> when publishing a new branch for the first time.</li><li>Prefer <code>git pull --ff-only</code> or an explicitly agreed merge/rebase policy so integration behavior is predictable.</li><li>Do not commit directly to protected production branches unless your team's process permits it.</li><li>Use <code>git fetch --prune</code> periodically to clean stale remote-tracking references.</li><li>Never store passwords, access tokens, connection strings or secrets in source control.</li><li>For shared SQL, ADF, Databricks or Fabric projects, coordinate branch updates and pull-request reviews before deployment.</li></ul></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">12.14</div><h2>
+What is Git Push?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. What is Git Push?</span><h4>1.1 Definition</h4>
+<p><code>git push</code> <strong>uploads local commits</strong> (and the objects they need) to a remote repository and <strong>updates the remote branch</strong> to point to your latest commit.</p>
+<pre><code class="language-text">Local:   A ── B ── C ── D (main)              Remote before: A ── B (main)
+git push origin main     ─────────────►        Remote after:  A ── B ── C ── D (main)
+</code></pre>
+<h4>1.2 Rules</h4>
+<ul>
+<li>Only committed work is pushed.</li>
+<li>By default, the remote must be able to <strong>fast-forward</strong> — otherwise the push is rejected.</li>
+<li>You need write permission, and branch protection rules must allow it.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">12.15</div><h2>
+What is Git Pull?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. What is Git Pull?</span><h4>2.1 Definition</h4>
+<p><code>git pull</code> <strong>downloads commits from the remote and integrates them into your current branch</strong>. It is two commands in one:</p>
+<pre><code class="language-text">git pull  =  git fetch  +  git merge  origin/&lt;branch&gt;     (default)
+git pull --rebase  =  git fetch  +  git rebase  origin/&lt;branch&gt;
+</code></pre>
+<h4>2.2 Effect</h4>
+<p>Your working directory and local branch are updated; conflicts may occur.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">12.16</div><h2>
+What is Git Fetch?
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. What is Git Fetch?</span><h4>3.1 Definition</h4>
+<p><code>git fetch</code> <strong>downloads commits, branches and tags from the remote</strong> and updates your <strong>remote-tracking branches</strong> (<code>origin/main</code>), <strong>without modifying your local branches or working files</strong>.</p>
+<h4>3.2 Why fetch first?</h4>
+<p>You can review what changed before integrating:</p>
+<pre><code class="language-bash">git fetch
+git log --oneline main..origin/main
+git diff main origin/main -- sql/
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">12.17</div><h2>
+Difference Between Push, Pull and Fetch
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Difference Between Push, Pull and Fetch</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th><code>git push</code></th>
+<th><code>git fetch</code></th>
+<th><code>git pull</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direction</td>
+<td>Local → Remote</td>
+<td>Remote → Local</td>
+<td>Remote → Local</td>
+</tr>
+<tr>
+<td>Updates remote branches</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Updates remote-tracking branches</td>
+<td>Yes (for pushed branch)</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Updates your local branch</td>
+<td>No</td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Updates working directory</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Can cause conflicts</td>
+<td>Rejection if behind</td>
+<td>Never</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Safe to run anytime</td>
+<td>Mostly</td>
+<td><strong>Always</strong></td>
+<td>When working dir is clean</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-text">               push
+   Local  ─────────────►  Remote
+          ◄─────────────
+          fetch (to origin/*)  →  merge/rebase  =  pull
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">12.18</div><h2>
+Push Local Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Push Local Branches</span><pre><code class="language-bash">git push                              # current branch to its upstream
+git push origin main                  # specific branch
+git push origin feature/orders        # another branch (doesn't need to be checked out)
+git push origin HEAD                  # current branch to same-named remote branch
+git push origin main develop          # multiple branches
+git push --all origin                 # all local branches
+</code></pre>
+<p>Configure default push behaviour:</p>
+<pre><code class="language-bash">git config --global push.default simple           # default: push current branch to its upstream with same name
+git config --global push.autoSetupRemote true     # first push automatically sets upstream
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">12.19</div><h2>
+Push New Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Push New Branches</span><p>A branch created locally doesn't exist on the remote until you push it:</p>
+<pre><code class="language-bash">git switch -c feature/DE-1500-dim-date
+# commit work...
+git push -u origin feature/DE-1500-dim-date
+</code></pre>
+<pre><code class="language-text"> * [new branch]      feature/DE-1500-dim-date -&gt; feature/DE-1500-dim-date
+branch 'feature/DE-1500-dim-date' set up to track 'origin/feature/DE-1500-dim-date'.
+remote: Create a pull request for 'feature/DE-1500-dim-date' on GitHub by visiting:
+remote:      https://github.com/ravi/retail-data-platform/pull/new/feature/DE-1500-dim-date
+</code></pre>
+<p>Push under a different remote name:</p>
+<pre><code class="language-bash">git push -u origin local-name:remote-name
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">12.20</div><h2>
+Pull Remote Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Pull Remote Branches</span><pre><code class="language-bash">git pull                             # update current branch
+git pull origin develop              # merge origin/develop into current branch
+git switch feature/orders            # create local branch from origin/feature/orders (auto-tracking)
+git pull
+git switch -c feature/orders --track origin/feature/orders   # explicit
+</code></pre>
+<p>Pull with rebase to avoid unnecessary merge commits on your feature branch:</p>
+<pre><code class="language-bash">git pull --rebase origin main
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">12.21</div><h2>
+Fetch Specific Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Fetch Specific Branches</span><pre><code class="language-bash">git fetch origin feature/orders
+git fetch origin main:refs/remotes/origin/main     # explicit refspec
+git fetch upstream main
+git log origin/feature/orders --oneline -5
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">12.22</div><h2>
+Fetch All Branches
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Fetch All Branches</span><pre><code class="language-bash">git fetch --all              # all remotes
+git fetch --all --prune      # and remove deleted branches
+git fetch --tags             # all tags
+git branch -r                # see what's available
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">12.23</div><h2>
+Synchronizing Local and Remote Repositories
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Synchronizing Local and Remote Repositories</span><h4>10.1 Daily routine</h4>
+<pre><code class="language-bash"># Start of day
+git switch main
+git pull --ff-only
+git switch feature/my-work
+git merge main                 # or: git rebase main
+
+# During the day
+git add . &amp;&amp; git commit -m &quot;...&quot;
+git push
+
+# Before opening/updating a PR
+git fetch origin
+git merge origin/main          # or rebase
+git push
+</code></pre>
+<h4>10.2 Check sync status</h4>
+<pre><code class="language-bash">git status
+git branch -vv
+git log --oneline --graph --all -15
+</code></pre>
+<h4>10.3 Reset local branch to exactly match remote (discard local commits)</h4>
+<pre><code class="language-bash">git fetch origin
+git reset --hard origin/main
+</code></pre>
+<div class="callout c-warn"><p><strong>Warning</strong> This throws away unpushed local commits on that branch.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">12.24</div><h2>
+Handling Rejected Pushes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Handling Rejected Pushes</span><h4>11.1 The error</h4>
+<pre><code class="language-text">To https://github.com/ravi/retail-data-platform.git
+ ! [rejected]        main -&gt; main (fetch first)
+error: failed to push some refs to 'https://github.com/ravi/retail-data-platform.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref.
+</code></pre>
+<h4>11.2 Cause</h4>
+<p>Someone pushed new commits to the remote branch after your last fetch. Your push would overwrite them, so Git refuses.</p>
+<h4>11.3 Fix</h4>
+<pre><code class="language-bash">git pull --rebase          # replay your commits on top of the remote ones (clean history)
+# or
+git pull                   # merge remote into yours (creates a merge commit)
+# resolve conflicts if any
+git push
+</code></pre>
+<h4>11.4 Other rejection reasons</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>protected branch hook declined</code> / <code>GH006</code></td>
+<td>Branch protection — direct push to <code>main</code> not allowed</td>
+<td>Push to a feature branch and open a PR</td>
+</tr>
+<tr>
+<td><code>Permission denied</code> / <code>403</code></td>
+<td>No write access or wrong credentials</td>
+<td>Request access; fix credentials</td>
+</tr>
+<tr>
+<td><code>pre-receive hook declined</code></td>
+<td>Server-side policy (e.g. secret detected, file too large)</td>
+<td>Remove the offending content</td>
+</tr>
+<tr>
+<td><code>src refspec main does not match any</code></td>
+<td>No commits yet, or branch has another name</td>
+<td>Commit first; check <code>git branch</code></td>
+</tr>
+<tr>
+<td><code>File ... exceeds GitHub's file size limit of 100.00 MB</code></td>
+<td>Large file</td>
+<td>Remove from history, use Git LFS</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">12.25</div><h2>
+Non-Fast-Forward Errors
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Non-Fast-Forward Errors</span><h4>12.1 What it means</h4>
+<p>A push is <strong>non-fast-forward</strong> when the remote branch contains commits that are <strong>not ancestors</strong> of your local branch — your history and the remote's history have <strong>diverged</strong>.</p>
+<pre><code class="language-text">Remote:  A ── B ── X
+Local:   A ── B ── C
+</code></pre>
+<p>Updating the remote to C would lose X.</p>
+<pre><code class="language-text"> ! [rejected]        main -&gt; main (non-fast-forward)
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart.
+</code></pre>
+<h4>12.2 Common causes</h4>
+<ul>
+<li>A teammate pushed (X) while you committed (C).</li>
+<li>You <strong>amended or rebased</strong> commits that were already pushed.</li>
+</ul>
+<h4>12.3 Solutions</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Teammate pushed new work</td>
+<td><code>git pull --rebase</code> (or <code>git pull</code>) then <code>git push</code></td>
+</tr>
+<tr>
+<td>You rewrote your own feature branch</td>
+<td><code>git push --force-with-lease</code></td>
+</tr>
+<tr>
+<td>You rewrote a shared branch by mistake</td>
+<td>Don't force; restore: <code>git reset --hard origin/&lt;branch&gt;</code> and redo changes properly</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">12.26</div><h2>
+Resolving Remote Conflicts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Resolving Remote Conflicts</span><p>When pulling produces conflicts:</p>
+<p><strong>With merge (<code>git pull</code>):</strong></p>
+<pre><code class="language-bash">git pull
+# CONFLICT (content): Merge conflict in sql/views/vw_sales.sql
+# edit files, remove markers
+git add sql/views/vw_sales.sql
+git commit                 # completes the merge
+git push
+</code></pre>
+<p><strong>With rebase (<code>git pull --rebase</code>):</strong></p>
+<pre><code class="language-bash">git pull --rebase
+# CONFLICT ... could not apply c3d4e5f
+# edit files
+git add sql/views/vw_sales.sql
+git rebase --continue      # repeat for each conflicting commit
+git push
+# give up instead:
+git rebase --abort
+</code></pre>
+<div class="callout c-tip"><p><strong>Tip</strong> If you're unsure, <code>git fetch</code> first and inspect <code>git diff HEAD origin/main</code> to see what's coming before integrating.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">12.27</div><h2>
+Force Push and Its Risks
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Force Push and Its Risks</span><h4>14.1 What it does</h4>
+<pre><code class="language-bash">git push --force        # or: git push -f
+</code></pre>
+<p>Overwrites the remote branch with your local branch <strong>regardless of what's on the remote</strong>.</p>
+<h4>14.2 Risks</h4>
+<ul>
+<li><strong>Deletes teammates' commits</strong> pushed since your last fetch.</li>
+<li>Breaks other people's clones (their history no longer matches).</li>
+<li>Bypasses review and can destroy audit history.</li>
+<li>Can trigger incorrect deployments.</li>
+</ul>
+<h4>14.3 Legitimate uses</h4>
+<ul>
+<li>After <code>git commit --amend</code> or <code>git rebase -i</code> on <strong>your own feature branch</strong>.</li>
+<li>Removing accidentally pushed secrets (combined with secret rotation).</li>
+</ul>
+<h4>14.4 Golden rules</h4>
+<ul>
+<li><strong>Never force-push <code>main</code>, <code>develop</code> or release branches.</strong> Protect them with "Block force pushes".</li>
+<li>Prefer <code>--force-with-lease</code>.</li>
+<li>Tell your team if you must force-push a shared branch.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">12.28</div><h2>
+Safe Force Push Using --force-with-lease
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. Safe Force Push Using --force-with-lease</span><h4>15.1 How it works</h4>
+<p><code>--force-with-lease</code> overwrites the remote branch <strong>only if it is still at the commit your <code>origin/&lt;branch&gt;</code> remote-tracking branch says it is</strong>. If someone else pushed in the meantime, the push is rejected instead of deleting their work.</p>
+<pre><code class="language-bash">git rebase -i main                    # rewrite your feature branch
+git push --force-with-lease
+</code></pre>
+<pre><code class="language-text"> ! [rejected]        feature/orders -&gt; feature/orders (stale info)
+</code></pre>
+<p>— meaning someone pushed new commits; fetch, integrate, then retry.</p>
+<h4>15.2 Even safer</h4>
+<pre><code class="language-bash">git push --force-with-lease --force-if-includes
+</code></pre>
+<p><code>--force-if-includes</code> (Git 2.30+) also verifies that the remote tip you are overwriting was actually incorporated into your local branch — protecting against background <code>git fetch</code> (e.g. by IDEs) updating <code>origin/&lt;branch&gt;</code> without you noticing.</p>
+<pre><code class="language-bash">git config --global alias.pushf &quot;push --force-with-lease --force-if-includes&quot;
+</code></pre>
+<h4>15.3 Comparison</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Overwrites teammate's new commits?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--force</code></td>
+<td>Yes — always</td>
+</tr>
+<tr>
+<td><code>--force-with-lease</code></td>
+<td>No — rejects if remote moved since your last fetch</td>
+</tr>
+<tr>
+<td><code>--force-with-lease --force-if-includes</code></td>
+<td>No — also safe against background fetches</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — Default behaviour of `git pull`</span><p><strong>S13, S38 and S41</strong> describe <code>git pull</code> as "fetch + merge" by default (S13 also shows the <code>--rebase</code> and <code>--ff-only</code> modes). <strong>S40</strong> describes the configurable behaviour. <strong>Resolution (verified against git-pull docs):</strong> pull fast-forwards when you are only behind; when branches have diverged you must choose via <code>--rebase</code>, <code>--no-rebase</code>, <code>--ff-only</code> or the <code>pull.rebase</code>/<code>pull.ff</code> settings — otherwise Git 2.33+ stops with an error. "fetch + merge" describes <code>--no-rebase</code>, not an unconditional default.</p></div><div class="c-add"><span class="ct">Multiple remotes and pushing everywhere (S38)</span><p>With several remotes (<code>origin</code>, <code>azure</code>), push explicitly: <code>git push azure main</code>. <code>git fetch --all</code> updates every remote. A remote can have several push URLs (<code>git remote set-url --add --push origin &lt;url&gt;</code>), but mirroring is usually better handled by a CI job.</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 136" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="82.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git fetch:</text><text x="82.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">remote branches</text><text x="82.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">→ origin/* (no</text><text x="82.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">working-tree</text><text x="82.5" y="104.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">change)</text><line x1="148.0" y1="68.0" x2="176.0" y2="68.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="179.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="241.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git merge</text><text x="241.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">origin/main or</text><text x="241.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git rebase</text><text x="241.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">origin/main:</text><text x="241.5" y="104.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">integrate</text><line x1="307.0" y1="68.0" x2="335.0" y2="68.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="338.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="400.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git pull = fetch</text><text x="400.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">+ (merge</text><line x1="466.0" y1="68.0" x2="494.0" y2="68.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="559.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">rebase</text><line x1="625.0" y1="68.0" x2="653.0" y2="68.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="656.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="718.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">ff-only)</text><line x1="784.0" y1="68.0" x2="812.0" y2="68.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="815.0" y="15.0" width="125.0" height="106" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="877.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">git push: local</text><text x="877.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">commits → remote</text><text x="877.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">branch (must</text><text x="877.5" y="96.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">fast-forward)</text></svg></div><figcaption>fetch, merge/rebase, pull and push</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 170" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><text x="12.0" y="44.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#2f6fd6" text-anchor="start">main</text><line x1="180" y1="40" x2="290" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><line x1="290" y1="40" x2="400" y2="40" stroke="#2f6fd6" stroke-width="2.5"/><text x="12.0" y="114.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#137a4b" text-anchor="start">origin/main</text><path d="M290,40 C345.0,40 345.0,110 384,110" fill="none" stroke="#137a4b" stroke-width="2.5"/><circle cx="180" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="180.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">A</text><circle cx="290" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="290.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">B</text><circle cx="400" cy="40" r="15" fill="#fff" stroke="#2f6fd6" stroke-width="2.5"/><text x="400.0" y="44.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">C</text><circle cx="400" cy="110" r="15" fill="#fff" stroke="#137a4b" stroke-width="2.5"/><text x="400.0" y="114.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" fill="#10284a" text-anchor="middle">D</text></svg></div><figcaption>Diverged: local main has C, origin/main has D — pull must merge or rebase</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">up to date</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Local branch and origin/&lt;branch&gt; point to the same commit (as of the last fetch)</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">ahead N</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">You have N commits not on the remote — push them</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">behind N</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">The remote has N commits you lack — pull (fast-forward)</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">diverged (ahead N, behind M)</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Both sides have new commits — merge or rebase, then push</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">[gone]</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">The remote branch was deleted — delete the local branch if merged</text></svg></div><figcaption>Reading git status / git branch -vv</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-fetch"><header>git fetch</header><dl><dt>Syntax</dt><dd><pre><code>git fetch [&lt;remote&gt;] [--all] [--prune] [--tags]</code></pre></dd><dt>Purpose</dt><dd>Download new commits and update remote-tracking branches without touching your working tree.</dd><dt>Expected output</dt><dd><pre><code>remote: Enumerating objects: 9, done.
+From github.com:retail-data/enterprise-retail-data-platform
+   5c2e9ab..e41f0c2  main       -&gt; origin/main
+ * [new branch]      feature/RDP-107-dim-product -&gt; origin/feature/RDP-107-dim-product
+ - [deleted]         (none)     -&gt; origin/feature/RDP-101-dim-customer</code></pre></dd><dt>Example</dt><dd><pre><code>git fetch --prune
+git log --oneline HEAD..origin/main     # what is incoming
+git diff HEAD...origin/main --stat</code></pre></dd><dt>Common mistakes</dt><dd>Expecting <code>git fetch</code> to update your files — it never changes the working tree.</dd></dl></div><div class="cmd" id="cmd-git-pull"><header>git pull</header><dl><dt>Syntax</dt><dd><pre><code>git pull [--rebase | --no-rebase | --ff-only] [&lt;remote&gt; [&lt;branch&gt;]]</code></pre></dd><dt>Purpose</dt><dd>Fetch and integrate the upstream branch into the current branch.</dd><dt>Key parameters</dt><dd><ul><li><code>--ff-only</code> — only fast-forward; fail if diverged (safe for main)</li><li><code>--rebase</code> — replay your local commits on top of the remote</li><li><code>--no-rebase</code> — merge (creates a merge commit when diverged)</li><li><code>--autostash</code> — stash and re-apply local changes automatically</li></ul></dd><dt>Behaviour</dt><dd>If you are only <em>behind</em>, pull fast-forwards. If branches have <em>diverged</em> and no <code>pull.rebase</code>/<code>pull.ff</code> is configured (and no flag given), Git stops with an error asking you to choose (Git 2.33+).</dd><dt>Expected output</dt><dd><pre><code>hint: You have divergent branches and need to specify how to reconcile them.
+hint: You can do so by running one of the following commands sometime before
+hint: your next pull:
+hint:
+hint:   git config pull.rebase false  # merge
+hint:   git config pull.rebase true   # rebase
+hint:   git config pull.ff only       # fast-forward only
+...
+fatal: Need to specify how to reconcile divergent branches.</code></pre></dd><dt>Example</dt><dd><pre><code>git config --global pull.rebase true     # team choice for feature branches
+git pull                                    # rebases local commits on origin/&lt;branch&gt;
+git switch main &amp;&amp; git pull --ff-only       # main never gets accidental merge commits</code></pre></dd><dt>Common mistakes</dt><dd>Pulling with uncommitted changes that conflict; using <code>--rebase</code> on a branch others have based work on.</dd></dl></div><div class="cmd" id="cmd-git-push"><header>git push</header><dl><dt>Syntax</dt><dd><pre><code>git push [-u] [&lt;remote&gt;] [&lt;branch&gt;]
+git push &lt;remote&gt; --delete &lt;branch&gt;
+git push --force-with-lease
+git push &lt;remote&gt; &lt;tag&gt; | --tags | --follow-tags</code></pre></dd><dt>Purpose</dt><dd>Upload local commits (and optionally tags) to the remote.</dd><dt>Expected output</dt><dd><pre><code>To github.com:retail-data/enterprise-retail-data-platform.git
+ ! [rejected]        feature/RDP-102-orders-ingest -&gt; feature/RDP-102-orders-ingest (fetch first)
+error: failed to push some refs to &#x27;github.com:retail-data/enterprise-retail-data-platform.git&#x27;
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. ...</code></pre></dd><dt>Example</dt><dd><pre><code>git push
+git push origin --delete feature/RDP-101-dim-customer
+git push --force-with-lease          # after rebasing YOUR feature branch</code></pre></dd><dt>Common mistakes</dt><dd><code>git push --force</code> on a shared branch overwrites colleagues' commits.</dd><dt>Troubleshooting</dt><dd>For a rejected push: <code>git pull --rebase</code> (or merge), resolve conflicts, test, <code>git push</code>. Use <code>--force-with-lease</code>, which refuses if the remote moved since your last fetch.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 4: GitHub collaboration</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 4 — Daily synchronization routine</span><pre><code class="language-bash"># Morning
+git switch main
+git fetch --prune
+git log --oneline HEAD..origin/main          # review what colleagues merged
+git pull --ff-only
+
+# Update the feature branch with main (team uses rebase for unshared feature branches)
+git switch feature/RDP-102-orders-ingest
+git rebase main                              # or: git merge main
+python -m pytest -q
+git push --force-with-lease                  # branch history changed by the rebase
+
+# A push is rejected because Ravi pushed a fix to the same branch
+git pull --rebase
+git push
+
+# Clean up after the PR is merged
+git switch main &amp;&amp; git pull --ff-only
+git branch -d feature/RDP-102-orders-ingest
+git fetch --prune
+git branch -vv | grep ': gone]'              # local branches whose remote was deleted
+</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S13, S40 · &quot;fatal: Need to specify how to reconcile divergent branches&quot;</span><p>The developer has local commits and the remote has new ones; no pull strategy is configured. Choose per policy: <code>git pull --rebase</code> on personal feature branches, <code>--no-rebase</code> if the team merges, <code>--ff-only</code> on main (then rebase/merge explicitly). Persist with <code>git config pull.rebase true</code> or <code>pull.ff only</code>.</p></div><div class="src"><span class="tag add">Course addition · A force push erased a colleague&#x27;s commit</span><p>Recovery: the colleague still has the commit locally (or in their reflog) — they push it again to a branch; or find it on the hosting platform's PR/activity view. Prevention: protect branches (block force pushes) and use <code>--force-with-lease</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Fetch often; pull deliberately.</li>
+<li>Configure a pull strategy explicitly (<code>pull.rebase</code> or <code>pull.ff</code>).</li>
+<li><code>pull --ff-only</code> on <code>main</code>; rebase only branches nobody else builds on.</li>
+<li>Never <code>--force</code> shared branches; prefer <code>--force-with-lease</code> (and <code>--force-if-includes</code>).</li>
+<li>Push small, frequent commits; delete merged remote branches.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>! [rejected] ... (fetch first)</code></td>
+<td>Remote has commits you do not have</td>
+<td><code>git pull --rebase</code> or merge, then push</td>
+</tr>
+<tr>
+<td><code>! [rejected] ... (non-fast-forward)</code></td>
+<td>Your branch is behind/diverged (often after amend/rebase)</td>
+<td>Integrate, or <code>--force-with-lease</code> on your own branch</td>
+</tr>
+<tr>
+<td><code>fatal: Need to specify how to reconcile divergent branches.</code></td>
+<td>Diverged, no pull strategy</td>
+<td>Choose <code>--rebase</code>/<code>--no-rebase</code>/<code>--ff-only</code></td>
+</tr>
+<tr>
+<td><code>fatal: Not possible to fast-forward, aborting.</code></td>
+<td><code>--ff-only</code> and diverged</td>
+<td>Rebase or merge explicitly</td>
+</tr>
+<tr>
+<td><code>error: cannot pull with rebase: You have unstaged changes.</code></td>
+<td>Dirty working tree</td>
+<td>Commit, stash or <code>--autostash</code></td>
+</tr>
+<tr>
+<td><code>stale info</code> on force-with-lease</td>
+<td>Remote moved since your fetch</td>
+<td>Fetch, inspect, integrate, push again</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Clone a repo twice (A and B). Commit and push from A; in B run <code>git fetch</code> then <code>git status</code>.</p><span class="exp-out">B reports "behind 1"; files unchanged until <code>git pull</code>.</span></li><li><p>Commit in both A and B to main; pull in B with no config.</p><span class="exp-out">The divergent-branches error appears.</span></li><li><p>Repeat with <code>git pull --rebase</code>.</p><span class="exp-out">Linear history; B's commit is on top.</span></li><li><p>Rebase a pushed feature branch and push with <code>--force-with-lease</code>.</p><span class="exp-out">Push succeeds; repeat after a push from A — lease is refused.</span></li><li><p>Delete a remote branch and run <code>git fetch --prune</code> in the other clone.</p><span class="exp-out"><code>[deleted]</code> line and <code>: gone]</code> in <code>git branch -vv</code>.</span></li></ol></div><div class="src"><span class="tag ">Source S13 · Chapter manual · lab</span><p>Complete this exercise using a test repository, not a production repository.</p>
+<ol>
+<li>Create a new empty repository on GitHub or another Git hosting platform.</li>
+<li>Clone it to your computer and inspect <code>git remote -v</code>.</li>
+<li>Create a file named <code>README.md</code>, commit it and push it.</li>
+<li>Create a local branch named <code>feature/data-quality</code>.</li>
+<li>Add a sample SQL file, commit it and publish the branch using <code>git push -u origin feature/data-quality</code>.</li>
+<li>Make a small change to the remote branch through the hosting website.</li>
+<li>Run <code>git fetch origin</code> and inspect the remote-tracking branch.</li>
+<li>Compare your local branch with <code>origin/feature/data-quality</code>.</li>
+<li>Integrate the remote change using the workflow selected for the exercise (merge or rebase).</li>
+<li>Run <code>git branch -vv</code> and explain the tracking relationship.</li>
+</ol>
+<h4>Validation commands</h4>
+<div class="code">git remote -v
+git branch -a
+git branch -vv
+git fetch --prune
+git status -sb
+git log --oneline --graph --decorate --all</div>
+<h4>Expected understanding</h4>
+<ul><li><code>origin</code> identifies the remote URL.</li><li><code>origin/feature/data-quality</code> is a remote-tracking branch.</li><li><code>feature/data-quality</code> is your local working branch.</li><li>Fetch refreshes remote-tracking references; pull integrates; push publishes local commits.</li></ul></div><div class="src"><span class="tag s40">Source S40 · 16. Practical Exercise – Chapter 12</span><p>Using two clones (<code>retail-data-platform</code> and <code>rdp-dev2</code>):</p>
+<ol>
+<li>Commit and push from <code>rdp-dev2</code>.</li>
+<li>Commit in the first clone and push — observe the rejection.</li>
+<li>Fix with <code>git pull --rebase</code> and push.</li>
+<li>Edit the same line in both clones; push from one; pull in the other and resolve the conflict.</li>
+<li>On a feature branch, rewrite history with <code>git commit --amend</code>; try <code>git push</code> (rejected), then <code>git push --force-with-lease</code>.</li>
+<li>Simulate a teammate push to that branch, then retry <code>--force-with-lease</code> and observe the "stale info" rejection.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 12 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S13 · Chapter manual · interview</span><div class="qa"><b>1. What is a remote-tracking branch?</b><p>A local reference that records the last fetched state of a branch on a remote repository, such as <code>origin/main</code>.</p></div>
+<div class="qa"><b>2. Is <code>origin/main</code> a branch on the remote server?</b><p>Not in your local naming context. It is a local remote-tracking reference representing the remote's <code>main</code> branch.</p></div>
+<div class="qa"><b>3. What is the difference between <code>main</code> and <code>origin/main</code>?</b><p><code>main</code> is a local branch; <code>origin/main</code> is your local record of the remote branch.</p></div>
+<div class="qa"><b>4. Does <code>git fetch</code> modify my working files?</b><p>Not by itself. It downloads objects and updates remote-tracking references without integrating them into the checked-out branch.</p></div>
+<div class="qa"><b>5. What does <code>git pull</code> do?</b><p>It fetches from a remote and then integrates the changes into the current branch, usually by merge unless rebase behavior is selected.</p></div>
+<div class="qa"><b>6. What is an upstream branch?</b><p>The branch configured as the tracking counterpart for a local branch, commonly used as the default pull source and push destination.</p></div>
+<div class="qa"><b>7. What does <code>git push -u origin feature/x</code> do?</b><p>It pushes the local branch to the remote and sets its upstream tracking relationship.</p></div>
+<div class="qa"><b>8. How do you list remote-tracking branches?</b><p>Use <code>git branch -r</code>; use <code>git branch -a</code> to show local and remote-tracking branches.</p></div>
+<div class="qa"><b>9. What is the purpose of <code>git branch -vv</code>?</b><p>It displays local branches, their latest commits, upstream branches and ahead/behind status.</p></div>
+<div class="qa"><b>10. Does <code>git remote remove origin</code> delete the GitHub repository?</b><p>No. It removes the remote's local configuration only.</p></div>
+<div class="qa"><b>11. Why can a push be rejected as non-fast-forward?</b><p>The remote branch contains commits not included in the local branch. Fetch and integrate those commits before pushing.</p></div>
+<div class="qa"><b>12. What does <code>git fetch --prune</code> do?</b><p>It removes local remote-tracking references for branches that no longer exist on the remote.</p></div>
+<div class="qa"><b>13. Is <code>origin</code> a reserved keyword?</b><p>No. It is a conventional remote name and can be changed or replaced.</p></div>
+<div class="qa"><b>14. How can you check the upstream of the current branch?</b><p>Use <code>git rev-parse --abbrev-ref --symbolic-full-name @{upstream}</code> or <code>git branch -vv</code>.</p></div>
+<div class="qa"><b>15. When should you use fetch instead of pull?</b><p>When you want to review incoming commits or differences before integrating them into your current branch.</p></div></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 12 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Difference between fetch and pull?</td>
+<td>Fetch downloads only; pull fetches and merges/rebases</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>What is a non-fast-forward error?</td>
+<td>Remote has commits not in your branch; push would lose them</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>How do you fix a rejected push?</td>
+<td><code>git pull --rebase</code> (or merge), resolve, push</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What does <code>git pull --rebase</code> do?</td>
+<td>Fetches then replays your local commits on top of remote</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Why is <code>git push --force</code> dangerous?</td>
+<td>It can delete others' commits on the remote</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is <code>--force-with-lease</code>?</td>
+<td>Force push that fails if the remote moved since your last fetch</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you push a new branch?</td>
+<td><code>git push -u origin &lt;branch&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>How do you make local main identical to remote?</td>
+<td><code>git fetch</code> then <code>git reset --hard origin/main</code></td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is the difference between <code>git fetch</code> and <code>git pull</code>?</summary><div class="ans"><p>Fetch downloads commits and updates remote-tracking branches only; pull fetches and then integrates (merge, rebase or fast-forward) into the current branch.</p></div></details><details class="qa"><summary>What is <code>origin/main</code>?</summary><div class="ans"><p>A remote-tracking branch: your local, read-only record of where <code>main</code> was on <code>origin</code> at the last fetch.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Why is a push rejected as non-fast-forward?</summary><div class="ans"><p>The remote branch contains commits that are not in your local branch; pushing would discard them.</p></div></details><details class="qa"><summary>What does <code>git pull --rebase</code> do?</summary><div class="ans"><p>Fetches, then replays your local commits on top of the updated remote branch, producing linear history without a merge commit.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Explain <code>--force-with-lease</code> and why it is safer than <code>--force</code>.</summary><div class="ans"><p>It overwrites the remote branch only if it still points to the commit your remote-tracking branch recorded; if someone pushed meanwhile, the push is refused.</p></div></details><details class="qa"><summary>What changed in <code>git pull</code> behaviour in recent Git versions?</summary><div class="ans"><p>Since Git 2.33, if the branches have diverged and no strategy is configured or given, pull errors with "Need to specify how to reconcile divergent branches" instead of merging silently.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>CI fails because a branch "behind main by 20 commits" is tested. How do you update it?</summary><div class="ans"><p><code>git fetch</code>, then <code>git rebase origin/main</code> (or <code>git merge origin/main</code>), fix conflicts, run tests, push (<code>--force-with-lease</code> after a rebase). On GitHub the "Update branch" button does the merge/rebase server-side.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which command updates <code>origin/main</code> but not your files?</strong></p><ol><li data-ok="0">git pull</li><li data-ok="1">git fetch</li><li data-ok="0">git push</li><li data-ok="0">git merge</li></ol><div class="exp">Fetch only updates remote-tracking refs.</div></div><div class="mcq"><p><strong>2. You are only behind the remote (no local commits). What does <code>git pull</code> do by default?</strong></p><ol><li data-ok="0">Creates a merge commit</li><li data-ok="1">Fast-forwards</li><li data-ok="0">Fails with divergent branches</li><li data-ok="0">Rebases nothing and errors</li></ol><div class="exp">Behind-only pulls fast-forward.</div></div><div class="mcq"><p><strong>3. Safest way to overwrite your own feature branch on the remote after a rebase?</strong></p><ol><li data-ok="0">git push --force</li><li data-ok="1">git push --force-with-lease</li><li data-ok="0">git push --delete</li><li data-ok="0">git push --all</li></ol><div class="exp">The lease protects others' commits.</div></div><div class="mcq"><p><strong>4. What does <code>git branch -vv</code> show as <code>[origin/x: gone]</code>?</strong></p><ol><li data-ok="0">Branch has conflicts</li><li data-ok="1">The upstream branch no longer exists on the remote</li><li data-ok="0">Branch is protected</li><li data-ok="0">Branch is ahead</li></ol><div class="exp">The remote branch was deleted.</div></div><div class="mcq"><p><strong>5. <code>git log HEAD..origin/main</code> lists…</strong></p><ol><li data-ok="0">Your unpushed commits</li><li data-ok="1">Commits on origin/main not yet in your branch</li><li data-ok="0">All commits</li><li data-ok="0">Tags only</li></ol><div class="exp"><code>A..B</code> = reachable from B, not from A.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Remote-tracking branches record the remote state at your last fetch.</li>
+<li><code>fetch</code> is always safe; <code>pull</code> integrates using merge, rebase or fast-forward — configure which.</li>
+<li><code>push</code> must fast-forward; rejected pushes mean "integrate first".</li>
+<li>Use <code>--force-with-lease</code> only on your own branches; protect shared branches.</li>
+</ul></div><div class="src"><span class="tag ">Source S13 · Chapter manual · summary</span><ul><li>Remote names such as <code>origin</code> point to repository URLs.</li><li>Remote-tracking branches such as <code>origin/main</code> are local records of remote branch state.</li><li>Local branches can track remote-tracking branches through an upstream relationship.</li><li><code>git fetch</code> downloads and updates remote-tracking information without integrating it.</li><li><code>git pull</code> fetches and integrates; <code>git push</code> publishes local commits.</li><li>Use <code>git branch -vv</code>, <code>git status -sb</code> and <code>git log --graph</code> to inspect synchronization.</li></ul>
+<h4>Official documentation</h4>
+<ul>
+<li><a href="https://git-scm.com/docs/git-remote" rel="noopener" target="_blank">git remote</a></li>
+<li><a href="https://git-scm.com/docs/git-fetch" rel="noopener" target="_blank">git fetch</a></li>
+<li><a href="https://git-scm.com/docs/git-pull" rel="noopener" target="_blank">git pull</a></li>
+<li><a href="https://git-scm.com/docs/git-push" rel="noopener" target="_blank">git push</a></li>
+<li><a href="https://git-scm.com/docs/git-branch" rel="noopener" target="_blank">git branch</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Branching-Remote-Branches" rel="noopener" target="_blank">Pro Git: Remote Branches</a></li>
+</ul>
+<div class="callout good"><strong>Recommended next step:</strong> Complete the practical lab and practice explaining the difference between <code>main</code>, <code>origin/main</code> and the upstream relationship without looking at the notes.</div></div><div class="src"><span class="tag s40">Source S40 · 18. Chapter 12 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Push</td>
+<td>Upload commits to remote</td>
+</tr>
+<tr>
+<td>Fetch</td>
+<td>Download without integrating</td>
+</tr>
+<tr>
+<td>Pull</td>
+<td>Fetch + merge/rebase</td>
+</tr>
+<tr>
+<td>Rejected / non-fast-forward</td>
+<td>Remote ahead or diverged — integrate first</td>
+</tr>
+<tr>
+<td>Force push</td>
+<td>Overwrites remote — avoid on shared branches</td>
+</tr>
+<tr>
+<td><code>--force-with-lease</code></td>
+<td>Safe force push</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Explain remote-tracking branches and read "ahead/behind/diverged" in <code>git status</code> and <code>git branch -vv</code>.</li><li>Use <code>git fetch</code> to inspect incoming work before integrating it (<code>git log HEAD..origin/main</code>).</li><li>Configure and use <code>git pull</code> with merge, rebase or fast-forward-only behaviour, and resolve the "divergent branches" error.</li><li>Push branches and tags, delete remote branches, and handle rejected pushes.</li><li>Use <code>--force-with-lease</code> (never plain <code>--force</code> on shared branches).</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-fetch">git-fetch</a> · <a href="https://git-scm.com/docs/git-pull">git-pull</a> · <a href="https://git-scm.com/docs/git-push">git-push</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Branching-Remote-Branches">Pro Git — Remote Branches</a></li>
+<li><a href="https://docs.github.com/en/get-started/using-git/dealing-with-non-fast-forward-errors">GitHub Docs — Dealing with non-fast-forward errors</a></li>
+<li><a href="https://docs.github.com/en/get-started/using-git/getting-changes-from-a-remote-repository">GitHub Docs — Getting changes from a remote repository</a></li>
+</ul></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_11_Connecting_Local_and_Remote_Repositories.html"><span class="mn-label">← Previous</span><span class="mn-title">Connecting Local and Remote Repositories</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_13_GitHub_Fundamentals.html"><span class="mn-label">Next →</span><span class="mn-title">GitHub Fundamentals</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

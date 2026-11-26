@@ -1,0 +1,1384 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Map reset modes (--soft, --mixed, --hard) to their effect on HEAD/branch, index and working tree."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Reset, Revert and Restore — Chapter 18 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Reset, Revert and Restore</div>
+<div class="brand-sub">Chapter 18 · 38 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">18.1</span>Understanding the three areas</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">18.2</span>Understanding reset</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">18.3</span>Soft, mixed and hard reset</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">18.4</span>Understanding revert</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">18.5</span>Understanding restore</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">18.6</span>Reset vs Revert vs Restore</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">18.7</span>Undoing latest or multiple commits</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">18.8</span>Removing staged files and recovering modified files</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">18.9</span>Recovering deleted files</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">18.10</span>Safe recovery techniques and troubleshooting</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">18.11</span>Real-time scenarios</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">18.12</span>Understanding Reset</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">18.13</span>Soft Reset</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">18.14</span>Mixed Reset</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">18.15</span>Hard Reset</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">18.16</span>Understanding Revert</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">18.17</span>Understanding Restore</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">18.18</span>Reset vs Revert vs Restore</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">18.19</span>Undoing the Latest Commit</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">18.20</span>Undoing Multiple Commits</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">18.21</span>Removing Staged Files</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">18.22</span>Recovering Modified Files</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">18.23</span>Recovering Deleted Files</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">18.24</span>Safe Recovery Techniques</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">18.25</span>Real-Time Troubleshooting Scenarios</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">🎯</span>Chapter 18 Interview Questions</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 6 · Chapter 18</div><h1>Git Reset, Revert and Restore</h1><p class="page-subtitle">Map reset modes (<code>--soft</code>, <code>--mixed</code>, <code>--hard</code>) to their effect on HEAD/branch, index and working tree.</p><div class="meta-row"><span class="meta-pill">Phase <b>6</b></span><span class="meta-pill">Lessons <b>38</b></span><span class="meta-pill">Sources <b>S19, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Understanding the three areas; Understanding reset; Soft, mixed and hard reset; Understanding revert; Understanding restore; Reset vs Revert vs Restore; Undoing latest or multiple commits; Removing staged files and recovering modified files; Recovering deleted files; Safe recovery techniques and troubleshooting. <br><strong>Before you start:</strong> complete Chapter 17 – Git Rebase. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> The three main undo tools: <code>git reset</code> (move the branch pointer and optionally reset index/working tree), <code>git revert</code> (add a new commit that inverts an earlier one), and <code>git restore</code> (restore files in the working tree or index).</p>
+<p><strong>Why it matters.</strong> Choosing the wrong one either destroys work (<code>reset --hard</code>) or rewrites shared history. Choosing the right one makes every mistake recoverable.</p>
+<p><strong>Where it is used.</strong> Daily local corrections; production rollbacks via revert; CI cleanup.</p>
+<p><strong>In this course's project.</strong> Stage 5: Asha unstages a file with <code>restore --staged</code>, Ravi drops two local commits with <code>reset</code>, and Priya rolls back a faulty pushed DQ rule with <code>revert</code>.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter explains the three "undo" commands — <code>reset</code>, <code>revert</code> and <code>restore</code> — their modes, differences and real-time troubleshooting scenarios.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to choose the correct undo command for any situation and safely recover files and commits.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S19 · Chapter manual · objectives</span><p>Choose the correct undo command without accidentally losing valuable work.</p><div class="grid"><div class="tile"><strong>01</strong>Distinguish HEAD, index and working tree</div><div class="tile"><strong>02</strong>Use soft, mixed and hard reset correctly</div><div class="tile"><strong>03</strong>Undo published commits with revert</div><div class="tile"><strong>04</strong>Restore staged or working-tree files</div><div class="tile"><strong>05</strong>Recover deleted or modified work using safe techniques</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Map reset modes (<code>--soft</code>, <code>--mixed</code>, <code>--hard</code>) to their effect on HEAD/branch, index and working tree.</li>
+<li>Revert single commits, ranges and merge commits (<code>-m 1</code>) and explain why revert is safe for shared history.</li>
+<li>Restore files from the index, HEAD or any commit with <code>git restore --source</code>.</li>
+<li>Choose the correct undo for: unstaging, discarding edits, removing local commits, undoing pushed commits, recovering deleted files.</li>
+<li>Recover from a mistaken <code>reset --hard</code> with <code>ORIG_HEAD</code> or the reflog.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">18.1</div><h2>Understanding the three areas</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 1. Understanding the three areas</span><p>Git changes can exist in three important places: the working tree (files on disk), the index/staging area (the next commit snapshot), and the commit history (HEAD and its ancestors). Reset, revert and restore operate on different parts of this model. Always inspect <code>git status</code> before choosing an undo command.</p><h4>Commands and example</h4><pre><code>git status
+git diff                 # working tree vs index
+git diff --staged        # index vs HEAD
+git log --oneline -5</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">18.2</div><h2>Understanding reset</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 2. Understanding reset</span><p><code>git reset</code> moves the current branch reference (and HEAD) to a chosen commit. Depending on the mode, it also updates the index and working tree. The default mode is mixed. Reset is commonly used to adjust local history or unstage changes; hard reset can discard uncommitted work.</p><h4>Commands and example</h4><pre><code>git reset --soft HEAD~1
+git reset --mixed HEAD~1
+git reset --hard HEAD~1</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">18.3</div><h2>Soft, mixed and hard reset</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 3. Soft, mixed and hard reset</span><p>Soft reset moves HEAD but leaves the index and working tree unchanged, so the changes from removed commits remain staged. Mixed reset moves HEAD and resets the index, leaving working files unchanged (changes become unstaged). Hard reset moves HEAD and resets both index and working tree to the target; uncommitted changes can be lost.</p><h4>Commands and example</h4><pre><code># Keep changes staged
+git reset --soft HEAD~1
+
+# Keep changes in files, but unstage them (default)
+git reset --mixed HEAD~1
+
+# Destructive: make index and working tree match target
+git reset --hard HEAD~1</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">18.4</div><h2>Understanding revert</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 4. Understanding revert</span><p><code>git revert</code> creates a new commit that applies the inverse of an earlier commit. It does not move the branch backwards or erase the original commit. This makes it the normal choice for undoing a change that has already been pushed or shared. Reverting a merge commit requires choosing the mainline parent with <code>-m</code>.</p><h4>Commands and example</h4><pre><code>git revert a1b2c3d
+# Revert a range carefully, reviewing the generated commits
+git revert start_commit^..end_commit
+
+# Merge commit example: select mainline parent 1
+git revert -m 1 &lt;merge-commit&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">18.5</div><h2>Understanding restore</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 5. Understanding restore</span><p><code>git restore</code> restores file content in the working tree or index. It does not move HEAD. Use <code>--staged</code> to unstage a file (restore the index version from HEAD by default), and <code>--source</code> to choose a different source commit.</p><h4>Commands and example</h4><pre><code># Discard unstaged edits to one file
+git restore sql/customer_load.sql
+
+# Unstage a file, keeping its working-tree edits
+git restore --staged sql/customer_load.sql
+
+# Restore a file from a previous commit
+git restore --source=HEAD~1 -- sql/customer_load.sql</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">18.6</div><h2>Reset vs Revert vs Restore</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 6. Reset vs Revert vs Restore</span><p>Use reset to move a branch pointer and optionally reset index/working tree; use revert to add a compensating commit; use restore to copy file content into the working tree or index. The correct choice depends on whether the commit is shared and whether you want to preserve current file edits.</p><h4>Commands and example</h4><pre><code># Local unpublished commit: move HEAD but keep changes staged
+git reset --soft HEAD~1
+
+# Shared/pushed commit: create an inverse commit
+git revert &lt;commit&gt;
+
+# Unstage a file without discarding its edits
+git restore --staged &lt;file&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">18.7</div><h2>Undoing latest or multiple commits</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 7. Undoing latest or multiple commits</span><p>For a local commit that has not been shared, soft or mixed reset can undo one or more commits while retaining their changes. For a pushed commit, use revert. To undo several local commits, choose the correct target such as <code>HEAD~3</code>; verify the resulting status and log before pushing.</p><h4>Commands and example</h4><pre><code># Undo last commit, keep changes staged
+git reset --soft HEAD~1
+
+# Undo last three local commits, keep file edits but unstage
+git reset HEAD~3
+
+# Undo a pushed commit safely
+git revert &lt;commit-sha&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">18.8</div><h2>Removing staged files and recovering modified files</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 8. Removing staged files and recovering modified files</span><p>To unstage a file while retaining its edits, use <code>git restore --staged</code>. To discard unstaged edits and restore the index version, use <code>git restore</code>. These commands are not interchangeable. Review diffs first because restoring the working-tree version discards edits that exist only in that file.</p><h4>Commands and example</h4><pre><code>git diff --staged
+git restore --staged data_quality.sql
+
+git diff
+git restore data_quality.sql</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">18.9</div><h2>Recovering deleted files</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 9. Recovering deleted files</span><p>If a tracked file was deleted in the working tree but the deletion is not committed, restore it from the index/HEAD using <code>git restore</code>. If the deletion was committed, restore the file from a commit where it existed, then commit the restoration. If the file was never tracked or committed, Git may not be able to recover it.</p><h4>Commands and example</h4><pre><code># Recover an uncommitted deletion
+git restore -- path/to/file.sql
+
+# Recover from a known earlier commit
+git restore --source=&lt;commit-sha&gt; -- path/to/file.sql
+git add path/to/file.sql
+git commit -m "Restore deleted SQL file" </code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">18.10</div><h2>Safe recovery techniques and troubleshooting</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 10. Safe recovery techniques and troubleshooting</span><p>Before destructive operations, create a backup branch or copy important files. Use <code>git reflog</code> to find recent HEAD positions after a reset or rebase. Reflog is local and expires according to repository settings; it is a recovery aid, not a permanent backup. Never assume hard-reset work can always be recovered.</p><h4>Commands and example</h4><pre><code>git branch backup/before-reset
+git reflog --date=local
+# If the desired commit is found:
+git switch -c recovery/previous-state &lt;commit-sha&gt;
+git status
+git log --oneline --decorate -10</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">18.11</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · 11. Real-time scenarios</span><p>Scenario A: a local commit contains changes you still need — use soft reset. Scenario B: a bad commit is already on the shared main branch — revert it. Scenario C: a file is staged accidentally — restore --staged. Scenario D: an unwanted local edit should be discarded — restore the file after inspecting the diff. Scenario E: a hard reset moved the branch unexpectedly — inspect reflog and create a recovery branch if the commit is available.</p><h4>Commands and example</h4><pre><code># A: keep changes staged
+git reset --soft HEAD~1
+
+# B: undo a shared commit
+git revert &lt;bad-commit&gt;
+
+# C: unstage only
+git restore --staged &lt;file&gt;
+
+# D: discard working-tree edits (destructive for that file)
+git restore &lt;file&gt;
+
+# E: inspect recent HEAD movements
+git reflog</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">18.12</div><h2>
+Understanding Reset
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. Understanding Reset</span><h4>1.1 Definition</h4>
+<p><code>git reset</code> <strong>moves the current branch pointer (and HEAD) to a specified commit</strong>, and depending on the mode, also resets the <strong>staging area</strong> and <strong>working directory</strong>.</p>
+<h4>1.2 The three trees</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Tree</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HEAD</td>
+<td>Last commit snapshot (branch pointer)</td>
+</tr>
+<tr>
+<td>Index</td>
+<td>Staging area (proposed next commit)</td>
+</tr>
+<tr>
+<td>Working directory</td>
+<td>Your files</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>reset</code> modes decide which trees are changed:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>HEAD/branch</th>
+<th>Index</th>
+<th>Working directory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--soft</code></td>
+<td>✔ moved</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--mixed</code> (default)</td>
+<td>✔ moved</td>
+<td>✔ reset</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--hard</code></td>
+<td>✔ moved</td>
+<td>✔ reset</td>
+<td>✔ reset</td>
+</tr>
+</tbody>
+</table></div>
+<h4>1.3 Path form</h4>
+<p><code>git reset &lt;file&gt;</code> (no commit) only updates the index for that path — i.e. <strong>unstages</strong> it. It doesn't move the branch.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">18.13</div><h2>
+Soft Reset
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Soft Reset</span><pre><code class="language-bash">git reset --soft HEAD~1
+</code></pre>
+<ul>
+<li>Moves the branch back one commit.</li>
+<li>Changes from the undone commit remain <strong>staged</strong>.</li>
+<li>Working directory untouched.</li>
+</ul>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li>Re-do the last commit with a different message or extra files.</li>
+<li>Squash the last N commits into one:</li>
+</ul>
+<pre><code class="language-bash">git reset --soft HEAD~3
+git commit -m &quot;feat: orders incremental load&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">18.14</div><h2>
+Mixed Reset
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Mixed Reset</span><pre><code class="language-bash">git reset HEAD~1          # --mixed is the default
+git reset --mixed HEAD~1
+</code></pre>
+<ul>
+<li>Moves the branch back.</li>
+<li>Changes remain in the working directory, <strong>unstaged</strong>.</li>
+</ul>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li>Undo a commit and re-stage selectively into several smaller commits.</li>
+<li>Unstage everything: <code>git reset</code>.</li>
+<li>Unstage one file: <code>git reset sql/views/vw_test.sql</code>.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">18.15</div><h2>
+Hard Reset
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Hard Reset</span><pre><code class="language-bash">git reset --hard HEAD~1
+</code></pre>
+<ul>
+<li>Moves the branch back.</li>
+<li>Index <strong>and</strong> working directory reset — <strong>uncommitted changes and the undone commits' changes are discarded</strong>.</li>
+</ul>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li>Throw away bad local commits completely.</li>
+<li>Make your branch identical to the remote: <code>git reset --hard origin/main</code>.</li>
+<li>Abandon all local edits: <code>git reset --hard</code> (resets to HEAD).</li>
+</ul>
+<div class="callout c-warn"><p><strong>Warning</strong> Uncommitted changes destroyed by <code>--hard</code> are <strong>not</strong> recoverable via Git. Committed work can be recovered via <code>git reflog</code> for a limited time.</p>
+</div>
+<p><strong>Visual summary:</strong></p>
+<pre><code class="language-text">              A ── B ── C (main, HEAD)
+git reset --soft  B  → main=B; C's changes STAGED
+git reset --mixed B  → main=B; C's changes UNSTAGED in files
+git reset --hard  B  → main=B; C's changes GONE
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">18.16</div><h2>
+Understanding Revert
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Understanding Revert</span><h4>5.1 Definition</h4>
+<p><code>git revert &lt;commit&gt;</code> <strong>creates a new commit that undoes the changes</strong> introduced by the specified commit. Existing history is not modified.</p>
+<pre><code class="language-text">A ── B ── C ── D          git revert B          A ── B ── C ── D ── B'   (B' = inverse of B)
+</code></pre>
+<h4>5.2 Commands</h4>
+<pre><code class="language-bash">git revert 3f2a7d1                      # opens editor for message &quot;Revert ...&quot;
+git revert 3f2a7d1 --no-edit
+git revert HEAD                          # undo the latest commit
+git revert HEAD~3..HEAD                  # revert last 3 commits (3 revert commits)
+git revert --no-commit HEAD~3..HEAD      # stage all reverts; then one commit
+git commit -m &quot;Revert orders feature (DE-1423)&quot;
+git revert -m 1 &lt;merge-sha&gt;              # revert a merge commit (keep parent 1)
+git revert --continue | --abort | --skip # during conflicts
+</code></pre>
+<h4>5.3 Reverting a merge — note</h4>
+<p>After reverting a merge, if you later want to re-merge the same branch, Git thinks those commits are already merged. You must <strong>revert the revert</strong> first: <code>git revert &lt;revert-commit-sha&gt;</code>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">18.17</div><h2>
+Understanding Restore
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Understanding Restore</span><h4>6.1 Definition</h4>
+<p><code>git restore</code> (Git 2.23+) <strong>restores file content</strong> in the working directory and/or staging area from another source (index, HEAD, or any commit). It never moves branches or creates commits.</p>
+<h4>6.2 Commands</h4>
+<pre><code class="language-bash">git restore &lt;file&gt;                          # working dir ← index (discard unstaged edits)
+git restore --staged &lt;file&gt;                 # index ← HEAD (unstage)
+git restore --staged --worktree &lt;file&gt;      # both
+git restore --source=HEAD~2 &lt;file&gt;          # working dir ← file from 2 commits ago
+git restore --source=v1.0.0 -- sql/         # folder from a tag
+git restore -p &lt;file&gt;                       # interactive hunk selection
+git restore .                               # discard all unstaged changes
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">18.18</div><h2>
+Reset vs Revert vs Restore
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Reset vs Revert vs Restore</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th><code>git reset</code></th>
+<th><code>git revert</code></th>
+<th><code>git restore</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Works on</td>
+<td>Commits / branch pointer (or index for paths)</td>
+<td>Commits</td>
+<td>Files</td>
+</tr>
+<tr>
+<td>Creates a commit</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Rewrites history</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Safe for pushed/shared commits</td>
+<td><strong>No</strong></td>
+<td><strong>Yes</strong></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>Affects working directory</td>
+<td><code>--hard</code> only</td>
+<td>Yes (applies inverse)</td>
+<td>Yes (default)</td>
+</tr>
+<tr>
+<td>Typical question it answers</td>
+<td>"Remove these local commits"</td>
+<td>"Undo this pushed commit"</td>
+<td>"Discard/unstage changes to this file"</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Decision guide:</strong></p>
+<pre><code class="language-text">Is the change committed?
+ ├── No → git restore (discard) / git restore --staged (unstage)
+ └── Yes → Has it been pushed/shared?
+           ├── No  → git reset (soft/mixed/hard) or git commit --amend
+           └── Yes → git revert
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">18.19</div><h2>
+Undoing the Latest Commit
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Undoing the Latest Commit</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Undo commit, keep changes staged</td>
+<td><code>git reset --soft HEAD~1</code></td>
+</tr>
+<tr>
+<td>Undo commit, keep changes unstaged</td>
+<td><code>git reset HEAD~1</code></td>
+</tr>
+<tr>
+<td>Undo commit and discard changes</td>
+<td><code>git reset --hard HEAD~1</code></td>
+</tr>
+<tr>
+<td>Just fix the message/content</td>
+<td><code>git commit --amend</code></td>
+</tr>
+<tr>
+<td>Commit was already pushed</td>
+<td><code>git revert HEAD</code> then <code>git push</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">18.20</div><h2>
+Undoing Multiple Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Undoing Multiple Commits</span><p><strong>Local (not pushed):</strong></p>
+<pre><code class="language-bash">git log --oneline -5
+git reset --hard HEAD~3          # remove last 3 commits
+git reset --soft HEAD~3          # or keep their changes staged
+git reset --hard a1b2c3d         # back to a specific commit
+</code></pre>
+<p><strong>Pushed:</strong></p>
+<pre><code class="language-bash">git revert --no-commit HEAD~3..HEAD
+git commit -m &quot;Revert last three commits (bad orders logic)&quot;
+git push
+</code></pre>
+<p><strong>Non-contiguous commits:</strong></p>
+<pre><code class="language-bash">git revert c3d4e5f a1b2c3d
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">18.21</div><h2>
+Removing Staged Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Removing Staged Files</span><pre><code class="language-bash">git restore --staged sql/views/vw_test.sql     # unstage one file
+git restore --staged .                         # unstage everything
+git reset                                      # same as above
+git rm --cached secrets.env                    # remove from index AND stop tracking (file stays on disk)
+</code></pre>
+<div class="callout "><p><strong>Note</strong> <code>git restore --staged</code> keeps the file tracked but unstaged; <code>git rm --cached</code> stages its deletion from the repository.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">18.22</div><h2>
+Recovering Modified Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Recovering Modified Files</span><p>You edited a file and want the committed version back:</p>
+<pre><code class="language-bash">git restore python/etl/transform.py                 # discard unstaged edits
+git restore --staged --worktree python/etl/transform.py   # discard staged and unstaged
+git restore --source=HEAD~1 python/etl/transform.py       # previous commit's version
+git checkout HEAD -- python/etl/transform.py              # older equivalent
+</code></pre>
+<p>Want to keep a copy of your edits first? <code>git stash push -- python/etl/transform.py</code>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">18.23</div><h2>
+Recovering Deleted Files
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Recovering Deleted Files</span><h4>12.1 Deleted but not committed</h4>
+<pre><code class="language-bash">rm sql/views/vw_sales.sql
+git restore sql/views/vw_sales.sql
+</code></pre>
+<h4>12.2 Deletion staged</h4>
+<pre><code class="language-bash">git rm sql/views/vw_sales.sql
+git restore --staged --worktree sql/views/vw_sales.sql
+</code></pre>
+<h4>12.3 Deletion committed</h4>
+<pre><code class="language-bash">git log --diff-filter=D --oneline -- sql/views/vw_sales.sql    # find the commit that deleted it
+# e.g. 7a8b9c0 Remove sales view
+git restore --source=7a8b9c0~1 sql/views/vw_sales.sql           # restore from the commit before
+git add sql/views/vw_sales.sql &amp;&amp; git commit -m &quot;Restore vw_sales&quot;
+</code></pre>
+<p>(Or <code>git revert 7a8b9c0</code> if that commit only deleted the file.)</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">18.24</div><h2>
+Safe Recovery Techniques
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Safe Recovery Techniques</span><ol>
+<li><strong>Create a backup branch</strong> before risky operations: <code>git branch backup/before-reset</code>.</li>
+<li><strong>Use the reflog</strong> to find previous positions: <code>git reflog</code>, <code>git reset --hard HEAD@{n}</code>.</li>
+<li><strong>Use <code>ORIG_HEAD</code></strong> right after reset/merge/rebase: <code>git reset --hard ORIG_HEAD</code>.</li>
+<li><strong>Stash</strong> instead of discarding when unsure: <code>git stash -u</code>.</li>
+<li><strong>Dry-run</strong> destructive commands: <code>git clean -n</code>.</li>
+<li><strong>Prefer revert</strong> for anything already pushed.</li>
+<li><strong>Find lost objects</strong> with <code>git fsck --lost-found</code>.</li>
+<li><strong>Check the remote</strong> — teammates' clones or the server may still have commits.</li>
+<li><strong>Read <code>git status</code></strong> — it tells you exactly which undo command to use.</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">18.25</div><h2>
+Real-Time Troubleshooting Scenarios
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Real-Time Troubleshooting Scenarios</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">#</th>
+<th>Scenario</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Committed to <code>main</code> instead of a feature branch (not pushed)</td>
+<td><code>git branch feature/x</code> → <code>git reset --hard origin/main</code> → <code>git switch feature/x</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Committed with the wrong message (not pushed)</td>
+<td><code>git commit --amend -m "correct message"</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Forgot a file in the last commit</td>
+<td><code>git add file</code> → <code>git commit --amend --no-edit</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Pushed a commit that broke production</td>
+<td><code>git revert &lt;sha&gt;</code> → push → deploy</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Merged a feature that must be rolled back</td>
+<td><code>git revert -m 1 &lt;merge-sha&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Accidentally ran <code>git reset --hard</code> and lost commits</td>
+<td><code>git reflog</code> → <code>git reset --hard HEAD@{1}</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>Staged a large data file by mistake</td>
+<td><code>git restore --staged data/big.csv</code> + add to <code>.gitignore</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>Committed a large file (not pushed)</td>
+<td><code>git rm --cached data/big.csv</code> → <code>git commit --amend</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>Deleted a branch with unmerged work</td>
+<td><code>git reflog</code> → <code>git branch &lt;name&gt; &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Want to discard all local changes and match remote</td>
+<td><code>git fetch</code> → <code>git reset --hard origin/main</code> → <code>git clean -fd</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>Need a file as it was in last release</td>
+<td><code>git restore --source=v2.4.0 path/file</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>Want to undo <code>git add .</code></td>
+<td><code>git restore --staged .</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">13</td>
+<td>Committed a password and pushed</td>
+<td>Rotate the secret first; then remove from history (Chapter 23)</td>
+</tr>
+<tr>
+<td style="text-align: right;">14</td>
+<td>Rebase went wrong</td>
+<td><code>git rebase --abort</code> or <code>git reset --hard ORIG_HEAD</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — What does `git reset --mixed` do?</span><p><strong>S41</strong> states that <code>git reset --mixed</code> undoes changes in the working directory and the index. <strong>S19/S40</strong> say it keeps the working tree. <strong>Resolution (git-reset docs):</strong> <code>--mixed</code> resets the <strong>index</strong> but <strong>not the working tree</strong>; only <code>--hard</code> discards working-tree changes. S41 is incorrect on this point.</p></div><div class="c-conf"><span class="ct">Source conflict — `reset --hard` for unpushed commits</span><p><strong>S41</strong> answers "how to revert the previous commit" with <code>git reset --hard HEAD~1</code> (alongside <code>--soft</code>/<code>--mixed</code>). <strong>Resolution:</strong> reset does not <em>revert</em>; it removes commits from the branch. acceptable only for unpushed commits and only when you intend to discard their changes; prefer <code>--mixed</code>/<code>--soft</code> to keep the work, and <code>revert</code> for pushed commits.</p></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 260" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">git reset --soft &lt;commit&gt;</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Moves branch/HEAD only — index and working tree unchanged (changes appear staged)</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="91.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">git reset --mixed &lt;commit&gt;</text><text x="150.0" y="108.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">(default)</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Moves branch/HEAD and resets index — working tree unchanged (changes appear unstaged)</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">git reset --hard &lt;commit&gt;</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Moves branch/HEAD, resets index and working tree — uncommitted changes are lost</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">git reset &lt;path&gt;</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Does not move HEAD; unstages the path (same as git restore --staged &lt;path&gt;)</text></svg></div><figcaption>What each reset mode changes</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 216" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">reset / restore (local)</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">reset moves the branch pointer — rewrites history</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Use for unpushed commits</text><rect x="20.0" y="130.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">restore changes files, never commits</text><rect x="20.0" y="169.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Lost work recoverable only via reflog (committed)</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">revert (shared-safe)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">revert adds a new inverse commit — history only grows</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Use for commits already pushed / on main</text><rect x="490.0" y="130.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Works for any commit incl. merges (-m 1)</text><rect x="490.0" y="169.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="188.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Nothing lost; can even revert the revert</text></svg></div><figcaption>Reset vs revert vs restore</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-reset"><header>git reset</header><dl><dt>Syntax</dt><dd><pre><code>git reset [--soft | --mixed | --hard | --keep] [&lt;commit&gt;]
+git reset [&lt;commit&gt;] -- &lt;path&gt;</code></pre></dd><dt>Purpose</dt><dd>Move the current branch to <code>&lt;commit&gt;</code>, optionally resetting index and working tree.</dd><dt>Expected output</dt><dd><pre><code>HEAD is now at 3f1c2a9 Add orders table
+(printed by --hard; --mixed prints &quot;Unstaged changes after reset:&quot; with file list)</code></pre></dd><dt>Example</dt><dd><pre><code>git reset --soft HEAD~3      # squash last 3 commits: re-commit as one
+git reset HEAD~1             # undo last commit, keep changes unstaged
+git reset --hard origin/main # discard local commits and changes (dangerous)</code></pre></dd><dt>Common mistakes</dt><dd><code>reset --hard</code> with uncommitted work — it cannot be recovered; resetting a pushed branch and force-pushing.</dd><dt>Troubleshooting</dt><dd>Committed work: <code>git reset --hard ORIG_HEAD</code> or <code>git reflog</code> → <code>git reset --hard HEAD@{n}</code>.</dd></dl></div><div class="cmd" id="cmd-git-revert"><header>git revert</header><dl><dt>Syntax</dt><dd><pre><code>git revert &lt;commit&gt;…
+git revert -m 1 &lt;merge-commit&gt;
+git revert --no-commit &lt;A&gt;..&lt;B&gt;
+git revert --continue | --abort</code></pre></dd><dt>Purpose</dt><dd>Create commit(s) that undo the changes of earlier commits.</dd><dt>Expected output</dt><dd><pre><code>[main 4c3b2a1] Revert &quot;feat(dq): reject orders with zero quantity&quot;
+ 1 file changed, 3 deletions(-)</code></pre></dd><dt>Example</dt><dd><pre><code>git revert 7f3e2d1
+git revert -m 1 9a8b7c6           # undo a merged PR
+git revert --no-commit HEAD~3..HEAD &amp;&amp; git commit -m &quot;Revert RDP-125 changes&quot;</code></pre></dd><dt>Common mistakes</dt><dd>Reverting a merge and later re-merging the same branch — Git thinks the old commits are already merged. Revert the revert first.</dd></dl></div><div class="cmd" id="cmd-git-restore"><header>git restore</header><dl><dt>Syntax</dt><dd><pre><code>git restore [--staged] [--worktree] [--source=&lt;tree-ish&gt;] &lt;pathspec&gt;…</code></pre></dd><dt>Purpose</dt><dd>Restore files in the working tree and/or index from the index, HEAD or a commit (Git 2.23+).</dd><dt>Key parameters</dt><dd><ul><li>(no option) — working tree from index</li><li><code>--staged</code> — index from HEAD (unstage)</li><li><code>--staged --worktree</code> — both from HEAD</li><li><code>--source=v1.0.0</code> — take content from a commit/tag</li></ul></dd><dt>Example</dt><dd><pre><code>git restore --staged sql/tests/test_dim_customer.sql
+git restore python/dq/rules/orders_rules.py
+git restore --source=HEAD~2 -- sql/warehouse/usp_load_fact_sales.sql
+git restore --source=HEAD~1 -- deleted/file.sql   # bring back a file deleted in the last commit</code></pre></dd><dt>Common mistakes</dt><dd>Expecting restore to undo a commit — it only changes files.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Three undo situations on the project</span><pre><code class="language-bash"># 1) Asha staged the wrong file
+git restore --staged sql/tests/scratch.sql
+
+# 2) Ravi's last two local commits are wrong (not pushed)
+git log --oneline -3
+git reset --mixed HEAD~2         # keep the edits, redo commits properly
+git add -p &amp;&amp; git commit -m &quot;feat(ingest): add retry with backoff (RDP-130)&quot;
+
+# 3) A DQ rule merged yesterday rejects valid orders in production
+git switch main &amp;&amp; git pull --ff-only
+git log --oneline --merges -5    # find the merge of PR #61
+git revert -m 1 9a8b7c6
+git push origin main             # via PR if main is protected
+</code></pre>
+<p>Deployment pipelines then redeploy <code>main</code>; the history shows both the change and its rollback.</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S19, S40 · Deleted file needs to come back</span><p>Deleted and not committed: <code>git restore &lt;file&gt;</code>. Deleted in a commit: find it with <code>git log --diff-filter=D --oneline -- &lt;path&gt;</code>, then <code>git restore --source=&lt;that-commit&gt;~1 -- &lt;path&gt;</code>.</p></div><div class="src"><span class="tag add">Course addition · Developer ran `git reset --hard` and lost committed work</span><p><code>git reflog</code> shows the previous position (<code>HEAD@{1}</code>); <code>git reset --hard HEAD@{1}</code> or <code>git branch rescue HEAD@{1}</code>. Uncommitted changes are gone — commit or stash more often.</p></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Pushed? → revert. Not pushed? → reset/amend/rebase are fine.</li>
+<li>Prefer <code>--mixed</code>/<code>--soft</code> over <code>--hard</code>; check <code>git status</code> and <code>git stash</code> first.</li>
+<li>Use <code>git restore</code> and <code>git restore --staged</code> rather than overloaded <code>checkout</code>/<code>reset</code> for files.</li>
+<li>Revert merges with <code>-m 1</code> and document the reason in the message.</li>
+<li>Know <code>ORIG_HEAD</code> and the reflog.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error: commit &lt;sha&gt; is a merge but no -m option was given.</code></td>
+<td>Reverting a merge without mainline</td>
+<td><code>git revert -m 1 &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td><code>error: could not revert &lt;sha&gt;...</code> + CONFLICT</td>
+<td>Later commits changed the same lines</td>
+<td>Resolve, <code>git add</code>, <code>git revert --continue</code></td>
+</tr>
+<tr>
+<td><code>fatal: ambiguous argument 'HEAD~3'</code></td>
+<td>Fewer commits than requested</td>
+<td>Check <code>git log</code></td>
+</tr>
+<tr>
+<td>Changes "disappeared" after reset</td>
+<td><code>--hard</code> used</td>
+<td>Reflog for commits; uncommitted changes lost</td>
+</tr>
+<tr>
+<td><code>error: pathspec 'x' did not match any file(s) known to git</code> on restore</td>
+<td>Wrong path/source</td>
+<td>Check path at that commit: <code>git ls-tree -r &lt;commit&gt; --name-only</code></td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Make three commits; run <code>git reset --soft HEAD~2</code> then commit once.</p><span class="exp-out">History has the first commit plus one combined commit.</span></li><li><p>Run <code>git reset --mixed HEAD~1</code>.</p><span class="exp-out">The last commit is gone; its changes are unstaged.</span></li><li><p>Revert a commit and inspect the new commit with <code>git show</code>.</p><span class="exp-out">Inverse diff with message <code>Revert "..."</code>.</span></li><li><p>Delete a file in a commit, then restore it with <code>git restore --source</code>.</p><span class="exp-out">File back in the working tree, ready to commit.</span></li><li><p>Run <code>reset --hard HEAD~2</code> and recover with the reflog.</p><span class="exp-out">Original commits are back.</span></li></ol></div><div class="src"><span class="tag ">Source S19 · Chapter manual · lab</span><p>Create and commit a sample SQL file, make a second commit, and practise soft and mixed reset on a disposable branch. Then create a commit and revert it. Finally stage a file and unstage it with restore --staged. Use git status, diff, log and reflog after each step.</p><div class="callout good"><strong>Validation:</strong> Use <code>git status</code>, <code>git log --oneline --graph --decorate</code>, and relevant diffs to verify each step. Practise destructive commands only in a disposable repository or branch.</div></div><div class="src"><span class="tag s40">Source S40 · 15. Practical Exercise – Chapter 18</span><ol>
+<li>Make 3 commits; practise <code>reset --soft</code>, <code>--mixed</code>, <code>--hard</code> and observe <code>git status</code> each time.</li>
+<li>Recover the hard-reset commits with <code>git reflog</code>.</li>
+<li>Push a commit and undo it with <code>git revert</code>.</li>
+<li>Modify, stage and delete files; recover each with <code>git restore</code>.</li>
+<li>Delete a file in a commit; find that commit with <code>--diff-filter=D</code> and restore the file.</li>
+<li>Work through scenarios 1, 5 and 9 in the table above.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 18 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S19 · Chapter manual · interview</span><h4>1. What does git reset change?</h4><p>It moves the current branch/HEAD to a target commit and, depending on mode, updates the index and working tree.</p><h4>2. What does --soft do?</h4><p>Moves HEAD only; changes remain staged.</p><h4>3. What does --mixed do?</h4><p>Moves HEAD and resets the index; working-tree changes remain.</p><h4>4. What does --hard do?</h4><p>Moves HEAD and resets index and working tree; uncommitted changes may be lost.</p><h4>5. What is git revert?</h4><p>It creates a new commit that reverses the effect of an earlier commit.</p><h4>6. Why is revert safer for shared history?</h4><p>It preserves existing history and adds a compensating commit.</p><h4>7. What does git restore do?</h4><p>It restores file content in the working tree or index.</p><h4>8. How do you unstage a file but keep edits?</h4><p>Use <code>git restore --staged file</code>.</p><h4>9. How do you discard unstaged edits?</h4><p>Use <code>git restore file</code> after reviewing the diff.</p><h4>10. How do you recover an uncommitted deletion of a tracked file?</h4><p>Use <code>git restore -- path</code>.</p><h4>11. How do you restore a file from an earlier commit?</h4><p>Use <code>git restore --source=commit -- path</code>.</p><h4>12. How do you inspect previous HEAD positions?</h4><p>Use <code>git reflog</code>.</p><h4>13. Can reflog recover every deleted file?</h4><p>No. It records reference movements, not arbitrary untracked file contents.</p><h4>14. How do you undo a pushed commit?</h4><p>Usually use <code>git revert</code>.</p><h4>15. What should you do before hard reset?</h4><p>Inspect status and diffs, and create a backup branch if there is any uncertainty.</p></div><div class="src"><span class="tag s40">Source S40 · 16. Chapter 18 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What are the three reset modes?</td>
+<td>soft (keep staged), mixed (keep unstaged), hard (discard)</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Reset vs revert?</td>
+<td>Reset rewrites history; revert adds an undo commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What does git restore do?</td>
+<td>Restores file content in working dir/index</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>How do you undo a pushed commit?</td>
+<td><code>git revert &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you unstage a file?</td>
+<td><code>git restore --staged &lt;file&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>How do you recover a deleted committed file?</td>
+<td>Find deleting commit, <code>git restore --source=&lt;sha&gt;~1 &lt;file&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you recover from <code>reset --hard</code>?</td>
+<td><code>git reflog</code> + reset/branch to the lost commit</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>What is ORIG_HEAD?</td>
+<td>Ref to HEAD before a reset/merge/rebase</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>How do you unstage a file?</summary><div class="ans"><p><code>git restore --staged &lt;file&gt;</code> (or <code>git reset &lt;file&gt;</code>).</p></div></details><details class="qa"><summary>What is the difference between reset and revert?</summary><div class="ans"><p>Reset moves the branch pointer (rewrites history); revert creates a new commit that undoes a previous one (safe for shared history).</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Explain <code>--soft</code>, <code>--mixed</code> and <code>--hard</code>.</summary><div class="ans"><p>Soft moves HEAD only; mixed also resets the index (default); hard also resets the working tree, discarding uncommitted changes.</p></div></details><details class="qa"><summary>How do you undo a pushed merge?</summary><div class="ans"><p><code>git revert -m 1 &lt;merge-commit&gt;</code>.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>What is <code>ORIG_HEAD</code>?</summary><div class="ans"><p>A ref Git sets before operations that move HEAD drastically (reset, merge, rebase), allowing <code>git reset --hard ORIG_HEAD</code> to undo them.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A release contains three bad commits mixed with good ones on <code>main</code>. How do you roll back only the bad ones?</summary><div class="ans"><p><code>git revert &lt;c1&gt; &lt;c2&gt; &lt;c3&gt;</code> (newest first, or <code>--no-commit</code> then one commit), resolve conflicts, test, merge via PR, redeploy.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which mode keeps your changes staged?</strong></p><ol><li data-ok="0">--mixed</li><li data-ok="1">--soft</li><li data-ok="0">--hard</li><li data-ok="0">--keep</li></ol><div class="exp">Soft only moves HEAD.</div></div><div class="mcq"><p><strong>2. Which command is safe for undoing a commit already on the shared main branch?</strong></p><ol><li data-ok="0">git reset --hard HEAD~1</li><li data-ok="1">git revert &lt;sha&gt;</li><li data-ok="0">git restore &lt;sha&gt;</li><li data-ok="0">git commit --amend</li></ol><div class="exp">Revert doesn't rewrite history.</div></div><div class="mcq"><p><strong>3. What does <code>git reset</code> with no options do to the working tree?</strong></p><ol><li data-ok="0">Discards changes</li><li data-ok="1">Leaves it unchanged</li><li data-ok="0">Stashes it</li><li data-ok="0">Deletes untracked files</li></ol><div class="exp">Default is --mixed.</div></div><div class="mcq"><p><strong>4. Which command restores a file to its content in tag v1.0.0?</strong></p><ol><li data-ok="0">git reset v1.0.0 file</li><li data-ok="1">git restore --source=v1.0.0 -- file</li><li data-ok="0">git revert v1.0.0 file</li><li data-ok="0">git checkout --staged file</li></ol><div class="exp"><code>--source</code> selects the commit/tag.</div></div><div class="mcq"><p><strong>5. Why does <code>git revert &lt;merge&gt;</code> need <code>-m</code>?</strong></p><ol><li data-ok="0">To add a message</li><li data-ok="1">To choose which parent is the mainline</li><li data-ok="0">To merge again</li><li data-ok="0">To skip hooks</li></ol><div class="exp">Merge commits have multiple parents.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>reset moves branches (soft/mixed/hard); revert adds inverse commits; restore changes files.</li>
+<li>Shared history → revert; local history → reset/amend/rebase.</li>
+<li>Revert merges with <code>-m 1</code>.</li>
+<li>ORIG_HEAD and reflog recover committed work.</li>
+</ul></div><div class="src"><span class="tag ">Source S19 · Chapter manual · summary</span><ul><li>Distinguish HEAD, index and working tree</li><li>Use soft, mixed and hard reset correctly</li><li>Undo published commits with revert</li><li>Restore staged or working-tree files</li><li>Recover deleted or modified work using safe techniques</li></ul><div class="callout warn"><strong>Safety reminder:</strong> Before rewriting or discarding history, check whether commits are shared, inspect the working tree, and preserve important work. Prefer reversible, auditable operations on shared branches.</div></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 18 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reset</td>
+<td>Move branch; soft/mixed/hard</td>
+</tr>
+<tr>
+<td>Revert</td>
+<td>New commit undoing old one; safe for shared</td>
+</tr>
+<tr>
+<td>Restore</td>
+<td>File-level discard/unstage/recover</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>Reflog, ORIG_HEAD, backup branches</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Map reset modes (<code>--soft</code>, <code>--mixed</code>, <code>--hard</code>) to their effect on HEAD/branch, index and working tree.</li><li>Revert single commits, ranges and merge commits (<code>-m 1</code>) and explain why revert is safe for shared history.</li><li>Restore files from the index, HEAD or any commit with <code>git restore --source</code>.</li><li>Choose the correct undo for: unstaging, discarding edits, removing local commits, undoing pushed commits, recovering deleted files.</li><li>Recover from a mistaken <code>reset --hard</code> with <code>ORIG_HEAD</code> or the reflog.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/docs/git-reset">git-reset</a> · <a href="https://git-scm.com/docs/git-revert">git-revert</a> · <a href="https://git-scm.com/docs/git-restore">git-restore</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Tools-Reset-Demystified">Pro Git — Reset Demystified</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Basics-Undoing-Things">Pro Git — Undoing Things</a></li>
+<li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/reverting-a-pull-request">GitHub Docs — Reverting a pull request</a></li>
+</ul></div><div class="src"><span class="tag ">Source S19 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/git-reset" rel="noopener" target="_blank">Git Reset</a></li><li><a href="https://git-scm.com/docs/git-revert" rel="noopener" target="_blank">Git Revert</a></li><li><a href="https://git-scm.com/docs/git-restore" rel="noopener" target="_blank">Git Restore</a></li><li><a href="https://git-scm.com/docs/git-reflog" rel="noopener" target="_blank">Git Reflog</a></li></ul><p class="small">Documentation links are provided for deeper reading. Git command behavior can vary by options and version; consult the official manual for the exact syntax supported by your installed Git version.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_17_Git_Rebase.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Rebase</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_19_Git_Cherry_Pick.html"><span class="mn-label">Next →</span><span class="mn-title">Git Cherry-Pick</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

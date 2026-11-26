@@ -1,0 +1,1406 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Distinguish plumbing and porcelain commands and use plumbing in scripts."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Advanced Internals — Chapter 22 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Advanced Internals</div>
+<div class="brand-sub">Chapter 22 · 37 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">22.1</span>Plumbing commands</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">22.2</span>Porcelain commands</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">22.3</span>git cat-file</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">22.4</span>git hash-object</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">22.5</span>git ls-tree</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">22.6</span>git rev-parse</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">22.7</span>git reflog</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">22.8</span>git fsck</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">22.9</span>Understanding commit graphs</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">22.10</span>Recovering lost commits</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">22.11</span>Git maintenance</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">22.12</span>Repository corruption troubleshooting</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">22.13</span>Git Plumbing Commands</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">22.14</span>Git Porcelain Commands</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">22.15</span>git cat-file</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">22.16</span>git hash-object</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">22.17</span>git ls-tree</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">22.18</span>git rev-parse</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">22.19</span>git reflog</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">22.20</span>git fsck</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">22.21</span>Understanding Commit Graphs</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">22.22</span>Recovering Lost Commits</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">22.23</span>Git Maintenance</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">22.24</span>Repository Corruption Troubleshooting</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 5: Advanced Git</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🎯</span>Chapter 22 Interview Questions</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 7 · Chapter 22</div><h1>Git Advanced Internals</h1><p class="page-subtitle">Distinguish plumbing and porcelain commands and use plumbing in scripts.</p><div class="meta-row"><span class="meta-pill">Phase <b>7</b></span><span class="meta-pill">Lessons <b>37</b></span><span class="meta-pill">Sources <b>S23, S40, S41</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Plumbing commands; Porcelain commands; git cat-file; git hash-object; git ls-tree; git rev-parse; git reflog; git fsck; Understanding commit graphs; Recovering lost commits. <br><strong>Before you start:</strong> complete Chapter 21 – Git Internal Architecture. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Advanced internals and recovery: plumbing vs porcelain commands, <code>cat-file</code>, <code>hash-object</code>, <code>ls-tree</code>, <code>rev-parse</code>, <code>reflog</code>, <code>fsck</code>, the commit graph, recovering lost commits, maintenance and dealing with corruption.</p>
+<p><strong>Why it matters.</strong> When something goes really wrong — a deleted branch, a bad rebase, a corrupted clone — these tools turn panic into a procedure.</p>
+<p><strong>Where it is used.</strong> Incident recovery, scripting/automation (plumbing output is stable), audits.</p>
+<p><strong>In this course's project.</strong> Stage 5: Karan deletes an unmerged Databricks feature branch by mistake; the team recovers it with reflog/fsck and documents a recovery runbook.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers plumbing vs porcelain commands, the key inspection commands (<code>cat-file</code>, <code>hash-object</code>, <code>ls-tree</code>, <code>rev-parse</code>, <code>reflog</code>, <code>fsck</code>), commit graphs, recovering lost commits, maintenance and corruption troubleshooting.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to use low-level Git commands to inspect and repair repositories and recover data in difficult situations.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S23 · Chapter manual · objectives</span><p>Use Git's low-level inspection and recovery tools to diagnose history, object and repository problems.</p><div class="grid"><div class="tile"><b>01</b><br/>Differentiate porcelain and plumbing commands</div><div class="tile"><b>02</b><br/>Inspect Git objects with low-level commands</div><div class="tile"><b>03</b><br/>Understand reflog, fsck and commit graphs</div><div class="tile"><b>04</b><br/>Recover commits and diagnose repository problems</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Distinguish plumbing and porcelain commands and use plumbing in scripts.</li>
+<li>Inspect objects with <code>cat-file</code>, <code>ls-tree</code>, <code>rev-parse</code> and create them with <code>hash-object</code>.</li>
+<li>Recover deleted branches, lost commits and dropped stashes with <code>reflog</code> and <code>fsck</code>.</li>
+<li>Read and query the commit graph (<code>log --graph</code>, <code>rev-list</code>, <code>merge-base</code>).</li>
+<li>Diagnose and handle repository corruption; create offline backups with <code>git bundle</code>.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">22.1</div><h2>Plumbing commands</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 1. Plumbing commands</span><p>Plumbing commands expose lower-level object and repository operations. They are useful for diagnostics and scripting, while porcelain commands such as status, add and commit provide user-oriented workflows.</p><h4>Commands and practical example</h4><pre><code>git status
+git add file.sql
+git commit -m "Add validation"
+git cat-file -p HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">22.2</div><h2>Porcelain commands</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 2. Porcelain commands</span><p>Porcelain is the user-facing command layer designed around common workflows. Examples include git status, add, commit, switch, merge and log. Porcelain output is generally more suitable for human use than low-level object output.</p><h4>Commands and practical example</h4><pre><code>git status
+git switch main
+git add .
+git commit -m "Update pipeline logic"</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">22.3</div><h2>git cat-file</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 3. git cat-file</span><p>cat-file inspects objects. Use -t for type, -s for size and -p to pretty-print content. It can inspect blobs, trees, commits and annotated tag objects.</p><h4>Commands and practical example</h4><pre><code>git cat-file -t HEAD
+git cat-file -s HEAD
+git cat-file -p HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">22.4</div><h2>git hash-object</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 4. git hash-object</span><p>hash-object computes an object ID for file content. With -w it writes the object into the object database. Writing a blob does not stage the file or create a commit.</p><h4>Commands and practical example</h4><pre><code>git hash-object sample.sql
+git hash-object -w sample.sql
+git cat-file -p &lt;object-id&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">22.5</div><h2>git ls-tree</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 5. git ls-tree</span><p>ls-tree lists entries in a tree object. Use -r to recurse through subdirectories and inspect how committed paths map to object IDs and modes.</p><h4>Commands and practical example</h4><pre><code>git ls-tree HEAD
+git ls-tree -r HEAD
+git ls-tree -l HEAD</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">22.6</div><h2>git rev-parse</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 6. git rev-parse</span><p>rev-parse resolves revision expressions and reports repository paths or object-format information. It is frequently used in scripts to resolve symbolic names and relative commit expressions.</p><h4>Commands and practical example</h4><pre><code>git rev-parse HEAD
+git rev-parse HEAD~3
+git rev-parse --show-toplevel
+git rev-parse --show-object-format</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">22.7</div><h2>git reflog</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 7. git reflog</span><p>The reflog records local updates to HEAD and references, including commits, resets, rebases and branch switches. It can locate commits no longer reachable from a branch. Reflogs are local and expire; they are not a remote backup.</p><h4>Commands and practical example</h4><pre><code>git reflog
+git reflog show --date=iso HEAD
+git show HEAD@{2}</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">22.8</div><h2>git fsck</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 8. git fsck</span><p>fsck checks object validity and connectivity. It can report dangling or unreachable objects. During recovery, inspect candidates first; do not prune objects while investigating missing work.</p><h4>Commands and practical example</h4><pre><code>git fsck --full
+git fsck --full --no-reflogs --unreachable
+git fsck --lost-found</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">22.9</div><h2>Understanding commit graphs</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 9. Understanding commit graphs</span><p>Commits form a directed acyclic graph. Parent links establish ancestry; branches and tags point into the graph. A merge commit joins histories by recording multiple parents. Commit-graph files can accelerate graph traversal.</p><h4>Commands and practical example</h4><pre><code>git log --graph --oneline --decorate --all
+git merge-base main feature/reporting
+git commit-graph write --reachable</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">22.10</div><h2>Recovering lost commits</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 10. Recovering lost commits</span><p>Inspect reflog for the previous commit. If found, create a branch at that object ID so the commit becomes reachable again. If reflog is insufficient, fsck may reveal dangling commits. Inspect candidates before restoring them.</p><h4>Commands and practical example</h4><pre><code>git reflog
+git branch recovery/restore-work &lt;commit-sha&gt;
+git fsck --full --no-reflogs --unreachable
+git show &lt;candidate-sha&gt;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">22.11</div><h2>Git maintenance</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 11. Git maintenance</span><p>Modern Git maintenance can perform tasks such as incremental repacking and commit-graph updates. Use scheduled maintenance for large repositories and avoid aggressive pruning during recovery or concurrent repository activity.</p><h4>Commands and practical example</h4><pre><code>git maintenance start
+git maintenance run
+git maintenance stop
+git count-objects -v</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">22.12</div><h2>Repository corruption troubleshooting</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · 12. Repository corruption troubleshooting</span><p>Make a copy before repair attempts. Check disk space, permissions and filesystem health; run fsck; inspect pack integrity; and compare with a trusted remote clone. A remote cannot restore uncommitted local-only content that was never stored as an object.</p><h4>Commands and practical example</h4><pre><code>git fsck --full
+git count-objects -v
+git verify-pack -v .git/objects/pack/*.idx
+git remote -v
+git fetch --all --prune</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">22.13</div><h2>
+Git Plumbing Commands
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. Git Plumbing Commands</span><h4>1.1 Definition</h4>
+<p><strong>Plumbing</strong> commands are <strong>low-level commands</strong> that perform a single internal operation. They have stable output designed for <strong>scripts and tools</strong>.</p>
+<h4>1.2 Common plumbing commands</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git hash-object</code></td>
+<td>Compute/store an object</td>
+</tr>
+<tr>
+<td><code>git cat-file</code></td>
+<td>Read object type, size, content</td>
+</tr>
+<tr>
+<td><code>git update-index</code></td>
+<td>Modify the index</td>
+</tr>
+<tr>
+<td><code>git write-tree</code></td>
+<td>Create a tree from the index</td>
+</tr>
+<tr>
+<td><code>git commit-tree</code></td>
+<td>Create a commit object from a tree</td>
+</tr>
+<tr>
+<td><code>git update-ref</code></td>
+<td>Create/move a reference safely</td>
+</tr>
+<tr>
+<td><code>git symbolic-ref</code></td>
+<td>Read/write symbolic refs (HEAD)</td>
+</tr>
+<tr>
+<td><code>git ls-tree</code></td>
+<td>List tree contents</td>
+</tr>
+<tr>
+<td><code>git ls-files</code></td>
+<td>List index contents</td>
+</tr>
+<tr>
+<td><code>git rev-parse</code></td>
+<td>Resolve names to hashes, repo paths</td>
+</tr>
+<tr>
+<td><code>git rev-list</code></td>
+<td>List commits/objects reachable</td>
+</tr>
+<tr>
+<td><code>git for-each-ref</code></td>
+<td>Iterate over refs with formatting</td>
+</tr>
+<tr>
+<td><code>git read-tree</code></td>
+<td>Read a tree into the index</td>
+</tr>
+<tr>
+<td><code>git diff-tree</code>, <code>git diff-index</code>, <code>git diff-files</code></td>
+<td>Low-level diffs</td>
+</tr>
+<tr>
+<td><code>git merge-base</code></td>
+<td>Find common ancestor</td>
+</tr>
+<tr>
+<td><code>git show-ref</code></td>
+<td>List refs</td>
+</tr>
+</tbody>
+</table></div>
+<h4>1.3 Build a commit using only plumbing</h4>
+<pre><code class="language-bash">mkdir plumbing-demo &amp;&amp; cd plumbing-demo &amp;&amp; git init -q -b main
+
+echo &quot;SELECT 1;&quot; &gt; test.sql
+BLOB=$(git hash-object -w test.sql)                      # 1. store blob
+git update-index --add --cacheinfo 100644 &quot;$BLOB&quot; test.sql   # 2. stage it
+TREE=$(git write-tree)                                   # 3. create tree
+COMMIT=$(echo &quot;First commit via plumbing&quot; | git commit-tree &quot;$TREE&quot;)   # 4. create commit
+git update-ref refs/heads/main &quot;$COMMIT&quot;                 # 5. point main at it
+
+git log --oneline       # shows the commit
+git status              # clean
+</code></pre>
+<p>This is exactly what <code>git add</code> + <code>git commit</code> do behind the scenes.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">22.14</div><h2>
+Git Porcelain Commands
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Git Porcelain Commands</span><h4>2.1 Definition</h4>
+<p><strong>Porcelain</strong> commands are the <strong>user-friendly, high-level commands</strong> you use daily. They combine many plumbing operations and their output may change between versions (not meant for parsing — though many offer <code>--porcelain</code> for stable machine output).</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Porcelain</th>
+<th>Built on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git add</code></td>
+<td><code>hash-object</code>, <code>update-index</code></td>
+</tr>
+<tr>
+<td><code>git commit</code></td>
+<td><code>write-tree</code>, <code>commit-tree</code>, <code>update-ref</code></td>
+</tr>
+<tr>
+<td><code>git branch</code></td>
+<td><code>update-ref</code>, <code>for-each-ref</code></td>
+</tr>
+<tr>
+<td><code>git log</code></td>
+<td><code>rev-list</code> + formatting</td>
+</tr>
+<tr>
+<td><code>git checkout/switch</code></td>
+<td><code>read-tree</code>, <code>checkout-index</code>, <code>symbolic-ref</code></td>
+</tr>
+<tr>
+<td><code>git merge</code></td>
+<td><code>merge-base</code>, merge machinery, <code>commit-tree</code></td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git status --porcelain=v2      # stable, script-friendly output
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">22.15</div><h2>
+git cat-file
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. git cat-file</span><h4>3.1 Purpose</h4>
+<p>Show the <strong>type, size or content</strong> of any object.</p>
+<pre><code class="language-bash">git cat-file -t &lt;obj&gt;      # type: blob, tree, commit, tag
+git cat-file -s &lt;obj&gt;      # size
+git cat-file -p &lt;obj&gt;      # pretty-print content
+git cat-file -e &lt;obj&gt;      # exit 0 if object exists
+git cat-file blob HEAD:README.md
+</code></pre>
+<h4>3.2 Batch mode (scripts)</h4>
+<pre><code class="language-bash">git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | sort -k3 -n | tail
+</code></pre>
+<p>Lists the largest objects in history — useful for repository cleanup.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">22.16</div><h2>
+git hash-object
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. git hash-object</span><h4>4.1 Purpose</h4>
+<p>Compute the object ID for content and optionally <strong>write</strong> it into the object database.</p>
+<pre><code class="language-bash">git hash-object file.sql               # compute only
+git hash-object -w file.sql            # compute and store
+echo &quot;content&quot; | git hash-object --stdin -w
+git hash-object -t tree &lt;file&gt;         # specify type (rare)
+</code></pre>
+<h4>4.2 Uses</h4>
+<ul>
+<li>Understanding content addressing.</li>
+<li>Checking whether a file's content already exists in the repo: <code>git cat-file -e $(git hash-object file)</code>.</li>
+<li>Scripts that create objects programmatically.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">22.17</div><h2>
+git ls-tree
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. git ls-tree</span><h4>5.1 Purpose</h4>
+<p>List the contents of a <strong>tree object</strong> (a commit's snapshot or a directory).</p>
+<pre><code class="language-bash">git ls-tree HEAD                  # top-level
+git ls-tree -r HEAD               # recursive (all files)
+git ls-tree -r --name-only HEAD   # just paths
+git ls-tree -r -l HEAD            # include sizes
+git ls-tree v1.0.0 sql/           # a folder at a tag
+git ls-tree -d HEAD               # only directories
+</code></pre>
+<h4>5.2 Use case</h4>
+<p>List exactly which files were in the release deployed to production: <code>git ls-tree -r --name-only v2.4.0 -- adf/pipeline/</code>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">22.18</div><h2>
+git rev-parse
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. git rev-parse</span><h4>6.1 Purpose</h4>
+<p>Translate <strong>revision names into hashes</strong> and answer questions about the repository. Heavily used in scripts and CI.</p>
+<pre><code class="language-bash">git rev-parse HEAD                 # full hash
+git rev-parse --short HEAD         # short hash
+git rev-parse main~2               # resolve expressions
+git rev-parse v1.0.0^{commit}      # commit a tag points to
+git rev-parse --abbrev-ref HEAD    # current branch name (or &quot;HEAD&quot; if detached)
+git rev-parse --abbrev-ref @{u}    # upstream branch
+git rev-parse --show-toplevel      # repository root path
+git rev-parse --git-dir            # path to .git
+git rev-parse --is-inside-work-tree
+git rev-parse --verify feature/x   # fail if ref doesn't exist
+</code></pre>
+<h4>6.2 CI example</h4>
+<pre><code class="language-bash">BRANCH=$(git rev-parse --abbrev-ref HEAD)
+SHA=$(git rev-parse --short HEAD)
+echo &quot;Building ${BRANCH}@${SHA}&quot;
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">22.19</div><h2>
+git reflog
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. git reflog</span><h4>7.1 Definition</h4>
+<p>The <strong>reflog</strong> ("reference log") is a <strong>local, private log</strong> of every update to <code>HEAD</code> and each branch tip — commits, checkouts, resets, rebases, merges, amends, pulls.</p>
+<pre><code class="language-bash">git reflog                        # HEAD history
+git reflog show main              # a branch's history
+git reflog --date=iso
+git log -g --oneline              # reflog as a log
+</code></pre>
+<pre><code class="language-text">9c8b7a6 HEAD@{0}: reset: moving to HEAD~2
+4d5e6f7 HEAD@{1}: commit: Add fact_sales table
+1a2b3c4 HEAD@{2}: checkout: moving from main to feature/sales
+</code></pre>
+<h4>7.2 Key facts</h4>
+<ul>
+<li><strong>Local only</strong> — not pushed or cloned.</li>
+<li>Entries expire (90 days reachable / 30 days unreachable by default).</li>
+<li>Stored in <code>.git/logs/</code>.</li>
+<li>The single most important recovery tool.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">22.20</div><h2>
+git fsck
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. git fsck</span><h4>8.1 Purpose</h4>
+<p><strong>File System Check</strong> — verifies the connectivity and validity of objects in the database and reports problems and dangling objects.</p>
+<pre><code class="language-bash">git fsck                     # check
+git fsck --full              # thorough check including packs
+git fsck --unreachable       # objects not reachable from refs
+git fsck --lost-found        # write dangling objects to .git/lost-found/
+git fsck --no-reflogs        # treat reflog-only objects as unreachable
+</code></pre>
+<h4>8.2 Output types</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dangling commit &lt;sha&gt;</code></td>
+<td>Commit not referenced by any branch/tag (e.g. after reset or dropped stash)</td>
+</tr>
+<tr>
+<td><code>dangling blob &lt;sha&gt;</code></td>
+<td>File content staged but never committed (e.g. <code>git add</code> then reset)</td>
+</tr>
+<tr>
+<td><code>missing blob &lt;sha&gt;</code></td>
+<td>Corruption — referenced object absent</td>
+</tr>
+<tr>
+<td><code>broken link from tree ...</code></td>
+<td>Corruption</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">22.21</div><h2>
+Understanding Commit Graphs
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Understanding Commit Graphs</span><h4>9.1 The DAG</h4>
+<p>Git history is a <strong>Directed Acyclic Graph (DAG)</strong>: commits are nodes, parent links are edges pointing backwards, and there are no cycles.</p>
+<pre><code class="language-text">A ◄─ B ◄─ C ◄─ E ◄─ M (main)
+      ▲              │
+      └── D ◄────────┘   (M has parents E and D)
+</code></pre>
+<h4>9.2 Viewing</h4>
+<pre><code class="language-bash">git log --oneline --graph --all --decorate
+git log --graph --format='%h %d %s' --date-order
+git log --first-parent main          # mainline only
+git log --ancestry-path A..B         # commits on the path between A and B
+git merge-base --all main feature    # common ancestors
+git rev-list --count main            # number of commits
+git rev-list --left-right --count main...feature   # ahead/behind counts
+</code></pre>
+<h4>9.3 Commit-graph file</h4>
+<p><code>.git/objects/info/commit-graph</code> caches graph data for speed:</p>
+<pre><code class="language-bash">git commit-graph write --reachable --changed-paths
+git config --global fetch.writeCommitGraph true
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">22.22</div><h2>
+Recovering Lost Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Recovering Lost Commits</span><h4>10.1 Recovery checklist</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Look in the reflog</td>
+<td><code>git reflog</code> / <code>git reflog show &lt;branch&gt;</code></td>
+</tr>
+<tr>
+<td>2. Inspect candidate</td>
+<td><code>git show &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>3. Recover to a branch</td>
+<td><code>git branch rescue &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>4. Not in reflog? Find dangling commits</td>
+<td><code>git fsck --lost-found</code> or <code>git fsck --unreachable</code> (look for "dangling commit" / "unreachable commit" lines)</td>
+</tr>
+<tr>
+<td>5. Inspect dangling commits</td>
+<td><code>git show &lt;sha&gt;</code> / <code>git log &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>6. Dropped stash?</td>
+<td><code>git fsck --unreachable</code> (find the unreachable commit) → <code>git stash apply &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>7. Was it pushed?</td>
+<td>Fetch from remote; check PR refs; ask teammates</td>
+</tr>
+</tbody>
+</table></div>
+<h4>10.2 Scenarios</h4>
+<pre><code class="language-bash"># Deleted branch
+git branch -D feature/orders
+git reflog | grep &quot;feature/orders&quot;
+git branch feature/orders 4d5e6f7
+
+# Bad rebase
+git reflog
+git reset --hard HEAD@{7}         # the entry before &quot;rebase (start)&quot;
+
+# Amended away a commit
+git reflog                        # the original commit is still listed
+git branch original-commit HEAD@{1}
+
+# Staged file content lost after reset --hard (never committed)
+git fsck --lost-found
+ls .git/lost-found/other/         # dangling blobs written as files
+git cat-file -p &lt;blob-sha&gt; &gt; recovered.sql
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">22.23</div><h2>
+Git Maintenance
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Git Maintenance</span><h4>11.1 <code>git maintenance</code></h4>
+<pre><code class="language-bash">git maintenance start            # register repo and schedule hourly/daily/weekly tasks (OS scheduler)
+git maintenance run              # run now
+git maintenance run --task=gc
+git maintenance stop
+</code></pre>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>prefetch</code></td>
+<td>Fetch in background to <code>refs/prefetch/</code></td>
+</tr>
+<tr>
+<td><code>commit-graph</code></td>
+<td>Update commit-graph</td>
+</tr>
+<tr>
+<td><code>loose-objects</code></td>
+<td>Pack loose objects</td>
+</tr>
+<tr>
+<td><code>incremental-repack</code></td>
+<td>Consolidate packs using multi-pack-index</td>
+</tr>
+<tr>
+<td><code>gc</code></td>
+<td>Full garbage collection</td>
+</tr>
+<tr>
+<td><code>pack-refs</code></td>
+<td>Pack references</td>
+</tr>
+</tbody>
+</table></div>
+<h4>11.2 Routine health checks</h4>
+<pre><code class="language-bash">git count-objects -vH            # size
+git fsck --full                  # integrity
+git gc                           # housekeeping
+git remote prune origin          # stale remote branches
+git worktree prune               # stale worktrees
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">22.24</div><h2>
+Repository Corruption Troubleshooting
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Repository Corruption Troubleshooting</span><h4>12.1 Symptoms</h4>
+<pre><code class="language-text">error: object file .git/objects/ab/cdef... is empty
+fatal: loose object abcdef... is corrupt
+error: inflate: data stream error (incorrect header check)
+fatal: bad object HEAD
+fatal: not a git repository (or any of the parent directories)
+error: index file smaller than expected
+</code></pre>
+<h4>12.2 Common causes</h4>
+<ul>
+<li>Power loss or crash during a Git operation.</li>
+<li>Disk errors.</li>
+<li>Syncing <code>.git</code> with OneDrive/Dropbox/Google Drive.</li>
+<li>Antivirus interference.</li>
+<li>Manually editing files in <code>.git</code>.</li>
+</ul>
+<h4>12.3 Step-by-step recovery</h4>
+<ol>
+<li><strong>Stop and back up</strong> the whole folder (including <code>.git</code>).</li>
+<li><strong>Diagnose:</strong> <code>git fsck --full</code>.</li>
+<li><strong>Corrupt index:</strong></li>
+</ol>
+<pre><code class="language-bash">rm .git/index
+git reset            # rebuild index from HEAD (working files untouched)
+</code></pre>
+<ol start="4">
+<li><strong>Empty/corrupt loose objects:</strong> delete the empty files, then recover them from a remote:</li>
+</ol>
+<pre><code class="language-bash">find .git/objects -type f -empty -delete
+git fetch origin                 # re-downloads missing objects that exist remotely
+git fsck --full
+</code></pre>
+<ol start="5">
+<li><strong>Corrupt HEAD/ref:</strong> edit <code>.git/HEAD</code> to <code>ref: refs/heads/main</code>, or reset a ref with a hash found in <code>git reflog</code>/<code>packed-refs</code>.</li>
+<li><strong>Last resort:</strong> fresh clone and copy over uncommitted/unpushed work:</li>
+</ol>
+<pre><code class="language-bash">git clone &lt;url&gt; ../rdp-fresh
+# copy changed files from the corrupted working directory
+# for unpushed commits that are still readable: git format-patch origin/main..main  → git am in the fresh clone
+</code></pre>
+<h4>12.4 Prevention</h4>
+<p>Keep repos out of sync folders, push frequently, use reliable disks, run <code>git fsck</code> occasionally, avoid manual <code>.git</code> edits.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-add"><span class="ct">Bundle, ls-tree and diff-tree from the interview document (S41)</span><p>S41 asks about <code>git bundle</code>, <code>git ls-tree</code> and <code>git diff-tree</code>. <code>git diff-tree --no-commit-id --name-only -r &lt;commit&gt;</code> lists files changed by a commit — handy in CI to deploy only changed SQL objects (Chapter 31).</p></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual</span><div class="diagram">refs/heads/main --&gt; C4 --&gt; C3 --&gt; C2
+refs/heads/feature --&gt; C5 --&gt; C3
+HEAD --&gt; symbolic ref --&gt; refs/heads/main
+reflog records recent movements of HEAD and refs</div></div><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="82.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Something is</text><text x="82.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">&quot;lost&quot;</text><line x1="148.0" y1="60.0" x2="176.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="179.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="241.5" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">In reflog? (git</text><text x="241.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">reflog / git</text><text x="241.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">reflog show</text><text x="241.5" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">branch)</text><line x1="307.0" y1="60.0" x2="335.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="338.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="400.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Yes → git branch</text><text x="400.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">rescue &lt;sha&gt;</text><line x1="466.0" y1="60.0" x2="494.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="497.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="559.5" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">No → git fsck</text><text x="559.5" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">--lost-found /</text><text x="559.5" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">--unreachable</text><line x1="625.0" y1="60.0" x2="653.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="656.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="718.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Inspect with git</text><text x="718.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">show</text><line x1="784.0" y1="60.0" x2="812.0" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="815.0" y="15.0" width="125.0" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="877.5" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Re-create</text><text x="877.5" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">branch, push</text></svg></div><figcaption>Recovery decision path</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 156" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="4" y="8" width="952" height="62" rx="10" fill="#f8fafd" stroke="#d7e0ee"/><text x="89.0" y="43.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#2f6fd6" text-anchor="middle">Porcelain (humans)</text><rect x="174.0" y="14" width="106.7" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="227.3" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git status</text><line x1="282.7" y1="39.0" x2="304.7" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="306.7" y="14" width="106.7" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="360.0" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git log</text><line x1="415.3" y1="39.0" x2="437.3" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="439.3" y="14" width="106.7" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="492.7" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git commit</text><line x1="548.0" y1="39.0" x2="570.0" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="572.0" y="14" width="106.7" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="625.3" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git switch</text><line x1="680.7" y1="39.0" x2="702.7" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="704.7" y="14" width="106.7" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="758.0" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git merge</text><rect x="4" y="78" width="952" height="62" rx="10" fill="#f8fafd" stroke="#d7e0ee"/><text x="89.0" y="113.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#137a4b" text-anchor="middle">Plumbing (scripts)</text><rect x="174.0" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="227.3" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git cat-file</text><line x1="282.7" y1="109.0" x2="304.7" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="306.7" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="360.0" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git rev-parse</text><line x1="415.3" y1="109.0" x2="437.3" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="439.3" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="492.7" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git ls-tree</text><line x1="548.0" y1="109.0" x2="570.0" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="572.0" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="625.3" y="105.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git hash-</text><text x="625.3" y="120.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">object</text><line x1="680.7" y1="109.0" x2="702.7" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="704.7" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="758.0" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git update-ref</text><line x1="813.3" y1="109.0" x2="835.3" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="837.3" y="84" width="106.7" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="890.7" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">git rev-list</text></svg></div><figcaption>Plumbing vs porcelain</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-git-cat-file"><header>git cat-file</header><dl><dt>Syntax</dt><dd><pre><code>git cat-file -t | -s | -p &lt;object&gt;
+git cat-file --batch-check</code></pre></dd><dt>Purpose</dt><dd>Show an object's type, size or content.</dd><dt>Expected output</dt><dd><pre><code>$ git cat-file -t v1.0.0
+tag
+$ git cat-file -p HEAD
+tree 9c1f0b2e…
+parent 5c2e9ab4…
+author Asha Rao &lt;asha.rao@retail-example.com&gt; 1795676102 +0530
+committer Asha Rao &lt;asha.rao@retail-example.com&gt; 1795676102 +0530
+
+feat(sql): add dim_customer load procedure</code></pre></dd><dt>Example</dt><dd><pre><code>git cat-file -p HEAD:sql/warehouse/usp_load_dim_customer.sql</code></pre></dd></dl></div><div class="cmd" id="cmd-git-hash-object-ls-tree-rev-parse"><header>git hash-object / ls-tree / rev-parse</header><dl><dt>Syntax</dt><dd><pre><code>git hash-object [-w] [--stdin] &lt;file&gt;
+git ls-tree [-r] [--name-only] &lt;tree-ish&gt; [&lt;path&gt;]
+git rev-parse &lt;rev&gt; | --show-toplevel | --abbrev-ref HEAD</code></pre></dd><dt>Purpose</dt><dd>Compute/write blob IDs, list tree contents, resolve names to IDs.</dd><dt>Expected output</dt><dd><pre><code>$ echo hello | git hash-object --stdin
+ce013625030ba8dba906f756967f9e9ca394464a
+$ git rev-parse --abbrev-ref HEAD
+feature/RDP-115-silver-orders</code></pre></dd><dt>Example</dt><dd><pre><code>git ls-tree -r --name-only HEAD databricks/
+git rev-parse HEAD~2
+git rev-parse --show-toplevel</code></pre></dd><dt>Common mistakes</dt><dd>Parsing <code>git status</code>/<code>git log</code> default output in scripts — use plumbing or <code>--porcelain</code> formats.</dd></dl></div><div class="cmd" id="cmd-git-fsck"><header>git fsck</header><dl><dt>Syntax</dt><dd><pre><code>git fsck [--full] [--unreachable] [--lost-found] [--no-reflogs]</code></pre></dd><dt>Purpose</dt><dd>Verify object connectivity and integrity; find dangling/unreachable objects.</dd><dt>Expected output</dt><dd><pre><code>Checking object directories: 100% (256/256), done.
+dangling commit 3a9f8e7d6c5b4a3928170615f4e3d2c1b0a99887
+dangling blob 1b2c3d4e…</code></pre></dd><dt>Example</dt><dd><pre><code>git fsck --lost-found        # writes dangling objects to .git/lost-found
+git show 3a9f8e7d
+git branch rescue/RDP-115 3a9f8e7d</code></pre></dd><dt>Common mistakes</dt><dd>Treating "dangling" as an error — it is normal (e.g. after amend/rebase).</dd></dl></div><div class="cmd" id="cmd-git-bundle"><header>git bundle</header><dl><dt>Syntax</dt><dd><pre><code>git bundle create &lt;file&gt; &lt;rev-list-args&gt;
+git bundle verify &lt;file&gt;
+git clone &lt;file&gt; &lt;dir&gt;</code></pre></dd><dt>Purpose</dt><dd>Pack refs and objects into one file for offline transfer or backup.</dd><dt>Example</dt><dd><pre><code>git bundle create rdp-backup.bundle --all
+git bundle verify rdp-backup.bundle
+git clone rdp-backup.bundle restored-rdp</code></pre></dd><dt>Common mistakes</dt><dd>Bundling only <code>main</code> when other branches/tags matter — use <code>--all</code>.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 5: Advanced Git</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 5 — Recovery runbook drill</span><pre><code class="language-bash"># Karan deletes an unmerged branch by mistake
+git branch -D feature/RDP-115-silver-orders
+#   Deleted branch feature/RDP-115-silver-orders (was 3a9f8e7).
+git reflog | grep RDP-115 | head -3       # find the last tip
+git branch feature/RDP-115-silver-orders 3a9f8e7
+
+# If the reflog has no trace (e.g. fresh clone), search dangling commits
+git fsck --lost-found | grep commit
+git show &lt;sha&gt; --stat
+
+# Quarterly offline backup of the repository
+git bundle create backups/rdp-$(date +%Y%m%d).bundle --all
+git bundle verify backups/rdp-$(date +%Y%m%d).bundle
+</code></pre>
+<p>Runbook stored in <code>docs/runbooks/git-recovery.md</code>.</p></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S23, S40 · Corrupted local repository after a cloud-sync conflict</span><p><code>git status</code> fails with <code>error: object file ... is empty</code> / <code>fatal: loose object ... is corrupt</code>. Do not keep committing. Back up the folder, run <code>git fsck --full</code>, then the simplest fix: clone fresh from the remote and copy over uncommitted files. Never keep a working repository inside OneDrive/Google Drive synced folders.</p></div><div class="src"><span class="tag add">Course addition · Find which commit introduced a regression</span><p><code>git bisect start</code>, <code>git bisect bad</code> (current), <code>git bisect good v1.0.0</code>; Git checks out midpoints; mark each good/bad (or <code>git bisect run pytest -q</code>) until it reports the first bad commit; <code>git bisect reset</code>. (S41 topic, see Chapter 25.)</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Use plumbing commands (stable output) in scripts.</li>
+<li>Know <code>reflog</code> → <code>fsck</code> → remote as the recovery order.</li>
+<li>Avoid storing repositories in file-sync folders.</li>
+<li>Back up important repos (platform backups or <code>git bundle --all</code>).</li>
+<li>Do not run <code>gc --prune=now</code> during incident recovery.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fatal: bad object HEAD</code> / <code>fatal: not a valid object name</code></td>
+<td>Missing/corrupt object</td>
+<td>fsck; fetch from remote; re-clone</td>
+</tr>
+<tr>
+<td><code>error: refs/heads/x does not point to a valid object!</code></td>
+<td>Broken ref</td>
+<td><code>git update-ref refs/heads/x &lt;good-sha&gt;</code> or delete ref</td>
+</tr>
+<tr>
+<td><code>error: Could not read &lt;sha&gt;</code> / <code>fatal: unable to read tree</code></td>
+<td>Corrupt pack/object</td>
+<td>Fetch missing objects or re-clone</td>
+</tr>
+<tr>
+<td><code>fatal: Not a valid object name stash@{0}</code></td>
+<td>No stash</td>
+<td><code>git stash list</code></td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Print the type of HEAD, HEAD^{tree} and a tag with <code>cat-file -t</code>.</p><span class="exp-out">commit, tree, tag.</span></li><li><p>Write a blob with <code>git hash-object -w</code> and read it back with <code>cat-file -p</code>.</p><span class="exp-out">Same content printed.</span></li><li><p>Delete an unmerged branch and restore it from the reflog.</p><span class="exp-out"><code>git log</code> on the restored branch shows its commits.</span></li><li><p>Amend a commit and find the old one with <code>git fsck --unreachable</code> (or reflog).</p><span class="exp-out">The pre-amend commit is listed.</span></li><li><p>Create a bundle with <code>--all</code> and clone from it.</p><span class="exp-out">Clone contains all branches.</span></li></ol></div><div class="src"><span class="tag ">Source S23 · Chapter manual · lab</span><p>Create several commits, then reset a disposable branch. Use reflog to find the previous commit and create a recovery branch. Inspect objects with cat-file and ls-tree. Run fsck to understand its output; do not delete or prune objects during the exercise.</p><div class="call"><b>Practice safely:</b> Use a disposable repository or test organization. Never use real production secrets, private keys or sensitive data in examples. Verify changes with status, diffs and logs.</div></div><div class="src"><span class="tag s40">Source S40 · 13. Practical Exercise – Chapter 22</span><ol>
+<li>Build a commit using only plumbing commands (section 1.3).</li>
+<li>Use <code>git status --porcelain=v2</code> and explain the fields.</li>
+<li>Find the largest objects using <code>rev-list | cat-file --batch-check</code>.</li>
+<li>Use <code>rev-parse</code> to print branch, short SHA and repo root.</li>
+<li>Delete a branch, recover it from the reflog.</li>
+<li>Drop a stash and recover it via <code>git fsck --unreachable</code>.</li>
+<li>Simulate a corrupt index (<code>rm .git/index</code>) and repair it.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 22 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S23 · Chapter manual · interview</span><h4>1. What is a porcelain command?</h4><p>A user-facing command that performs a higher-level Git workflow.</p><h4>2. What is a plumbing command?</h4><p>A lower-level command exposing repository and object operations.</p><h4>3. What does git cat-file -t do?</h4><p>It reports an object's type.</p><h4>4. What does git cat-file -p do?</h4><p>It pretty-prints an object's content.</p><h4>5. Does hash-object -w stage a file?</h4><p>No. It stores an object but does not update the index.</p><h4>6. What does git ls-tree show?</h4><p>Entries in a tree object, including modes, object types, IDs and names.</p><h4>7. What is reflog useful for?</h4><p>Finding recent local reference positions, including commits lost after reset or rebase.</p><h4>8. Is reflog shared with the remote?</h4><p>No, reflogs are local.</p><h4>9. What does git fsck check?</h4><p>Object validity and connectivity; it can report dangling or unreachable objects.</p><h4>10. What is a dangling commit?</h4><p>A commit object not currently reachable through normal references, though it may still exist.</p><h4>11. How can a lost commit be recovered?</h4><p>Find it in reflog or fsck output and create a branch pointing to its SHA.</p><h4>12. What is a commit graph?</h4><p>The DAG formed by commit parent relationships.</p><h4>13. What should you do before corruption repair?</h4><p>Make a copy, preserve evidence, inspect with fsck and compare against a trusted clone.</p><h4>14. Can a remote recover never-committed work?</h4><p>No. Git cannot retrieve content that was never stored as an object.</p><h4>15. What does rev-parse --show-toplevel return?</h4><p>The path to the working tree's top-level directory.</p></div><div class="src"><span class="tag s40">Source S40 · 14. Chapter 22 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Plumbing vs porcelain?</td>
+<td>Low-level script-stable commands vs user-friendly commands</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>What does <code>git cat-file -p</code> do?</td>
+<td>Pretty-prints an object's content</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What does <code>git rev-parse --abbrev-ref HEAD</code> return?</td>
+<td>Current branch name</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>What is the reflog?</td>
+<td>Local log of ref/HEAD movements, used for recovery</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What does <code>git fsck</code> do?</td>
+<td>Checks object database integrity and finds dangling objects</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>What is a DAG in Git?</td>
+<td>Directed acyclic graph of commits</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you recover a dropped stash?</td>
+<td><code>git fsck --unreachable</code>, then <code>git stash apply &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>How do you fix a corrupt index?</td>
+<td>Delete <code>.git/index</code> and run <code>git reset</code></td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What is the reflog?</summary><div class="ans"><p>A local log of where HEAD and branch tips pointed over time, used to recover lost commits.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>Plumbing vs porcelain?</summary><div class="ans"><p>Porcelain commands are user-facing (status, commit); plumbing commands are low-level building blocks with stable output for scripts (cat-file, rev-parse, update-ref).</p></div></details><details class="qa"><summary>How do you recover a deleted branch?</summary><div class="ans"><p>Find its last commit in the reflog (or <code>git fsck</code>) and run <code>git branch &lt;name&gt; &lt;sha&gt;</code>.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>What is a dangling commit?</summary><div class="ans"><p>A commit not reachable from any ref (often after amend/rebase/branch deletion); it remains until gc prunes it.</p></div></details><details class="qa"><summary>What is a Git bundle used for?</summary><div class="ans"><p>Moving repository data offline or as a backup; it can be cloned or fetched from like a remote.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>A colleague force-pushed <code>main</code> and the old commits are gone from the server. How do you restore them?</summary><div class="ans"><p>Anyone who fetched before has them in their <code>origin/main</code> reflog (<code>git reflog show origin/main</code>); push the old tip to a branch, restore <code>main</code> via PR or admin action, then enable protection against force pushes.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which command shows an object's type?</strong></p><ol><li data-ok="0">git show -t</li><li data-ok="1">git cat-file -t</li><li data-ok="0">git ls-tree -t</li><li data-ok="0">git rev-parse -t</li></ol><div class="exp"><code>-t</code> prints type.</div></div><div class="mcq"><p><strong>2. Best first step to recover a branch deleted 5 minutes ago?</strong></p><ol><li data-ok="0">git fsck --full</li><li data-ok="1">git reflog</li><li data-ok="0">Re-clone</li><li data-ok="0">git gc</li></ol><div class="exp">The reflog still has the tip.</div></div><div class="mcq"><p><strong>3. Which command writes all branches into a single transferable file?</strong></p><ol><li data-ok="0">git archive</li><li data-ok="1">git bundle create f.bundle --all</li><li data-ok="0">git pack-refs</li><li data-ok="0">git stash</li></ol><div class="exp"><code>git archive</code> exports files without history.</div></div><div class="mcq"><p><strong>4. Which output is safe to parse in scripts?</strong></p><ol><li data-ok="0">git status (default)</li><li data-ok="1">git status --porcelain</li><li data-ok="0">git log (default)</li><li data-ok="0">git branch (default)</li></ol><div class="exp">Porcelain formats are stable.</div></div><div class="mcq"><p><strong>5. "dangling commit" in fsck output means…</strong></p><ol><li data-ok="0">Corruption</li><li data-ok="1">An unreachable commit, often normal</li><li data-ok="0">A merge conflict</li><li data-ok="0">A signed commit</li></ol><div class="exp">Dangling objects are expected after history edits.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Plumbing commands expose objects and refs; porcelain builds on them.</li>
+<li>Recovery order: reflog → fsck → other clones/remote → backups.</li>
+<li>Bundles provide offline transfer/backup.</li>
+<li>Corruption is rare and usually caused by unsafe storage; re-clone is the fastest fix.</li>
+</ul></div><div class="src"><span class="tag ">Source S23 · Chapter manual · summary</span><ul><li>Differentiate porcelain and plumbing commands</li><li>Inspect Git objects with low-level commands</li><li>Understand reflog, fsck and commit graphs</li><li>Recover commits and diagnose repository problems</li></ul><div class="call warn"><b>Key takeaway:</b> Understand the effect of each command before running it. For security and repository maintenance, follow organizational policy and preserve a recovery path.</div></div><div class="src"><span class="tag s40">Source S40 · 15. Chapter 22 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plumbing/porcelain</td>
+<td>Low-level vs high-level commands</td>
+</tr>
+<tr>
+<td>Inspection</td>
+<td><code>cat-file</code>, <code>hash-object</code>, <code>ls-tree</code>, <code>rev-parse</code></td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td><code>reflog</code>, <code>fsck</code>, rescue branches</td>
+</tr>
+<tr>
+<td>Commit graph</td>
+<td>History as a DAG</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td><code>git maintenance</code>, <code>gc</code>, <code>fsck</code></td>
+</tr>
+<tr>
+<td>Corruption</td>
+<td>Diagnose, rebuild, fetch, re-clone</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Distinguish plumbing and porcelain commands and use plumbing in scripts.</li><li>Inspect objects with <code>cat-file</code>, <code>ls-tree</code>, <code>rev-parse</code> and create them with <code>hash-object</code>.</li><li>Recover deleted branches, lost commits and dropped stashes with <code>reflog</code> and <code>fsck</code>.</li><li>Read and query the commit graph (<code>log --graph</code>, <code>rev-list</code>, <code>merge-base</code>).</li><li>Diagnose and handle repository corruption; create offline backups with <code>git bundle</code>.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain">Pro Git — Plumbing and Porcelain</a></li>
+<li><a href="https://git-scm.com/book/en/v2/Git-Internals-Maintenance-and-Data-Recovery">Pro Git — Maintenance and Data Recovery</a></li>
+<li><a href="https://git-scm.com/docs/git-cat-file">git-cat-file</a> · <a href="https://git-scm.com/docs/git-fsck">git-fsck</a> · <a href="https://git-scm.com/docs/git-rev-parse">git-rev-parse</a> · <a href="https://git-scm.com/docs/git-bundle">git-bundle</a></li>
+</ul></div><div class="src"><span class="tag ">Source S23 · Chapter manual</span><ul><li><a href="https://git-scm.com/docs/git-cat-file" rel="noopener" target="_blank">git cat-file</a></li><li><a href="https://git-scm.com/docs/git-hash-object" rel="noopener" target="_blank">git hash-object</a></li><li><a href="https://git-scm.com/docs/git-fsck" rel="noopener" target="_blank">git fsck</a></li><li><a href="https://git-scm.com/docs/git-reflog" rel="noopener" target="_blank">git reflog</a></li><li><a href="https://git-scm.com/docs/git-maintenance" rel="noopener" target="_blank">Git maintenance</a></li></ul><p class="small">Use official documentation for version-specific behavior and current hosting-provider settings. Test commands that modify history or remove data in a disposable repository first.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_21_Git_Internal_Architecture.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Internal Architecture</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_23_Git_Authentication_and_Security.html"><span class="mn-label">Next →</span><span class="mn-title">Git Authentication and Security</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

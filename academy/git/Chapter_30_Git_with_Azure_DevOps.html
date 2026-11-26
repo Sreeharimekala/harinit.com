@@ -1,0 +1,1597 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Create an Azure Repos Git repository, clone it and push existing code (HTTPS with GCM or SSH)."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git with Azure DevOps — Chapter 30 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git with Azure DevOps</div>
+<div class="brand-sub">Chapter 30 · 41 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">30.1</span>Introduction to Azure DevOps</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">30.2</span>Azure Repos</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">30.3</span>Creating Git repositories</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">30.4</span>Connecting local Git with Azure Repos</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">30.5</span>Branch policies</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">30.6</span>Pull requests</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">30.7</span>Code reviews</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">30.8</span>Azure Boards integration</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">30.9</span>Azure Pipelines</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">30.10</span>YAML pipelines</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">30.11</span>Build and release pipelines</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">30.12</span>Git-based deployment</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">30.13</span>Managing multiple environments</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">30.14</span>CI/CD best practices</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">30.15</span>Introduction to Azure DevOps</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">30.16</span>Azure Repos</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">30.17</span>Creating Git Repositories in Azure DevOps</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">30.18</span>Connecting Local Git with Azure Repos</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">30.19</span>Branch Policies</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">30.20</span>Pull Requests</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">30.21</span>Code Reviews</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">30.22</span>Azure Boards Integration</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">30.23</span>Azure Pipelines</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">30.24</span>YAML Pipelines</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">30.25</span>Build and Release Pipelines</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">30.26</span>Git-Based Deployment</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">30.27</span>Managing Multiple Environments</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">30.28</span>CI/CD Best Practices</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 7: CI/CD</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">🎯</span>Chapter 30 Interview Questions</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 10 · Chapter 30</div><h1>Git with Azure DevOps</h1><p class="page-subtitle">Create an Azure Repos Git repository, clone it and push existing code (HTTPS with GCM or SSH).</p><div class="meta-row"><span class="meta-pill">Phase <b>10</b></span><span class="meta-pill">Lessons <b>41</b></span><span class="meta-pill">Sources <b>S31, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Introduction to Azure DevOps; Azure Repos; Creating Git repositories; Connecting local Git with Azure Repos; Branch policies; Pull requests; Code reviews; Azure Boards integration; Azure Pipelines; YAML pipelines. <br><strong>Before you start:</strong> complete Chapter 29 – GitHub Actions. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Azure DevOps is Microsoft's suite for planning (Boards), source control (Repos), CI/CD (Pipelines), testing (Test Plans) and packages (Artifacts). Azure Repos hosts Git repositories with branch policies and pull requests; Azure Pipelines runs YAML pipelines with environments and approvals.</p>
+<p><strong>Why it matters.</strong> Many Microsoft data teams run ADF, Databricks, Fabric and SQL deployments from Azure DevOps; its branch policies and environments are the enterprise control points.</p>
+<p><strong>Where it is used.</strong> Enterprise data platforms, regulated industries, organizations standardized on Azure and Entra ID.</p>
+<p><strong>In this course's project.</strong> Stage 7 (alternative path): the platform repository is mirrored/hosted in Azure Repos project <code>RDP</code>, protected with branch policies, linked to Azure Boards work items, and delivered by a multi-stage YAML pipeline Dev → Test → Prod with approvals.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers Azure DevOps — Azure Repos, connecting local Git, branch policies, pull requests, code reviews, Azure Boards integration, Azure Pipelines (YAML, build and release), Git-based deployment, multiple environments and CI/CD best practices.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to run a complete Git + CI/CD process for a data platform on Azure DevOps.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S31 · Chapter manual · objectives</span><p>Connect Git repositories to Azure Boards and Pipelines and implement policy-driven build and deployment workflows.</p><div class="grid"><div class="tile">Understand concepts and architecture</div><div class="tile">Apply commands and workflows</div><div class="tile">Use practical examples</div><div class="tile">Prepare for interviews</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Create an Azure Repos Git repository, clone it and push existing code (HTTPS with GCM or SSH).</li>
+<li>Configure branch policies: reviewers, linked work items, comment resolution, merge types, build validation.</li>
+<li>Create and complete pull requests; link commits/PRs to Azure Boards work items correctly (<code>#ID</code> in Azure Repos, <code>AB#ID</code> from GitHub).</li>
+<li>Write a multi-stage YAML pipeline with triggers, stages, jobs, variables/variable groups and templates.</li>
+<li>Use environments with approvals and checks for Test/Prod deployments.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">30.1</div><h2>Introduction to Azure DevOps</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 1. Introduction to Azure DevOps</span><p>Azure DevOps provides planning, source control, build/release automation, testing and package services: Boards, Repos, Pipelines, Test Plans and Artifacts.</p><h4>Example / practical reference</h4><pre><code>Organization → Project → Repos / Boards / Pipelines</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">30.2</div><h2>Azure Repos</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 2. Azure Repos</span><p>Azure Repos hosts Git repositories and supports branches, commits, tags, PRs and repository policies.</p><h4>Example / practical reference</h4><pre><code>Project → Repos → Files / Branches / Tags</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">30.3</div><h2>Creating Git repositories</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 3. Creating Git repositories</span><p>Create or initialize a repository in an Azure DevOps project, then clone it or connect an existing local repository.</p><h4>Example / practical reference</h4><pre><code>git clone https://dev.azure.com/ORG/PROJECT/_git/REPO</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">30.4</div><h2>Connecting local Git with Azure Repos</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 4. Connecting local Git with Azure Repos</span><p>Use HTTPS or SSH according to policy. Authenticate through approved methods and verify the remote URL. Never embed tokens in URLs.</p><h4>Example / practical reference</h4><pre><code>git remote add origin https://dev.azure.com/ORG/PROJECT/_git/REPO
+git push -u origin main</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">30.5</div><h2>Branch policies</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 5. Branch policies</span><p>Policies can require reviewers, linked work items, comment resolution, build validation and restrictions on direct pushes.</p><h4>Example / practical reference</h4><pre><code>Repos → Branches → branch menu → Branch policies</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">30.6</div><h2>Pull requests</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 6. Pull requests</span><p>PRs provide a controlled integration point. Include purpose, scope, tests, deployment notes and rollback plan. Wait for required policies before completion.</p><h4>Example / practical reference</h4><pre><code>git switch -c feature/456-data-quality
+git push -u origin feature/456-data-quality</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">30.7</div><h2>Code reviews</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 7. Code reviews</span><p>Review correctness, maintainability, security, performance and operational behavior. Validate the final diff and test evidence.</p><h4>Example / practical reference</h4><pre><code>Checklist: correctness | tests | data impact | security | rollback</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">30.8</div><h2>Azure Boards integration</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 8. Azure Boards integration</span><p>Link commits, branches and PRs to work items for traceability from requirement to source and delivery.</p><h4>Example / practical reference</h4><pre><code># Example commit reference:
+# Add order quality validation AB#1234</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">30.9</div><h2>Azure Pipelines</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 9. Azure Pipelines</span><p>Pipelines automate build, test and deployment. YAML pipelines support stages, jobs, steps, variables, templates and environments.</p><h4>Example / practical reference</h4><pre><code>trigger:
+- main
+pool:
+  vmImage: ubuntu-latest
+steps:
+- script: echo Validate</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">30.10</div><h2>YAML pipelines</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 10. YAML pipelines</span><p>A YAML pipeline describes triggers, pools, variables, stages, jobs and steps. Keep YAML with source and use secure variable/secret facilities.</p><h4>Example / practical reference</h4><pre><code>trigger:
+  branches:
+    include: [main]
+pool:
+  vmImage: ubuntu-latest
+steps:
+- checkout: self
+- script: echo Build</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">30.11</div><h2>Build and release pipelines</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 11. Build and release pipelines</span><p>Build pipelines compile, test and publish immutable artifacts. Deployment stages promote artifacts to environments.</p><h4>Example / practical reference</h4><pre><code>stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    steps:
+    - script: echo build</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">30.12</div><h2>Git-based deployment</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 12. Git-based deployment</span><p>Use PR validation and branch policies. Build from a known commit and deploy the produced artifact rather than copying files from a developer machine.</p><h4>Example / practical reference</h4><pre><code>commit SHA → pipeline run → artifact → deployment record</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">30.13</div><h2>Managing multiple environments</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 13. Managing multiple environments</span><p>Separate environment configuration and permissions. Use variable groups, Key Vault or secure service connections. Add approvals for sensitive environments.</p><h4>Example / practical reference</h4><pre><code>Dev → Test → UAT → Production; promote the same artifact.</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">30.14</div><h2>CI/CD best practices</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · 14. CI/CD best practices</span><p>Use least privilege, reusable templates, tests, immutable artifacts, approvals, deployment records and rollback procedures. Keep secrets out of YAML.</p><h4>Example / practical reference</h4><pre><code>lint → unit tests → integration tests → package → approval → deploy</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">30.15</div><h2>
+Introduction to Azure DevOps
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. Introduction to Azure DevOps</span><h4>1.1 Definition</h4>
+<p><strong>Azure DevOps</strong> is Microsoft's suite of DevOps services, available as <strong>Azure DevOps Services</strong> (cloud, <code>dev.azure.com</code>) or <strong>Azure DevOps Server</strong> (on-premises, formerly TFS).</p>
+<h4>1.2 Services</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Azure Boards</strong></td>
+<td>Work items, backlogs, sprints, Kanban</td>
+</tr>
+<tr>
+<td><strong>Azure Repos</strong></td>
+<td>Git repositories (and legacy TFVC)</td>
+</tr>
+<tr>
+<td><strong>Azure Pipelines</strong></td>
+<td>CI/CD for any platform</td>
+</tr>
+<tr>
+<td><strong>Azure Test Plans</strong></td>
+<td>Manual and exploratory testing</td>
+</tr>
+<tr>
+<td><strong>Azure Artifacts</strong></td>
+<td>Package feeds (PyPI, NuGet, npm, Maven, Universal)</td>
+</tr>
+</tbody>
+</table></div>
+<h4>1.3 Hierarchy</h4>
+<pre><code class="language-text">Organization (dev.azure.com/contoso)
+└── Project (DataPlatform)
+    ├── Boards
+    ├── Repos (multiple Git repositories)
+    ├── Pipelines
+    ├── Test Plans
+    └── Artifacts
+</code></pre>
+<p>Authentication uses <strong>Microsoft Entra ID</strong>; permissions are managed through security groups (Project Administrators, Contributors, Readers) and per-repository/branch security.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">30.16</div><h2>
+Azure Repos
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Azure Repos</span><h4>2.1 Features</h4>
+<ul>
+<li>Unlimited free private Git repositories.</li>
+<li>Pull requests with policies, required reviewers, build validation.</li>
+<li>Branch policies and branch security.</li>
+<li>Web code browsing, history, compare, blame.</li>
+<li>Integration with Boards, Pipelines and Microsoft Fabric/ADF/Databricks/Synapse.</li>
+<li>Git LFS support; forks; repository import.</li>
+<li>Optional GitHub Advanced Security for Azure DevOps (secret and code scanning).</li>
+</ul>
+<h4>2.2 Azure Repos vs GitHub</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>Azure Repos</th>
+<th>GitHub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ecosystem</td>
+<td>Azure DevOps (Boards, Pipelines, Test Plans)</td>
+<td>GitHub (Issues, Projects, Actions)</td>
+</tr>
+<tr>
+<td>Policies</td>
+<td>Branch policies</td>
+<td>Rulesets</td>
+</tr>
+<tr>
+<td>CI/CD</td>
+<td>Azure Pipelines</td>
+<td>GitHub Actions (Azure Pipelines can also build GitHub repos)</td>
+</tr>
+<tr>
+<td>Typical users</td>
+<td>Enterprise Microsoft shops</td>
+<td>Broad, open source, modern enterprises</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">30.17</div><h2>
+Creating Git Repositories in Azure DevOps
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Creating Git Repositories in Azure DevOps</span><ol>
+<li>Sign in to <code>https://dev.azure.com/&lt;org&gt;</code> → open or create a <strong>project</strong> (<em>Version control: Git</em>).</li>
+<li><strong>Repos → Files</strong> → repository dropdown → <strong>+ New repository</strong>.</li>
+<li>Type <strong>Git</strong>, name <code>retail-data-platform</code>, optionally add README and <code>.gitignore</code> (Python) → <strong>Create</strong>.</li>
+</ol>
+<p><strong>Import an existing repository (e.g. from GitHub):</strong> repository dropdown → <strong>Import repository</strong> → source URL (+ credentials for private repos) → <strong>Import</strong>.</p>
+<p><strong>Azure CLI:</strong></p>
+<pre><code class="language-bash">az extension add --name azure-devops
+az devops configure --defaults organization=https://dev.azure.com/contoso project=DataPlatform
+az repos create --name retail-data-platform
+az repos list -o table
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">30.18</div><h2>
+Connecting Local Git with Azure Repos
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Connecting Local Git with Azure Repos</span><h4>4.1 Clone URLs</h4>
+<pre><code class="language-text">HTTPS: https://dev.azure.com/contoso/DataPlatform/_git/retail-data-platform
+SSH:   git@ssh.dev.azure.com:v3/contoso/DataPlatform/retail-data-platform
+</code></pre>
+<p>Repos → Files → <strong>Clone</strong> shows both, plus <strong>Generate Git Credentials</strong> and <strong>Clone in VS Code/Visual Studio</strong>.</p>
+<h4>4.2 Clone</h4>
+<pre><code class="language-bash">git clone https://dev.azure.com/contoso/DataPlatform/_git/retail-data-platform
+</code></pre>
+<p>Git Credential Manager handles Entra ID sign-in (including MFA).</p>
+<h4>4.3 Push an existing local repository</h4>
+<pre><code class="language-bash">cd retail-data-platform
+git remote add azure https://dev.azure.com/contoso/DataPlatform/_git/retail-data-platform
+git push -u azure --all
+git push azure --tags
+</code></pre>
+<h4>4.4 Alternative credentials</h4>
+<ul>
+<li><strong>PAT:</strong> User settings → Personal access tokens → <em>Code (Read &amp; write)</em> scope; use as password.</li>
+<li><strong>SSH:</strong> User settings → SSH public keys → add key (RSA historically required; check current docs for ed25519 support).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">30.19</div><h2>
+Branch Policies
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Branch Policies</span><p><strong>Repos → Branches → <code>main</code> → <code>…</code> → Branch policies</strong>:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Require a minimum number of reviewers</strong></td>
+<td>e.g. 2; options: allow requestors to approve own changes (off), prohibit most recent pusher from approving, reset votes on new pushes</td>
+</tr>
+<tr>
+<td><strong>Check for linked work items</strong></td>
+<td>Every PR linked to a Boards item</td>
+</tr>
+<tr>
+<td><strong>Check for comment resolution</strong></td>
+<td>All comments resolved</td>
+</tr>
+<tr>
+<td><strong>Limit merge types</strong></td>
+<td>Allow only e.g. Squash or Merge (no fast-forward)</td>
+</tr>
+<tr>
+<td><strong>Build validation</strong></td>
+<td>A pipeline must succeed for the PR (with expiry)</td>
+</tr>
+<tr>
+<td><strong>Status checks</strong></td>
+<td>External services post statuses</td>
+</tr>
+<tr>
+<td><strong>Automatically included reviewers</strong></td>
+<td>Required reviewers by path, e.g. <code>/sql/*</code> → DBA group</td>
+</tr>
+</tbody>
+</table></div>
+<p>Plus <strong>branch security</strong> (<code>…</code> → Branch security): deny <em>Force push</em>, <em>Bypass policies</em>, <em>Contribute</em> for most groups. Policies can be set across all repositories in a project (<strong>Project settings → Repositories → Policies</strong>).</p>
+<div class="callout "><p><strong>Note</strong> With policies on <code>main</code>, direct pushes are blocked — all changes go through PRs.</p>
+</div>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">30.20</div><h2>
+Pull Requests
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Pull Requests</span><h4>6.1 Create</h4>
+<ul>
+<li>After pushing a branch, Repos shows <strong>Create a pull request</strong>; or <strong>Repos → Pull requests → New pull request</strong>.</li>
+<li>Choose source → target branch, title, description (supports Markdown and PR templates in <code>.azuredevops/pull_request_template.md</code>), reviewers (required/optional), work items, tags.</li>
+<li><strong>Create as draft</strong> if not ready.</li>
+</ul>
+<pre><code class="language-bash">az repos pr create --source-branch feature/DE-1600-dim-store --target-branch main \
+  --title &quot;feat(sql): add dim_store&quot; --work-items 1600 --reviewers &quot;sql-team&quot;
+</code></pre>
+<h4>6.2 Complete (merge)</h4>
+<p>Click <strong>Complete</strong> (when policies pass) and choose the merge type:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Merge type</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Merge (no fast-forward)</td>
+<td>Merge commit preserving branch history</td>
+</tr>
+<tr>
+<td>Squash commit</td>
+<td>One commit on target</td>
+</tr>
+<tr>
+<td>Rebase and fast-forward</td>
+<td>Commits replayed linearly</td>
+</tr>
+<tr>
+<td>Semi-linear merge</td>
+<td>Rebase then merge commit</td>
+</tr>
+</tbody>
+</table></div>
+<p>Options: <strong>Complete associated work items</strong>, <strong>Delete source branch</strong>, customise commit message. <strong>Set auto-complete</strong> to merge automatically when policies pass.</p>
+<h4>6.3 Abandon / reactivate</h4>
+<p><strong>Abandon</strong> closes the PR without merging; it can be reactivated later.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">30.21</div><h2>
+Code Reviews
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Code Reviews</span><h4>7.1 Reviewing in Azure Repos</h4>
+<ul>
+<li><strong>Files</strong> tab: side-by-side or inline diff; compare iterations ("updates") to see what changed since your last review.</li>
+<li>Comment on lines; use <strong>suggestions</strong>; mark comments <strong>Active / Resolved / Won't fix / Closed</strong>.</li>
+<li><strong>Vote:</strong></li>
+</ul>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Vote</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Approve</td>
+<td>Ready to merge</td>
+</tr>
+<tr>
+<td>Approve with suggestions</td>
+<td>Fine; minor optional changes</td>
+</tr>
+<tr>
+<td>Wait for author</td>
+<td>Needs changes; re-review needed</td>
+</tr>
+<tr>
+<td>Reject</td>
+<td>Changes not acceptable</td>
+</tr>
+</tbody>
+</table></div>
+<h4>7.2 Review checklist</h4>
+<p>Same as Chapter 14/25: correctness, idempotency, performance, security, tests, naming, documentation, backward compatibility.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">30.22</div><h2>
+Azure Boards Integration
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Azure Boards Integration</span><h4>8.1 Linking work items</h4>
+<ul>
+<li>Branch from a work item: work item → <strong>Development → Create branch</strong> (branch linked automatically).</li>
+<li>In commits/PRs: mention <code>#1600</code> (Azure Repos) — links the work item.</li>
+<li>Link from the PR <strong>Work items</strong> panel.</li>
+<li>From <strong>GitHub</strong> repositories (Azure Boards app): use <strong><code>AB#1600</code></strong> in commits/PRs; <code>Fixes AB#1600</code> transitions the item on merge.</li>
+</ul>
+<h4>8.2 Transition on completion</h4>
+<p>Enable <strong>Complete associated work items after merging</strong> in the PR to move items to <em>Done/Closed</em>.</p>
+<h4>8.3 Traceability</h4>
+<p>The work item's <strong>Development</strong> section shows linked branches, commits, PRs, builds and releases — end-to-end traceability from requirement to deployment.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">30.23</div><h2>
+Azure Pipelines
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Azure Pipelines</span><h4>9.1 Concepts</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipeline</td>
+<td>Automated process defined in YAML (or classic UI)</td>
+</tr>
+<tr>
+<td>Trigger</td>
+<td>CI (push), PR, scheduled, pipeline completion, manual</td>
+</tr>
+<tr>
+<td>Stage</td>
+<td>Major phase (Build, DeployDev, DeployProd)</td>
+</tr>
+<tr>
+<td>Job</td>
+<td>Unit of work on an agent</td>
+</tr>
+<tr>
+<td>Step / Task</td>
+<td>Script or built-in task (e.g. <code>UsePythonVersion@0</code>)</td>
+</tr>
+<tr>
+<td>Agent / pool</td>
+<td>Machine running jobs: Microsoft-hosted (<code>ubuntu-latest</code>) or self-hosted</td>
+</tr>
+<tr>
+<td>Artifact</td>
+<td>Published outputs for later stages</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td>Deployment target with approvals and checks</td>
+</tr>
+<tr>
+<td>Service connection</td>
+<td>Secure connection to Azure, GitHub, Databricks, etc.</td>
+</tr>
+<tr>
+<td>Variable group</td>
+<td>Shared variables, optionally linked to Key Vault</td>
+</tr>
+</tbody>
+</table></div>
+<h4>9.2 Creating a pipeline</h4>
+<p><strong>Pipelines → New pipeline</strong> → source (<em>Azure Repos Git</em> or <em>GitHub</em>) → repository → <strong>Starter pipeline</strong> or <strong>Existing Azure Pipelines YAML file</strong> → review → <strong>Save and run</strong>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">30.24</div><h2>
+YAML Pipelines
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. YAML Pipelines</span><h4>10.1 Structure</h4>
+<pre><code class="language-yaml">trigger:                    # CI trigger
+  branches:
+    include: [main]
+  paths:
+    include: [python/*, sql/*]
+
+pr:                         # PR trigger (for GitHub repos; Azure Repos uses build validation policy)
+  branches:
+    include: [main]
+
+schedules:
+  - cron: &quot;0 1 * * *&quot;
+    displayName: Nightly
+    branches:
+      include: [main]
+    always: true
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - name: pythonVersion
+    value: '3.11'
+  - group: rdp-common       # variable group
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Test
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(pythonVersion)
+          - script: pip install -r python/requirements.txt pytest
+            displayName: Install dependencies
+          - script: pytest python/tests --junitxml=test-results.xml
+            displayName: Run tests
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFiles: test-results.xml
+</code></pre>
+<h4>10.2 Key syntax</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Variable usage</td>
+<td><code>$(pythonVersion)</code> (runtime), <code>${{ variables.x }}</code> (compile time), <code>$[ ... ]</code> (runtime expression)</td>
+</tr>
+<tr>
+<td>Conditions</td>
+<td><code>condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))</code></td>
+</tr>
+<tr>
+<td>Dependencies</td>
+<td><code>dependsOn: Build</code></td>
+</tr>
+<tr>
+<td>Templates</td>
+<td><code>- template: templates/deploy.yml</code> with <code>parameters:</code></td>
+</tr>
+<tr>
+<td>Predefined variables</td>
+<td><code>Build.SourceBranch</code>, <code>Build.BuildId</code>, <code>Build.SourceVersion</code>, <code>System.DefaultWorkingDirectory</code>, <code>Pipeline.Workspace</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4>10.3 Templates for reuse</h4>
+<pre><code class="language-yaml"># templates/deploy.yml
+parameters:
+  - name: environment
+    type: string
+  - name: serviceConnection
+    type: string
+jobs:
+  - deployment: Deploy_${{ parameters.environment }}
+    environment: rdp-${{ parameters.environment }}
+    pool: { vmImage: ubuntu-latest }
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: AzureCLI@2
+              inputs:
+                azureSubscription: ${{ parameters.serviceConnection }}
+                scriptType: bash
+                scriptLocation: inlineScript
+                inlineScript: ./scripts/deploy.sh ${{ parameters.environment }}
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">30.25</div><h2>
+Build and Release Pipelines
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Build and Release Pipelines</span><h4>11.1 Classic vs YAML</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>Classic Build + Release pipelines</th>
+<th>YAML multi-stage pipelines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Definition</td>
+<td>UI designer</td>
+<td>Code in repository</td>
+</tr>
+<tr>
+<td>Versioned with code</td>
+<td>No</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Reviewable in PRs</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Release stages/approvals</td>
+<td>Release pipeline stages</td>
+<td>Stages + environments with checks</td>
+</tr>
+<tr>
+<td>Recommendation</td>
+<td>Legacy/existing setups</td>
+<td><strong>Recommended for new work</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h4>11.2 Multi-stage YAML: build → release</h4>
+<pre><code class="language-yaml">trigger:
+  branches: { include: [main] }
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: '3.11' }
+          - script: |
+              pip install build pytest -r python/requirements.txt
+              pytest python/tests
+              python -m build python/
+            displayName: Test and build wheel
+          - task: CopyFiles@2
+            inputs:
+              Contents: |
+                python/dist/**
+                adf/**
+                databricks/**
+                sql/**
+              TargetFolder: $(Build.ArtifactStagingDirectory)
+          - publish: $(Build.ArtifactStagingDirectory)
+            artifact: drop
+
+  - stage: DeployDev
+    dependsOn: Build
+    jobs:
+      - template: templates/deploy.yml
+        parameters: { environment: dev, serviceConnection: sc-rdp-dev }
+
+  - stage: DeployTest
+    dependsOn: DeployDev
+    jobs:
+      - template: templates/deploy.yml
+        parameters: { environment: test, serviceConnection: sc-rdp-test }
+
+  - stage: DeployProd
+    dependsOn: DeployTest
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - template: templates/deploy.yml
+        parameters: { environment: prod, serviceConnection: sc-rdp-prod }
+</code></pre>
+<p>Deployment jobs automatically download the <code>drop</code> artifact into <code>$(Pipeline.Workspace)/drop</code>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">30.26</div><h2>
+Git-Based Deployment
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Git-Based Deployment</span><ul>
+<li><strong>Every deployment starts from Git</strong>: a commit on <code>main</code> or a tag triggers the pipeline.</li>
+<li>The pipeline records the <strong>source version</strong> (<code>Build.SourceVersion</code>) and links to commits and work items.</li>
+<li><strong>Tag-based releases:</strong></li>
+</ul>
+<pre><code class="language-yaml">trigger:
+  tags:
+    include: ['v*']
+</code></pre>
+<ul>
+<li><strong>Tag the repository after a successful production deployment</strong> (optional step using <code>git tag</code> with <code>persistCredentials: true</code> on checkout and <em>Contribute/Create tag</em> permission for the build service).</li>
+<li><strong>Rollback</strong>: re-run the pipeline for a previous run/tag or revert in Git and redeploy.</li>
+<li><strong>No manual changes in Test/Prod</strong> — all through the pipeline.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">30.27</div><h2>
+Managing Multiple Environments
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Managing Multiple Environments</span><h4>13.1 Environments</h4>
+<p><strong>Pipelines → Environments → New environment</strong> (<code>rdp-dev</code>, <code>rdp-test</code>, <code>rdp-prod</code>) → <strong>Approvals and checks</strong>:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Approvals</td>
+<td>Named approvers/groups for Prod</td>
+</tr>
+<tr>
+<td>Branch control</td>
+<td>Only <code>refs/heads/main</code> / tags may deploy</td>
+</tr>
+<tr>
+<td>Business hours</td>
+<td>Deploy only in change windows</td>
+</tr>
+<tr>
+<td>Exclusive lock</td>
+<td>One deployment at a time</td>
+</tr>
+<tr>
+<td>Invoke Azure Function / REST API</td>
+<td>Custom gates (e.g. change ticket approved)</td>
+</tr>
+<tr>
+<td>Query Azure Monitor alerts</td>
+<td>Block if alerts are active</td>
+</tr>
+</tbody>
+</table></div>
+<p>Deployment history per environment shows which run/commit is deployed.</p>
+<h4>13.2 Configuration per environment</h4>
+<ul>
+<li><strong>Variable groups</strong> per environment (<code>rdp-dev-vars</code>, <code>rdp-prod-vars</code>), <strong>linked to Azure Key Vault</strong> for secrets.</li>
+<li><strong>Service connections</strong> per environment (prefer <strong>workload identity federation</strong> — no secrets).</li>
+<li><strong>Parameter files</strong> (ADF ARM parameters, bundle targets, Fabric parameter.yml) for environment-specific values.</li>
+</ul>
+<pre><code class="language-yaml">variables:
+  - ${{ if eq(parameters.environment, 'prod') }}:
+    - group: rdp-prod-vars
+  - ${{ else }}:
+    - group: rdp-dev-vars
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">30.28</div><h2>
+CI/CD Best Practices
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. CI/CD Best Practices</span><ol>
+<li><strong>Pipelines as code</strong> (YAML) reviewed in PRs.</li>
+<li><strong>PR build validation</strong> on every PR to <code>main</code>.</li>
+<li><strong>Build once, deploy many</strong> — promote the same artifact.</li>
+<li><strong>Small, frequent changes</strong> with fast feedback.</li>
+<li><strong>Automated tests</strong> at multiple levels (unit, data quality, integration).</li>
+<li><strong>Secrets in Key Vault</strong>; workload identity federation for service connections; never secrets in YAML.</li>
+<li><strong>Approvals and checks</strong> for Test/Prod; branch control.</li>
+<li><strong>Templates</strong> for reuse and consistency across projects.</li>
+<li><strong>Idempotent deployments</strong> — re-running is safe.</li>
+<li><strong>Version and tag</strong> releases; traceability to work items.</li>
+<li><strong>Rollback plan</strong> documented and tested.</li>
+<li><strong>Monitor</strong> pipeline health and deployment metrics (lead time, deployment frequency, change failure rate, MTTR — DORA metrics).</li>
+<li><strong>Least-privilege</strong> pipeline permissions; protect pipeline YAML with branch policies.</li>
+<li><strong>Keep agents updated</strong>; use self-hosted agents in a VNet for private resources.</li>
+</ol>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — `AB#` usage in Azure Repos</span><p><strong>S31</strong> shows <code>AB#1234</code> in an Azure Repos commit. <strong>S40</strong> distinguishes GitHub (<code>AB#</code>) from Azure Repos (<code>#</code>). <strong>Resolution (verified with Microsoft Learn):</strong> <code>AB#ID</code> is the syntax for <strong>GitHub</strong> commits/PRs/issues connected to Azure Boards (newer state-transition forms like <code>Fixes AB#ID</code> are also supported); Azure Repos uses <code>#ID</code> mentions or explicit links.</p></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Azure Boards</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Epics, features, user stories/PBIs, tasks; sprints; work item #1234 linked to commits and PRs</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="99.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Azure Repos</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Git repositories, branch policies, pull requests, code search</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="159.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Azure Pipelines</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">YAML pipelines (azure-pipelines.yml), agents, service connections, environments, approvals</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Azure Artifacts</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Python/npm/NuGet feeds (e.g. retail_ingest wheel)</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">Library</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Variable groups (optionally linked to Key Vault), secure files</text></svg></div><figcaption>Azure DevOps services used by the project</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 226" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="4" y="8" width="952" height="62" rx="10" fill="#f8fafd" stroke="#d7e0ee"/><text x="89.0" y="35.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#2f6fd6" text-anchor="middle">Build stage (CI on</text><text x="89.0" y="51.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#2f6fd6" text-anchor="middle">PR + main)</text><rect x="174.0" y="14" width="133.2" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="240.6" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Checkout</text><line x1="309.2" y1="39.0" x2="331.2" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="333.2" y="14" width="133.2" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="399.8" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Python tests</text><line x1="468.4" y1="39.0" x2="490.4" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="492.4" y="14" width="133.2" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="559.0" y="43.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Build DACPAC</text><line x1="627.6" y1="39.0" x2="649.6" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="651.6" y="14" width="133.2" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="718.2" y="35.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">ADF npm validate +</text><text x="718.2" y="50.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">export ARM</text><line x1="786.8" y1="39.0" x2="808.8" y2="39.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="810.8" y="14" width="133.2" height="50" rx="8" fill="#fff" stroke="#2f6fd6" stroke-width="1.6"/><text x="877.4" y="35.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Publish pipeline</text><text x="877.4" y="50.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">artifacts</text><rect x="4" y="78" width="952" height="62" rx="10" fill="#f8fafd" stroke="#d7e0ee"/><text x="89.0" y="105.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#137a4b" text-anchor="middle">Deploy_Test (main</text><text x="89.0" y="121.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#137a4b" text-anchor="middle">only)</text><rect x="174.0" y="84" width="133.2" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="240.6" y="105.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Environment rdp-</text><text x="240.6" y="120.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">test</text><line x1="309.2" y1="109.0" x2="331.2" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="333.2" y="84" width="133.2" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="399.8" y="113.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Deploy DACPAC</text><line x1="468.4" y1="109.0" x2="490.4" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="492.4" y="84" width="133.2" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="559.0" y="105.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Deploy ADF ARM +</text><text x="559.0" y="120.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">pre/post script</text><line x1="627.6" y1="109.0" x2="649.6" y2="109.0" stroke="#137a4b" stroke-width="2" marker-end="url(#ah)"/><rect x="651.6" y="84" width="133.2" height="50" rx="8" fill="#fff" stroke="#137a4b" stroke-width="1.6"/><text x="718.2" y="105.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Bundle deploy -t</text><text x="718.2" y="120.5" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">test</text><rect x="4" y="148" width="952" height="62" rx="10" fill="#f8fafd" stroke="#d7e0ee"/><text x="89.0" y="175.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#9a5b00" text-anchor="middle">Deploy_Prod (tags</text><text x="89.0" y="191.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#9a5b00" text-anchor="middle">v*)</text><rect x="174.0" y="154" width="133.2" height="50" rx="8" fill="#fff" stroke="#9a5b00" stroke-width="1.6"/><text x="240.6" y="168.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Environment rdp-</text><text x="240.6" y="183.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">prod (approval +</text><text x="240.6" y="198.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">business-hours</text><line x1="309.2" y1="179.0" x2="331.2" y2="179.0" stroke="#9a5b00" stroke-width="2" marker-end="url(#ah)"/><rect x="333.2" y="154" width="133.2" height="50" rx="8" fill="#fff" stroke="#9a5b00" stroke-width="1.6"/><text x="399.8" y="183.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Same artifacts</text><line x1="468.4" y1="179.0" x2="490.4" y2="179.0" stroke="#9a5b00" stroke-width="2" marker-end="url(#ah)"/><rect x="492.4" y="154" width="133.2" height="50" rx="8" fill="#fff" stroke="#9a5b00" stroke-width="1.6"/><text x="559.0" y="183.0" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#10284a" text-anchor="middle">Smoke tests</text></svg></div><figcaption>Multi-stage pipeline (pipelines/azure-pipelines.yml)</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-branch-policies-azure-repos"><header>Branch policies (Azure Repos)</header><dl><dt>Syntax</dt><dd><pre><code>Project settings → Repositories → &lt;repo&gt; → Policies → Branch policies → main</code></pre></dd><dt>Purpose</dt><dd>Protect <code>main</code> and require PRs.</dd><dt>Key parameters</dt><dd><ul><li>Require a minimum number of reviewers (e.g. 2; reset votes on new pushes)</li><li>Check for linked work items (Required)</li><li>Check for comment resolution (Required)</li><li>Limit merge types (e.g. squash, no fast-forward)</li><li>Build validation (run pipeline on PR; policy required)</li><li>Automatically included reviewers (by path, e.g. /adf/* → ADF team)</li><li>Status checks from external services</li></ul></dd><dt>Expected output</dt><dd><pre><code>TF402455: Pushes to this branch are not permitted; you must use a pull request to update this branch.</code></pre></dd><dt>Example</dt><dd><pre><code>az repos policy approver-count create --repository-id &lt;id&gt; --branch main --minimum-approver-count 2 --creator-vote-counts false --allow-downvotes false --reset-on-source-push true --blocking true --enabled true</code></pre></dd><dt>Common mistakes</dt><dd>Build validation pipeline path filter excludes folders, so changes skip validation.</dd></dl></div><div class="cmd" id="cmd-work-item-linking"><header>Work item linking</header><dl><dt>Syntax</dt><dd><pre><code>Azure Repos commit/PR: &quot;#1234&quot; mention, or Development section of the work item
+GitHub → Azure Boards (Azure Boards app): &quot;AB#1234&quot; in commit message / PR title or description</code></pre></dd><dt>Purpose</dt><dd>Traceability between Boards and code.</dd><dt>Example</dt><dd><pre><code>git commit -m &quot;feat(adf): add orders pipeline #1234&quot;           # Azure Repos
+git commit -m &quot;feat(adf): add orders pipeline AB#1234&quot;         # GitHub repo connected to Azure Boards</code></pre></dd><dt>Common mistakes</dt><dd>Using <code>AB#</code> in Azure Repos (not needed) or plain <code>#1234</code> in GitHub (links to GitHub issue #1234 instead).</dd></dl></div><div class="cmd" id="cmd-yaml-pipeline-skeleton-pipelines-azure-pipelines-y"><header>YAML pipeline skeleton (pipelines/azure-pipelines.yml)</header><dl><dt>Syntax</dt><dd><pre><code>trigger · pr · variables · stages → jobs/deployment jobs → steps</code></pre></dd><dt>Purpose</dt><dd>CI/CD as code stored next to the platform code.</dd><dt>Example</dt><dd><pre><code>trigger:
+  branches: { include: [main] }
+  tags: { include: [&#x27;v*&#x27;] }
+pr:
+  branches: { include: [main] }
+variables:
+  - group: rdp-common
+stages:
+- stage: Build
+  jobs:
+  - job: build
+    pool: { vmImage: ubuntu-latest }
+    steps:
+    - task: UsePythonVersion@0
+      inputs: { versionSpec: &#x27;3.12&#x27; }
+    - script: pip install -r python/ingestion/requirements-dev.txt &amp;&amp; pytest -q python
+      displayName: Python tests
+    - task: NodeTool@0
+      inputs: { versionSpec: &#x27;20.x&#x27; }
+    - script: npm ci &amp;&amp; npm run build export $(Build.SourcesDirectory)/adf $(adfDevResourceId) &quot;ArmTemplate&quot;
+      workingDirectory: build
+      displayName: Export ADF ARM template
+    - publish: build/ArmTemplate
+      artifact: adf
+- stage: Deploy_Test
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables[&#x27;Build.SourceBranch&#x27;], &#x27;refs/heads/main&#x27;))
+  jobs:
+  - deployment: adf_test
+    environment: rdp-test
+    pool: { vmImage: ubuntu-latest }
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: adf
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              azureResourceManagerConnection: sc-rdp-test
+              resourceGroupName: rg-rdp-test
+              location: westeurope
+              csmFile: $(Pipeline.Workspace)/adf/ARMTemplateForFactory.json
+              csmParametersFile: $(Pipeline.Workspace)/adf/ARMTemplateParametersForFactory.json
+              overrideParameters: -factoryName adf-rdp-test</code></pre></dd><dt>Common mistakes</dt><dd>Putting approvals in YAML — approvals and checks are configured on the <strong>environment</strong> (Pipelines → Environments → rdp-prod → Approvals and checks), not in the file.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 7: CI/CD</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 7 — Azure DevOps path for the platform</span><ol>
+<li><strong>Repos:</strong> create project <code>RDP</code>, import the GitHub repository (<em>Repos → Import repository</em>) or push the mirror remote from Chapter 11.</li>
+<li><strong>Policies on main:</strong> 2 reviewers, linked work items required, comment resolution required, squash merge only, build validation with <code>azure-pipelines.yml</code> (PR trigger), auto-reviewers <code>/adf/*</code> → ADF team.</li>
+<li><strong>Boards:</strong> user story #1234 "Orders pipeline"; branch <code>feature/1234-orders-pipeline</code> created from the work item (<em>Create branch</em>), so it is linked automatically.</li>
+<li><strong>Service connections:</strong> <code>sc-rdp-test</code> / <code>sc-rdp-prod</code> using <strong>workload identity federation</strong> (no secrets).</li>
+<li><strong>Environments:</strong> <code>rdp-test</code> (no approval), <code>rdp-prod</code> (approvers: Priya; check: business hours; exclusive lock).</li>
+<li><strong>Pipeline:</strong> commit <code>pipelines/azure-pipelines.yml</code>; run on PR → Build only; merge → Build + Deploy_Test; tag <code>v1.1.0</code> → Build + Deploy_Test + Deploy_Prod after approval.</li>
+<li><strong>Trace:</strong> work item #1234 → Development section shows branch, commits, PR, build and release.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S31, S40 · Commit message links not showing on the work item</span><p>In Azure Repos use <code>#1234</code>; the S31 example uses <code>AB#1234</code> inside Azure Repos, which is meant for GitHub repositories connected through the Azure Boards app. Also ensure the work item exists in the same organization.</p></div><div class="src"><span class="tag add">Course addition · Prod deployment must wait for change approval</span><p>Add an <em>Approvals</em> check and optionally an <em>Invoke REST API</em> or <em>ServiceNow change management</em> check on environment <code>rdp-prod</code>; the stage waits until all checks pass.</p></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Protect <code>main</code> with policies; build validation mandatory; reset votes on new pushes.</li>
+<li>Link every PR to a work item; create branches from work items.</li>
+<li>Keep pipelines in YAML in the repo; use templates for repeated stages.</li>
+<li>Use workload identity federation service connections; Key Vault-linked variable groups.</li>
+<li>Approvals/checks on environments; deploy the same artifact to every stage.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TF402455: Pushes to this branch are not permitted; you must use a pull request</code></td>
+<td>Branch policy</td>
+<td>Create a PR</td>
+</tr>
+<tr>
+<td><code>TF401019: The Git repository with name or identifier X does not exist or you do not have permissions</code></td>
+<td>Wrong URL/permissions</td>
+<td>Check URL and Repos permissions</td>
+</tr>
+<tr>
+<td><code>##[error]No hosted parallelism has been purchased or granted</code></td>
+<td>New organization without free grant</td>
+<td>Request free parallelism or use self-hosted agent</td>
+</tr>
+<tr>
+<td>PR blocked: "Work items must be linked"</td>
+<td>Policy</td>
+<td>Link a work item in the PR</td>
+</tr>
+<tr>
+<td>Service connection "not authorized" for pipeline</td>
+<td>First use of resource</td>
+<td>Authorize/permit the pipeline on the resource</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create an Azure Repos repository and push a local repo to it.</p><span class="exp-out">Files visible in Repos → Files.</span></li><li><p>Configure branch policies with 1 reviewer and build validation.</p><span class="exp-out">Direct push fails with TF402455.</span></li><li><p>Create a work item, create a branch from it, commit with <code>#&lt;id&gt;</code>, open a PR.</p><span class="exp-out">Work item Development section shows branch, commit and PR.</span></li><li><p>Write a two-stage YAML pipeline with an environment approval.</p><span class="exp-out">Second stage waits for approval.</span></li><li><p>Tag a commit <code>v0.1.0</code> and verify the pipeline triggers on tags.</p><span class="exp-out">Run shows the tag as source.</span></li></ol></div><div class="src"><span class="tag ">Source S31 · Chapter manual · lab</span><p>Create an Azure DevOps project and repository. Clone locally, create a feature branch and PR, link a work item, configure reviewer/build validation and add a YAML pipeline that runs a test and publishes an artifact. Use a test environment only.</p><div class="call"><b>Safety:</b> Use test repositories and non-production environments. Keep secrets out of Git and verify permissions before pushing or deploying.</div></div><div class="src"><span class="tag s40">Source S40 · 15. Practical Exercise – Chapter 30</span><ol>
+<li>Create an Azure DevOps project and import <code>retail-data-platform</code> from GitHub.</li>
+<li>Clone it locally via Git Credential Manager; push a feature branch.</li>
+<li>Configure branch policies on <code>main</code>: 2 reviewers, linked work items, comment resolution, squash only, build validation.</li>
+<li>Create a work item, branch from it, open a PR, link the item, complete with auto-complete.</li>
+<li>Create a multi-stage YAML pipeline (Build → Dev → Test → Prod) using templates.</li>
+<li>Create environments with approvals on Prod; link a variable group to Key Vault.</li>
+<li>Trigger a release with a <code>v1.0.0</code> tag.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 30 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S31 · Chapter manual · interview</span><h4>1. What is Azure Repos?</h4><p>Azure DevOps source-control hosting for Git repositories.</p><h4>2. What is a branch policy?</h4><p>A rule controlling integration into a protected branch.</p><h4>3. What does build validation do?</h4><p>Runs a pipeline on proposed changes and can block PR completion.</p><h4>4. Why link work items?</h4><p>To trace requirements to code and delivery.</p><h4>5. What is a service connection?</h4><p>A configured identity/connection for pipeline access to external services.</p></div><div class="src"><span class="tag s40">Source S40 · 16. Chapter 30 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>What services does Azure DevOps include?</td>
+<td>Boards, Repos, Pipelines, Test Plans, Artifacts</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>What are branch policies?</td>
+<td>Rules on branches: reviewers, work items, build validation, merge types</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>PR merge types in Azure Repos?</td>
+<td>Merge (no FF), squash, rebase + FF, semi-linear</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>How do you link commits to work items?</td>
+<td><code>#id</code> in Azure Repos; <code>AB#id</code> from GitHub</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Classic vs YAML pipelines?</td>
+<td>UI-defined vs code-defined (recommended)</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>How do you add approvals before Prod?</td>
+<td>Environment approvals and checks</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you manage secrets in pipelines?</td>
+<td>Key Vault-linked variable groups, secret variables, federated service connections</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>What is build validation?</td>
+<td>PR policy requiring a successful pipeline run</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>What are the main Azure DevOps services?</summary><div class="ans"><p>Boards, Repos, Pipelines, Test Plans and Artifacts.</p></div></details><details class="qa"><summary>What is a branch policy?</summary><div class="ans"><p>A rule on a branch in Azure Repos requiring PRs with conditions such as reviewers, linked work items, comment resolution and successful builds.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>How do you link a commit to a work item?</summary><div class="ans"><p>In Azure Repos mention <code>#&lt;id&gt;</code> in the commit message or PR (or link from the work item). From GitHub with the Azure Boards app use <code>AB#&lt;id&gt;</code>.</p></div></details><details class="qa"><summary>Where are approvals configured for YAML deployments?</summary><div class="ans"><p>On the environment's "Approvals and checks", referenced by deployment jobs via <code>environment:</code>.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Explain build validation policy.</summary><div class="ans"><p>A PR policy that queues a pipeline for the PR's merge result and blocks completion until it succeeds (optionally with path filters and expiry).</p></div></details><details class="qa"><summary>Classic release pipelines vs multi-stage YAML?</summary><div class="ans"><p>YAML pipelines are versioned with the code, reviewable in PRs and reusable via templates; environments provide approvals and deployment history. Classic releases are UI-defined.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>Your org uses GitHub for code but Azure Boards for planning and Azure Pipelines for deployment. How do you wire it?</summary><div class="ans"><p>Install Azure Boards app on GitHub and use <code>AB#id</code>; create an Azure Pipelines GitHub service connection (GitHub App) so pipelines trigger on GitHub events; protect GitHub branches with required checks from Azure Pipelines.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which syntax links a GitHub commit to Azure Boards item 1234?</strong></p><ol><li data-ok="0"><h1>1234</h1></li><li data-ok="1">AB#1234</li><li data-ok="0">WI-1234</li><li data-ok="0">Fixes 1234</li></ol><div class="exp"><code>AB#</code> is for GitHub integration.</div></div><div class="mcq"><p><strong>2. Where do you configure production approvals for YAML pipelines?</strong></p><ol><li data-ok="0">In azure-pipelines.yml</li><li data-ok="1">On the environment (Approvals and checks)</li><li data-ok="0">In branch policies</li><li data-ok="0">In Boards</li></ol><div class="exp">Checks live on protected resources.</div></div><div class="mcq"><p><strong>3. Error TF402455 means…</strong></p><ol><li data-ok="0">Invalid credentials</li><li data-ok="1">Direct pushes to the branch are blocked by policy</li><li data-ok="0">Repository not found</li><li data-ok="0">Pipeline failed</li></ol><div class="exp">Use a pull request.</div></div><div class="mcq"><p><strong>4. Which policy runs a pipeline on every PR?</strong></p><ol><li data-ok="0">Comment resolution</li><li data-ok="1">Build validation</li><li data-ok="0">Work item linking</li><li data-ok="0">Merge strategy</li></ol><div class="exp">Build validation blocks on failure.</div></div><div class="mcq"><p><strong>5. Which service connection type avoids storing secrets?</strong></p><ol><li data-ok="0">Service principal with secret</li><li data-ok="1">Workload identity federation</li><li data-ok="0">Personal access token</li><li data-ok="0">Basic authentication</li></ol><div class="exp">Federated OIDC trust.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Azure Repos + branch policies + PRs protect main; Boards links work to code.</li>
+<li>Use <code>#ID</code> in Azure Repos, <code>AB#ID</code> from GitHub.</li>
+<li>YAML pipelines with stages, environments and checks deliver Dev → Test → Prod.</li>
+<li>Workload identity federation and Key Vault keep secrets out of pipelines.</li>
+</ul></div><div class="src"><span class="tag ">Source S31 · Chapter manual · summary</span><ul><li>Introduction to Azure DevOps</li><li>Azure Repos</li><li>Creating Git repositories</li><li>Connecting local Git with Azure Repos</li><li>Branch policies</li><li>Pull requests</li><li>Code reviews</li><li>Azure Boards integration</li><li>Azure Pipelines</li><li>YAML pipelines</li><li>Build and release pipelines</li><li>Git-based deployment</li><li>Managing multiple environments</li><li>CI/CD best practices</li></ul><div class="call warn"><b>Key takeaway:</b> Keep a traceable path from source commit to validated artifact and target environment. Review platform-specific behavior against current official documentation.</div></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 30 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Azure DevOps</td>
+<td>Boards, Repos, Pipelines, Test Plans, Artifacts</td>
+</tr>
+<tr>
+<td>Azure Repos</td>
+<td>Git hosting with branch policies and PRs</td>
+</tr>
+<tr>
+<td>Boards integration</td>
+<td>Work item traceability</td>
+</tr>
+<tr>
+<td>Pipelines</td>
+<td>YAML multi-stage CI/CD</td>
+</tr>
+<tr>
+<td>Environments</td>
+<td>Approvals, checks, deployment history</td>
+</tr>
+<tr>
+<td>Best practices</td>
+<td>Build once, secure secrets, gates, templates</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Create an Azure Repos Git repository, clone it and push existing code (HTTPS with GCM or SSH).</li><li>Configure branch policies: reviewers, linked work items, comment resolution, merge types, build validation.</li><li>Create and complete pull requests; link commits/PRs to Azure Boards work items correctly (<code>#ID</code> in Azure Repos, <code>AB#ID</code> from GitHub).</li><li>Write a multi-stage YAML pipeline with triggers, stages, jobs, variables/variable groups and templates.</li><li>Use environments with approvals and checks for Test/Prod deployments.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/">Azure Repos documentation</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies">Branch policies and settings</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/boards/backlogs/connect-work-items-to-git-dev-ops">Link work items to Git commits and PRs</a> · <a href="https://learn.microsoft.com/en-us/azure/devops/boards/github/link-to-from-github">Link GitHub commits to Azure Boards (AB#)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema/">YAML pipeline schema</a> · <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/process/environments">Environments</a> · <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals">Approvals and checks</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure">Connect to Azure with workload identity federation</a></li>
+</ul></div><div class="src"><span class="tag ">Source S31 · Chapter manual</span><ul><li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/what-is-repos" rel="noopener" target="_blank">Azure Repos</a></li><li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies" rel="noopener" target="_blank">Branch policies</a></li><li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema" rel="noopener" target="_blank">YAML schema</a></li><li><a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals" rel="noopener" target="_blank">Approvals</a></li></ul><p>Cloud platform capabilities and user interfaces evolve. Verify current documentation and organization policies before production implementation.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_29_GitHub_Actions.html"><span class="mn-label">← Previous</span><span class="mn-title">GitHub Actions</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_31_Git_for_SQL_Development.html"><span class="mn-label">Next →</span><span class="mn-title">Git for SQL Development</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

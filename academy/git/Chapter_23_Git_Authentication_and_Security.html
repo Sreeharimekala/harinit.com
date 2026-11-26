@@ -1,0 +1,1686 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Configure HTTPS authentication with Git Credential Manager and fine-grained PATs, and SSH authentication with Ed25519 keys."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git Authentication and Security — Chapter 23 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git Authentication and Security</div>
+<div class="brand-sub">Chapter 23 · 43 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">23.1</span>HTTPS authentication</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">23.2</span>SSH authentication</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">23.3</span>Generating SSH keys</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">23.4</span>Configuring SSH keys in GitHub</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">23.5</span>Personal Access Tokens (PAT)</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">23.6</span>Credential managers</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">23.7</span>Two-factor authentication</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">23.8</span>GitHub organization access</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">23.9</span>Repository permissions</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">23.10</span>Branch protection rules</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">23.11</span>Signed commits</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">23.12</span>GPG signatures</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">23.13</span>Git secrets management</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">23.14</span>Removing exposed credentials</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">23.15</span>Preventing accidental secret commits</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">23.16</span>HTTPS Authentication</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">23.17</span>SSH Authentication</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">23.18</span>Generating SSH Keys</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">23.19</span>Configuring SSH Keys in GitHub</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">23.20</span>Personal Access Tokens (PAT)</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">23.21</span>Credential Managers</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">23.22</span>Two-Factor Authentication</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">23.23</span>GitHub Organization Access</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">23.24</span>Repository Permissions</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">23.25</span>Branch Protection Rules</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">23.26</span>Signed Commits</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">23.27</span>GPG Signatures</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">23.28</span>Git Secrets Management</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">23.29</span>Removing Exposed Credentials</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">23.30</span>Preventing Accidental Secret Commits</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🔎</span>Added topics, conflicts &amp; verification</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 8: Enterprise governance</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-37" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-38" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-39" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-40" class="nav-link"><span class="nav-num">🎯</span>Chapter 23 Interview Questions</a>
+<a href="#lesson-41" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-42" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-43" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 8 · Chapter 23</div><h1>Git Authentication and Security</h1><p class="page-subtitle">Configure HTTPS authentication with Git Credential Manager and fine-grained PATs, and SSH authentication with Ed25519 keys.</p><div class="meta-row"><span class="meta-pill">Phase <b>8</b></span><span class="meta-pill">Lessons <b>43</b></span><span class="meta-pill">Sources <b>S24, S38, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> HTTPS authentication; SSH authentication; Generating SSH keys; Configuring SSH keys in GitHub; Personal Access Tokens (PAT); Credential managers; Two-factor authentication; GitHub organization access; Repository permissions; Branch protection rules. <br><strong>Before you start:</strong> complete Chapter 22 – Git Advanced Internals. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Securing Git work: authentication (HTTPS with credential managers and tokens, SSH keys), 2FA, organization and repository permissions, branch protection, signed commits and tags, secret management, removing exposed credentials and preventing leaks.</p>
+<p><strong>Why it matters.</strong> Repositories contain the blueprint of your data platform. Leaked tokens or connection strings in Git history are among the most common causes of cloud breaches.</p>
+<p><strong>Where it is used.</strong> Developer machines, CI/CD, platform governance (GitHub organization / Azure DevOps project settings).</p>
+<p><strong>In this course's project.</strong> Stage 8 (governance): SSH Ed25519 keys and fine-grained PATs for developers, OIDC for pipelines, Key Vault for secrets, push protection and pre-commit secret scanning, signed release tags, and a drill for removing a leaked connection string.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter covers authenticating to Git hosts (HTTPS, SSH, tokens, credential managers, 2FA), organisation access, permissions, branch protection, signed commits, and managing secrets — including what to do when credentials are exposed.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to authenticate securely, protect repositories and branches, sign commits, and prevent or remediate secret leaks.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S24 · Chapter manual · objectives</span><p>Secure access to Git hosting, protect repositories and prevent credentials from entering source control.</p><div class="grid"><div class="tile"><b>01</b><br/>Configure HTTPS or SSH authentication</div><div class="tile"><b>02</b><br/>Understand PATs, credential managers and 2FA</div><div class="tile"><b>03</b><br/>Apply least-privilege repository access</div><div class="tile"><b>04</b><br/>Protect branches and prevent secret exposure</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Configure HTTPS authentication with Git Credential Manager and fine-grained PATs, and SSH authentication with Ed25519 keys.</li>
+<li>Apply least-privilege roles, teams, 2FA/SSO and branch/tag protection.</li>
+<li>Sign commits and tags with GPG or SSH and verify them.</li>
+<li>Keep secrets out of repositories (Key Vault, GitHub/Azure secrets, OIDC) and enable secret scanning/push protection.</li>
+<li>Respond to a leaked secret: revoke/rotate first, then purge history with <code>git filter-repo</code>.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">23.1</div><h2>HTTPS authentication</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 1. HTTPS authentication</span><p>HTTPS remotes use a provider-supported credential flow, commonly browser sign-in through a credential manager or a token. Do not embed credentials in remote URLs or scripts. Follow current organizational identity requirements.</p><h4>Commands and practical example</h4><pre><code>git remote -v
+git remote set-url origin https://github.com/ORG/REPO.git
+git config --show-origin --get-all credential.helper</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">23.2</div><h2>SSH authentication</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 2. SSH authentication</span><p>SSH uses a key pair: a private key stays on your machine and a public key is registered with the hosting service. Protect the private key with a passphrase and never upload it to a repository, ticket or chat.</p><h4>Commands and practical example</h4><pre><code>ssh -V
+ssh-keygen -t ed25519 -C "your_email@example.com"
+ssh-add ~/.ssh/id_ed25519
+ssh -T git@github.com</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">23.3</div><h2>Generating SSH keys</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 3. Generating SSH keys</span><p>Generate an Ed25519 key where supported, protect it with a passphrase and add the public key to your GitHub account. On managed devices, follow key-management policy and verify the host fingerprint.</p><h4>Commands and practical example</h4><pre><code>ssh-keygen -t ed25519 -C "your_email@example.com"
+cat ~/.ssh/id_ed25519.pub
+ssh -T git@github.com</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">23.4</div><h2>Configuring SSH keys in GitHub</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 4. Configuring SSH keys in GitHub</span><p>Copy only the public key ending in .pub into account SSH-key settings. Give it a recognizable title, review key usage and remove keys that are no longer needed. Never share the private key file.</p><h4>Commands and practical example</h4><pre><code># Display the public key
+cat ~/.ssh/id_ed25519.pub
+# Then add it under GitHub account Settings &gt; SSH and GPG keys
+ssh -T git@github.com</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">23.5</div><h2>Personal Access Tokens (PAT)</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 5. Personal Access Tokens (PAT)</span><p>A PAT authorizes supported Git hosting or API operations. Prefer fine-grained tokens where available, grant only required repositories and permissions, set an expiry and rotate or revoke tokens according to policy. Treat every token like a password.</p><h4>Commands and practical example</h4><pre><code># Do not paste a real token into commands or scripts.
+# Use an approved credential manager.
+git config --show-origin --get-all credential.helper</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">23.6</div><h2>Credential managers</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 6. Credential managers</span><p>Credential managers securely store and retrieve credentials, often integrating with browser sign-in and operating-system secure storage. Avoid plaintext credential storage. Git Credential Manager is commonly available with Git for Windows.</p><h4>Commands and practical example</h4><pre><code>git config --show-origin --get-all credential.helper
+git credential-manager --version
+git config --global credential.helper manager</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">23.7</div><h2>Two-factor authentication</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 7. Two-factor authentication</span><p>2FA adds a second verification factor to account sign-in. Enable it for personal and organization accounts and store recovery codes securely. 2FA does not make a leaked PAT safe; revoke exposed tokens separately.</p><h4>Commands and practical example</h4><pre><code># Configure in account security settings.
+# GitHub: Settings &gt; Password and authentication
+# Enable 2FA and store recovery methods securely.</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">23.8</div><h2>GitHub organization access</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 8. GitHub organization access</span><p>Use organization membership and team-based access rather than broad individual access wherever possible. Review outside collaborators, deploy keys, apps and machine identities regularly. Remove access promptly when responsibilities change.</p><h4>Commands and practical example</h4><pre><code># Review collaborators, teams and installed apps
+# in the organization's hosting settings.
+git remote -v</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">23.9</div><h2>Repository permissions</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 9. Repository permissions</span><p>Apply least privilege: grant only the role required for the person's tasks. Review who can write, maintain, administer, create deploy keys or bypass rules. Use teams and documented access requests for consistent administration.</p><h4>Commands and practical example</h4><pre><code># Review repository access in Settings &gt; Collaborators and teams
+# Check team roles and organization policy</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">23.10</div><h2>Branch protection rules</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 10. Branch protection rules</span><p>Protect important branches with pull-request requirements, required reviews, status checks, conversation resolution and restrictions on force pushes or deletion. Organization rulesets can standardize protections across repositories.</p><h4>Commands and practical example</h4><pre><code># Configure repository/organization Rulesets:
+# Require PR reviews and status checks
+# Restrict force pushes and deletion
+# Limit bypass permissions</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">23.11</div><h2>Signed commits</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 11. Signed commits</span><p>Commit signing allows a hosting provider or reviewer to verify that a commit was signed by a key associated with an identity. Git supports GPG and other signing methods, including SSH signing in supported versions. A signature does not prove code is safe.</p><h4>Commands and practical example</h4><pre><code>git config --global commit.gpgsign true
+git config --global user.signingkey &lt;KEY-ID&gt;
+git commit -S -m "Add source validation"
+git log --show-signature -1</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">23.12</div><h2>GPG signatures</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 12. GPG signatures</span><p>GPG signing uses a private signing key to sign commits or tags; the corresponding public key can be published for verification. Protect the private key, configure Git's signing key and verify signatures after signing. Follow organizational key-rotation requirements.</p><h4>Commands and practical example</h4><pre><code>gpg --list-secret-keys --keyid-format LONG
+git config --global gpg.format openpgp
+git config --global user.signingkey &lt;KEY-ID&gt;
+git commit -S -m "Signed change"</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">23.13</div><h2>Git secrets management</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 13. Git secrets management</span><p>Never commit passwords, API keys, PATs, private keys, connection strings or production secrets. Use an approved secret manager or CI/CD secret store and inject secrets at runtime. Ignore rules and scanning are supporting controls, not secure storage.</p><h4>Commands and practical example</h4><pre><code># Example .gitignore entries
+.env
+.env.*
+*.pem
+*.pfx
+secrets/
+local.settings.json</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">23.14</div><h2>Removing exposed credentials</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 14. Removing exposed credentials</span><p>If a secret is exposed, assume it is compromised. Revoke or rotate it immediately at the issuing system, assess access logs and downstream impact, notify security, and replace it through the approved secret store. History rewriting does not invalidate clones, caches or forks.</p><h4>Commands and practical example</h4><pre><code># Incident response:
+# 1. Revoke/rotate credential at source.
+# 2. Notify security / incident response.
+# 3. Assess logs and affected systems.
+# 4. Remove from current code and deploy safe config.
+# 5. Follow approved history-cleanup procedure.</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">23.15</div><h2>Preventing accidental secret commits</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · 15. Preventing accidental secret commits</span><p>Combine .gitignore, secret-scanning alerts, push protection, pre-commit scanning, code review and least-privilege credentials. Test scanners with safe dummy patterns only. Avoid secrets in command arguments, shell history, logs or screenshots.</p><h4>Commands and practical example</h4><pre><code>git status --short
+git diff --cached --name-only
+git diff --cached</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">23.16</div><h2>
+HTTPS Authentication
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. HTTPS Authentication</span><h4>1.1 How it works</h4>
+<p>When you push/pull over HTTPS, Git asks a <strong>credential helper</strong> for credentials. The host verifies them and checks your permissions.</p>
+<h4>1.2 Credential options for HTTPS</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Git Credential Manager (browser/OAuth sign-in)</td>
+<td>Recommended; tokens stored securely; supports GitHub, Azure DevOps, Bitbucket, GitLab</td>
+</tr>
+<tr>
+<td>Personal Access Token (PAT) as password</td>
+<td>Works everywhere; must be stored securely and rotated</td>
+</tr>
+<tr>
+<td>GitHub CLI (<code>gh auth login</code> + <code>gh auth setup-git</code>)</td>
+<td>Configures Git to use the CLI's token</td>
+</tr>
+<tr>
+<td>Account password</td>
+<td><strong>Not accepted</strong> by GitHub for Git operations</td>
+</tr>
+</tbody>
+</table></div>
+<h4>1.3 Example</h4>
+<pre><code class="language-bash">git clone https://github.com/company/retail-data-platform.git
+# Git Credential Manager opens a browser window → sign in → done
+</code></pre>
+<h4>1.4 Updating stored credentials</h4>
+<ul>
+<li><strong>Windows:</strong> Credential Manager → Windows Credentials → <code>git:https://github.com</code> → edit/remove.</li>
+<li><strong>macOS:</strong> Keychain Access → search <code>github.com</code>.</li>
+<li><strong>CLI:</strong> <code>git credential reject</code> or <code>git credential-manager erase</code> (feed it <code>protocol=https</code>/<code>host=github.com</code>).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">23.17</div><h2>
+SSH Authentication
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. SSH Authentication</span><h4>2.1 How it works</h4>
+<p>SSH uses <strong>public-key cryptography</strong>:</p>
+<ul>
+<li><strong>Private key</strong> — stays on your computer (<code>~/.ssh/id_ed25519</code>). Never share it.</li>
+<li><strong>Public key</strong> — uploaded to GitHub/Azure DevOps (<code>~/.ssh/id_ed25519.pub</code>).</li>
+<li>During connection, the server challenges your client to prove possession of the private key.</li>
+</ul>
+<h4>2.2 Advantages</h4>
+<p>No tokens to type; keys can be protected with a passphrase and loaded into an agent; good for Linux servers and automation.</p>
+<h4>2.3 SSH URL format</h4>
+<pre><code class="language-text">git@github.com:company/retail-data-platform.git
+git@ssh.dev.azure.com:v3/contoso/DataPlatform/retail-data-platform
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">23.18</div><h2>
+Generating SSH Keys
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Generating SSH Keys</span><h4>3.1 Check for existing keys</h4>
+<pre><code class="language-bash">ls -al ~/.ssh
+</code></pre>
+<h4>3.2 Generate a new key (Ed25519 recommended)</h4>
+<pre><code class="language-bash">ssh-keygen -t ed25519 -C &quot;ravi.kumar@company.com&quot;
+</code></pre>
+<pre><code class="language-text">Enter file in which to save the key (/home/ravi/.ssh/id_ed25519): [Enter]
+Enter passphrase (empty for no passphrase): ********
+</code></pre>
+<p>If a system requires RSA (some older servers / Azure DevOps setups):</p>
+<pre><code class="language-bash">ssh-keygen -t rsa -b 4096 -C &quot;ravi.kumar@company.com&quot;
+</code></pre>
+<h4>3.3 Add the key to the SSH agent</h4>
+<pre><code class="language-bash"># Linux / Git Bash
+eval &quot;$(ssh-agent -s)&quot;
+ssh-add ~/.ssh/id_ed25519
+
+# macOS (store passphrase in Keychain)
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+</code></pre>
+<p>Windows PowerShell (OpenSSH service):</p>
+<pre><code class="language-powershell">Get-Service ssh-agent | Set-Service -StartupType Automatic
+Start-Service ssh-agent
+ssh-add $env:USERPROFILE\.ssh\id_ed25519
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">23.19</div><h2>
+Configuring SSH Keys in GitHub
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Configuring SSH Keys in GitHub</span><ol>
+<li>Copy the public key:</li>
+</ol>
+<pre><code class="language-bash">cat ~/.ssh/id_ed25519.pub          # Linux/macOS/Git Bash
+clip &lt; ~/.ssh/id_ed25519.pub       # Git Bash on Windows → clipboard
+</code></pre>
+<ol start="2">
+<li>GitHub → <strong>Settings → SSH and GPG keys → New SSH key</strong>.</li>
+<li>Title: <code>Work laptop</code>; Key type: <strong>Authentication Key</strong>; paste; <strong>Add SSH key</strong>.</li>
+<li>If your organisation uses SAML SSO, click <strong>Configure SSO → Authorize</strong> for the org.</li>
+<li>Test:</li>
+</ol>
+<pre><code class="language-bash">ssh -T git@github.com
+# Hi ravi! You've successfully authenticated, but GitHub does not provide shell access.
+</code></pre>
+<ol start="6">
+<li>Switch your remote to SSH:</li>
+</ol>
+<pre><code class="language-bash">git remote set-url origin git@github.com:company/retail-data-platform.git
+</code></pre>
+<p><strong>Multiple accounts</strong> (<code>~/.ssh/config</code>):</p>
+<pre><code class="language-text">Host github-work
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_work
+
+Host github-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal
+</code></pre>
+<pre><code class="language-bash">git clone git@github-work:company/retail-data-platform.git
+</code></pre>
+<p><strong>Port 22 blocked?</strong> Use SSH over 443:</p>
+<pre><code class="language-text">Host github.com
+    HostName ssh.github.com
+    Port 443
+    User git
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">23.20</div><h2>
+Personal Access Tokens (PAT)
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Personal Access Tokens (PAT)</span><h4>5.1 Definition</h4>
+<p>A <strong>PAT</strong> is a revocable token used <strong>instead of a password</strong> for HTTPS Git operations and API calls.</p>
+<h4>5.2 GitHub token types</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Characteristics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fine-grained</strong> (recommended)</td>
+<td>Limited to specific repositories, granular permissions (e.g. Contents: read/write), mandatory expiration, org approval possible</td>
+</tr>
+<tr>
+<td>Classic</td>
+<td>Broad scopes (<code>repo</code>, <code>workflow</code>...), access to all repos you can access</td>
+</tr>
+</tbody>
+</table></div>
+<h4>5.3 Creating a fine-grained token</h4>
+<p>GitHub → <strong>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</strong> → name, expiration, resource owner, selected repositories, permissions (e.g. <em>Contents: Read and write</em>) → <strong>Generate</strong> → copy it once.</p>
+<h4>5.4 Using it</h4>
+<pre><code class="language-bash">git clone https://github.com/company/retail-data-platform.git
+Username: ravi
+Password: &lt;paste token&gt;
+</code></pre>
+<p><strong>Azure DevOps PAT:</strong> User settings → Personal access tokens → New token → scope <em>Code (Read &amp; write)</em>.</p>
+<h4>5.5 Best practices</h4>
+<ul>
+<li>Shortest practical expiration; least privilege.</li>
+<li>Store in a credential manager or secret store — never in code or scripts.</li>
+<li>Revoke immediately if exposed.</li>
+<li>For automation prefer <strong>GitHub Apps</strong>, <strong><code>GITHUB_TOKEN</code></strong> in Actions, <strong>OIDC/workload identity federation</strong> or service principals over personal tokens.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">23.21</div><h2>
+Credential Managers
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Credential Managers</span><h4>6.1 Definition</h4>
+<p>A <strong>credential helper</strong> stores and supplies credentials to Git so you don't type them every time.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Helper</th>
+<th>Platform</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Git Credential Manager (GCM)</strong></td>
+<td>Windows, macOS, Linux</td>
+<td>OS secure store (Windows Credential Manager, macOS Keychain, Linux secret service)</td>
+</tr>
+<tr>
+<td><code>osxkeychain</code></td>
+<td>macOS</td>
+<td>Keychain</td>
+</tr>
+<tr>
+<td><code>libsecret</code></td>
+<td>Linux</td>
+<td>GNOME Keyring / KWallet</td>
+</tr>
+<tr>
+<td><code>cache</code></td>
+<td>Linux/macOS</td>
+<td>Memory, for a timeout (<code>--timeout=3600</code>)</td>
+</tr>
+<tr>
+<td><code>store</code></td>
+<td>Any</td>
+<td><strong>Plain text</strong> <code>~/.git-credentials</code> — avoid</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash">git config --global credential.helper manager         # GCM (Windows default)
+git config --global credential.helper osxkeychain
+git config --global credential.helper &quot;cache --timeout=3600&quot;
+git config --global --get credential.helper
+</code></pre>
+<p>GCM supports OAuth browser login, MFA, Azure DevOps Entra ID authentication, and multiple accounts.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">23.22</div><h2>
+Two-Factor Authentication
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Two-Factor Authentication</span><h4>7.1 Definition</h4>
+<p><strong>2FA</strong> requires a second factor in addition to your password when signing in to GitHub.</p>
+<h4>7.2 Methods</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authenticator app (TOTP)</td>
+<td>Microsoft/Google Authenticator, 1Password...</td>
+</tr>
+<tr>
+<td>Passkeys / security keys</td>
+<td>Phishing-resistant (recommended)</td>
+</tr>
+<tr>
+<td>GitHub Mobile</td>
+<td>Push approval</td>
+</tr>
+<tr>
+<td>SMS</td>
+<td>Least secure; fallback only</td>
+</tr>
+</tbody>
+</table></div>
+<h4>7.3 Setup</h4>
+<p>GitHub → <strong>Settings → Password and authentication → Enable two-factor authentication</strong> → scan QR code → enter code → <strong>save recovery codes</strong> (download and store safely) → optionally add passkeys.</p>
+<h4>7.4 Effect on Git</h4>
+<p>2FA applies to web sign-in. Command-line Git uses tokens/SSH keys/GCM (which handles the 2FA sign-in). Organisations can <strong>require 2FA</strong> for all members.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">23.23</div><h2>
+GitHub Organization Access
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. GitHub Organization Access</span><h4>8.1 Organisation roles</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Owner</td>
+<td>Full administrative control</td>
+</tr>
+<tr>
+<td>Member</td>
+<td>Default member; access per base permission and team</td>
+</tr>
+<tr>
+<td>Moderator</td>
+<td>Block users, manage discussions</td>
+</tr>
+<tr>
+<td>Billing manager</td>
+<td>Billing only</td>
+</tr>
+<tr>
+<td>Security manager</td>
+<td>Manage security alerts and settings across repos</td>
+</tr>
+<tr>
+<td>Outside collaborator</td>
+<td>Access only to specific repositories</td>
+</tr>
+</tbody>
+</table></div>
+<h4>8.2 Access controls</h4>
+<ul>
+<li><strong>Base permissions</strong> (No access / Read / Write / Admin) for all members.</li>
+<li><strong>Teams</strong> (nested, synced with identity provider groups) granted repository roles.</li>
+<li><strong>SAML SSO</strong> and <strong>SCIM</strong> provisioning (Enterprise).</li>
+<li><strong>Require 2FA</strong>.</li>
+<li><strong>IP allow lists</strong>.</li>
+<li><strong>Restrict repository creation/visibility changes/forking</strong>.</li>
+<li><strong>Approve OAuth apps and fine-grained tokens</strong>.</li>
+<li><strong>Audit log</strong> for all actions.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">23.24</div><h2>
+Repository Permissions
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. Repository Permissions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Read code</th>
+<th>Open issues</th>
+<th>Push</th>
+<th>Merge PRs</th>
+<th>Manage settings</th>
+<th>Delete repo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Read</td>
+<td>✔</td>
+<td>✔</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Triage</td>
+<td>✔</td>
+<td>✔ (manage)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Write</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Maintain</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>Some</td>
+<td></td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+<td>✔</td>
+</tr>
+</tbody>
+</table></div>
+<p>Custom repository roles are available on Enterprise plans. Principle: <strong>least privilege</strong>, grant via teams, review access regularly.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">23.25</div><h2>
+Branch Protection Rules
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Branch Protection Rules</span><h4>10.1 GitHub Rulesets (modern)</h4>
+<p><strong>Settings → Rules → Rulesets → New branch ruleset</strong>:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Recommended for <code>main</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Enforcement status</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Target branches</td>
+<td>Default branch (and <code>release/*</code>)</td>
+</tr>
+<tr>
+<td>Bypass list</td>
+<td>Only release managers / emergency admin team</td>
+</tr>
+<tr>
+<td>Restrict deletions</td>
+<td>✔</td>
+</tr>
+<tr>
+<td>Require linear history</td>
+<td>Optional (if squash/rebase only)</td>
+</tr>
+<tr>
+<td>Require signed commits</td>
+<td>Optional / regulated environments</td>
+</tr>
+<tr>
+<td>Require a pull request before merging</td>
+<td>✔ — 1–2 approvals, dismiss stale approvals, require Code Owners review, require approval of most recent push, require conversation resolution</td>
+</tr>
+<tr>
+<td>Require status checks to pass</td>
+<td>✔ — CI jobs; require branch up to date</td>
+</tr>
+<tr>
+<td>Block force pushes</td>
+<td>✔</td>
+</tr>
+<tr>
+<td>Require deployments to succeed</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Require code scanning results</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table></div>
+<p>Rulesets can target multiple branches, apply organisation-wide, and be in <em>Evaluate</em> mode for testing. Classic <strong>branch protection rules</strong> offer similar options.</p>
+<h4>10.2 Azure DevOps</h4>
+<p>Branch policies: minimum reviewers, linked work items, comment resolution, merge types, build validation, automatic reviewers; plus branch security (deny <em>Force push</em>, <em>Bypass policies</em>).</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">23.26</div><h2>
+Signed Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. Signed Commits</span><h4>11.1 Why sign</h4>
+<p>Anyone can set <code>user.name</code>/<code>user.email</code> to any value. <strong>Signing</strong> cryptographically proves the commit was created by the holder of a key associated with your account. GitHub shows a <strong>Verified</strong> badge.</p>
+<h4>11.2 Signing options</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPG</td>
+<td>OpenPGP key</td>
+</tr>
+<tr>
+<td>SSH (Git 2.34+)</td>
+<td>Your SSH key</td>
+</tr>
+<tr>
+<td>S/MIME (X.509)</td>
+<td>Corporate certificate (<code>gitsign</code>/smimesign)</td>
+</tr>
+</tbody>
+</table></div>
+<h4>11.3 SSH signing (simplest)</h4>
+<pre><code class="language-bash">git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+git config --global tag.gpgsign true
+</code></pre>
+<p>On GitHub: <strong>Settings → SSH and GPG keys → New SSH key → Key type: Signing Key</strong> → paste the same public key.</p>
+<pre><code class="language-bash">git commit -m &quot;feat: signed commit&quot;
+git log --show-signature -1
+</code></pre>
+<p>(For local verification of SSH signatures, configure <code>gpg.ssh.allowedSignersFile</code>.)</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">23.27</div><h2>
+GPG Signatures
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. GPG Signatures</span><h4>12.1 Generate a GPG key</h4>
+<pre><code class="language-bash">gpg --full-generate-key          # choose ECC (ed25519) or RSA 4096, validity, name, email (must match a verified GitHub email)
+gpg --list-secret-keys --keyid-format=long
+</code></pre>
+<pre><code class="language-text">sec   ed25519/3AA5C34371567BD2 2026-11-26 [SC]
+uid                 [ultimate] Ravi Kumar &lt;ravi.kumar@company.com&gt;
+</code></pre>
+<h4>12.2 Configure Git</h4>
+<pre><code class="language-bash">git config --global user.signingkey 3AA5C34371567BD2
+git config --global commit.gpgsign true
+git config --global gpg.program &quot;C:/Program Files (x86)/GnuPG/bin/gpg.exe&quot;   # Windows if needed
+</code></pre>
+<h4>12.3 Add to GitHub</h4>
+<pre><code class="language-bash">gpg --armor --export 3AA5C34371567BD2
+</code></pre>
+<p>Copy the block (<code>-----BEGIN PGP PUBLIC KEY BLOCK-----</code> ... ) → GitHub <strong>Settings → SSH and GPG keys → New GPG key</strong>.</p>
+<h4>12.4 Use and verify</h4>
+<pre><code class="language-bash">git commit -S -m &quot;fix: signed with GPG&quot;
+git tag -s v1.0.0 -m &quot;Signed release&quot;
+git verify-commit HEAD
+git verify-tag v1.0.0
+git log --show-signature
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">23.28</div><h2>
+Git Secrets Management
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 13. Git Secrets Management</span><h4>13.1 What counts as a secret</h4>
+<p>Passwords, connection strings, storage account keys, SAS tokens, API keys, PATs, Databricks tokens, service principal secrets, private keys (<code>.pem</code>, <code>.pfx</code>), <code>.env</code> files, <code>local.settings.json</code>.</p>
+<h4>13.2 Where secrets should live</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Secret store</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Azure resources</td>
+<td><strong>Azure Key Vault</strong></td>
+</tr>
+<tr>
+<td>ADF / Synapse / Fabric</td>
+<td>Key Vault-backed linked services / connections</td>
+</tr>
+<tr>
+<td>Databricks</td>
+<td><strong>Secret scopes</strong> (Key Vault-backed) — <code>dbutils.secrets.get(scope, key)</code></td>
+</tr>
+<tr>
+<td>GitHub Actions</td>
+<td>Repository/environment/org <strong>secrets</strong>; prefer <strong>OIDC</strong> for Azure login</td>
+</tr>
+<tr>
+<td>Azure Pipelines</td>
+<td>Secret variables, variable groups linked to Key Vault, service connections</td>
+</tr>
+<tr>
+<td>Local development</td>
+<td><code>.env</code> (git-ignored), OS keychain, <code>az login</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4>13.3 Code pattern</h4>
+<pre><code class="language-python"># Bad
+conn = &quot;Server=sql.company.com;User=etl;Password=P@ssw0rd!&quot;
+
+# Good (Databricks)
+password = dbutils.secrets.get(scope=&quot;kv-rdp&quot;, key=&quot;sql-etl-password&quot;)
+
+# Good (Python, environment variable injected by CI/Key Vault)
+import os
+password = os.environ[&quot;SQL_ETL_PASSWORD&quot;]
+</code></pre>
+<p>Commit <strong><code>.env.example</code></strong> with variable names and dummy values; ignore the real <code>.env</code>.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">23.29</div><h2>
+Removing Exposed Credentials
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 14. Removing Exposed Credentials</span><div class="callout c-warn"><p><strong>Important</strong> The first and most important step is to <strong>revoke/rotate the secret</strong>. Once pushed, assume it has been copied — history rewriting alone does not make it safe.</p>
+</div>
+<h4>14.1 Response steps</h4>
+<ol>
+<li><strong>Rotate/revoke</strong> the credential immediately (Key Vault, Azure portal, GitHub token settings).</li>
+<li><strong>Check logs</strong> for misuse of the credential.</li>
+<li><strong>Remove it from current code</strong> and replace with a secret-store reference; commit.</li>
+<li><strong>Purge it from history</strong> (if required by policy):</li>
+</ol>
+<pre><code class="language-bash">pip install git-filter-repo
+
+# Remove an entire file from all history
+git filter-repo --path config/secrets.json --invert-paths
+
+# Or replace secret strings everywhere
+cat &gt; replacements.txt &lt;&lt;'EOF'
+P@ssw0rd!==&gt;***REMOVED***
+regex:AccountKey=[A-Za-z0-9+/=]+==&gt;AccountKey=***REMOVED***
+EOF
+git filter-repo --replace-text replacements.txt
+</code></pre>
+<p>(Alternative tool: <strong>BFG Repo-Cleaner</strong> — <code>bfg --replace-text passwords.txt</code>.)</p>
+<ol start="5">
+<li><strong>Force-push</strong> the rewritten history and tags (temporarily allow force-push on protected branches):</li>
+</ol>
+<pre><code class="language-bash">git remote add origin &lt;url&gt;        # filter-repo removes origin as a safety measure
+git push origin --force --all
+git push origin --force --tags
+</code></pre>
+<ol start="6">
+<li><strong>Ask collaborators to re-clone</strong> (old clones still contain the secret).</li>
+<li><strong>Contact GitHub Support</strong> to remove cached views and PR references if needed.</li>
+<li><strong>Document</strong> the incident and add prevention controls.</li>
+</ol>
+<h4>14.2 If the secret is only in your last local commit (not pushed)</h4>
+<pre><code class="language-bash">git rm --cached .env
+echo &quot;.env&quot; &gt;&gt; .gitignore
+git commit --amend --no-edit
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">23.30</div><h2>
+Preventing Accidental Secret Commits
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 15. Preventing Accidental Secret Commits</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository</td>
+<td><code>.gitignore</code> for <code>.env</code>, <code>*.pem</code>, <code>*.pfx</code>, <code>local.settings.json</code>, <code>secrets.*</code></td>
+</tr>
+<tr>
+<td>Developer machine</td>
+<td><strong>Pre-commit hooks</strong> with gitleaks / detect-secrets / git-secrets</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td><strong>GitHub secret scanning + push protection</strong> (blocks pushes containing known secret patterns); Azure DevOps GitHub Advanced Security</td>
+</tr>
+<tr>
+<td>CI</td>
+<td>Secret scanning job on every PR</td>
+</tr>
+<tr>
+<td>Process</td>
+<td>Code review checklist, training</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td>Key Vault, managed identities, OIDC — so there are fewer secrets to leak</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Pre-commit configuration:</strong></p>
+<pre><code class="language-yaml"># .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+</code></pre>
+<pre><code class="language-bash">pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+</code></pre>
+<p>(Update <code>rev:</code> values to the latest releases when you set this up.)</p>
+<p><strong>CI job:</strong></p>
+<pre><code class="language-yaml">- uses: actions/checkout@v4
+  with: { fetch-depth: 0 }
+- uses: gitleaks/gitleaks-action@v2
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🔎</div><h2>Added topics, conflicts &amp; verification</h2></div>
+<div class="c-conf"><span class="ct">Source conflict — RSA 4096 vs Ed25519</span><p><strong>S38</strong> generates keys with <code>ssh-keygen -t rsa -b 4096</code>. <strong>S24/S40</strong> use Ed25519. <strong>Resolution (verified with GitHub docs, Nov 2026):</strong> use <code>ssh-keygen -t ed25519 -C "&lt;email&gt;"</code>; RSA 4096 only for legacy systems that do not support Ed25519.</p></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual</span><div class="diagram">Developer --&gt; SSH key / HTTPS credential manager --&gt; hosting identity
+Repository access --&gt; organization/team permissions --&gt; repository role
+Pull request --&gt; required reviews + CI checks --&gt; protected production branch
+Runtime application --&gt; secret manager / CI secret store (not Git)</div></div><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="71.1" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Detect (push</text><text x="71.1" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">protection /</text><text x="71.1" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">scanning</text><text x="71.1" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">alert)</text><line x1="125.3" y1="60.0" x2="153.3" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="156.3" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="207.4" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Revoke +</text><text x="207.4" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">rotate the</text><text x="207.4" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">credential</text><text x="207.4" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">immediately</text><line x1="261.6" y1="60.0" x2="289.6" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="292.6" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="343.7" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Assess usage</text><text x="343.7" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(audit logs)</text><line x1="397.9" y1="60.0" x2="425.9" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="428.9" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Remove from</text><text x="480.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">code, use Key</text><text x="480.0" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Vault</text><text x="480.0" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">reference</text><line x1="534.1" y1="60.0" x2="562.1" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="565.1" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="616.3" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Purge history</text><text x="616.3" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(git filter-</text><text x="616.3" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">repo)</text><line x1="670.4" y1="60.0" x2="698.4" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="701.4" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="752.6" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Force-push +</text><text x="752.6" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">ask all to</text><text x="752.6" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">re-clone</text><line x1="806.7" y1="60.0" x2="834.7" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="837.7" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="888.9" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Post-</text><text x="888.9" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">incident:</text><text x="888.9" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">pre-commit</text><text x="888.9" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">hooks</text></svg></div><figcaption>Leaked-secret incident response (order matters)</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 233" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Developers</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">SSH key (Ed25519) or HTTPS via Git Credential Manager (OAuth)</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Fine-grained PAT only if needed, short expiry, SSO-authorized</text><rect x="20.0" y="130.0" width="450.0" height="48" rx="7" fill="#e6effc"/><text x="32.0" y="158.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">2FA / Entra ID SSO enforced by the organization</text><rect x="20.0" y="186.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="205.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Never: account password, token in remote URL</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Automation (CI/CD, tools)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">GitHub Actions GITHUB_TOKEN (scoped per job)</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Azure: workload identity federation (OIDC), no stored secrets</text><rect x="490.0" y="130.0" width="450.0" height="48" rx="7" fill="#e7f6ee"/><text x="502.0" y="150.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">GitHub App or service principal for tools (ADF, Fabric,</text><text x="502.0" y="166.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Databricks)</text><rect x="490.0" y="186.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="205.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Never: personal PATs in pipelines</text></svg></div><figcaption>Authentication options</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-ssh-keygen-ssh-t"><header>ssh-keygen / ssh -T</header><dl><dt>Syntax</dt><dd><pre><code>ssh-keygen -t ed25519 -C &quot;&lt;email&gt;&quot;
+eval &quot;$(ssh-agent -s)&quot; &amp;&amp; ssh-add ~/.ssh/id_ed25519
+ssh -T git@github.com</code></pre></dd><dt>Purpose</dt><dd>Create and load an SSH key and test GitHub authentication.</dd><dt>Behaviour</dt><dd>GitHub docs recommend Ed25519; <code>ssh-keygen -t rsa -b 4096</code> only for legacy systems without Ed25519 support. Add the <em>public</em> key (<code>.pub</code>) in GitHub → Settings → SSH and GPG keys (or Azure DevOps → User settings → SSH public keys).</dd><dt>Expected output</dt><dd><pre><code>Hi ravi-k! You&#x27;ve successfully authenticated, but GitHub does not provide shell access.</code></pre></dd><dt>Example</dt><dd><pre><code>ssh-keygen -t ed25519 -C &quot;ravi.kumar@retail-example.com&quot;
+cat ~/.ssh/id_ed25519.pub        # paste into GitHub
+ssh -T git@github.com</code></pre></dd><dt>Common mistakes</dt><dd>Sharing the private key; forgetting to authorize the key for SSO in the organization.</dd><dt>Troubleshooting</dt><dd><code>Permission denied (publickey)</code> → key not added/loaded: <code>ssh-add -l</code>, <code>ssh -vT git@github.com</code>.</dd></dl></div><div class="cmd" id="cmd-credential-manager-and-pats"><header>Credential manager and PATs</header><dl><dt>Syntax</dt><dd><pre><code>git config --global credential.helper manager      # Git Credential Manager (Windows/macOS/Linux)
+git credential-manager github login</code></pre></dd><dt>Purpose</dt><dd>Store HTTPS credentials securely using OAuth or tokens.</dd><dt>Example</dt><dd><pre><code>git clone https://github.com/retail-data/enterprise-retail-data-platform.git
+# browser opens for OAuth sign-in; token stored in the OS credential store</code></pre></dd><dt>Common mistakes</dt><dd>Embedding a token in the URL (<code>https://&lt;token&gt;@github.com/...</code>) — it ends up in <code>.git/config</code>, logs and shell history.</dd></dl></div><div class="cmd" id="cmd-signed-commits-and-tags"><header>Signed commits and tags</header><dl><dt>Syntax</dt><dd><pre><code>git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+git tag -s v1.0.0 -m &quot;Release 1.0.0&quot;
+git log --show-signature -1</code></pre></dd><dt>Purpose</dt><dd>Prove authorship; GitHub shows "Verified".</dd><dt>Behaviour</dt><dd>Works with GPG keys or SSH keys (Git 2.34+). Upload the key as a <em>signing key</em> on GitHub. Local verification of SSH signatures needs <code>gpg.ssh.allowedSignersFile</code>.</dd><dt>Example</dt><dd><pre><code>git commit -S -m &quot;feat(sql): add fact_sales load&quot;
+git tag -s v1.0.0 -m &quot;Release 1.0.0&quot;
+git verify-tag v1.0.0</code></pre></dd><dt>Common mistakes</dt><dd>Uploading the SSH key only as an authentication key — signatures then show "Unverified".</dd></dl></div><div class="cmd" id="cmd-git-filter-repo-history-purge"><header>git filter-repo (history purge)</header><dl><dt>Syntax</dt><dd><pre><code>git filter-repo --invert-paths --path &lt;file&gt;
+git filter-repo --replace-text &lt;expressions.txt&gt;</code></pre></dd><dt>Purpose</dt><dd>Rewrite history to remove files or replace secret strings (recommended over <code>git filter-branch</code>).</dd><dt>Example</dt><dd><pre><code>pip install git-filter-repo
+git clone --mirror git@github.com:retail-data/enterprise-retail-data-platform.git
+cd enterprise-retail-data-platform.git
+printf &#x27;Password=Sup3rS3cret!==&gt;Password=***REMOVED***\n&#x27; &gt; ../replacements.txt
+git filter-repo --replace-text ../replacements.txt
+git push --force --mirror</code></pre></dd><dt>Common mistakes</dt><dd>Purging history <em>instead of</em> rotating the secret — once pushed, assume it was copied. Forks, clones, PR refs and caches may still contain it; contact GitHub Support for cached views if needed.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 8: Enterprise governance</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 8 — Security baseline for the platform repository</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Setting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Identity</td>
+<td>Organization requires 2FA; Enterprise SSO with Entra ID</td>
+</tr>
+<tr>
+<td>Developer auth</td>
+<td>SSH Ed25519 keys (SSO-authorized) or GCM OAuth; fine-grained PATs max 30 days</td>
+</tr>
+<tr>
+<td>Pipeline auth</td>
+<td>Actions → Azure via OIDC (<code>azure/login</code> with federated credential); no client secrets</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>Azure Key Vault; ADF linked services use Key Vault references; Databricks secret scopes; GitHub environment secrets only where unavoidable</td>
+</tr>
+<tr>
+<td>Detection</td>
+<td>Secret scanning + <strong>push protection</strong> enabled; <code>pre-commit</code> with a secret scanner locally</td>
+</tr>
+<tr>
+<td>Protection</td>
+<td>Ruleset on <code>main</code> (PR, 2 approvals for <code>sql/</code> <code>adf/</code>, checks, no force push); ruleset on tags <code>v*</code> (no delete/update)</td>
+</tr>
+<tr>
+<td>Signing</td>
+<td>Release tags signed (<code>git tag -s</code>); commit signing required on <code>main</code> (optional policy)</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>CODEOWNERS; quarterly access review of teams</td>
+</tr>
+</tbody>
+</table></div>
+<p>Leak drill: a test password is committed in <code>adf/linkedService/ls_sql_source.json</code> on a branch → push protection blocks it → developer replaces it with an Azure Key Vault reference and amends before pushing.</p></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S24, S40 · Connection string pushed to a public fork</span><p>Revoke/rotate the SQL credential first, check sign-in logs, then purge with <code>git filter-repo</code>, force-push, and ask contributors to re-clone. Enable push protection to prevent recurrence.</p></div><div class="src"><span class="tag add">Course addition · Contractor leaves the project</span><p>Remove from teams (access revoked everywhere the team had it), revoke their PAT/SSH keys' SSO authorization, rotate any shared secrets they could see, and review recent audit-log activity.</p></div>
+</section>
+
+<section class="lesson" id="lesson-37">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>Prefer SSO + 2FA, SSH keys or credential managers; short-lived, fine-grained tokens.</li>
+<li>Use OIDC/workload identity federation for CI/CD to Azure — no stored secrets.</li>
+<li>Secrets in Key Vault/secret stores; <code>.env</code> and <code>local.settings.json</code> in <code>.gitignore</code>; commit templates only.</li>
+<li>Enable secret scanning and push protection; add pre-commit secret checks.</li>
+<li>Rotate first, purge second. Sign release tags.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-38">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Permission denied (publickey).</code></td>
+<td>Key not loaded/registered</td>
+<td><code>ssh-add</code>, add <code>.pub</code> to account, authorize SSO</td>
+</tr>
+<tr>
+<td><code>remote: Support for password authentication was removed on August 13, 2021.</code></td>
+<td>Account password used</td>
+<td>Credential manager, PAT or SSH</td>
+</tr>
+<tr>
+<td><code>remote: The '&lt;org&gt;' organization has enabled or enforced SAML SSO.</code></td>
+<td>Token/key not SSO-authorized</td>
+<td>Authorize the token/key for the org</td>
+</tr>
+<tr>
+<td><code>remote: error: GH013: Repository rule violations found ... Push cannot contain secrets</code></td>
+<td>Push protection detected a secret</td>
+<td>Remove secret from commits (amend/rebase), rotate if real</td>
+</tr>
+<tr>
+<td><code>error: gpg failed to sign the data</code></td>
+<td>Signing misconfigured</td>
+<td>Check <code>user.signingkey</code>, <code>gpg.format</code>, agent</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-39">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Generate an Ed25519 key, add it to GitHub and run <code>ssh -T git@github.com</code>.</p><span class="exp-out">"Hi &lt;user&gt;! You've successfully authenticated…".</span></li><li><p>Configure SSH commit signing and make a signed commit.</p><span class="exp-out"><code>git log --show-signature -1</code> shows a good signature; GitHub shows Verified.</span></li><li><p>Create a fine-grained PAT limited to one repository with 30-day expiry.</p><span class="exp-out">Token listed with repository scope and expiry.</span></li><li><p>In a throwaway repo, commit a fake secret, then purge it with <code>git filter-repo --replace-text</code>.</p><span class="exp-out"><code>git log -p</code> no longer contains the string.</span></li><li><p>Write the leaked-secret runbook for your team.</p><span class="exp-out">Steps in the order: revoke/rotate → assess → remove → purge → prevent.</span></li></ol></div><div class="src"><span class="tag ">Source S24 · Chapter manual · lab</span><p>In a test repository, configure an SSH key or approved HTTPS credential manager. Review remote URLs, credential helper settings and repository permissions. Add a sample .env pattern to .gitignore and verify it is ignored before adding it. Never create or paste real credentials for this lab.</p><div class="call"><b>Practice safely:</b> Use a disposable repository or test organization. Never use real production secrets, private keys or sensitive data in examples. Verify changes with status, diffs and logs.</div></div><div class="src"><span class="tag s40">Source S40 · 16. Practical Exercise – Chapter 23</span><ol>
+<li>Generate an Ed25519 SSH key, add it to GitHub, test with <code>ssh -T</code>, switch your remote to SSH.</li>
+<li>Create a fine-grained PAT for one repository with Contents read/write and 7-day expiry; clone over HTTPS with it; then revoke it.</li>
+<li>Enable 2FA (if not already).</li>
+<li>Configure SSH commit signing, push a signed commit and confirm the <strong>Verified</strong> badge.</li>
+<li>Create a ruleset on <code>main</code> requiring PRs, status checks and blocking force pushes.</li>
+<li>Install pre-commit with gitleaks; try committing a fake AWS-style key and observe the block.</li>
+<li>In a test repo, commit a fake secret file, then remove it from history with <code>git filter-repo</code>.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-40">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 23 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S24 · Chapter manual · interview</span><h4>1. What is the difference between HTTPS and SSH authentication?</h4><p>HTTPS uses a provider-supported credential flow; SSH authenticates with a key pair.</p><h4>2. Which SSH key is shared with GitHub?</h4><p>The public key; the private key must remain secret.</p><h4>3. What is a PAT?</h4><p>A token that authorizes specified Git hosting or API operations.</p><h4>4. Why use fine-grained PATs?</h4><p>They can limit access to selected repositories and permissions.</p><h4>5. Why use a credential manager?</h4><p>It stores and retrieves credentials through secure operating-system or browser integrations.</p><h4>6. What does 2FA protect?</h4><p>It adds a second factor to account sign-in; exposed tokens still require revocation.</p><h4>7. What is least privilege?</h4><p>Granting only the minimum access required to perform a task.</p><h4>8. What is branch protection?</h4><p>Rules that require checks/reviews and restrict unsafe changes to important branches.</p><h4>9. What does a signed commit provide?</h4><p>A verifiable signature that supports commit provenance and integrity checks.</p><h4>10. Does a signed commit prove code is safe?</h4><p>No. It verifies a signature, not code quality or absence of vulnerabilities.</p><h4>11. Where should application secrets be stored?</h4><p>In an approved secret manager or CI/CD secret store, not in Git.</p><h4>12. Does .gitignore remove a tracked secret?</h4><p>No. It only prevents eligible untracked paths from being added by default.</p><h4>13. What is the first action after a secret leak?</h4><p>Revoke or rotate the credential at its issuing system immediately.</p><h4>14. Does deleting a secret from the latest commit remove it from history?</h4><p>No. Earlier commits may still contain it.</p><h4>15. Why are secret scanners useful?</h4><p>They detect credential patterns before or after code reaches the repository.</p></div><div class="src"><span class="tag s40">Source S40 · 17. Chapter 23 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>HTTPS vs SSH authentication?</td>
+<td>Token/credential manager over HTTPS vs key pair over SSH</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>How do you create an SSH key?</td>
+<td><code>ssh-keygen -t ed25519 -C "email"</code>, add <code>.pub</code> to GitHub</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>What is a PAT?</td>
+<td>Revocable token used instead of a password</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Fine-grained vs classic PAT?</td>
+<td>Repo-scoped granular permissions vs broad scopes</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>What is Git Credential Manager?</td>
+<td>Secure cross-platform credential helper with OAuth/MFA</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Why sign commits?</td>
+<td>Prove authorship; Verified badge</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>What do you do if a secret is pushed?</td>
+<td>Rotate it immediately, remove from code/history, force-push, re-clone</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>How do you prevent secret commits?</td>
+<td>.gitignore, pre-commit scanners, push protection, Key Vault</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>Why can't you use your GitHub password with Git over HTTPS?</summary><div class="ans"><p>GitHub removed password authentication for Git operations; use a credential manager (OAuth), a personal access token, or SSH.</p></div></details><details class="qa"><summary>Which SSH key type does GitHub recommend?</summary><div class="ans"><p>Ed25519 (<code>ssh-keygen -t ed25519</code>); RSA 4096 only for legacy systems.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What are signed commits?</summary><div class="ans"><p>Commits with a cryptographic signature (GPG, SSH or S/MIME) proving the committer's identity; platforms show them as Verified.</p></div></details><details class="qa"><summary>How do pipelines authenticate to Azure without secrets?</summary><div class="ans"><p>OIDC / workload identity federation: the CI platform issues a short-lived token that Entra ID trusts for a federated credential.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>Why is removing a secret from the latest commit not enough?</summary><div class="ans"><p>It remains in history, clones, forks and caches; you must rotate the credential and, if required, purge history with git filter-repo and force-push.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>Push protection blocked your push because of a storage key in a notebook. What now?</summary><div class="ans"><p>Remove the key from all commits being pushed (amend/interactive rebase), use a Databricks secret scope or Key Vault, and rotate the key if it is real; bypass only for confirmed false positives with justification.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-41">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. First action after discovering a pushed secret?</strong></p><ol><li data-ok="0">git filter-repo</li><li data-ok="1">Revoke/rotate the credential</li><li data-ok="0">Delete the repository</li><li data-ok="0">Make the repo private</li></ol><div class="exp">Assume it is compromised.</div></div><div class="mcq"><p><strong>2. Recommended tool for rewriting history to remove files?</strong></p><ol><li data-ok="0">git filter-branch</li><li data-ok="1">git filter-repo</li><li data-ok="0">git clean</li><li data-ok="0">git revert</li></ol><div class="exp">filter-branch is slow and discouraged by the Git project.</div></div><div class="mcq"><p><strong>3. Which command tests SSH authentication to GitHub?</strong></p><ol><li data-ok="0">git ssh test</li><li data-ok="1">ssh -T git@github.com</li><li data-ok="0">git remote -v</li><li data-ok="0">ssh-add -T</li></ol><div class="exp"><code>-T</code> disables pseudo-terminal allocation.</div></div><div class="mcq"><p><strong>4. Which mechanism lets GitHub Actions log in to Azure without a stored secret?</strong></p><ol><li data-ok="0">PAT</li><li data-ok="1">OIDC federated credential</li><li data-ok="0">SSH key</li><li data-ok="0">Basic auth</li></ol><div class="exp">Workload identity federation.</div></div><div class="mcq"><p><strong>5. Since Git 2.34, commits can be signed with…</strong></p><ol><li data-ok="0">Only GPG</li><li data-ok="1">GPG or SSH keys</li><li data-ok="0">Only X.509</li><li data-ok="0">Passwords</li></ol><div class="exp"><code>gpg.format ssh</code>.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-42">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>Authenticate with SSH Ed25519 keys or credential managers; automation with OIDC/apps.</li>
+<li>Enforce 2FA/SSO, least privilege, rulesets for branches and tags.</li>
+<li>Sign commits/tags for provenance.</li>
+<li>Secrets never go in Git; if they do — rotate first, then purge.</li>
+</ul></div><div class="src"><span class="tag ">Source S24 · Chapter manual · summary</span><ul><li>Configure HTTPS or SSH authentication</li><li>Understand PATs, credential managers and 2FA</li><li>Apply least-privilege repository access</li><li>Protect branches and prevent secret exposure</li></ul><div class="call warn"><b>Key takeaway:</b> Understand the effect of each command before running it. For security and repository maintenance, follow organizational policy and preserve a recovery path.</div></div><div class="src"><span class="tag s40">Source S40 · 18. Chapter 23 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication</td>
+<td>HTTPS + GCM/PAT or SSH keys</td>
+</tr>
+<tr>
+<td>2FA</td>
+<td>Required second factor for accounts</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>Org roles, repo permissions, teams</td>
+</tr>
+<tr>
+<td>Protection</td>
+<td>Rulesets / branch policies</td>
+</tr>
+<tr>
+<td>Signing</td>
+<td>GPG, SSH or S/MIME signatures</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>Key Vault, scanning, rotation, history purge</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Configure HTTPS authentication with Git Credential Manager and fine-grained PATs, and SSH authentication with Ed25519 keys.</li><li>Apply least-privilege roles, teams, 2FA/SSO and branch/tag protection.</li><li>Sign commits and tags with GPG or SSH and verify them.</li><li>Keep secrets out of repositories (Key Vault, GitHub/Azure secrets, OIDC) and enable secret scanning/push protection.</li><li>Respond to a leaked secret: revoke/rotate first, then purge history with <code>git filter-repo</code>.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-43">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">GitHub Docs — Generating a new SSH key</a></li>
+<li><a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens">GitHub Docs — Managing your personal access tokens</a></li>
+<li><a href="https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification">GitHub Docs — About commit signature verification</a></li>
+<li><a href="https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection">GitHub Docs — Push protection</a> · <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository">Removing sensitive data</a></li>
+<li><a href="https://github.com/newren/git-filter-repo">git-filter-repo</a> · <a href="https://github.com/git-ecosystem/git-credential-manager">Git Credential Manager</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/use-ssh-keys-to-authenticate">Azure DevOps — Use SSH key authentication</a> · <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure">Workload identity federation</a></li>
+</ul></div><div class="src"><span class="tag ">Source S24 · Chapter manual</span><ul><li><a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh" rel="noopener" target="_blank">GitHub SSH</a></li><li><a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" rel="noopener" target="_blank">GitHub PATs</a></li><li><a href="https://docs.github.com/en/authentication/managing-commit-signature-verification" rel="noopener" target="_blank">Commit signature verification</a></li><li><a href="https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets" rel="noopener" target="_blank">Repository rulesets</a></li><li><a href="https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning" rel="noopener" target="_blank">Secret scanning</a></li></ul><p class="small">Use official documentation for version-specific behavior and current hosting-provider settings. Test commands that modify history or remove data in a disposable repository first.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_22_Git_Advanced_Internals.html"><span class="mn-label">← Previous</span><span class="mn-title">Git Advanced Internals</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_24_Git_Ignore_and_Repository_Management.html"><span class="mn-label">Next →</span><span class="mn-title">Git Ignore and Repository Management</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>

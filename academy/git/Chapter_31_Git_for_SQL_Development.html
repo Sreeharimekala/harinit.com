@@ -1,0 +1,1321 @@
+<!DOCTYPE html><html lang="en"><head>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F3GNHYSSGB"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-F3GNHYSSGB');
+  if (localStorage.getItem('cookie-consent') === 'accepted') {
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+  }
+</script><meta charset="UTF-8"><meta name="description" content="Organize SQL objects in a repository (one object per file, schema folders) and write idempotent scripts."><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Git for SQL Development — Chapter 31 | Git &amp; GitHub | HarinIT Academy</title><style>
+:root{
+  --bg:#0f1115;--panel:#161922;--panel-2:#1c2029;--ink:#e6e9ef;
+  --ink-dim:#a8b0c0;--ink-faint:#7b8496;--accent:#5eb1ff;--accent-hover:#7dc4ff;--accent-2:#8b7cf6;
+  --rule:#2a2f3a;--code-bg:#10131a;--code-ink:#d6deeb;--diagram-ink:#a8b0c0;
+  --table-head:#1e2330;--example-bg:#1c2029;--active-bg:rgba(94,177,255,.12);--hover-bg:rgba(94,177,255,.08);--radius:4px;
+  --crumb-muted:#7b8496;--crumb-link:#5eb1ff;--glyph-ink:#7b8496;
+  --btn-border:#5eb1ff;--btn-bg-tint:#1a2430;--btn-ink:#5eb1ff;
+  --current-bg:#1c2938;--current-ink:#5eb1ff;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Cascadia Mono","Cascadia Code","JetBrains Mono","Fira Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16px}
+.shell{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel-2);border-right:1px solid var(--rule);padding:28px 20px 40px}
+.brand{display:flex;flex-direction:column;gap:4px;margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.brand-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand-title{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ink);line-height:1.25}
+.brand-sub{font-size:12.5px;color:var(--ink-faint)}
+.nav-group-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:18px 0 8px 4px}
+.nav-link{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+.nav-link:hover{background:var(--hover-bg);color:var(--ink)}
+.nav-link.active{background:var(--active-bg);color:var(--accent)}
+.nav-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);min-width:34px;flex-shrink:0}
+main{padding:56px clamp(20px,6vw,90px) 120px;max-width:1050px}
+.doc-header{margin-bottom:64px;padding-bottom:36px;border-bottom:1px solid var(--rule)}
+.doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.doc-header h1{font-family:var(--serif);font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 18px;color:var(--ink)}
+.doc-header p{color:var(--ink-dim);font-size:16.5px;max-width:70ch;margin:0 0 22px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:10px}.pill{font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;background:var(--table-head)}
+.lesson{padding-top:64px;margin-top:-16px;scroll-margin-top:24px}.lesson:first-of-type{padding-top:0}.lesson+.lesson{border-top:1px solid var(--rule)}
+.lesson-head{margin-bottom:28px}.lesson-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.lesson-head h2{font-family:var(--serif);font-size:clamp(26px,4vw,36px);margin:8px 0 0;color:var(--ink);line-height:1.15}
+.content h3{font-family:var(--serif);font-size:21px;color:var(--ink);margin:40px 0 12px;padding-top:4px;scroll-margin-top:24px}
+.content h3:first-child{margin-top:0}
+.content h4{font-family:var(--sans);font-size:13.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);margin:22px 0 8px}
+.content p{color:var(--ink-dim);margin:0 0 14px;font-size:15.5px;text-indent:1.4em;padding-left:14px}.content strong{color:var(--ink)}
+.content ul,.content ol{color:var(--ink-dim);margin:0 0 16px;padding-left:46px;margin-left:14px;font-size:15.5px}.content li{margin-bottom:6px}.content ul li::marker{color:var(--accent)}.content ol li::marker{color:var(--accent);font-family:var(--mono)}
+.content a{color:var(--accent)}.content a:hover{color:var(--accent-hover)}
+.flow{margin:22px 0;text-align:center}.flow-step{font-weight:700;color:var(--ink)}.flow-arrow{color:var(--accent);font-size:13px;line-height:1;margin:6px 0 2px;position:relative}.flow-arrow::before{content:'';display:block;width:2px;height:9px;margin:0 auto 2px;background:var(--accent)}
+pre.code{background:var(--code-bg);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:6px 0 20px;font-family:var(--mono);font-size:13.2px;line-height:1.6;color:var(--code-ink);white-space:pre}
+pre.diagram{background:var(--example-bg);border:1px dashed var(--rule);border-radius:var(--radius);padding:20px 24px;overflow-x:auto;margin:8px 0 24px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--diagram-ink);white-space:pre;tab-size:4}
+.math-block{background:var(--example-bg);border:1px solid var(--rule);border-radius:var(--radius);padding:14px 18px;margin:8px 0 20px;overflow-x:auto;color:var(--code-ink)}
+.table-wrap{overflow-x:auto;margin:8px 0 24px;border:1px solid var(--rule);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:transparent}thead th{background:var(--table-head);color:var(--ink);text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:9px 14px;color:var(--ink-dim);border-bottom:1px solid var(--rule);vertical-align:top}tbody tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--panel-2);color:var(--ink)}
+.callout{background:rgba(94,177,255,.06);border:1px solid rgba(94,177,255,.28);border-radius:8px;padding:20px 24px 8px;margin:26px 0 30px}
+.note{background:var(--example-bg);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:6px;padding:16px 20px;margin:20px 0;color:var(--ink-dim)}
+.quote{border-left:3px solid var(--accent);padding:8px 16px;margin:18px 0;color:var(--ink)}
+.top-link{display:inline-flex;align-items:center;gap:6px;margin-top:40px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);text-decoration:none}.top-link:hover{color:var(--accent)}
+.nav-toggle{display:none}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;max-height:62px;overflow:hidden;transition:max-height .25s ease;padding:14px 16px}.sidebar.open{max-height:80vh;overflow-y:auto}.brand{margin-bottom:10px;padding-bottom:10px;flex-direction:row;align-items:flex-start;justify-content:space-between;border-bottom:none}.nav-toggle{display:inline-flex;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:4px;cursor:pointer;white-space:nowrap}.nav-toggle:hover{background:var(--accent-hover)}main{padding:36px 20px 90px}}
+p.flow-arrow{margin:2px 0 !important;padding-left:28px !important;color:var(--ink-faint) !important;line-height:1}
+p:has(+ p.flow-arrow),h3:has(+ p.flow-arrow),h4:has(+ p.flow-arrow),.math-block:has(+ p.flow-arrow){margin-bottom:2px !important}
+p.flow-arrow + p,p.flow-arrow + h3,p.flow-arrow + h4,p.flow-arrow + .math-block{padding-left:28px;margin-top:2px !important}
+.topic-header{font-family:var(--serif);font-weight:700;font-size:18px;color:var(--ink)!important;padding-left:0!important;text-indent:0!important;margin:32px 0 6px!important}
+</style><link rel="stylesheet" href="../academy-navigation.css"><script src="../academy-navigation.js" defer></script><script src="../git-course-data.js" defer></script><script src="../search-index.js" defer></script><script src="../academy.js" defer></script><style>
+/* Module content styles (scoped to .v2) */
+.v2{
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1c2029;
+    --text: #e6e9ef;
+    --text-dim: #a8b0c0;
+    --accent: #5eb1ff;
+    --accent-2: #8b7cf6;
+    --border: #2a2f3a;
+    --code-bg: #10131a;
+    --table-head: #1e2330;
+    --green: #4dbb80;
+    --amber: #e0a26b;
+    font-size: 16px;
+  }
+.v2 .page-header{ margin-bottom: 2.5em; }
+.v2 .page-header .module-badge{
+    display: inline-block;
+    background: rgba(94,177,255,0.12);
+    border: 1px solid rgba(94,177,255,0.3);
+    color: var(--accent); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 14px;
+  }
+.v2 h1{
+    font-size: 2.2rem; font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em; line-height: 1.2;
+  }
+.v2 .page-subtitle{ color: var(--text-dim); font-size: 1rem; margin: 0 0 1.4em 0; }
+.v2 .lesson-count{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px;
+  }
+.v2 .lesson-count span{ color: var(--accent); font-weight: 700; }
+.v2 .lesson{
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin: 2.5em 0;
+    background: var(--panel);
+  }
+.v2 .lesson-header{
+    display: flex; align-items: flex-start; gap: 16px;
+    margin-bottom: 1.2em;
+  }
+.v2 .lesson-num{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0f1115; font-weight: 800; font-size: 0.8rem;
+    min-width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+.v2 .lesson h2{
+    font-size: 1.4rem; font-weight: 700;
+    margin: 0 0 4px 0; color: var(--text);
+    scroll-margin-top: 24px;
+    border: none; padding: 0;
+  }
+.v2 .lesson-desc{
+    font-size: 0.9rem; color: var(--text-dim);
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px; margin: 1.2em 0 1.6em 0;
+    line-height: 1.6;
+  }
+.v2 h3{
+    font-size: 1.1rem; font-weight: 700;
+    margin: 2em 0 0.6em 0; color: var(--accent);
+    scroll-margin-top: 24px;
+  }
+.v2 h4{ font-size: 0.95rem; color: var(--text-dim); margin: 1.4em 0 0.4em 0; font-weight: 600; }
+.v2 p{ margin: 0.65em 0; color: var(--text); }
+.v2 strong{ color: #fff; }
+.v2 em{ color: var(--text-dim); }
+.v2 blockquote{
+    margin: 1.3em 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-dim);
+    font-style: normal;
+  }
+.v2 blockquote p{ margin: 0.3em 0; }
+.v2 .callout-tip{
+    background: rgba(77,187,128,0.1);
+    border: 1px solid rgba(77,187,128,0.35);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0;
+    font-size: 0.88rem; color: #a0efcb;
+  }
+.v2 .callout-tip::before{ content: "💡 Tip: "; font-weight: 700; }
+.v2 .callout-interview{
+    background: rgba(139,124,246,0.1);
+    border: 1px solid rgba(139,124,246,0.35);
+    border-radius: 8px; padding: 14px 18px; margin: 1.4em 0;
+    font-size: 0.9rem; color: #c8bfff;
+  }
+.v2 .callout-interview::before{ content: "🎯 Interview Answer: "; font-weight: 700; display: block; margin-bottom: 6px; color: var(--accent-2); }
+.v2 ul, .v2 ol{ margin: 0.6em 0; padding-left: 1.5em; }
+.v2 li{ margin: 0.35em 0; }
+.v2 .checklist{ list-style: none; padding-left: 0; }
+.v2 .checklist li::before{ content: "✓ "; color: var(--green); font-weight: 700; }
+.v2 .crosslist{ list-style: none; padding-left: 0; }
+.v2 .crosslist li::before{ content: "✗ "; color: #ff6b6b; font-weight: 700; }
+.v2 hr{ border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+.v2 code{
+    font-family: "SF Mono", "Fira Code", Consolas, Monaco, monospace;
+    background: var(--code-bg); color: #ffd479;
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.84em;
+  }
+.v2 pre{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; margin: 1.2em 0;
+  }
+.v2 pre code{ background: none; padding: 0; color: #d6deeb; font-size: 0.82rem; line-height: 1.6; white-space: pre; }
+.v2 pre.dg{
+    font-family: Consolas, "Courier New", monospace;
+    line-height: 1.65;
+  }
+.v2 pre.dg .o{ color: #e0a26b; }
+.v2 pre.dg .b{ color: var(--accent); }
+.v2 .table-wrap{ overflow-x: auto; margin: 1.4em 0; }
+.v2 table{ border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+.v2 th{
+    background: var(--table-head); color: var(--accent);
+    text-align: left; padding: 10px 14px;
+    border: 1px solid var(--border); font-weight: 600;
+  }
+.v2 td{ padding: 9px 14px; border: 1px solid var(--border); color: var(--text-dim); }
+.v2 tr:nth-child(even) td{ background: rgba(255,255,255,0.025); }
+.v2 .workload-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px; margin: 1.4em 0;
+  }
+.v2 .wcard{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+.v2 .wcard-icon{ font-size: 1.5rem; margin-bottom: 8px; }
+.v2 .wcard-name{ font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 4px; }
+.v2 .wcard-desc{ font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+.v2 .medallion{ display: flex; gap: 14px; flex-wrap: wrap; margin: 1.2em 0; }
+.v2 .medal{
+    flex: 1; min-width: 120px;
+    padding: 14px 18px; border-radius: 8px;
+    text-align: center; font-weight: 700;
+  }
+.v2 .medal-label{ font-size: 1rem; }
+.v2 .medal-desc{ font-size: 0.78rem; font-weight: 400; margin-top: 4px; }
+.v2 .medal.bronze{ background: #3a2518; border: 1px solid #c47a3a; color: #ffb97a; }
+.v2 .medal.silver{ background: #272f38; border: 1px solid #8da0b2; color: #d0dde8; }
+.v2 .medal.gold{ background: #3a3010; border: 1px solid #c9a830; color: #ffe585; }
+.v2 .e2e-arch{
+    border: 1px solid #303440; border-radius: 12px;
+    padding: 30px 15px; margin: 1.4em 0;
+    text-align: center; background: #11141b; font-family: Arial, sans-serif;
+  }
+.v2 .e2e-title{ font-size: 12px; color: #aaa; letter-spacing: 2px; margin-bottom: 16px; }
+.v2 .e2e-sources, .v2 .e2e-layers{ display: flex; justify-content: center; flex-wrap: wrap; }
+.v2 .e2e-sources{ gap: 16px; }
+.v2 .e2e-layers{ gap: 14px; margin: 10px 0; }
+.v2 .e2e-box{
+    width: 300px; max-width: 100%; margin: 0 auto;
+    padding: 13px 22px; border-radius: 7px;
+    border: 1px solid; font-weight: bold; font-size: 14px;
+  }
+.v2 .e2e-sources .e2e-box{ width: auto; min-width: 140px; margin: 0; }
+.v2 .e2e-source{ background: #202b3c; border-color: #438bdb; color: #79baff; }
+.v2 .e2e-factory{ background: #263d30; border-color: #4dbb80; color: #6de5a0; }
+.v2 .e2e-lakehouse{ background: #26334c; border-color: #5b9dff; color: #8cbcff; }
+.v2 .e2e-engineering{ background: #3b2d4b; border-color: #ad79ed; color: #d2a9ff; }
+.v2 .e2e-warehouse{ background: #47372a; border-color: #d99a54; color: #ffc27d; }
+.v2 .e2e-semantic{ background: #3d344b; border-color: #b68bea; color: #d9baff; }
+.v2 .e2e-powerbi{ background: #46401f; border-color: #e5ce46; color: #ffeb69; }
+.v2 .e2e-business{ background: #24453d; border-color: #39c69a; color: #6fffd0; }
+.v2 .e2e-arrow{ color: #fff; font-size: 24px; margin: 6px 0; line-height: 1; }
+.v2 .e2e-sub{ font-size: 11px; color: #b5b5b5; margin-top: 6px; font-weight: normal; }
+.v2 .e2e-optional{ font-size: 11px; color: #ffbf73; margin-top: 4px; font-weight: normal; }
+.v2 .e2e-onelake{
+    border: 2px solid #e2b84e; background: #39321d; color: #ffdb72;
+    padding: 16px; margin: 18px auto; max-width: 560px; border-radius: 8px;
+  }
+.v2 .e2e-onelake-name{ font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+.v2 .e2e-layer{ padding: 11px 26px; border-radius: 6px; font-weight: bold; min-width: 120px; }
+.v2 .e2e-bronze{ background: #493226; border: 1px solid #d28b52; color: #ffc18a; }
+.v2 .e2e-silver{ background: #333b45; border: 1px solid #aab7c5; color: #dce5ee; }
+.v2 .e2e-gold{ background: #49401f; border: 1px solid #e5c34e; color: #ffe681; }
+.v2 .compare{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 1.4em 0;
+  }
+.v2 .compare-col{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+  }
+.v2 .compare-col h4{ margin-top: 0; }
+.v2 .compare-col.bad  h4{ color: #ff7c7c; }
+.v2 .compare-col.good h4{ color: var(--green); }
+.v2 .arch-layers{ margin: 1.4em 0; }
+.v2 .arch-layer{
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+.v2 .arch-layer-num{
+    background: var(--accent); color: #0f1115;
+    font-weight: 800; font-size: 0.75rem; min-width: 28px; height: 28px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+.v2 .arch-layer-name{ font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.v2 .arch-layer-desc{ font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+.v2 .revision-grid{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; margin: 1.4em 0;
+  }
+.v2 .rev-card{
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+.v2 .rev-card-title{ font-weight: 700; color: var(--accent); font-size: 0.88rem; margin-bottom: 8px; }
+.v2 .rev-card ul{ margin: 0; padding-left: 1.2em; }
+.v2 .rev-card li{ font-size: 0.8rem; color: var(--text-dim); margin: 3px 0; }
+@media (max-width: 900px){.v2 .compare{ grid-template-columns: 1fr; }}
+@media (max-width: 600px){.v2 .e2e-sources .e2e-box{ width: 90%; }
+.v2 .e2e-layers{ flex-direction: column; align-items: center; }
+.v2 .workload-grid{ grid-template-columns: 1fr; }}
+.v2 .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:1.3em 0;
+          padding:18px; background:#11141b; border:1px solid var(--border); border-radius:12px; }
+.v2 .flow .node{ background:var(--panel-2); border:1px solid var(--border); border-radius:9px;
+                padding:9px 14px; font-size:0.84rem; font-weight:700; color:var(--text); }
+.v2 .flow .node small{ display:block; font-weight:400; color:var(--text-dim); font-size:0.72rem; }
+.v2 .flow .node.trigger{ border-color:#ff6d5a; color:#b9dcff; }
+.v2 .flow .node.ai{ border-color:#8b7cf6; color:#c8bfff; }
+.v2 .flow .node.out{ border-color:#4dbb80; color:#a0efcb; }
+.v2 .flow .arrow{ color:var(--text-dim); font-size:1.1rem; }
+.v2 .callout-warn{
+    background: rgba(224,162,107,0.1); border: 1px solid rgba(224,162,107,0.4);
+    border-radius: 8px; padding: 12px 16px; margin: 1.2em 0; font-size: 0.88rem; color: #f3cfa9;
+  }
+.v2 .callout-warn::before{ content: "⚠️ Watch out: "; font-weight: 700; }
+.v2 .callout-lab{
+    background: rgba(94,177,255,0.08); border: 1px solid rgba(94,177,255,0.35);
+    border-radius: 10px; padding: 14px 18px; margin: 1.4em 0; font-size: 0.9rem;
+  }
+.v2 .callout-lab::before{ content: "🛠️ Hands-on Lab"; font-weight: 700; display:block; margin-bottom:6px; color: var(--accent); }
+.v2 .callout-lab ol, .v2 .callout-lab ul{ margin: 0.3em 0; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .lesson-completion{ margin: 26px 0 0; }
+.v2 .lesson-completion-button{
+    border: 1px solid rgba(94,177,255,0.45); border-radius: 7px; padding: .6rem .95rem;
+    background: rgba(94,177,255,0.08); color: #d6eaff; font: 600 13px -apple-system, "Segoe UI", sans-serif; cursor: pointer;
+  }
+.v2 .lesson-completion-button.is-complete{ border-color: var(--green); color: var(--green); background: rgba(77,187,128,0.08); }
+.v2 .lesson-pagination{ display:flex; justify-content:space-between; gap:1rem; margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:0.85rem; }
+.v2 .lesson-pagination a{ color: var(--accent); text-decoration:none; max-width:48%; }
+.v2 .lesson-pagination a:last-child{ margin-left:auto; text-align:right; }
+.v2 main > .fabric-search{ margin: 0 0 28px; position: relative; }
+.v2 .fabric-search-label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
+.v2 .fabric-search-input{ width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.9rem; }
+.v2 .fabric-search-results{ margin-top:6px; border-radius:8px; overflow:hidden; }
+.v2 .fabric-search-result{ display:block; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--border); color:var(--text-dim); text-decoration:none; font-size:0.84rem; }
+.v2 .fabric-search-result strong{ display:block; color:var(--text); }
+.v2 .fabric-search-result em{ display:block; margin-top:2px; color: var(--accent); font-style:normal; font-size:0.78rem; }
+.v2 .fabric-search-result:hover, .v2 .fabric-search-result[aria-selected="true"]{ background: var(--panel-2); }
+.v2 .fabric-search-empty{ color: var(--text-dim); font-size:0.84rem; padding: 8px 2px; }
+@media (max-width: 900px){.v2 .lesson-pagination{ flex-direction: column; }
+.v2 .lesson-pagination a{ max-width:100%; }}
+.v2 main a{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.v2 main a.ch-card, .v2 .chapter-nav a{ text-decoration: none; }
+.v2 .toc-back{ display:block; font-size:0.8rem; color:var(--accent); text-decoration:none; margin:0 0 6px 0; }
+.v2 .toc-course{ display:block; font-size:0.8rem; color:var(--text-dim); text-decoration:none; margin:0 0 18px 0; }
+.v2 .toc-back:hover, .v2 .toc-course:hover{ color: var(--text); }
+.v2 .chapter-nav{ display:flex; justify-content:space-between; gap:1rem; margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-size:0.9rem; }
+.v2 .chapter-nav a{ color: var(--accent); text-decoration:none; }
+.v2 .meta-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.v2 .meta-pill{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:0.8rem; color:var(--text-dim); }
+.v2 .meta-pill b{ color: var(--text); }
+.v2 .phase{ margin: 2.4em 0 1em; }
+.v2 .phase-title{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.v2 .phase-num{ background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#0d0f14; font-weight:800; font-size:0.75rem; padding:4px 10px; border-radius:6px; letter-spacing:.05em; }
+.v2 .phase-title h2{ margin:0; font-size:1.35rem; }
+.v2 .ch-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px,1fr)); gap:14px; }
+.v2 .ch-card{ display:block; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; text-decoration:none; color:var(--text); transition:border-color .15s, transform .15s; }
+.v2 a.ch-card:hover{ border-color: var(--accent); transform: translateY(-2px); }
+.v2 .ch-card .ch-no{ font-size:0.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); }
+.v2 .ch-card h3{ margin:4px 0 10px; font-size:1.02rem; color:#fff; }
+.v2 .ch-card ol{ margin:0; padding-left:1.2em; font-size:0.8rem; color:var(--text-dim); line-height:1.55; }
+.v2 .ch-card .ch-status{ display:inline-block; margin-top:12px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+.v2 .ch-status.ready{ background:rgba(77,187,128,.12); color:var(--green); border:1px solid rgba(77,187,128,.35); }
+.v2 .ch-status.soon{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border); }
+.v2 .ch-card.locked{ opacity:.78; }
+.v2 .src .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:1em 0; }
+.v2 .src .card, .v2 .src .mini, .v2 .src .tile, .v2 .src .topic, .v2 .src .project, .v2 .src .intro, .v2 .src .section{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:14px 0; }
+.v2 .src .grid > .card, .v2 .src .grid > .mini, .v2 .src .grid > .tile{ margin:0; }
+.v2 .src .mini h3, .v2 .src .tile h3, .v2 .src .tile strong, .v2 .src .mini strong{ font-size:0.95rem; margin:0 0 6px; color:#fff; }
+.v2 .src .tag, .v2 .src .level{ display:inline-block; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.35); margin:0 6px 6px 0; }
+.v2 .src .callout, .v2 .src .note, .v2 .src .info{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3);
+    border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .tip, .v2 .src .success{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green);
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; }
+.v2 .src .warn, .v2 .src .warning{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b;
+    border-radius:8px; padding:12px 16px; margin:1.1em 0; font-size:0.92rem; color:#f3cfa9; }
+.v2 .src .callout.tip, .v2 .src .callout.warn, .v2 .src .callout.warning, .v2 .src .callout.info{ border-left-width:3px; }
+.v2 .src .diagram{ margin:1.2em 0; border-radius:10px; overflow-x:auto; }
+.v2 .src .diagram:has(svg), .v2 .src .diagram:has(img){ background:#f8fafc; padding:14px; border:1px solid var(--border); }
+.v2 .src .diagram svg, .v2 .src svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+.v2 .src figure{ margin:1.4em 0; }
+.v2 .src figure img, .v2 .src img{ max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+.v2 .src figcaption, .v2 .src .caption, .v2 .src .muted, .v2 .src .small{ color:var(--text-dim); font-size:0.82rem; }
+.v2 .src ul.check{ list-style:none; padding-left:0; }
+.v2 .src ul.check li{ padding:4px 0 4px 28px; position:relative; }
+.v2 .src ul.check li::before{ content:"☐"; position:absolute; left:4px; color:var(--accent); }
+.v2 .src details{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin:10px 0; }
+.v2 .src details summary{ cursor:pointer; font-weight:600; color:#fff; }
+.v2 .src details[open] summary{ margin-bottom:8px; }
+.v2 .src .flow{ font-family: Consolas, Monaco, monospace; font-size:0.84rem; background:#11141b; border:1px solid var(--border);
+    border-radius:8px; padding:10px 14px; color:#ffd9a8; margin:10px 0; overflow-x:auto; }
+.v2 .src h4{ color:#fff; margin-top:1.2em; }
+.v2 .src a{ color: var(--accent); }
+.v2 #course-progress{ margin: 0 0 22px; }
+.v2 .progress-card{ display:grid; grid-template-columns:1fr minmax(160px,1.2fr) auto auto; align-items:center; gap:1.2rem;
+    padding:1.2rem 1.4rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .progress-card .eyebrow{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.v2 .progress-card h2{ font-size:1.1rem; margin:.2rem 0; color:#fff; border:0; padding:0; }
+.v2 .progress-card p{ color:var(--text-dim); font-size:.86rem; margin:0; }
+.v2 .progress-meter, .v2 .mini-progress{ height:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.1); }
+.v2 .progress-meter span, .v2 .mini-progress span{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+.v2 .progress-card > strong{ color:var(--accent); font-size:1.3rem; }
+.v2 .reset-progress{ border:1px solid var(--border); border-radius:6px; padding:.5rem .8rem; background:transparent; color:var(--text-dim); font:inherit; font-size:.8rem; cursor:pointer; }
+.v2 .module-progress{ margin-top:.8rem; }
+.v2 .module-progress small{ display:block; margin-top:.4rem; color:var(--text-dim); font-size:.74rem; font-weight:600; }
+.v2 .module-progress[data-status="completed"] small{ color: var(--green); }
+.v2 .module-progress[data-status="in-progress"] small{ color: var(--accent); }
+.v2 .reset-confirm-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:1.25rem; background:rgba(4,9,18,.72); }
+.v2 .reset-confirm-dialog{ max-width:420px; width:100%; padding:1.6rem; border:1px solid var(--border); border-radius:14px; background:var(--panel); }
+.v2 .reset-confirm-dialog h3{ margin:0 0 .6rem; color:#fff; }
+.v2 .reset-confirm-dialog p{ color:var(--text-dim); font-size:.92rem; }
+.v2 .reset-confirm-actions{ display:flex; justify-content:flex-end; gap:.75rem; }
+.v2 .reset-confirm-cancel, .v2 .reset-confirm-ok{ border-radius:6px; padding:.55rem 1rem; font:600 .85rem inherit; cursor:pointer; }
+.v2 .reset-confirm-cancel{ border:1px solid var(--border); background:transparent; color:var(--text); }
+.v2 .reset-confirm-ok{ border:0; background:linear-gradient(135deg,#ff5470,#ff8a5b); color:#fff; }
+.v2 #fabric-search-host{ margin: 0 0 26px; }
+.v2 .start-here ol{ margin:.4em 0 0; }
+.v2 .start-here li{ margin:.3em 0; }
+@media (max-width: 900px){.v2 .progress-card{ grid-template-columns:1fr; }}
+.v2 .src .tag.add{ background:rgba(94,177,255,.12); color:#b9dcff; border-color:rgba(94,177,255,.4); }
+.v2 .src .tag.ver{ background:rgba(77,187,128,.12); color:#a0efcb; border-color:rgba(77,187,128,.4); }
+.v2 .src .tag.s40{ background:rgba(139,124,246,.14); color:#c8bfff; border-color:rgba(139,124,246,.4); }
+.v2 .src .diagram:not(:has(svg)){ white-space:pre; font:0.82rem/1.5 Consolas, Monaco, monospace; background:#11141b; border:1px solid var(--border); padding:12px 14px; color:#ffd9a8; }
+.v2 .src .diagram .flow, .v2 .src .diagram p, .v2 .src .diagram .box{ white-space:normal; }
+.v2 .src .flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:inherit; }
+.v2 .src .box{ background:var(--panel-2); border:1px solid var(--accent); border-radius:7px; padding:5px 11px; font-weight:600; color:#fff; font-size:0.84rem; }
+.v2 .src .arrow{ color:var(--accent-2); font-weight:700; }
+.v2 .src .qa{ border-left:3px solid var(--accent-2); padding:6px 12px; margin:10px 0; background:var(--panel-2); border-radius:6px; }
+.v2 .src .lead{ font-size:1rem; color:var(--text); }
+.v2 .fig{ margin:1.2em 0; }
+.v2 .fig .diagram{ background:#f8fafc !important; padding:14px; border:1px solid var(--border); border-radius:10px; }
+.v2 .fig figcaption{ text-align:center; color:var(--text-dim); font-size:0.82rem; margin-top:6px; }
+.v2 .cmd{ border:1px solid var(--border); border-radius:10px; margin:14px 0; overflow:hidden; background:var(--panel-2); }
+.v2 .cmd > header{ background:#1e2330; color:#b9dcff; padding:8px 14px; font:600 0.86rem Consolas, Monaco, monospace; border-bottom:1px solid var(--border); }
+.v2 .cmd dl{ display:grid; grid-template-columns:150px 1fr; margin:0; }
+.v2 .cmd dt{ font-weight:700; color:var(--accent-2); padding:8px 12px; border-top:1px solid var(--border); font-size:0.82rem; }
+.v2 .cmd dd{ margin:0; padding:8px 12px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim); min-width:0; }
+.v2 .cmd dd pre{ margin:4px 0; }
+.v2 details.qa{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin:8px 0; }
+.v2 details.qa summary{ cursor:pointer; padding:9px 14px; font-weight:600; color:#fff; }
+.v2 details.qa summary::before{ content:"Q  "; color:var(--accent); font-weight:800; }
+.v2 details.qa .ans{ padding:2px 14px 10px; color:var(--text-dim); }
+.v2 .lvl{ display:inline-block; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 12px; border-radius:12px; margin:18px 0 6px; background:rgba(139,124,246,.14); color:#c8bfff; border:1px solid rgba(139,124,246,.4); }
+.v2 .mcq{ background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; }
+.v2 .mcq p{ margin:0 0 6px; color:#fff; }
+.v2 .mcq ol{ list-style:upper-alpha; margin:6px 0; }
+.v2 .mcq li{ cursor:pointer; padding:2px 6px; border-radius:5px; color:var(--text-dim); }
+.v2 .mcq li:hover{ background:rgba(255,255,255,.04); }
+.v2 .mcq li.right{ background:rgba(77,187,128,.14); color:#a0efcb; font-weight:600; }
+.v2 .mcq li.wrong{ background:rgba(224,92,92,.14); color:#ff9999; text-decoration:line-through; }
+.v2 .mcq .exp{ display:none; font-size:0.85rem; color:var(--text-dim); border-top:1px dashed var(--border); padding-top:6px; margin-top:6px; }
+.v2 .mcq.answered .exp{ display:block; }
+.v2 ol.ex{ list-style:none; padding:0; counter-reset:ex; }
+.v2 ol.ex > li{ counter-increment:ex; position:relative; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 14px 10px 50px; margin:8px 0; }
+.v2 ol.ex > li::before{ content:counter(ex); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#0f1115; display:grid; place-items:center; font-weight:800; font-size:0.8rem; }
+.v2 ol.ex .exp-out{ display:block; margin-top:6px; color:#a0efcb; font-size:0.88rem; }
+.v2 ol.ex .exp-out::before{ content:"Expected outcome: "; font-weight:700; }
+.v2 .c-conf{ background:rgba(224,162,107,.1); border:1px solid rgba(224,162,107,.4); border-left:3px solid #e0a26b; border-radius:8px; padding:12px 16px; margin:1.1em 0; color:#f3cfa9; }
+.v2 .c-ver{ background:rgba(77,187,128,.08); border:1px solid rgba(77,187,128,.35); border-left:3px solid var(--green); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .c-add{ background:rgba(94,177,255,.07); border:1px solid rgba(94,177,255,.3); border-left:3px solid var(--accent); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .ct{ display:block; font-weight:700; margin-bottom:4px; color:#fff; }
+.v2 .callout{ background:rgba(139,124,246,.08); border:1px solid rgba(139,124,246,.3); border-left:3px solid var(--accent-2); border-radius:8px; padding:12px 16px; margin:1.1em 0; }
+.v2 .callout.c-tip{ background:rgba(77,187,128,.08); border-color:rgba(77,187,128,.35); border-left-color:var(--green); }
+.v2 .callout.c-warn{ background:rgba(224,162,107,.1); border-color:rgba(224,162,107,.4); border-left-color:#e0a26b; }
+.v2 .tbl{ overflow-x:auto; margin:1.2em 0; }
+.v2 .src pre{ white-space:pre; }
+.v2 .copy{ float:right; margin:-6px -8px 0 0; font:600 11px -apple-system,"Segoe UI",sans-serif; background:#1e2330; color:#cfd6e4; border:1px solid var(--border); border-radius:5px; padding:2px 8px; cursor:pointer; }
+.v2 .roadmap-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+.v2 .roadmap-tabs button{ background:var(--panel-2); border:1px solid var(--border); color:var(--text-dim); border-radius:20px; padding:5px 14px; cursor:pointer; font-weight:600; }
+.v2 .roadmap-tabs button.on{ border-color:var(--accent); color:#fff; background:rgba(94,177,255,.12); }
+.v2 tr.rev td{ background:rgba(224,162,107,.07) !important; }
+.v2 tr.proj td{ background:rgba(139,124,246,.08) !important; }
+@media (max-width: 900px){.v2 .cmd dl{ grid-template-columns:1fr; }}
+.v2 .lesson{padding-top:48px;margin-top:0}
+.v2 .page-header{margin-top:8px}
+.v2 .flow-arrow{margin:0 !important;padding-left:0 !important;color:#fff !important;padding:0 2px}
+.v2 .vflow .flow-arrow{margin:4px 0 !important}
+</style>
+</head><body>
+<div class="shell"><nav class="sidebar" id="sidebar"><div class="brand"><div>
+<div class="brand-kicker">Git &amp; GitHub — HarinIT Academy</div>
+<div class="brand-title">Git for SQL Development</div>
+<div class="brand-sub">Chapter 31 · 36 lessons</div></div><button class="nav-toggle" id="navToggle" aria-label="Toggle course contents" aria-controls="sidebar" aria-expanded="false">☰ Course Contents</button></div>
+<div class="nav-group-label">Lessons</div>
+<a href="#lesson-1" class="nav-link"><span class="nav-num">🎓</span>Learning objectives</a>
+<a href="#lesson-2" class="nav-link"><span class="nav-num">31.1</span>Version controlling SQL scripts</a>
+<a href="#lesson-3" class="nav-link"><span class="nav-num">31.2</span>Managing stored procedures</a>
+<a href="#lesson-4" class="nav-link"><span class="nav-num">31.3</span>Managing views</a>
+<a href="#lesson-5" class="nav-link"><span class="nav-num">31.4</span>Managing functions</a>
+<a href="#lesson-6" class="nav-link"><span class="nav-num">31.5</span>Managing table scripts</a>
+<a href="#lesson-7" class="nav-link"><span class="nav-num">31.6</span>Database deployment scripts</a>
+<a href="#lesson-8" class="nav-link"><span class="nav-num">31.7</span>Tracking SQL changes</a>
+<a href="#lesson-9" class="nav-link"><span class="nav-num">31.8</span>Comparing SQL versions</a>
+<a href="#lesson-10" class="nav-link"><span class="nav-num">31.9</span>SQL code review</a>
+<a href="#lesson-11" class="nav-link"><span class="nav-num">31.10</span>Managing database release versions</a>
+<a href="#lesson-12" class="nav-link"><span class="nav-num">31.11</span>SQL development branch strategy</a>
+<a href="#lesson-13" class="nav-link"><span class="nav-num">31.12</span>Database deployment using CI/CD</a>
+<a href="#lesson-14" class="nav-link"><span class="nav-num">31.13</span>Version Controlling SQL Scripts</a>
+<a href="#lesson-15" class="nav-link"><span class="nav-num">31.14</span>Managing Stored Procedures</a>
+<a href="#lesson-16" class="nav-link"><span class="nav-num">31.15</span>Managing Views</a>
+<a href="#lesson-17" class="nav-link"><span class="nav-num">31.16</span>Managing Functions</a>
+<a href="#lesson-18" class="nav-link"><span class="nav-num">31.17</span>Managing Table Scripts</a>
+<a href="#lesson-19" class="nav-link"><span class="nav-num">31.18</span>Managing Database Deployment Scripts</a>
+<a href="#lesson-20" class="nav-link"><span class="nav-num">31.19</span>Tracking SQL Changes</a>
+<a href="#lesson-21" class="nav-link"><span class="nav-num">31.20</span>Comparing SQL Versions</a>
+<a href="#lesson-22" class="nav-link"><span class="nav-num">31.21</span>SQL Code Review</a>
+<a href="#lesson-23" class="nav-link"><span class="nav-num">31.22</span>Managing Database Release Versions</a>
+<a href="#lesson-24" class="nav-link"><span class="nav-num">31.23</span>SQL Development Branch Strategy</a>
+<a href="#lesson-25" class="nav-link"><span class="nav-num">31.24</span>Database Deployment Using CI/CD</a>
+<a href="#lesson-26" class="nav-link"><span class="nav-num">🗺️</span>Architecture &amp; diagrams</a>
+<a href="#lesson-27" class="nav-link"><span class="nav-num">⌨️</span>Command reference</a>
+<a href="#lesson-28" class="nav-link"><span class="nav-num">🏗️</span>Continuous project — Stage 6: Data-engineering integration</a>
+<a href="#lesson-29" class="nav-link"><span class="nav-num">🌍</span>Real-time scenarios</a>
+<a href="#lesson-30" class="nav-link"><span class="nav-num">✅</span>Best practices</a>
+<a href="#lesson-31" class="nav-link"><span class="nav-num">🧯</span>Common errors &amp; troubleshooting</a>
+<a href="#lesson-32" class="nav-link"><span class="nav-num">🛠️</span>Practical Lab &amp; exercises</a>
+<a href="#lesson-33" class="nav-link"><span class="nav-num">🎯</span>Chapter 31 Interview Questions</a>
+<a href="#lesson-34" class="nav-link"><span class="nav-num">📝</span>Knowledge assessment</a>
+<a href="#lesson-35" class="nav-link"><span class="nav-num">📌</span>Summary &amp; completion checklist</a>
+<a href="#lesson-36" class="nav-link"><span class="nav-num">📚</span>Official Git learning resources</a>
+</nav><main id="top">
+<div class="v2">
+
+<div class="page-header"><div class="module-badge">Phase 11 · Chapter 31</div><h1>Git for SQL Development</h1><p class="page-subtitle">Organize SQL objects in a repository (one object per file, schema folders) and write idempotent scripts.</p><div class="meta-row"><span class="meta-pill">Phase <b>11</b></span><span class="meta-pill">Lessons <b>36</b></span><span class="meta-pill">Sources <b>S32, S40</b></span></div></div><div class="lesson-desc" style="border-color:var(--accent); margin-bottom:2em;"><strong>In this chapter you will cover:</strong> Version controlling SQL scripts; Managing stored procedures; Managing views; Managing functions; Managing table scripts; Database deployment scripts; Tracking SQL changes; Comparing SQL versions; SQL code review; Managing database release versions. <br><strong>Before you start:</strong> complete Chapter 30 – Git with Azure DevOps. Tags show where content comes from: <em>Source Sxx</em> = your documents, <em>S40</em> = earlier complete course, <em>Course addition</em> = recommended additions. Use <em>Mark Lesson Complete</em> at the end of each section.</div>
+
+<section class="lesson" id="lesson-1">
+  <div class="lesson-header"><div class="lesson-num">🎓</div><h2>Learning objectives</h2></div>
+<div class="src"><span class="tag add">Chapter introduction</span><p><strong>What it is.</strong> Treating database code as source code: tables, views, stored procedures and functions as versioned scripts or a SQL database project; deployment scripts and DACPACs; SQL-specific diffs, reviews, branching and release management.</p>
+<p><strong>Why it matters.</strong> Most data defects originate in SQL changes. Version control plus automated build and deployment turn risky manual script execution into repeatable releases with rollback options.</p>
+<p><strong>Where it is used.</strong> SQL Server / Azure SQL / Synapse dedicated pools / Fabric Warehouse, with SQL database projects (DACPAC, state-based) or migration tools such as Flyway (migration-based).</p>
+<p><strong>In this course's project.</strong> Stage 6: the <code>sql/</code> folder becomes an SDK-style SQL project <code>RetailWarehouse.sqlproj</code>; PRs build the DACPAC, and pipelines deploy Dev → Test → Prod with SqlPackage.</p></div><div class="src"><span class="tag s40">Source S40 · earlier complete course</span><p>This chapter shows how to version-control database code — scripts, stored procedures, views, functions, tables and deployment scripts — and how to review, release and deploy SQL changes with CI/CD.</p>
+<div class="callout "><p><strong>Learning objective</strong> By the end of this chapter, you should be able to organise a SQL repository, track and compare database changes, run SQL code reviews, version releases and deploy databases through pipelines.</p>
+</div>
+<hr /></div><div class="src"><span class="tag ">Source S32 · Chapter manual · objectives</span><p>Apply source control and review practices to SQL scripts, database objects and repeatable database releases.</p><div class="grid"><div class="tile">Understand concepts and architecture</div><div class="tile">Apply commands and workflows</div><div class="tile">Use practical examples</div><div class="tile">Prepare for interviews</div></div></div><div class="src"><span class="tag add">Course addition · measurable objectives</span><ul>
+<li>Organize SQL objects in a repository (one object per file, schema folders) and write idempotent scripts.</li>
+<li>Explain state-based (DACPAC/SqlPackage) vs migration-based (Flyway-style) deployment and choose one.</li>
+<li>Build and deploy a DACPAC from a pipeline; generate a deployment script for review.</li>
+<li>Review SQL changes effectively (diffs, naming, performance, data-loss risk).</li>
+<li>Map SQL branching and release management onto the platform's Git workflow.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-2">
+  <div class="lesson-header"><div class="lesson-num">31.1</div><h2>Version controlling SQL scripts</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 1. Version controlling SQL scripts</span><p>Store SQL source as text with predictable folders, naming and line endings. Exclude credentials, production exports and generated output.</p><h4>Example / practical reference</h4><pre><code>database/schemas/ tables/ views/ procedures/ functions/ migrations/ tests/</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-3">
+  <div class="lesson-header"><div class="lesson-num">31.2</div><h2>Managing stored procedures</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 2. Managing stored procedures</span><p>Keep procedures in clear schema-qualified files. Review transaction handling, error handling, permissions and backward compatibility.</p><h4>Example / practical reference</h4><pre><code>CREATE OR ALTER PROCEDURE dbo.usp_LoadOrders
+AS
+BEGIN
+ SET NOCOUNT ON;
+ -- controlled load logic
+END;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-4">
+  <div class="lesson-header"><div class="lesson-num">31.3</div><h2>Managing views</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 3. Managing views</span><p>Version view definitions and review column names, data types, filters, joins and security predicates. Assess downstream reports and semantic models.</p><h4>Example / practical reference</h4><pre><code>CREATE OR ALTER VIEW dbo.vw_OrderSummary AS
+SELECT OrderId, CustomerId, OrderDate FROM dbo.Orders;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-5">
+  <div class="lesson-header"><div class="lesson-num">31.4</div><h2>Managing functions</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 4. Managing functions</span><p>Version scalar and table-valued functions. Test nulls and boundaries and consider performance and query-plan impacts.</p><h4>Example / practical reference</h4><pre><code>CREATE OR ALTER FUNCTION dbo.fn_NormalizeCode(@v varchar(100))
+RETURNS varchar(100) AS BEGIN RETURN UPPER(LTRIM(RTRIM(@v))); END;</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-6">
+  <div class="lesson-header"><div class="lesson-num">31.5</div><h2>Managing table scripts</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 5. Managing table scripts</span><p>Track table definitions, constraints, indexes and permissions. Separate schema creation from large data loads and use migrations for production changes.</p><h4>Example / practical reference</h4><pre><code>CREATE TABLE dbo.OrderAudit(AuditId bigint NOT NULL, OrderId bigint NOT NULL, CreatedAt datetime2 NOT NULL);</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-7">
+  <div class="lesson-header"><div class="lesson-num">31.6</div><h2>Database deployment scripts</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 6. Database deployment scripts</span><p>Use ordered, repeatable migrations or a database project/package. Document preconditions and avoid destructive changes without approved rollback plans.</p><h4>Example / practical reference</h4><pre><code>20261126_001_add_order_audit.sql</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-8">
+  <div class="lesson-header"><div class="lesson-num">31.7</div><h2>Tracking SQL changes</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 7. Tracking SQL changes</span><p>Use commits and PRs to record why an object changed, who reviewed it and what tests ran. Link changes to work items and deployment records.</p><h4>Example / practical reference</h4><pre><code>git add database/procedures/usp_LoadOrders.sql
+git commit -m "Handle duplicate order events"</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-9">
+  <div class="lesson-header"><div class="lesson-num">31.8</div><h2>Comparing SQL versions</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 8. Comparing SQL versions</span><p>Use Git diffs to compare SQL across commits. Normalize formatting and run database-aware validation for semantic changes.</p><h4>Example / practical reference</h4><pre><code>git diff main...feature/sql-order-fix -- database/
+git show &lt;sha&gt;:database/views/vw_OrderSummary.sql</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-10">
+  <div class="lesson-header"><div class="lesson-num">31.9</div><h2>SQL code review</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 9. SQL code review</span><p>Review correctness, locking, transaction scope, query plans, indexing, security, idempotency and data volume. For warehouse loads verify incremental boundaries and reconciliation.</p><h4>Example / practical reference</h4><pre><code>Review: schema compatibility | data-loss risk | rerun safety | performance</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-11">
+  <div class="lesson-header"><div class="lesson-num">31.10</div><h2>Managing database release versions</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 10. Managing database release versions</span><p>Use tags or versioned artifacts and maintain a migration ledger. Record source commit, package version, target, approval and outcome.</p><h4>Example / practical reference</h4><pre><code>git tag -a db-v1.8.0 -m "Database release 1.8.0"</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-12">
+  <div class="lesson-header"><div class="lesson-num">31.11</div><h2>SQL development branch strategy</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 11. SQL development branch strategy</span><p>Use short-lived feature branches and PR validation. Coordinate concurrent edits to shared objects and back-port production hotfixes.</p><h4>Example / practical reference</h4><pre><code>git switch -c feature/321-add-customer-index</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-13">
+  <div class="lesson-header"><div class="lesson-num">31.12</div><h2>Database deployment using CI/CD</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · 12. Database deployment using CI/CD</span><p>A pipeline can lint SQL, build a database package, deploy to a test database, run smoke tests and promote approved artifacts. Use secure identities.</p><h4>Example / practical reference</h4><pre><code>validate → build package → deploy test → tests → approval → prod</code></pre></div>
+</section>
+
+<section class="lesson" id="lesson-14">
+  <div class="lesson-header"><div class="lesson-num">31.13</div><h2>
+Version Controlling SQL Scripts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 1. Version Controlling SQL Scripts</span><h4>1.1 Why version-control SQL</h4>
+<ul>
+<li>Databases are code: logic in procedures/views affects business numbers.</li>
+<li>Without Git, the "truth" lives only in the database — no history, no review, no rollback.</li>
+<li>Enables CI/CD, environment consistency (Dev = Test = Prod schema) and audits.</li>
+</ul>
+<h4>1.2 Repository structure</h4>
+<pre><code class="language-text">sql/
+├── RetailDW.sqlproj              # (if using SQL Database Projects / SSDT)
+├── schemas/
+│   ├── stg.sql
+│   └── dw.sql
+├── tables/
+│   ├── dw.dim_customer.sql
+│   ├── dw.dim_product.sql
+│   └── dw.fact_sales.sql
+├── views/
+│   └── dw.vw_active_customers.sql
+├── functions/
+│   └── dbo.fn_fiscal_year.sql
+├── procedures/
+│   ├── dw.usp_load_customers.sql
+│   └── dw.usp_load_sales.sql
+├── security/
+│   └── roles.sql
+├── migrations/                    # (if using migration-based approach)
+│   ├── V001__create_schemas.sql
+│   └── V002__add_region_to_dim_customer.sql
+├── post-deploy/
+│   └── seed_reference_data.sql
+└── tests/
+    └── test_usp_load_customers.sql   # e.g. tSQLt tests
+</code></pre>
+<h4>1.3 Conventions</h4>
+<ul>
+<li><strong>One object per file</strong>, file name = <code>schema.object_name.sql</code>.</li>
+<li>Consistent formatting (SQLFluff) and naming (<code>usp_</code>, <code>vw_</code>, <code>fn_</code>, <code>dim_</code>, <code>fact_</code>).</li>
+<li>Scripts should be <strong>idempotent</strong> (safe to re-run) where possible.</li>
+<li>Never commit data dumps or credentials.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-15">
+  <div class="lesson-header"><div class="lesson-num">31.14</div><h2>
+Managing Stored Procedures
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 2. Managing Stored Procedures</span><h4>2.1 Idempotent definition</h4>
+<pre><code class="language-sql">-- sql/procedures/dw.usp_load_customers.sql
+CREATE OR ALTER PROCEDURE dw.usp_load_customers
+    @load_date DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        MERGE dw.dim_customer AS tgt
+        USING (
+            SELECT customer_id, customer_name, email, status
+            FROM stg.customer
+            WHERE load_date = COALESCE(@load_date, CAST(GETDATE() AS DATE))
+        ) AS src
+            ON tgt.customer_id = src.customer_id
+        WHEN MATCHED AND (tgt.email &lt;&gt; src.email OR tgt.status &lt;&gt; src.status) THEN
+            UPDATE SET tgt.email = src.email,
+                       tgt.status = src.status,
+                       tgt.updated_at = SYSUTCDATETIME()
+        WHEN NOT MATCHED BY TARGET THEN
+            INSERT (customer_id, customer_name, email, status, created_at, updated_at)
+            VALUES (src.customer_id, src.customer_name, src.email, src.status, SYSUTCDATETIME(), SYSUTCDATETIME());
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT &gt; 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+</code></pre>
+<p><code>CREATE OR ALTER</code> (SQL Server 2016 SP1+, Azure SQL, Synapse dedicated pools support <code>CREATE OR ALTER</code> for procedures in recent versions — verify for your platform) means the same script creates or updates the procedure.</p>
+<h4>2.2 Workflow</h4>
+<pre><code class="language-bash">git switch -c feature/DE-1700-customer-status
+# edit dw.usp_load_customers.sql
+git diff
+git commit -am &quot;feat(sql): track customer status changes in usp_load_customers&quot;
+git push -u origin feature/DE-1700-customer-status
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-16">
+  <div class="lesson-header"><div class="lesson-num">31.15</div><h2>
+Managing Views
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 3. Managing Views</span><pre><code class="language-sql">-- sql/views/dw.vw_active_customers.sql
+CREATE OR ALTER VIEW dw.vw_active_customers
+AS
+SELECT customer_id,
+       customer_name,
+       email
+FROM dw.dim_customer
+WHERE status = 'ACTIVE';
+</code></pre>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Explicit column lists (no <code>SELECT *</code>) — prevents silent breaking changes.</li>
+<li>Views used by reports are <strong>contracts</strong> — removing/renaming columns is a <strong>breaking (MAJOR)</strong> change.</li>
+<li>Consider <code>WITH SCHEMABINDING</code> for critical views (prevents underlying table changes that break them).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-17">
+  <div class="lesson-header"><div class="lesson-num">31.16</div><h2>
+Managing Functions
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 4. Managing Functions</span><pre><code class="language-sql">-- sql/functions/dbo.fn_fiscal_year.sql
+CREATE OR ALTER FUNCTION dbo.fn_fiscal_year (@d DATE)
+RETURNS INT
+WITH SCHEMABINDING
+AS
+BEGIN
+    -- Fiscal year starts 1 April (India)
+    RETURN CASE WHEN MONTH(@d) &gt;= 4 THEN YEAR(@d) + 1 ELSE YEAR(@d) END;
+END;
+</code></pre>
+<p><strong>Notes:</strong> changing a function signature affects all callers — search usages (<code>git grep fn_fiscal_year</code>) before changing; add unit tests (tSQLt) for business logic functions.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-18">
+  <div class="lesson-header"><div class="lesson-num">31.17</div><h2>
+Managing Table Scripts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 5. Managing Table Scripts</span><p>Tables are different from code objects: you <strong>cannot drop and recreate</strong> them without losing data.</p>
+<h4>5.1 State-based definition (SQL Database Project)</h4>
+<pre><code class="language-sql">-- sql/tables/dw.dim_customer.sql  (desired final state)
+CREATE TABLE dw.dim_customer (
+    customer_id    INT           NOT NULL CONSTRAINT pk_dim_customer PRIMARY KEY,
+    customer_name  NVARCHAR(100) NOT NULL,
+    email          NVARCHAR(200) NULL,
+    status         VARCHAR(20)   NOT NULL,
+    region         VARCHAR(50)   NULL,          -- added in v2.6.0
+    created_at     DATETIME2     NOT NULL,
+    updated_at     DATETIME2     NOT NULL
+);
+</code></pre>
+<p>The deployment tool (SqlPackage) compares this with the target and generates <code>ALTER TABLE ... ADD region ...</code>.</p>
+<h4>5.2 Migration-based change</h4>
+<pre><code class="language-sql">-- sql/migrations/V002__add_region_to_dim_customer.sql
+IF COL_LENGTH('dw.dim_customer', 'region') IS NULL
+    ALTER TABLE dw.dim_customer ADD region VARCHAR(50) NULL;
+</code></pre>
+<h4>5.3 Safe schema-change practices</h4>
+<ul>
+<li>Add columns as <strong>nullable</strong> (or with defaults) first.</li>
+<li><strong>Expand–contract</strong> for renames: add new column → backfill → update consumers → remove old column in a later release.</li>
+<li>Never edit a migration that has already been applied — add a new one.</li>
+<li>Review data-loss warnings (<code>BlockOnPossibleDataLoss=True</code> in SqlPackage).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-19">
+  <div class="lesson-header"><div class="lesson-num">31.18</div><h2>
+Managing Database Deployment Scripts
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 6. Managing Database Deployment Scripts</span><h4>6.1 Two approaches</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>How it works</th>
+<th>Tools</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State-based (declarative)</strong></td>
+<td>Repo holds the desired schema; tool diffs it against the target and generates a script</td>
+<td>SQL Database Projects / SSDT, <strong>DACPAC + SqlPackage</strong>, Redgate SQL Compare</td>
+<td>Simple to author; always shows full object definition</td>
+<td>Generated scripts must be reviewed; complex data migrations need pre/post scripts</td>
+</tr>
+<tr>
+<td><strong>Migration-based (imperative)</strong></td>
+<td>Ordered, immutable change scripts applied once and tracked in a history table</td>
+<td><strong>Flyway</strong>, Liquibase, DbUp, Alembic, EF migrations</td>
+<td>Full control over each change, explicit data migrations</td>
+<td>Object's current definition spread across scripts</td>
+</tr>
+</tbody>
+</table></div>
+<h4>6.2 Pre- and post-deployment scripts (state-based)</h4>
+<pre><code class="language-sql">-- sql/post-deploy/Script.PostDeployment.sql
+:r .\seed_reference_data.sql
+</code></pre>
+<pre><code class="language-sql">-- sql/post-deploy/seed_reference_data.sql (idempotent)
+MERGE dw.dim_status AS t
+USING (VALUES ('ACTIVE','Active'),('INACTIVE','Inactive')) AS s(code, name)
+ON t.code = s.code
+WHEN NOT MATCHED THEN INSERT (code, name) VALUES (s.code, s.name);
+</code></pre>
+<h4>6.3 Flyway naming</h4>
+<pre><code class="language-text">V001__create_schemas.sql            # versioned (run once, in order)
+V002__create_dim_customer.sql
+R__vw_active_customers.sql          # repeatable (re-run when changed)
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-20">
+  <div class="lesson-header"><div class="lesson-num">31.19</div><h2>
+Tracking SQL Changes
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 7. Tracking SQL Changes</span><pre><code class="language-bash">git log --oneline -- sql/procedures/dw.usp_load_customers.sql      # history of one object
+git log --follow -p -- sql/views/dw.vw_active_customers.sql         # with diffs, across renames
+git blame -w sql/procedures/dw.usp_load_sales.sql                   # who changed each line
+git log -S &quot;discount_amount&quot; --oneline -- sql/                      # when a column was introduced/removed
+git log --since=&quot;2026-11-01&quot; --name-only --oneline -- sql/          # what SQL changed this month
+git grep -n &quot;dim_customer&quot; -- sql/                                  # where an object is used
+</code></pre>
+<p><strong>Incident example:</strong> sales totals dropped on 20 Nov. <code>git log --since=2026-11-18 -- sql/procedures/dw.usp_load_sales.sql</code> reveals a commit that changed an <code>INNER JOIN</code> to exclude orders without promotions. <code>git revert</code> it and redeploy.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-21">
+  <div class="lesson-header"><div class="lesson-num">31.20</div><h2>
+Comparing SQL Versions
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 8. Comparing SQL Versions</span><pre><code class="language-bash">git diff v2.5.0 v2.6.0 -- sql/                      # all SQL changes in a release
+git diff v2.5.0 v2.6.0 --stat -- sql/               # summary
+git diff main feature/DE-1700 -- sql/procedures/
+git diff --word-diff HEAD~1 -- sql/views/dw.vw_active_customers.sql
+git difftool v2.5.0 v2.6.0 -- sql/procedures/dw.usp_load_sales.sql   # visual diff in VS Code
+git show v2.5.0:sql/procedures/dw.usp_load_sales.sql &gt; old_usp_load_sales.sql   # extract old version
+</code></pre>
+<p><strong>Compare Git with the actual database (drift):</strong></p>
+<ul>
+<li>SqlPackage <code>/Action:DeployReport</code> or <code>/Action:Script</code> against Prod with the DACPAC built from the release tag.</li>
+<li>VS Code / Visual Studio <strong>Schema Compare</strong> (project vs database).</li>
+</ul>
+<pre><code class="language-bash">SqlPackage /Action:DeployReport /SourceFile:RetailDW.dacpac \
+  /TargetConnectionString:&quot;$PROD_CONN&quot; /OutputPath:drift-report.xml
+</code></pre>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-22">
+  <div class="lesson-header"><div class="lesson-num">31.21</div><h2>
+SQL Code Review
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 9. SQL Code Review</span><h4>9.1 Checklist</h4>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What to check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correctness</td>
+<td>Joins (INNER vs LEFT), filters, grouping, date boundaries, time zones</td>
+</tr>
+<tr>
+<td>Idempotency</td>
+<td>Safe re-runs: MERGE/UPSERT, <code>IF NOT EXISTS</code>, <code>CREATE OR ALTER</code></td>
+</tr>
+<tr>
+<td>Data quality</td>
+<td>NULL handling, duplicates, data types, truncation</td>
+</tr>
+<tr>
+<td>Transactions &amp; errors</td>
+<td><code>XACT_ABORT</code>, <code>TRY...CATCH</code>, rollback, <code>THROW</code></td>
+</tr>
+<tr>
+<td>Performance</td>
+<td>SARGable predicates, indexes, avoiding cursors/RBAR, statistics, large deletes in batches</td>
+</tr>
+<tr>
+<td>Schema changes</td>
+<td>Backward compatibility, data-loss risk, migration order</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>No dynamic SQL injection, least privilege, no hard-coded credentials, PII masking</td>
+</tr>
+<tr>
+<td>Standards</td>
+<td>Naming, formatting, explicit column lists, comments</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>tSQLt/unit tests or validation queries; row-count reconciliation</td>
+</tr>
+</tbody>
+</table></div>
+<h4>9.2 Automation</h4>
+<pre><code class="language-yaml"># .sqlfluff
+[sqlfluff]
+dialect = tsql
+templater = raw
+max_line_length = 120
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+</code></pre>
+<pre><code class="language-bash">sqlfluff lint sql/
+sqlfluff fix sql/procedures/dw.usp_load_customers.sql
+</code></pre>
+<ul>
+<li>CODEOWNERS: <code>/sql/ @company/dba-team</code>.</li>
+<li>PR build validation: build the SQL project (catches broken references) + lint.</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-23">
+  <div class="lesson-header"><div class="lesson-num">31.22</div><h2>
+Managing Database Release Versions
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 10. Managing Database Release Versions</span><ul>
+<li><strong>Tag</strong> each database release: <code>v2.6.0</code> → exact schema version.</li>
+<li>Set the <strong>DACPAC version</strong> (<code>&lt;DacVersion&gt;2.6.0&lt;/DacVersion&gt;</code> in <code>.sqlproj</code>) or Flyway version history.</li>
+<li>Record deployments in the database:</li>
+</ul>
+<pre><code class="language-sql">CREATE TABLE meta.schema_version (
+    version      VARCHAR(20)  NOT NULL,
+    commit_sha   CHAR(40)     NOT NULL,
+    deployed_at  DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),
+    deployed_by  NVARCHAR(100) NOT NULL
+);
+</code></pre>
+<ul>
+<li>Keep a <strong>CHANGELOG</strong> of schema changes; flag breaking changes for downstream consumers (reports, APIs).</li>
+<li><strong>Rollback strategy:</strong> code objects → redeploy previous tag; table changes → forward fix or explicit rollback migration (dropping columns may lose data — plan carefully; backups/point-in-time restore for emergencies).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-24">
+  <div class="lesson-header"><div class="lesson-num">31.23</div><h2>
+SQL Development Branch Strategy
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 11. SQL Development Branch Strategy</span><pre><code class="language-text">main  ──●─────────●───────────●──────►   (production schema; tags v2.5.0, v2.6.0)
+         \       /  \        /
+feature/  ●──●──●    ●──●──●             (one change per branch, PR to main)
+</code></pre>
+<p><strong>Recommended:</strong></p>
+<ol>
+<li>Short-lived feature branches per change (<code>feature/DE-1700-customer-status</code>).</li>
+<li>Each developer uses a <strong>personal/dev database</strong> (or container) to build and test the SQL project locally.</li>
+<li>PR to <code>main</code> → CI builds DACPAC, lints, runs tests → DBA review.</li>
+<li>Merge → CD deploys to Dev → Test → Prod with approvals.</li>
+<li>Hotfixes branch from the production tag.</li>
+</ol>
+<p><strong>Avoid:</strong> developing directly in a shared Dev database without scripts ("click-ops") — changes are lost or overwritten. If that happened, use <strong>Schema Compare</strong> (database → project) to bring changes into Git.</p>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-25">
+  <div class="lesson-header"><div class="lesson-num">31.24</div><h2>
+Database Deployment Using CI/CD
+</h2></div>
+<div class="src"><span class="tag s40">Source S40 · 12. Database Deployment Using CI/CD</span><h4>12.1 GitHub Actions — build and deploy DACPAC</h4>
+<pre><code class="language-yaml"># .github/workflows/sql.yml
+name: SQL CI/CD
+on:
+  pull_request:
+    paths: ['sql/**']
+  push:
+    branches: [main]
+    paths: ['sql/**']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - run: pip install sqlfluff &amp;&amp; sqlfluff lint sql/ --dialect tsql
+      - run: dotnet build sql/RetailDW.sqlproj -c Release      # SDK-style project (Microsoft.Build.Sql)
+      - uses: actions/upload-artifact@v4
+        with: { name: dacpac, path: sql/bin/Release/*.dacpac }
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: dacpac, path: dacpac }
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - uses: azure/sql-action@v2.3
+        with:
+          connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+          path: './sql/RetailDW.sqlproj'
+          action: 'publish'
+          arguments: '/p:BlockOnPossibleDataLoss=true'
+</code></pre>
+<h4>12.2 Azure Pipelines — deploy DACPAC</h4>
+<pre><code class="language-yaml">- task: SqlAzureDacpacDeployment@1
+  inputs:
+    azureSubscription: sc-rdp-prod
+    AuthenticationType: servicePrincipal
+    ServerName: sql-rdp-prod.database.windows.net
+    DatabaseName: RetailDW
+    deployType: DacpacTask
+    DeploymentAction: Publish
+    DacpacFile: $(Pipeline.Workspace)/drop/RetailDW.dacpac
+    AdditionalArguments: /p:BlockOnPossibleDataLoss=true
+</code></pre>
+<h4>12.3 Flyway example</h4>
+<pre><code class="language-bash">flyway -url=&quot;jdbc:sqlserver://sql-rdp-dev.database.windows.net;databaseName=RetailDW&quot; \
+       -user=&quot;$SQL_USER&quot; -password=&quot;$SQL_PASSWORD&quot; \
+       -locations=filesystem:sql/migrations migrate
+</code></pre>
+<h4>12.4 Pipeline safety</h4>
+<ul>
+<li>Generate and publish a <strong>deploy report/script</strong> as an artifact for review before Prod.</li>
+<li><strong>Block on possible data loss</strong>.</li>
+<li>Approvals on Test/Prod environments.</li>
+<li>Backups / point-in-time restore available before major changes.</li>
+<li>Deploy during agreed windows; coordinate with dependent pipelines (pause ADF triggers if needed).</li>
+</ul>
+<hr /></div>
+</section>
+
+<section class="lesson" id="lesson-26">
+  <div class="lesson-header"><div class="lesson-num">🗺️</div><h2>Architecture &amp; diagrams</h2></div>
+<figure class="fig"><div class="diagram"><svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20" y="10" width="920" height="50" rx="9" fill="#fff" stroke="#2f6fd6" stroke-width="1.8"/><rect x="20" y="10" width="260" height="50" rx="9" fill="#2f6fd6"/><text x="150.0" y="39.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/RetailWarehouse.sqlproj</text><text x="300.0" y="39.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">SDK-style SQL database project (Microsoft.Build.Sql) — builds RetailWarehouse.dacpac</text><rect x="20" y="70" width="920" height="50" rx="9" fill="#fff" stroke="#137a4b" stroke-width="1.8"/><rect x="20" y="70" width="260" height="50" rx="9" fill="#137a4b"/><text x="150.0" y="91.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/stg/Tables, sql/dim/Tables,</text><text x="150.0" y="108.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/fact/Tables</text><text x="300.0" y="99.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">One CREATE TABLE per file, folder per schema</text><rect x="20" y="130" width="920" height="50" rx="9" fill="#fff" stroke="#9a5b00" stroke-width="1.8"/><rect x="20" y="130" width="260" height="50" rx="9" fill="#9a5b00"/><text x="150.0" y="151.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/dim/StoredProcedures,</text><text x="150.0" y="168.2" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/dim/Views, sql/dim/Functions</text><text x="300.0" y="159.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Procedures, views, functions — one object per file</text><rect x="20" y="190" width="920" height="50" rx="9" fill="#fff" stroke="#6b3fa0" stroke-width="1.8"/><rect x="20" y="190" width="260" height="50" rx="9" fill="#6b3fa0"/><text x="150.0" y="219.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/Scripts/PostDeployment.sql</text><text x="300.0" y="219.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Reference data (MERGE) run after every deployment</text><rect x="20" y="250" width="920" height="50" rx="9" fill="#fff" stroke="#a4262c" stroke-width="1.8"/><rect x="20" y="250" width="260" height="50" rx="9" fill="#a4262c"/><text x="150.0" y="279.7" font-family="Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">sql/tests</text><text x="300.0" y="279.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">tSQLt or plain test scripts run in CI against a disposable database</text></svg></div><figcaption>Repository layout for SQL in the project</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 233" xmlns="http://www.w3.org/2000/svg" role="img"><rect x="20.0" y="6" width="450.0" height="38" rx="8" fill="#2f6fd6"/><text x="245.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">State-based (SQL project → DACPAC → SqlPackage)</text><rect x="20.0" y="52.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Repo holds the desired end state of every object</text><rect x="20.0" y="91.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Tool computes the diff against the target at deploy time</text><rect x="20.0" y="130.0" width="450.0" height="31" rx="7" fill="#e6effc"/><text x="32.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Great for schema drift detection and reviews of objects</text><rect x="20.0" y="169.0" width="450.0" height="48" rx="7" fill="#e6effc"/><text x="32.0" y="197.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Risk: generated script may drop/rebuild — review it</text><rect x="490.0" y="6" width="450.0" height="38" rx="8" fill="#137a4b"/><text x="715.0" y="30.0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">Migration-based (Flyway / numbered scripts)</text><rect x="490.0" y="52.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="71.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Repo holds ordered change scripts V1__, V2__ …</text><rect x="490.0" y="91.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="110.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Tool runs scripts not yet applied (history table)</text><rect x="490.0" y="130.0" width="450.0" height="31" rx="7" fill="#e7f6ee"/><text x="502.0" y="149.8" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Full control over data migrations and order</text><rect x="490.0" y="169.0" width="450.0" height="48" rx="7" fill="#e7f6ee"/><text x="502.0" y="189.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">Risk: scripts must be written carefully and never edited</text><text x="502.0" y="205.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#16202e" text-anchor="start">after release</text></svg></div><figcaption>State-based vs migration-based database deployment</figcaption></figure><figure class="fig"><div class="diagram"><svg viewBox="0 0 960 120" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fd6"/></marker></defs><rect x="20.0" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="71.1" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Branch featur</text><text x="71.1" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">e/RDP-131-</text><text x="71.1" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">fact-returns</text><line x1="125.3" y1="60.0" x2="153.3" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="156.3" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="207.4" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Edit object</text><text x="207.4" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">files</text><line x1="261.6" y1="60.0" x2="289.6" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="292.6" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="343.7" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Local build</text><text x="343.7" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(dotnet</text><text x="343.7" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">build)</text><line x1="397.9" y1="60.0" x2="425.9" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="428.9" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="480.0" y="40.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">PR: build</text><text x="480.0" y="56.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">DACPAC +</text><text x="480.0" y="72.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">tests +</text><text x="480.0" y="88.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">script report</text><line x1="534.1" y1="60.0" x2="562.1" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="565.1" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="616.3" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Merge</text><line x1="670.4" y1="60.0" x2="698.4" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="701.4" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="752.6" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Deploy Test</text><text x="752.6" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">(SqlPackage</text><text x="752.6" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Publish)</text><line x1="806.7" y1="60.0" x2="834.7" y2="60.0" stroke="#2f6fd6" stroke-width="2" marker-end="url(#ah)"/><rect x="837.7" y="15.0" width="102.3" height="90" rx="9" fill="#e6effc" stroke="#2f6fd6" stroke-width="1.8"/><text x="888.9" y="48.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Tag → Deploy</text><text x="888.9" y="64.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">Prod with</text><text x="888.9" y="80.3" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#10284a" text-anchor="middle">approval</text></svg></div><figcaption>SQL change lifecycle</figcaption></figure>
+</section>
+
+<section class="lesson" id="lesson-27">
+  <div class="lesson-header"><div class="lesson-num">⌨️</div><h2>Command reference</h2></div>
+<div class="cmd" id="cmd-build-a-sql-database-project"><header>Build a SQL database project</header><dl><dt>Syntax</dt><dd><pre><code>dotnet build sql/RetailWarehouse.sqlproj -c Release</code></pre></dd><dt>Purpose</dt><dd>Validate object references and produce a DACPAC.</dd><dt>Expected output</dt><dd><pre><code>Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+(artifact: sql/bin/Release/RetailWarehouse.dacpac)</code></pre></dd><dt>Example</dt><dd><pre><code>dotnet build sql/RetailWarehouse.sqlproj -c Release</code></pre></dd><dt>Common mistakes</dt><dd>Missing references to other databases/system objects causing unresolved-reference errors (SQL71501).</dd></dl></div><div class="cmd" id="cmd-sqlpackage"><header>SqlPackage</header><dl><dt>Syntax</dt><dd><pre><code>sqlpackage /Action:Publish /SourceFile:&lt;dacpac&gt; /TargetConnectionString:&quot;&lt;cs&gt;&quot; [/p:BlockOnPossibleDataLoss=true]
+sqlpackage /Action:Script /SourceFile:&lt;dacpac&gt; /TargetConnectionString:&quot;&lt;cs&gt;&quot; /OutputPath:deploy.sql
+sqlpackage /Action:DeployReport /SourceFile:&lt;dacpac&gt; /TargetConnectionString:&quot;&lt;cs&gt;&quot; /OutputPath:report.xml</code></pre></dd><dt>Purpose</dt><dd>Compare a DACPAC with a target database and publish, script or report the changes.</dd><dt>Example</dt><dd><pre><code>sqlpackage /Action:Script /SourceFile:RetailWarehouse.dacpac \
+  /TargetConnectionString:&quot;$TEST_CS&quot; /OutputPath:artifacts/deploy_test.sql /p:BlockOnPossibleDataLoss=true</code></pre></dd><dt>Common mistakes</dt><dd>Setting <code>BlockOnPossibleDataLoss=false</code> to "make the deployment work" — review and write an explicit data migration instead. Never store the connection string in the repo; use Entra authentication / Key Vault.</dd></dl></div><div class="cmd" id="cmd-idempotent-object-scripts-and-sql-history-queries"><header>Idempotent object scripts and SQL history queries</header><dl><dt>Syntax</dt><dd><pre><code>CREATE OR ALTER PROCEDURE … / CREATE OR ALTER VIEW …
+git log --follow -p -- sql/dim/StoredProcedures/usp_load_dim_customer.sql
+git diff v1.0.0 v1.1.0 --stat -- sql/
+git diff-tree --no-commit-id --name-only -r &lt;commit&gt; -- sql/</code></pre></dd><dt>Purpose</dt><dd>Make scripts safe to re-run; inspect SQL history between releases; list changed SQL files for a commit.</dd><dt>Example</dt><dd><pre><code>CREATE OR ALTER PROCEDURE dim.usp_load_dim_customer
+AS
+BEGIN
+    SET NOCOUNT ON;
+    MERGE dim.Customer AS t
+    USING stg.Customer AS s ON t.CustomerID = s.CustomerID
+    WHEN MATCHED THEN UPDATE SET t.CustomerName = s.CustomerName, t.Region = COALESCE(s.Region, &#x27;UNKNOWN&#x27;)
+    WHEN NOT MATCHED THEN INSERT (CustomerID, CustomerName, Region) VALUES (s.CustomerID, s.CustomerName, COALESCE(s.Region, &#x27;UNKNOWN&#x27;));
+END;</code></pre></dd><dt>Common mistakes</dt><dd>Mixing schema changes for several features in one large script — reviews and rollbacks become impossible.</dd></dl></div>
+</section>
+
+<section class="lesson" id="lesson-28">
+  <div class="lesson-header"><div class="lesson-num">🏗️</div><h2>Continuous project — Stage 6: Data-engineering integration</h2></div>
+<div class="src"><span class="tag add">Continuous project · Stage 6 — SQL in the delivery pipeline</span><pre><code class="language-bash">git switch -c feature/RDP-131-fact-returns
+# add sql/fact/Tables/FactReturns.sql and sql/fact/StoredProcedures/usp_load_fact_returns.sql
+dotnet build sql/RetailWarehouse.sqlproj -c Release
+git add sql/fact
+git commit -m &quot;feat(sql): add FactReturns and load procedure&quot; -m &quot;Refs #71&quot;
+git push -u origin feature/RDP-131-fact-returns
+</code></pre>
+<p>CI (PR): <code>dotnet build</code> → deploy DACPAC to a disposable SQL container → run <code>sql/tests</code> → <code>sqlpackage /Action:Script</code> against Test and attach <code>deploy_test.sql</code> as an artifact for the reviewer.
+CD: merge → Publish to Test; tag <code>v1.2.0</code> → Publish to Prod after approval (with <code>/p:BlockOnPossibleDataLoss=true</code>).
+Rollback strategy: redeploy the previous tag's DACPAC for code objects; data-destructive changes are rolled forward with a fix script.</p></div>
+</section>
+
+<section class="lesson" id="lesson-29">
+  <div class="lesson-header"><div class="lesson-num">🌍</div><h2>Real-time scenarios</h2></div>
+<div class="src"><span class="tag ">Source S32, S40 · Reviewer must judge data-loss risk</span><p>The PR shows only <code>ALTER TABLE ... ALTER COLUMN Region NVARCHAR(20)</code> (shrinking). The generated script/deploy report flags possible data loss; the author adds a pre-deployment check and data migration, or keeps the column width.</p></div><div class="src"><span class="tag add">Course addition · Hotfix to a stored procedure in production</span><p>Branch from <code>main</code> (or the production tag), change the single procedure file, PR with fast-track review, tag patch version, deploy via pipeline — no manual <code>ALTER</code> in SSMS against Prod.</p></div>
+</section>
+
+<section class="lesson" id="lesson-30">
+  <div class="lesson-header"><div class="lesson-num">✅</div><h2>Best practices</h2></div>
+<div class="src"><span class="tag add">Course addition · best practices</span><ul>
+<li>One object per file, folder per schema/type; consistent naming (<code>usp_</code>, <code>vw_</code>, <code>fn_</code> per standard).</li>
+<li>Idempotent scripts (<code>CREATE OR ALTER</code>, <code>IF NOT EXISTS</code>) for anything run outside DACPAC.</li>
+<li>Build DACPAC on every PR; review generated deployment scripts for Prod.</li>
+<li>No credentials in code; Entra ID auth or Key Vault-backed connection strings.</li>
+<li>Reference data in post-deployment MERGE scripts; never edit released migration scripts.</li>
+</ul></div>
+</section>
+
+<section class="lesson" id="lesson-31">
+  <div class="lesson-header"><div class="lesson-num">🧯</div><h2>Common errors &amp; troubleshooting</h2></div>
+<div class="src"><span class="tag add">Course addition · error reference</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SQL71501: ... has an unresolved reference to object ...</code></td>
+<td>Missing object/reference in project</td>
+<td>Add the object or database/system reference</td>
+</tr>
+<tr>
+<td><code>*** The column [x] is being dropped, data loss could occur.</code> / deployment blocked</td>
+<td>BlockOnPossibleDataLoss</td>
+<td>Write explicit migration; review</td>
+</tr>
+<tr>
+<td><code>Login failed for user '&lt;token-identified principal&gt;'</code></td>
+<td>Pipeline identity lacks DB user/permissions</td>
+<td>Create contained user for the managed identity/SP</td>
+</tr>
+<tr>
+<td>Whole-file diffs for SQL</td>
+<td>Encoding/line-ending changes (UTF-16 from SSMS)</td>
+<td>Save as UTF-8; <code>.gitattributes</code>; renormalize</td>
+</tr>
+</tbody>
+</table></div></div>
+</section>
+
+<section class="lesson" id="lesson-32">
+  <div class="lesson-header"><div class="lesson-num">🛠️</div><h2>Practical Lab &amp; exercises</h2></div>
+<div class="src"><span class="tag add">Course addition · graded exercises</span><ol class="ex"><li><p>Create an SDK-style SQL project with two tables and one procedure; build it.</p><span class="exp-out"><code>.dacpac</code> produced, 0 errors.</span></li><li><p>Introduce an unresolved reference and rebuild.</p><span class="exp-out">SQL71501 error.</span></li><li><p>Generate a deployment script against a local database.</p><span class="exp-out"><code>deploy.sql</code> with the expected <code>CREATE</code>/<code>ALTER</code> statements.</span></li><li><p>Show the history of one procedure across renames.</p><span class="exp-out"><code>git log --follow -p</code> output.</span></li><li><p>List SQL files changed between two tags.</p><span class="exp-out"><code>git diff --name-only v1.0.0 v1.1.0 -- sql/</code>.</span></li></ol></div><div class="src"><span class="tag ">Source S32 · Chapter manual · lab</span><p>Create a SQL repository with table, view and stored procedure scripts. Change a procedure on a feature branch, review its diff and open a PR. Add a simple automated validation and document migration and rollback plans.</p><div class="call"><b>Safety:</b> Use test repositories and non-production environments. Keep secrets out of Git and verify permissions before pushing or deploying.</div></div><div class="src"><span class="tag s40">Source S40 · 13. Practical Exercise – Chapter 31</span><ol>
+<li>Organise <code>sql/</code> with one object per file and <code>CREATE OR ALTER</code> scripts.</li>
+<li>Create a SQL Database Project (VS Code SQL Database Projects extension) and build a DACPAC.</li>
+<li>Add <code>.sqlfluff</code> and lint in CI.</li>
+<li>Add a column via the state-based approach; generate a deploy report against a dev database.</li>
+<li>Find who last changed a procedure with <code>git blame</code>; compare two releases with <code>git diff v1..v2 -- sql/</code>.</li>
+<li>Build a pipeline that deploys the DACPAC to Dev on merge.</li>
+</ol></div>
+</section>
+
+<section class="lesson" id="lesson-33">
+  <div class="lesson-header"><div class="lesson-num">🎯</div><h2>Chapter 31 Interview Questions</h2></div>
+<div class="src"><span class="tag ">Source S32 · Chapter manual · interview</span><h4>1. Why store SQL in Git?</h4><p>To track, review, audit and automate database changes.</p><h4>2. Why use migrations?</h4><p>For ordered, repeatable schema changes and deployment history.</p><h4>3. What should SQL reviewers examine?</h4><p>Correctness, performance, transactions, permissions, idempotency and data impact.</p><h4>4. What is a migration ledger?</h4><p>A record of which migration versions have been applied.</p><h4>5. Why avoid direct production edits?</h4><p>They bypass review, reproducibility and traceability.</p></div><div class="src"><span class="tag s40">Source S40 · 14. Chapter 31 – Interview Questions</span><div class="tbl"><table>
+<thead>
+<tr>
+<th style="text-align: right;">No.</th>
+<th>Question</th>
+<th>Short answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Why version-control SQL?</td>
+<td>History, review, rollback, CI/CD, environment consistency</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>State-based vs migration-based deployments?</td>
+<td>Desired-state diffing (DACPAC) vs ordered change scripts (Flyway)</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Why <code>CREATE OR ALTER</code>?</td>
+<td>Idempotent scripts for procs/views/functions</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>How do you safely rename a column?</td>
+<td>Expand–contract over multiple releases</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>How do you find who changed a procedure?</td>
+<td><code>git log</code>/<code>git blame</code> on the file</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>How do you detect drift?</td>
+<td>SqlPackage DeployReport / Schema Compare against target</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>How do you deploy SQL with CI/CD?</td>
+<td>Build DACPAC/migrations in CI; deploy with SqlPackage/sql-action/Flyway via pipelines</td>
+</tr>
+</tbody>
+</table></div></div><span class="lvl">Beginner</span><details class="qa"><summary>Why put SQL scripts under version control?</summary><div class="ans"><p>History, reviews, rollback, collaboration and automated deployment for database objects, just like application code.</p></div></details><span class="lvl">Intermediate</span><details class="qa"><summary>What is a DACPAC?</summary><div class="ans"><p>A data-tier application package containing the database model built from a SQL project; SqlPackage compares it with a target to publish changes.</p></div></details><details class="qa"><summary>State-based vs migration-based deployment?</summary><div class="ans"><p>State-based stores the desired schema and computes the diff at deploy time; migration-based stores ordered change scripts applied once each.</p></div></details><span class="lvl">Advanced</span><details class="qa"><summary>How do you prevent destructive changes reaching production unnoticed?</summary><div class="ans"><p><code>BlockOnPossibleDataLoss=true</code>, generate and review deploy scripts/reports in the PR or pre-prod stage, approvals on Prod, and explicit data-migration scripts.</p></div></details><span class="lvl">Scenario</span><details class="qa"><summary>Two developers change the same stored procedure in parallel branches. How do you minimize pain?</summary><div class="ans"><p>Small focused changes, frequent integration, one object per file, clear ownership; resolve conflicts in the object file and rebuild/test the project before merging.</p></div></details>
+</section>
+
+<section class="lesson" id="lesson-34">
+  <div class="lesson-header"><div class="lesson-num">📝</div><h2>Knowledge assessment</h2></div>
+<div class="src"><span class="tag add">Quiz · click an option</span><p class="small">Click an option to check your answer.</p><div class="mcq"><p><strong>1. Which tool publishes a DACPAC to a database?</strong></p><ol><li data-ok="0">dotnet test</li><li data-ok="1">SqlPackage</li><li data-ok="0">bcp</li><li data-ok="0">sqlcmd -i only</li></ol><div class="exp">SqlPackage /Action:Publish.</div></div><div class="mcq"><p><strong>2. Migration-based deployment tracks applied scripts using…</strong></p><ol><li data-ok="0">The DACPAC model</li><li data-ok="1">A schema history table</li><li data-ok="0">Git tags only</li><li data-ok="0">File timestamps</li></ol><div class="exp">e.g. Flyway's history table.</div></div><div class="mcq"><p><strong>3. Which statement makes procedure scripts re-runnable?</strong></p><ol><li data-ok="0">CREATE PROCEDURE</li><li data-ok="1">CREATE OR ALTER PROCEDURE</li><li data-ok="0">DROP DATABASE</li><li data-ok="0">ALTER DATABASE</li></ol><div class="exp">Idempotent definition.</div></div><div class="mcq"><p><strong>4. Which property stops deployments that may lose data?</strong></p><ol><li data-ok="0">/p:DropObjectsNotInSource=true</li><li data-ok="1">BlockOnPossibleDataLoss=true</li><li data-ok="0">/p:IgnoreColumnOrder=true</li><li data-ok="0">/Action:Extract</li></ol><div class="exp">Default is true; keep it.</div></div><div class="mcq"><p><strong>5. Where should the Prod connection string live?</strong></p><ol><li data-ok="0">In the .sqlproj</li><li data-ok="0">In appsettings.json in Git</li><li data-ok="1">In Key Vault / pipeline secret store (or use Entra auth)</li><li data-ok="0">In the commit message</li></ol><div class="exp">Never in the repository.</div></div></div>
+</section>
+
+<section class="lesson" id="lesson-35">
+  <div class="lesson-header"><div class="lesson-num">📌</div><h2>Summary &amp; completion checklist</h2></div>
+<div class="src"><span class="tag add">Key takeaways</span><ul>
+<li>SQL is code: one object per file, reviewed via PRs.</li>
+<li>Choose state-based (DACPAC) or migration-based deployment and automate it.</li>
+<li>Review generated scripts and block data loss for Prod.</li>
+<li>SQL releases follow the same tags and approvals as the rest of the platform.</li>
+</ul></div><div class="src"><span class="tag ">Source S32 · Chapter manual · summary</span><ul><li>Version controlling SQL scripts</li><li>Managing stored procedures</li><li>Managing views</li><li>Managing functions</li><li>Managing table scripts</li><li>Database deployment scripts</li><li>Tracking SQL changes</li><li>Comparing SQL versions</li><li>SQL code review</li><li>Managing database release versions</li><li>SQL development branch strategy</li><li>Database deployment using CI/CD</li></ul><div class="call warn"><b>Key takeaway:</b> Keep a traceable path from source commit to validated artifact and target environment. Review platform-specific behavior against current official documentation.</div></div><div class="src"><span class="tag s40">Source S40 · 15. Chapter 31 – Summary</span><div class="tbl"><table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Structure</td>
+<td>One object per file, by type</td>
+</tr>
+<tr>
+<td>Objects</td>
+<td>Procs/views/functions idempotent; tables via state or migrations</td>
+</tr>
+<tr>
+<td>Tracking</td>
+<td>log, blame, diff between tags</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>Correctness, idempotency, performance, security</td>
+</tr>
+<tr>
+<td>Releases</td>
+<td>Tags, DacVersion, schema version table</td>
+</tr>
+<tr>
+<td>CI/CD</td>
+<td>DACPAC/Flyway pipelines with approvals</td>
+</tr>
+</tbody>
+</table></div></div><div class="src"><span class="tag ">Chapter completion</span><ul class="check"><li>Organize SQL objects in a repository (one object per file, schema folders) and write idempotent scripts.</li><li>Explain state-based (DACPAC/SqlPackage) vs migration-based (Flyway-style) deployment and choose one.</li><li>Build and deploy a DACPAC from a pipeline; generate a deployment script for review.</li><li>Review SQL changes effectively (diffs, naming, performance, data-loss risk).</li><li>Map SQL branching and release management onto the platform's Git workflow.</li></ul><div class="callout c-tip"><strong>Ready for the next chapter:</strong> tick every item above, answer the interview questions aloud and score at least 4/5 in the quiz.</div></div>
+</section>
+
+<section class="lesson" id="lesson-36">
+  <div class="lesson-header"><div class="lesson-num">📚</div><h2>Official Git learning resources</h2></div>
+<div class="src"><span class="tag add">Official documentation</span><ul>
+<li><a href="https://learn.microsoft.com/en-us/sql/tools/sql-database-projects/sql-database-projects">SQL database projects overview</a></li>
+<li><a href="https://learn.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage">SqlPackage</a> · <a href="https://learn.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage-publish">SqlPackage Publish</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/connect-github-actions-sql-db">Azure SQL — CI/CD with GitHub Actions</a> · <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/sql-azure-dacpac-deployment-v1">Azure SQL Database deployment task</a></li>
+<li><a href="https://documentation.red-gate.com/fd">Flyway documentation</a></li>
+</ul></div><div class="src"><span class="tag ">Source S32 · Chapter manual</span><ul><li><a href="https://learn.microsoft.com/en-us/sql/tools/sql-database-projects/sql-database-projects" rel="noopener" target="_blank">SQL Database Projects</a></li><li><a href="https://learn.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage" rel="noopener" target="_blank">SqlPackage</a></li><li><a href="https://git-scm.com/docs" rel="noopener" target="_blank">Git docs</a></li></ul><p>Cloud platform capabilities and user interfaces evolve. Verify current documentation and organization policies before production implementation.</p></div>
+</section>
+
+
+</div>
+<style>.module-nav{display:flex;align-items:stretch;gap:14px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--rule)}.module-nav-link{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:16px 20px;border:1px solid var(--rule);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--panel-2);transition:border-color .15s,background .15s}.module-nav-link:hover{border-color:var(--accent);background:var(--panel)}.module-nav-link.disabled{opacity:.35;pointer-events:none}.module-nav-link .mn-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}.module-nav-link .mn-title{font-size:14.5px;font-weight:600;color:var(--ink)}.module-nav-link.next{text-align:right;align-items:flex-end}.module-nav-link.home{flex:0 0 auto;align-items:center;justify-content:center;text-align:center;min-width:130px;color:var(--accent);font-weight:600}@media (max-width:700px){.module-nav{flex-wrap:wrap}.module-nav-link{flex:1 1 100%}}</style>
+<nav class="module-nav"><a class="module-nav-link prev" href="Chapter_30_Git_with_Azure_DevOps.html"><span class="mn-label">← Previous</span><span class="mn-title">Git with Azure DevOps</span></a><a class="module-nav-link home" href="index.html">☰<br>Course Home</a><a class="module-nav-link next" href="Chapter_32_Git_for_Python_Development.html"><span class="mn-label">Next →</span><span class="mn-title">Git for Python Development</span></a></nav></main></div><script>document.getElementById("navToggle").addEventListener("click",()=>document.getElementById("sidebar").classList.toggle("open"));</script><div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161922;color:#e6e9ef;padding:16px 20px;font-size:14px;z-index:9999;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;border-top:1px solid #2a2f3a">
+  <span>This site uses cookies for basic traffic analytics.</span>
+  <button onclick="acceptCookies()" style="background:#5eb1ff;color:#0f1115;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600">Accept</button>
+</div>
+<script>
+  if (!localStorage.getItem('cookie-consent')) {
+    document.getElementById('cookie-banner').style.display = 'flex';
+  }
+  function acceptCookies(){
+    localStorage.setItem('cookie-consent', 'accepted');
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script><script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.mcq').forEach(function(q){q.querySelectorAll('li').forEach(function(li){li.addEventListener('click',function(){
+    if(q.classList.contains('answered'))return;q.classList.add('answered');
+    q.querySelectorAll('li').forEach(function(x){if(x.dataset.ok==='1')x.classList.add('right')});
+    if(li.dataset.ok!=='1')li.classList.add('wrong');});});});
+  document.querySelectorAll('main pre').forEach(function(pre){var b=document.createElement('button');b.className='copy';b.type='button';b.textContent='Copy';
+    b.addEventListener('click',function(){var t=(pre.querySelector('code')||pre).innerText.replace(/^Copy/,'');
+      var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1200)};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,done)}else{done()}});pre.prepend(b);});
+  document.querySelectorAll('.roadmap-tabs').forEach(function(t){t.querySelectorAll('button').forEach(function(btn){btn.addEventListener('click',function(){
+    t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===btn)});
+    document.querySelectorAll('.plan').forEach(function(p){p.style.display=p.id===btn.dataset.plan?'':'none'});});});});
+});
+</script>
+</body></html>
